@@ -40,6 +40,12 @@ let eleminst_ty : String = "(T_ref, List[V_ref])"
 /// relation's `<rel>_rules` / `<rel>_induct` / `<rel>_cases`.
 pub fn thm(name : String) -> @kernel.Thm {
   load()
+  if thms.get(name) is None && !props_loaded.val {
+    // the facts about reduction are proved on first use
+    props() catch {
+      e => abort("wasmcert/wasm: " + e.to_string())
+    }
+  }
   match thms.get(name) {
     Some(th) => th
     None => abort("wasmcert/wasm: no theorem " + name)

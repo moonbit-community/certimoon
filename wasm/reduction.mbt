@@ -80,7 +80,8 @@ fn define_reduce_simple() -> Unit raise {
 }
 
 ///|
-fn define_reduce() -> Unit raise {
+/// The rules of reduce, in order (props.mbt reuses them for reduce_base).
+fn reduce_rule_texts() -> Array[String] {
   let vs = "MAP(v_to_e, vs)"
   // the current memory: smem_ind (f_inst f) = Some j; (mems s)!j = m
   let mem = "smem_ind(f_inst(f)) == SOME(j) && EL(j, s_mems(s)) == m"
@@ -102,10 +103,7 @@ fn define_reduce() -> Unit raise {
   // bound to anything, and bind nrsc while testing nsrc, which is then
   // unconstrained.
   let tcopy_pre = "stab_ind(f_inst(f), x) == SOME(tax) && EL(tax, s_tabs(s)) == tabx && stab_ind(f_inst(f), y) == SOME(tay) && EL(ty, s_tabs(s)) == taby && ndest == val(dest) && nrsc == val(src) && nn == val(n)"
-  inductive(
-    "reduce",
-    [("reduce", "(Wstore, Wframe, List[Einstr], Wstore, Wframe, List[Einstr]) -> Bool")],
-    [
+  [
       // lifting basic reduction
       "reduce_simple(e, e') → reduce(s, f, e, s, f, e')",
       // calls
@@ -186,8 +184,15 @@ fn define_reduce() -> Unit raise {
       // elem.drop and data.drop
       "a == EL(x, inst_elems(f_inst(f))) → reduce(s, f, [Basic(Elem_drop(x))], s_elems_update(list_update(s_elems(s), a, (FST(EL(a, s_elems(s))), NIL)), s), f, NIL)",
       "a == EL(x, inst_datas(f_inst(f))) → reduce(s, f, [Basic(Data_drop(x))], s_datas_update(list_update(s_datas(s), a, NIL), s), f, NIL)",
-    ],
-  )
+  ]
+}
+
+///|
+let reduce_type : String = "(Wstore, Wframe, List[Einstr], Wstore, Wframe, List[Einstr]) -> Bool"
+
+///|
+fn define_reduce() -> Unit raise {
+  inductive("reduce", [("reduce", reduce_type)], reduce_rule_texts())
 }
 
 ///|

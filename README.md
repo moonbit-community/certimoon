@@ -73,6 +73,29 @@ written out. A `computes` theorem is about one run: Wasm reduction is
 deterministic for this fragment, but the port does not prove that, so it
 does not yet rule out a trapping run. `wasm/eval_test.mbt` has examples.
 
+## Facts about reduction
+
+`wasm/props.mbt` proves the facts a program logic needs about `reduce`
+(on first use, or with `@wasm.props()`; read them with `@wasm.thm`):
+
+- `reduce_not_vals`, `reduce_not_trap`: values and `[Trap]` do not step.
+- `lfilled_eq`: an evaluation context is a function,
+  `Lfilled(k, lh, es, les) ⇔ k = lh_depth(lh) ∧ les = lfill(lh, es)`; so
+  `lfilled_deterministic`, and contexts compose (`lfill_compose`).
+- `reduce_decompose`: a step is a base step (`reduce_base`: every rule but
+  the context rule) inside a context.
+- `reduce_append`: a step of `es1 ++ es2`, `es1` not all values, is a step
+  of `es1` with `es2` kept, unless `es1` has a trap at the top
+  (`trap_top`).
+- `step_basic`: a step of values then one instruction is a base step of
+  that instruction with some of the values before it.
+
+`@wasm.step_cases(s, f, es)`, for `es` values then one basic instruction,
+proves what it can step to: `∀ s' f' es'. reduce(s, f, es, s', f', es') →
+D`, with the side conditions of each case computed as far as they go (for
+`10 / 2`, `s' = s ∧ f' = f ∧ es' = [5]`). The tests check, for each
+instruction the evaluator covers, that its step is the only one.
+
 ## Tests
 
 `moon test` in a workspace tests every member, hol_light included, so
