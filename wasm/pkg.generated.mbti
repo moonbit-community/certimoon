@@ -10,6 +10,10 @@ pub fn load() -> Unit
 
 pub fn names() -> Array[String]
 
+pub fn outcome(@kernel.Term, max_steps? : Int32) -> @kernel.Thm raise
+
+pub fn run(@kernel.Term, max_steps? : Int32) -> @kernel.Thm raise
+
 pub fn thm(String) -> @kernel.Thm
 
 // Errors

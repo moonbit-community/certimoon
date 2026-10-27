@@ -78,7 +78,13 @@ fn def(name : String, s : String) -> Unit raise {
     e => raise Failure("wasmcert/wasm: defining " + name + ": " + e.to_string())
   }
   record(name, th)
+  def_thms.push(th)
 }
+
+///|
+/// Every definition made by `def`, in order: the evaluator computes with
+/// them.
+let def_thms : Array[@kernel.Thm] = []
 
 ///|
 /// Inductive relations `rels` (name, type in the term syntax), one rule
