@@ -114,15 +114,48 @@ fn inductive(
 }
 
 ///|
-/// A datatype from HOL's `define_type` specification (the one place the
-/// port writes HOL's own type syntax), recorded as `name_induct` and
+/// A datatype: HOL type `name` with constructors `(ctor, argument types)`,
+/// the types in the term syntax. The type refers to itself by its
+/// capitalised name (`List[B_e]` in `b_e`). Recorded as `name_induct` and
 /// `name_recursion`.
-fn datatype(name : String, spec : String) -> Unit raise {
+fn datatype(name : String, ctors : Array[(String, Array[String])]) -> Unit raise {
+  let fail = (msg : String) => Failure(
+    "wasmcert/wasm: datatype " + name + ": " + msg,
+  )
+  // An unknown type name reads as a type variable: the only one allowed is
+  // the type itself, which HOL's specification syntax writes as `name`.
+  let self = name.to_array()[0].to_string().to_upper() +
+    String::from_array(name.to_array()[1:])
+  let rename = @list.List([
+    (@kernel.mk_vartype(name), @kernel.mk_vartype(self)),
+  ])
+  let alts = []
+  for c in ctors {
+    let mut alt = c.0
+    for s in c.1 {
+      let t = ty(s) catch { e => raise fail(c.0 + ": " + e.to_string()) }
+      for v in @kernel.tyvars(t) {
+        if !(v is Tyvar(n) && n == self) {
+          raise fail(c.0 + ": unknown type in " + s)
+        }
+      }
+      alt += " (" + @printer.string_of_type(@kernel.type_subst(rename, t)) + ")"
+    }
+    alts.push(alt)
+  }
+  // HOL's define_type reads a specification in its own syntax
+  let spec = name + " = " + alts.join(" | ")
   let (induct, recursion) = @ind_types.define_type(spec) catch {
-    e => raise Failure("wasmcert/wasm: datatype " + name + ": " + e.to_string())
+    e => raise fail(e.to_string())
   }
   record(name + "_induct", induct)
   record(name + "_recursion", recursion)
+}
+
+///|
+/// A datatype whose constructors take no arguments.
+fn enum_type(name : String, ctors : Array[String]) -> Unit raise {
+  datatype(name, ctors.map(c => (c, [])))
 }
 
 ///|
@@ -134,15 +167,15 @@ fn constant(name : String, t : String) -> Unit raise {
 
 ///|
 /// An Isabelle record as a one-constructor datatype: `ctor` takes the
-/// fields in order; each field gets an accessor `field(r)` and an update
+/// fields (with types in the term syntax) in order; each field gets an
+/// accessor `field(r)` and an update
 /// `field_update(x, r)` (Isabelle's `r⦇field := x⦈`).
 fn record_type(
   name : String,
   ctor : String,
   fields : Array[(String, String)],
 ) -> Unit raise {
-  let spec = name + " = " + ctor + " " + fields.map(f => "(" + f.1 + ")").join(" ")
-  datatype(name, spec)
+  datatype(name, [(ctor, fields.map(f => f.1))])
   let vars = Array::makei(fields.length(), i => "x" + (i + 1).to_string())
   let whole = ctor + "(" + vars.join(", ") + ")"
   for i, f in fields {

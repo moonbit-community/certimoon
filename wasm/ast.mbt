@@ -79,168 +79,201 @@ fn define_ast() -> Unit raise {
   for name in ["unop_vec", "binop_vec", "ternop_vec", "testop_vec", "shiftop_vec"] {
     @kernel.new_type(name, 0L)
   }
-  record_type("limit_t", "Limit_t", [("l_min", "num"), ("l_max", "num option")])
+  record_type("limit_t", "Limit_t", [("l_min", "Num"), ("l_max", "Option[Num]")])
   def("Ki64", "Ki64 == 65536")
-  datatype("host", "host = Host_func host_func | Host_ref host_ref")
-  datatype("t_num", "t_num = T_i32 | T_i64 | T_f32 | T_f64")
-  datatype("t_vec", "t_vec = T_v128")
-  datatype("t_ref", "t_ref = T_func_ref | T_ext_ref")
-  datatype(
-    "valtype",
-    "valtype = T_num t_num | T_vec t_vec | T_ref t_ref | T_bot",
-  )
-  datatype("tp_num", "tp_num = Tp_i8 | Tp_i16 | Tp_i32")
-  datatype("tp_vec", "tp_vec = Tp_v8_8 | Tp_v16_4 | Tp_v32_2")
-  datatype("mut", "mut = T_immut | T_mut")
-  record_type("tg", "Tg", [("tg_mut", "mut"), ("tg_t", "valtype")])
+  datatype("host", [("Host_func", ["Host_func"]), ("Host_ref", ["Host_ref"])])
+  enum_type("t_num", ["T_i32", "T_i64", "T_f32", "T_f64"])
+  enum_type("t_vec", ["T_v128"])
+  enum_type("t_ref", ["T_func_ref", "T_ext_ref"])
+  datatype("valtype", [
+    ("T_num", ["T_num"]),
+    ("T_vec", ["T_vec"]),
+    ("T_ref", ["T_ref"]),
+    ("T_bot", []),
+  ])
+  enum_type("tp_num", ["Tp_i8", "Tp_i16", "Tp_i32"])
+  enum_type("tp_vec", ["Tp_v8_8", "Tp_v16_4", "Tp_v32_2"])
+  enum_type("mut", ["T_immut", "T_mut"])
+  record_type("tg", "Tg", [("tg_mut", "Mut"), ("tg_t", "Valtype")])
   // Isabelle: tf = Tf (dom) (ran), written t1s _> t2s
   record_type("tf", "Tf", [
-    ("tf_dom", "valtype list"),
-    ("tf_ran", "valtype list"),
+    ("tf_dom", "List[Valtype]"),
+    ("tf_ran", "List[Valtype]"),
   ])
-  datatype("tb", "tb = Tbf num | Tbv (valtype option)")
-  datatype("tab_t", "tab_t = T_tab limit_t t_ref")
+  datatype("tb", [("Tbf", ["Num"]), ("Tbv", ["Option[Valtype]"])])
+  datatype("tab_t", [("T_tab", ["Limit_t", "T_ref"])])
   def("tab_t_lim", "tab_t_lim(T_tab(lim, t)) == lim")
   def("tab_t_reftype", "tab_t_reftype(T_tab(lim, t)) == t")
   // data_t = unit, elem_t = t_ref
   record_type("t_context", "T_context", [
-    ("ctx_types", "tf list"),
-    ("ctx_func", "tf list"),
-    ("ctx_global", "tg list"),
-    ("ctx_elem", "t_ref list"),
-    ("ctx_data", "1 list"),
-    ("ctx_table", "tab_t list"),
-    ("ctx_memory", "limit_t list"),
-    ("ctx_local", "valtype list"),
-    ("ctx_label", "(valtype list) list"),
-    ("ctx_return", "(valtype list) option"),
-    ("ctx_refs", "num list"),
+    ("ctx_types", "List[Tf]"),
+    ("ctx_func", "List[Tf]"),
+    ("ctx_global", "List[Tg]"),
+    ("ctx_elem", "List[T_ref]"),
+    ("ctx_data", "List[Unit]"),
+    ("ctx_table", "List[Tab_t]"),
+    ("ctx_memory", "List[Limit_t]"),
+    ("ctx_local", "List[Valtype]"),
+    ("ctx_label", "List[List[Valtype]]"),
+    ("ctx_return", "Option[List[Valtype]]"),
+    ("ctx_refs", "List[Num]"),
   ])
-  datatype(
-    "v_num",
-    "v_num = ConstInt32 (32 word) | ConstInt64 (64 word) | ConstFloat32 f32 | ConstFloat64 f64",
-  )
-  datatype(
-    "v_ref",
-    "v_ref = ConstNull t_ref | ConstRefFunc num | ConstRefExtern host",
-  )
-  datatype("v_vec", "v_vec = ConstVec128 v128")
-  datatype("value", "value = V_num v_num | V_vec v_vec | V_ref v_ref")
-  datatype("sx", "sx = S | U")
-  datatype("sat", "sat = Sat | Nonsat")
-  datatype("unop_i", "unop_i = Clz | Ctz | Popcnt")
-  datatype(
-    "unop_f",
-    "unop_f = Neg | Abs | Ceil | Floor | Trunc | Nearest | Sqrt",
-  )
-  datatype(
-    "unop",
-    "unop = Unop_i unop_i | Unop_f unop_f | Extend_s tp_num",
-  )
-  datatype(
-    "binop_i",
-    "binop_i = Add | Sub | Mul | Div sx | Rem sx | And | Or | Xor | Shl | Shr sx | Rotl | Rotr",
-  )
-  datatype(
-    "binop_f",
-    "binop_f = Addf | Subf | Mulf | Divf | Min | Max | Copysign",
-  )
-  datatype("binop", "binop = Binop_i binop_i | Binop_f binop_f")
-  datatype("testop", "testop = Eqz")
-  datatype(
-    "relop_i",
-    "relop_i = Eq | Ne | Lt sx | Gt sx | Le sx | Ge sx",
-  )
-  datatype("relop_f", "relop_f = Eqf | Nef | Ltf | Gtf | Lef | Gef")
-  datatype("relop", "relop = Relop_i relop_i | Relop_f relop_f")
-  datatype("cvtop", "cvtop = Convert | Reinterpret")
-  datatype("shape_vec_i", "shape_vec_i = I8_16 | I16_8 | I32_4 | I64_2")
-  datatype("shape_vec_f", "shape_vec_f = F32_4 | F64_2")
-  datatype(
-    "shape_vec",
-    "shape_vec = Svi shape_vec_i | Svf shape_vec_f",
-  )
-  datatype(
-    "loadop_vec",
-    "loadop_vec = Load_128 | Load_packed_vec tp_vec sx | Load_32_zero | Load_64_zero | Load_splat shape_vec_i",
-  )
-  datatype(
-    "storeop_vec",
-    "storeop_vec = Store_128 | Store_lane shape_vec_i num",
-  )
+  datatype("v_num", [
+    ("ConstInt32", ["\{w32}"]),
+    ("ConstInt64", ["\{w64}"]),
+    ("ConstFloat32", ["F32"]),
+    ("ConstFloat64", ["F64"]),
+  ])
+  datatype("v_ref", [
+    ("ConstNull", ["T_ref"]),
+    ("ConstRefFunc", ["Num"]),
+    ("ConstRefExtern", ["Host"]),
+  ])
+  datatype("v_vec", [("ConstVec128", ["V128"])])
+  datatype("value", [
+    ("V_num", ["V_num"]),
+    ("V_vec", ["V_vec"]),
+    ("V_ref", ["V_ref"]),
+  ])
+  enum_type("sx", ["S", "U"])
+  enum_type("sat", ["Sat", "Nonsat"])
+  enum_type("unop_i", ["Clz", "Ctz", "Popcnt"])
+  enum_type("unop_f", [
+    "Neg",
+    "Abs",
+    "Ceil",
+    "Floor",
+    "Trunc",
+    "Nearest",
+    "Sqrt",
+  ])
+  datatype("unop", [
+    ("Unop_i", ["Unop_i"]),
+    ("Unop_f", ["Unop_f"]),
+    ("Extend_s", ["Tp_num"]),
+  ])
+  datatype("binop_i", [
+    ("Add", []),
+    ("Sub", []),
+    ("Mul", []),
+    ("Div", ["Sx"]),
+    ("Rem", ["Sx"]),
+    ("And", []),
+    ("Or", []),
+    ("Xor", []),
+    ("Shl", []),
+    ("Shr", ["Sx"]),
+    ("Rotl", []),
+    ("Rotr", []),
+  ])
+  enum_type("binop_f", [
+    "Addf",
+    "Subf",
+    "Mulf",
+    "Divf",
+    "Min",
+    "Max",
+    "Copysign",
+  ])
+  datatype("binop", [("Binop_i", ["Binop_i"]), ("Binop_f", ["Binop_f"])])
+  enum_type("testop", ["Eqz"])
+  datatype("relop_i", [
+    ("Eq", []),
+    ("Ne", []),
+    ("Lt", ["Sx"]),
+    ("Gt", ["Sx"]),
+    ("Le", ["Sx"]),
+    ("Ge", ["Sx"]),
+  ])
+  enum_type("relop_f", ["Eqf", "Nef", "Ltf", "Gtf", "Lef", "Gef"])
+  datatype("relop", [("Relop_i", ["Relop_i"]), ("Relop_f", ["Relop_f"])])
+  enum_type("cvtop", ["Convert", "Reinterpret"])
+  enum_type("shape_vec_i", ["I8_16", "I16_8", "I32_4", "I64_2"])
+  enum_type("shape_vec_f", ["F32_4", "F64_2"])
+  datatype("shape_vec", [("Svi", ["Shape_vec_i"]), ("Svf", ["Shape_vec_f"])])
+  datatype("loadop_vec", [
+    ("Load_128", []),
+    ("Load_packed_vec", ["Tp_vec", "Sx"]),
+    ("Load_32_zero", []),
+    ("Load_64_zero", []),
+    ("Load_splat", ["Shape_vec_i"]),
+  ])
+  datatype("storeop_vec", [
+    ("Store_128", []),
+    ("Store_lane", ["Shape_vec_i", "Num"]),
+  ])
   // basic instructions (i, a, off are num)
-  datatype(
-    "b_e",
-    "b_e = Unreachable" +
-    " | Nop" +
-    " | Drop" +
-    " | Select (valtype option)" +
-    " | Block tb (b_e list)" +
-    " | Loop tb (b_e list)" +
-    " | If tb (b_e list) (b_e list)" +
-    " | Br num" +
-    " | Br_if num" +
-    " | Br_table (num list) num" +
-    " | Return" +
-    " | Call num" +
-    " | Call_indirect num num" +
-    " | Local_get num" +
-    " | Local_set num" +
-    " | Local_tee num" +
-    " | Global_get num" +
-    " | Global_set num" +
-    " | Table_get num" +
-    " | Table_set num" +
-    " | Table_size num" +
-    " | Table_grow num" +
-    " | Load t_num ((tp_num # sx) option) num num" +
-    " | Store t_num (tp_num option) num num" +
-    " | Load_vec loadop_vec num num" +
-    " | Load_lane_vec shape_vec_i num num num" +
-    " | Store_vec storeop_vec num num" +
-    " | Memory_size" +
-    " | Memory_grow" +
-    " | Memory_init num" +
-    " | Memory_fill" +
-    " | Memory_copy" +
-    " | Table_init num num" +
-    " | Table_copy num num" +
-    " | Table_fill num" +
-    " | Elem_drop num" +
-    " | Data_drop num" +
-    " | EConstNum v_num" +
-    " | EConstVec v_vec" +
-    " | Unop t_num unop" +
-    " | Binop t_num binop" +
-    " | Testop t_num testop" +
-    " | Relop t_num relop" +
-    " | Cvtop t_num cvtop t_num ((sat # sx) option)" +
-    " | Ref_null t_ref" +
-    " | Ref_is_null" +
-    " | Ref_func num" +
-    " | Unop_vec unop_vec" +
-    " | Binop_vec binop_vec" +
-    " | Ternop_vec ternop_vec" +
-    " | Test_vec testop_vec" +
-    " | Shift_vec shiftop_vec" +
-    " | Splat_vec shape_vec" +
-    " | Extract_vec shape_vec sx num" +
-    " | Replace_vec shape_vec num",
-  )
+  datatype("b_e", [
+    ("Unreachable", []),
+    ("Nop", []),
+    ("Drop", []),
+    ("Select", ["Option[Valtype]"]),
+    ("Block", ["Tb", "List[B_e]"]),
+    ("Loop", ["Tb", "List[B_e]"]),
+    ("If", ["Tb", "List[B_e]", "List[B_e]"]),
+    ("Br", ["Num"]),
+    ("Br_if", ["Num"]),
+    ("Br_table", ["List[Num]", "Num"]),
+    ("Return", []),
+    ("Call", ["Num"]),
+    ("Call_indirect", ["Num", "Num"]),
+    ("Local_get", ["Num"]),
+    ("Local_set", ["Num"]),
+    ("Local_tee", ["Num"]),
+    ("Global_get", ["Num"]),
+    ("Global_set", ["Num"]),
+    ("Table_get", ["Num"]),
+    ("Table_set", ["Num"]),
+    ("Table_size", ["Num"]),
+    ("Table_grow", ["Num"]),
+    ("Load", ["T_num", "Option[(Tp_num, Sx)]", "Num", "Num"]),
+    ("Store", ["T_num", "Option[Tp_num]", "Num", "Num"]),
+    ("Load_vec", ["Loadop_vec", "Num", "Num"]),
+    ("Load_lane_vec", ["Shape_vec_i", "Num", "Num", "Num"]),
+    ("Store_vec", ["Storeop_vec", "Num", "Num"]),
+    ("Memory_size", []),
+    ("Memory_grow", []),
+    ("Memory_init", ["Num"]),
+    ("Memory_fill", []),
+    ("Memory_copy", []),
+    ("Table_init", ["Num", "Num"]),
+    ("Table_copy", ["Num", "Num"]),
+    ("Table_fill", ["Num"]),
+    ("Elem_drop", ["Num"]),
+    ("Data_drop", ["Num"]),
+    ("EConstNum", ["V_num"]),
+    ("EConstVec", ["V_vec"]),
+    ("Unop", ["T_num", "Unop"]),
+    ("Binop", ["T_num", "Binop"]),
+    ("Testop", ["T_num", "Testop"]),
+    ("Relop", ["T_num", "Relop"]),
+    ("Cvtop", ["T_num", "Cvtop", "T_num", "Option[(Sat, Sx)]"]),
+    ("Ref_null", ["T_ref"]),
+    ("Ref_is_null", []),
+    ("Ref_func", ["Num"]),
+    ("Unop_vec", ["Unop_vec"]),
+    ("Binop_vec", ["Binop_vec"]),
+    ("Ternop_vec", ["Ternop_vec"]),
+    ("Test_vec", ["Testop_vec"]),
+    ("Shift_vec", ["Shiftop_vec"]),
+    ("Splat_vec", ["Shape_vec"]),
+    ("Extract_vec", ["Shape_vec", "Sx", "Num"]),
+    ("Replace_vec", ["Shape_vec", "Num"]),
+  ])
   record_type("inst", "Inst", [
-    ("inst_types", "tf list"),
-    ("inst_funcs", "num list"),
-    ("inst_tabs", "num list"),
-    ("inst_mems", "num list"),
-    ("inst_globs", "num list"),
-    ("inst_elems", "num list"),
-    ("inst_datas", "num list"),
+    ("inst_types", "List[Tf]"),
+    ("inst_funcs", "List[Num]"),
+    ("inst_tabs", "List[Num]"),
+    ("inst_mems", "List[Num]"),
+    ("inst_globs", "List[Num]"),
+    ("inst_elems", "List[Num]"),
+    ("inst_datas", "List[Num]"),
   ])
   // function closures
-  datatype(
-    "cl",
-    "cl = Func_native inst tf (valtype list) (b_e list) | Func_host tf host",
-  )
+  datatype("cl", [
+    ("Func_native", ["Inst", "Tf", "List[Valtype]", "List[B_e]"]),
+    ("Func_host", ["Tf", "Host"]),
+  ])
   // tabinst = tab_t * v_ref list; eleminst = elem_t * v_ref list;
   // datainst = bytes
   def("tab_size", "tab_size((t : \{tabinst_ty})) == LENGTH(SND(t))")
@@ -252,26 +285,30 @@ fn define_ast() -> Unit raise {
     "tab_reftype",
     "tab_reftype((t : \{tabinst_ty})) == tab_t_reftype(FST(t))",
   )
-  record_type("global", "Global", [("g_mut", "mut"), ("g_val", "value")])
+  record_type("global", "Global", [("g_mut", "Mut"), ("g_val", "Value")])
   record_type("wstore", "Wstore", [
-    ("s_funcs", "cl list"),
-    ("s_tabs", "(tab_t # v_ref list) list"),
-    ("s_mems", "(limit_t # (8 word) list) list"),
-    ("s_globs", "global list"),
-    ("s_elems", "(t_ref # v_ref list) list"),
-    ("s_datas", "((8 word) list) list"),
+    ("s_funcs", "List[Cl]"),
+    ("s_tabs", "List[\{tabinst_ty}]"),
+    ("s_mems", "List[\{mem_ty}]"),
+    ("s_globs", "List[Global]"),
+    ("s_elems", "List[\{eleminst_ty}]"),
+    ("s_datas", "List[\{bytes}]"),
   ])
-  record_type("wframe", "Wframe", [("f_locs", "value list"), ("f_inst", "inst")])
+  record_type("wframe", "Wframe", [("f_locs", "List[Value]"), ("f_inst", "Inst")])
   // administrative instructions (Isabelle writes Basic b as $b)
-  datatype(
-    "einstr",
-    "einstr = Basic b_e | Trap | Invoke num | Label num (einstr list) (einstr list) | Frame num wframe (einstr list) | Ref v_ref",
-  )
+  datatype("einstr", [
+    ("Basic", ["B_e"]),
+    ("Trap", []),
+    ("Invoke", ["Num"]),
+    ("Label", ["Num", "List[Einstr]", "List[Einstr]"]),
+    ("Frame", ["Num", "Wframe", "List[Einstr]"]),
+    ("Ref", ["V_ref"]),
+  ])
   // L0 = v* [<hole>] e*; L(i+1) = v* (label n {e*} Li) e*
-  datatype(
-    "lholed",
-    "lholed = LBase (value list) (einstr list) | LRec (value list) num (einstr list) lholed (einstr list)",
-  )
+  datatype("lholed", [
+    ("LBase", ["List[Value]", "List[Einstr]"]),
+    ("LRec", ["List[Value]", "Num", "List[Einstr]", "Lholed", "List[Einstr]"]),
+  ])
 }
 
 ///|
