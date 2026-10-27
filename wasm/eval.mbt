@@ -195,23 +195,13 @@ fn head_args(t : @kernel.Term) -> (String, Array[@kernel.Term]) {
 }
 
 ///|
-fn app(f : String, args : Array[@kernel.Term]) -> @kernel.Term raise {
-  @basics.list_mk_comb(tm(f), @list.List(args))
-}
-
-///|
 fn einstr_list(items : ArrayView[@kernel.Term]) -> @kernel.Term raise {
-  @lists.mk_list(@list.List(items.iter().collect()), ty("Einstr"))
+  @lists.mk_list(@list.List(items.iter().collect()), hol_type("einstr"))
 }
 
 ///|
 fn value_list(items : ArrayView[@kernel.Term]) -> @kernel.Term raise {
-  @lists.mk_list(@list.List(items.iter().collect()), ty("Value"))
-}
-
-///|
-fn numeral(n : Int) -> @kernel.Term raise {
-  @nums.mk_small_numeral(n.to_int64())
+  @lists.mk_list(@list.List(items.iter().collect()), hol_type("value"))
 }
 
 ///|
@@ -220,11 +210,11 @@ fn as_value(e : @kernel.Term) -> @kernel.Term? raise {
   match head_args(e) {
     ("Basic", [b]) =>
       match head_args(b) {
-        ("EConstNum", [x]) => Some(app("V_num", [x]))
-        ("EConstVec", [x]) => Some(app("V_vec", [x]))
+        ("EConstNum", [x]) => Some(call("V_num", [x]))
+        ("EConstVec", [x]) => Some(call("V_vec", [x]))
         _ => None
       }
-    ("Ref", [r]) => Some(app("V_ref", [r]))
+    ("Ref", [r]) => Some(call("V_ref", [r]))
     _ => None
   }
 }
@@ -380,7 +370,7 @@ fn lfilled_base(
   es : @kernel.Term,
 ) -> @kernel.Thm raise {
   let vs = value_list(vals[:])
-  let lb = app("LBase", [vs, rest])
+  let lb = call("LBase", [vs, rest])
   apply_rule("lbase", [("lholed", lb), ("vs", vs), ("es'", rest), ("es", es)], given=[
     @kernel.refl(lb),
   ])
@@ -399,7 +389,7 @@ fn lfilled_rec(
   let (_, a) = head_args(@kernel.concl(inner))
   guard a is [k, l, es, lk] else { raise Failure("wasmcert/wasm eval: lfilled_rec") }
   let vs = value_list(vals[:])
-  let lr = app("LRec", [vs, n, es0, l, rest])
+  let lr = call("LRec", [vs, n, es0, l, rest])
   apply_rule(
     "lrec",
     [
@@ -557,7 +547,7 @@ fn step(
               [
                 ("vs", value_list(used[:])),
                 ("n", n),
-                ("i", numeral(i)),
+                ("i", small_num(i)),
                 ("lholed", lholed),
                 ("LI", li),
                 ("es", es0),
@@ -627,7 +617,7 @@ fn basic_step(
     ("Binop", [t, op]) => {
       let v = take(2)
       let (c1, c2) = (num(v[0]), num(v[1]))
-      match head_args(value(app("app_binop", [op, c1, c2]))) {
+      match head_args(value(call("app_binop", [op, c1, c2]))) {
         ("SOME", [c]) =>
           (2, apply_rule("binop_some", [("op", op), ("v1", c1), ("v2", c2), ("v", c), ("t", t)]))
         ("NONE", []) =>
@@ -649,7 +639,7 @@ fn basic_step(
       if head_args(cv).0 == "Reinterpret" {
         (1, apply_rule("reinterpret", common))
       } else {
-        match head_args(value(app("cvt", [t2, sat_sx, c]))) {
+        match head_args(value(call("cvt", [t2, sat_sx, c]))) {
           ("SOME", [c2]) =>
             (1, apply_rule("cvt_some", common + [("sat_sx", sat_sx), ("v'", c2)]))
           ("NONE", []) => (1, apply_rule("cvt_none", common + [("sat_sx", sat_sx)]))
@@ -705,7 +695,7 @@ fn basic_step(
         ]),
       )
     ("Block" | "Loop", [tb, body]) => {
-      guard head_args(value(app("tb_tf", [app("f_inst", [f]), tb]))) is ("Tf", [t1s, t2s]) else {
+      guard head_args(value(call("tb_tf", [call("f_inst", [f]), tb]))) is ("Tf", [t1s, t2s]) else {
         raise Stuck("cannot compute the type of " + show_term(b))
       }
       let n = @basics.dest_list(t1s).length()
@@ -715,12 +705,12 @@ fn basic_step(
         n,
         apply_rule(key, [
           ("vs", value_list(take(n)[:])),
-          ("n", numeral(n)),
+          ("n", small_num(n)),
           ("tb", tb),
           ("es", body),
           ("t1s", t1s),
           ("t2s", t2s),
-          ("m", numeral(m)),
+          ("m", small_num(m)),
           ("s", s),
           ("f", f),
         ]),
@@ -814,7 +804,7 @@ pub fn outcome(cfg : @kernel.Term, max_steps? : Int = 10000) -> @kernel.Thm rais
     // the value stack lists the top first
     let vs = values_of(items[:])
     vs.rev_in_place()
-    let goal = app("computes", [cfg, s2, value_list(vs[:])])
+    let goal = call("computes", [cfg, s2, value_list(vs[:])])
     let defs = @list.List([thm("v_stack_to_es"), @lists.reverse(), @lists.append()])
     @tactics.prove(
       goal,
@@ -839,7 +829,7 @@ pub fn outcome(cfg : @kernel.Term, max_steps? : Int = 10000) -> @kernel.Thm rais
     )
   } else {
     @tactics.prove(
-      app("traps", [cfg, s2]),
+      call("traps", [cfg, s2]),
       @tactics.then_tac(
         @simp.pure_rewrite_tac(@list.List([thm("traps")])),
         @tactics.then_tac(@tactics.exists_tac(f2), @tactics.accept_tac(th)),

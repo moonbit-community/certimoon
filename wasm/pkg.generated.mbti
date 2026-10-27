@@ -6,6 +6,10 @@ import {
 }
 
 // Values
+pub fn computes_stmt(@kernel.Term, Array[Value]) -> @kernel.Term raise
+
+pub fn config(Array[Instr], locals? : Array[Value], store? : @kernel.Term, inst? : @kernel.Term) -> @kernel.Term raise
+
 pub fn load() -> Unit
 
 pub fn names() -> Array[String]
@@ -16,9 +20,94 @@ pub fn run(@kernel.Term, max_steps? : Int32) -> @kernel.Thm raise
 
 pub fn thm(String) -> @kernel.Thm
 
+pub fn traps_stmt(@kernel.Term) -> @kernel.Term raise
+
 // Errors
 
 // Types and methods
+pub(all) enum BlockType {
+  NoResult
+  Result(NumType)
+  TypeIndex(Int32)
+}
+
+pub(all) enum Instr {
+  I32Const(UInt32)
+  I64Const(UInt64)
+  Unop(NumType, IntUnop)
+  Binop(NumType, IntBinop)
+  Eqz(NumType)
+  Relop(NumType, IntRelop)
+  I32WrapI64
+  I64ExtendI32(Signedness)
+  RefNull(RefType)
+  RefIsNull
+  Unreachable
+  Nop
+  Drop
+  Select
+  Block(BlockType, Array[Instr])
+  Loop(BlockType, Array[Instr])
+  If(BlockType, Array[Instr], Array[Instr])
+  Br(Int32)
+  BrIf(Int32)
+  BrTable(Array[Int32], Int32)
+  LocalGet(Int32)
+  LocalSet(Int32)
+  LocalTee(Int32)
+}
+pub fn Instr::to_term(Self) -> @kernel.Term raise
+
+pub(all) enum IntBinop {
+  Add
+  Sub
+  Mul
+  Div(Signedness)
+  Rem(Signedness)
+  And
+  Or
+  Xor
+  Shl
+  Shr(Signedness)
+  Rotl
+  Rotr
+}
+
+pub(all) enum IntRelop {
+  Equal
+  NotEqual
+  Less(Signedness)
+  Greater(Signedness)
+  LessEq(Signedness)
+  GreaterEq(Signedness)
+}
+
+pub(all) enum IntUnop {
+  Clz
+  Ctz
+  Popcnt
+}
+
+pub(all) enum NumType {
+  I32
+  I64
+}
+
+pub(all) enum RefType {
+  FuncRef
+  ExternRef
+}
+
+pub(all) enum Signedness {
+  Signed
+  Unsigned
+}
+
+pub(all) enum Value {
+  I32Val(UInt32)
+  I64Val(UInt64)
+}
+pub fn Value::to_term(Self) -> @kernel.Term raise
 
 // Type aliases
 

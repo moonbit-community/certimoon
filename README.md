@@ -44,24 +44,34 @@ let rules = @wasm.thm("reduce_rules") // also b_e_typing_rules, typeof_num, ...
 
 `run` executes a configuration `(s, f, es)` and proves each step from the
 reduction rules; `outcome` states the result as `computes` (the run ends in
-values) or `traps`:
+values) or `traps`. Programs are written with the builder (`Instr`,
+`Value`, `config`), which makes the HOL terms through the kernel:
 
 ```moonbit
-let cfg = @term_syntax.parse_term(
-  "((s : Wstore), Wframe(NIL, (i : Inst)), [Basic(EConstNum(ConstInt32(word(10)))), Basic(EConstNum(ConstInt32(word(2)))), Basic(Binop(T_i32, Binop_i(Div(S))))])",
-)
-@wasm.outcome(cfg)
-// ⊢ computes(cfg, s, [V_num(ConstInt32(word(5)))])
+let cfg = @wasm.config([
+  I32Const(10), I32Const(2), Binop(I32, Div(Signed)),
+])
+let th = @wasm.outcome(cfg)
+// th: ⊢ computes(cfg, s, [V_num(ConstInt32(word(5)))])
+@basics.aconv(@kernel.concl(th), @wasm.computes_stmt(cfg, [I32Val(5)])) // true
 ```
 
-It covers numeric instructions, `ref.null`/`ref.is_null`, `unreachable`,
-`nop`, `drop`, `select`, `block`, `loop`, `if`, `br`, `br_if`, `br_table`,
-`local.get/set/tee` and traps; calls, globals, memory and tables raise "no
-rule for". The instruction list must be written out, and the locals too
-when the program uses them (`Wframe([...], inst)`); the store and instance
-can stay variables. A `computes` theorem is about one run: Wasm reduction
-is deterministic for this fragment, but the port does not prove that, so
-it does not yet rule out a trapping run. `wasm/eval_test.mbt` has examples.
+`config` runs the instructions in any store `s` and instance `i` (it
+takes `locals~`, and `store~`/`inst~` to fix them), so the theorem holds
+for all of them. `computes_stmt` and `traps_stmt` state an expected
+result to compare with.
+
+The evaluator covers integer instructions (const, unary, binary, `eqz`,
+comparisons, `i32.wrap_i64`, `i64.extend_i32_s/u`), `ref.null`,
+`ref.is_null`, `unreachable`, `nop`, `drop`, `select`, `block`, `loop`,
+`if`, `br`, `br_if`, `br_table`, `local.get/set/tee` and traps; these are
+the builder's instructions. Floating point (left unspecified, as in
+Isabelle), calls, globals, memory and tables are not covered: a term
+written out with them raises "no rule for". `run` also takes a term built
+any other way, when its instruction list and (for locals) frame are
+written out. A `computes` theorem is about one run: Wasm reduction is
+deterministic for this fragment, but the port does not prove that, so it
+does not yet rule out a trapping run. `wasm/eval_test.mbt` has examples.
 
 ## Tests
 
