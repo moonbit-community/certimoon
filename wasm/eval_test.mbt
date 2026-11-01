@@ -160,14 +160,127 @@ test "a loop over locals" {
 }
 
 ///|
+/// Checks that `body` computes `result` in the store `store` (with its
+/// instance), with no hypotheses.
+fn computes_in(
+  st : (@kernel.Term, @kernel.Term),
+  body : Array[@wasm.Instr],
+  result : Array[@wasm.Value],
+  locals? : Array[@wasm.Value] = [],
+) -> @kernel.Thm raise {
+  let cfg = @wasm.config(body, locals~, store=st.0, inst=st.1)
+  let th = @wasm.outcome(cfg)
+  assert_true(@kernel.hyp(th).is_empty())
+  // computes(cfg, s', vs): the values, whatever the final store
+  let (_, args) = @basics.strip_comb(@kernel.concl(th))
+  let want = @kernel.rand(@wasm.computes_stmt(cfg, result))
+  if !@basics.aconv(args.to_array()[2], want) {
+    fail("got " + @term_syntax.print_term(@kernel.concl(th)))
+  }
+  th
+}
+
+///|
+fn traps_in(st : (@kernel.Term, @kernel.Term), body : Array[@wasm.Instr]) -> Unit raise {
+  let cfg = @wasm.config(body, store=st.0, inst=st.1)
+  let th = @wasm.outcome(cfg)
+  assert_true(@kernel.hyp(th).is_empty())
+  let head = @basics.strip_comb(@kernel.concl(th)).0
+  assert_true(@kernel.dest_const(head).0 == "traps")
+}
+
+///|
+test "loads and stores" {
+  let st = @wasm.store(memory=[b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08'])
+  // little endian: bytes 1..4 at address 0
+  computes_in(st, [I32Const(0), Load(I32, 0)], [I32Val(0x04030201)]) |> ignore
+  // the offset adds to the address
+  computes_in(st, [I32Const(1), Load(I32, 3)], [I32Val(0x08070605)]) |> ignore
+  computes_in(st, [I32Const(0), Load(I64, 0)], [I64Val(0x0807060504030201)]) |> ignore
+  // packed loads extend
+  computes_in(st, [I32Const(7), LoadPacked(I32, P8, Unsigned, 0)], [I32Val(8)]) |> ignore
+  // a store, then a load of what it wrote
+  computes_in(
+    st,
+    [I32Const(2), I32Const(0xFFFF_FF80), StorePacked(I32, P8, 0), I32Const(2), LoadPacked(I32, P8, Signed, 0)],
+    [I32Val(0xFFFF_FF80)],
+  )
+  |> ignore
+  computes_in(
+    st,
+    [I32Const(4), I32Const(0xDEAD_BEEF), Store(I32, 0), I32Const(0), Load(I64, 0)],
+    [I64Val(0xDEAD_BEEF_0403_0201)],
+  )
+  |> ignore
+  // out of bounds: the last byte read would be byte 8
+  traps_in(st, [I32Const(5), Load(I32, 0)])
+  traps_in(st, [I32Const(0), I64Const(1), Store(I64, 1)])
+  // a memory of 8 bytes has 0 pages
+  computes_in(st, [MemorySize], [I32Val(0)]) |> ignore
+}
+
+///|
+test "memory.fill and memory.copy" {
+  let st = @wasm.store(memory=[b'\x01', b'\x02', b'\x03', b'\x04', b'\x00', b'\x00', b'\x00', b'\x00'])
+  computes_in(
+    st,
+    [I32Const(4), I32Const(0xAB), I32Const(3), MemoryFill, I32Const(4), Load(I32, 0)],
+    [I32Val(0x00AB_ABAB)],
+  )
+  |> ignore
+  // overlapping copy towards higher addresses copies from the top down
+  computes_in(
+    st,
+    [I32Const(1), I32Const(0), I32Const(3), MemoryCopy, I32Const(0), Load(I32, 0)],
+    [I32Val(0x0302_0101)],
+  )
+  |> ignore
+  traps_in(st, [I32Const(6), I32Const(0), I32Const(3), MemoryFill])
+}
+
+///|
+test "globals and calls" {
+  // function 0: (x, y) -> x - y; function 1: x -> f0(x, 1) via a local,
+  // and it counts its calls in global 0
+  let sub : @wasm.Func = {
+    params: [I32, I32],
+    results: [I32],
+    locals: [],
+    body: [LocalGet(0), LocalGet(1), Binop(I32, Sub)],
+  }
+  let dec : @wasm.Func = {
+    params: [I32],
+    results: [I32],
+    locals: [I32],
+    body: [
+      GlobalGet(0),
+      I32Const(1),
+      Binop(I32, Add),
+      GlobalSet(0),
+      I32Const(1),
+      LocalSet(1),
+      LocalGet(0),
+      LocalGet(1),
+      Call(0),
+      Return,
+      Unreachable,
+    ],
+  }
+  let st = @wasm.store(funcs=[sub, dec], globals=[I32Val(10)])
+  computes_in(st, [I32Const(7), I32Const(2), Call(0)], [I32Val(5)]) |> ignore
+  computes_in(st, [I32Const(7), Call(1), Call(1), GlobalGet(0)], [I32Val(5), I32Val(12)])
+  |> ignore
+}
+
+///|
 test "what the evaluator cannot run" {
-  // memory is not covered (nor in the builder: the term is written out)
+  // memory needs the store written out
   let load = run_error(
     @term_syntax.parse_term(
       "((s : Wstore), Wframe(NIL, (i : Inst)), [Basic(EConstNum(ConstInt32(word(0)))), Basic(Load(T_i32, NONE, 0, 0))])",
     ),
   )
-  assert_true(load.contains("no rule for Load(T_i32, NONE, 0, 0)"), msg=load)
+  assert_true(load.contains("no memory"), msg=load)
   // a br outside every block
   let br = run_error(@wasm.config([Br(0)]))
   assert_true(br.contains("a br leaves every block"), msg=br)

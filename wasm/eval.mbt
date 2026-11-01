@@ -12,8 +12,17 @@
 //
 // Covered: numeric instructions, references (ref.null, ref.is_null),
 // unreachable, nop, drop, select, block, loop, if, br, br_if, br_table,
-// local.get/set/tee, and traps. Calls, frames, globals, memory and tables
-// are not: they raise "no rule for".
+// local.get/set/tee, global.get/set, call (of native functions), return,
+// loads and stores (packed too), memory.size, memory.grow, memory.fill,
+// memory.copy, and traps. Indirect calls, host functions, vector
+// instructions and tables are not: they raise "no rule for". memory.grow
+// may fail in any state; the evaluator takes the step that grows when it
+// can.
+//
+// Memory is a byte list, so loads and stores compute on it element by
+// element: the evaluator suits small memories, written out (`store`). A
+// grown memory's new bytes stay REPLICATE(n, 0) until something reads
+// them.
 
 ///|
 /// The rules a step uses: (key, relation, position among the relation's
@@ -45,14 +54,40 @@ let step_rules : Array[(String, String, Int, Array[String])] = [
   ("br_if_nonzero", "reduce_simple", 31, ["Basic(Br_if(", "[Basic(Br(i))]"]),
   ("br_table_in", "reduce_simple", 32, ["Basic(Br_table(", "EL(val(c), is_)"]),
   ("br_table_out", "reduce_simple", 33, ["Basic(Br_table(", "<= val("]),
+  ("frame_values", "reduce_simple", 34, ["[Frame(", "MAP(v_to_e"]),
+  ("frame_trap", "reduce_simple", 35, ["[Frame(", "[Trap])], [Trap]"]),
+  ("return", "reduce_simple", 36, ["Basic(Return)"]),
   ("local_tee", "reduce_simple", 37, ["Basic(Local_tee("]),
   ("trap", "reduce_simple", 38, ["Lfilled(0, ", "[Trap])"]),
   ("lift", "reduce", 0, ["reduce_simple("]),
+  ("call", "reduce", 1, ["Basic(Call("]),
+  ("invoke", "reduce", 4, ["Func_native("]),
   ("local_get", "reduce", 8, ["Basic(Local_get("]),
   ("local_set", "reduce", 9, ["Basic(Local_set("]),
+  ("global_get", "reduce", 10, ["Basic(Global_get("]),
+  ("global_set", "reduce", 11, ["Basic(Global_set("]),
+  ("load_some", "reduce", 12, ["Basic(Load(", "NONE", "wasm_deserialise_num"]),
+  ("load_none", "reduce", 13, ["Basic(Load(", "NONE", "[Trap]"]),
+  ("load_packed_some", "reduce", 14, ["load_packed(", "wasm_deserialise_num"]),
+  ("load_packed_none", "reduce", 15, ["load_packed(", "[Trap]"]),
+  ("store_some", "reduce", 16, ["Basic(Store(", "store(", "s_mems_update"]),
+  ("store_none", "reduce", 17, ["Basic(Store(", "store(", "[Trap]"]),
+  ("store_packed_some", "reduce", 18, ["store_packed(", "s_mems_update"]),
+  ("store_packed_none", "reduce", 19, ["store_packed(", "[Trap]"]),
+  ("memory_size", "reduce", 26, ["Basic(Memory_size)"]),
+  ("memory_grow", "reduce", 27, ["Basic(Memory_grow)", "mem_grow("]),
+  ("memory_grow_fail", "reduce", 28, ["Basic(Memory_grow)", "int32_minus_one"]),
   ("block", "reduce", 36, ["Basic(Block("]),
   ("loop", "reduce", 37, ["Basic(Loop("]),
   ("context", "reduce", 38, ["Lfilled(k, lholed, es', "]),
+  ("frame_context", "reduce", 39, ["[Frame(", "f0"]),
+  ("copy_trap", "reduce", 43, ["Basic(Memory_copy)", "[Trap]"]),
+  ("copy_zero", "reduce", 44, ["Basic(Memory_copy)", "nn == 0", "NIL"]),
+  ("copy_up", "reduce", 45, ["Basic(Memory_copy)", "ndest <= nsrc"]),
+  ("copy_down", "reduce", 46, ["Basic(Memory_copy)", "ndest > nsrc"]),
+  ("fill_trap", "reduce", 47, ["Basic(Memory_fill)", "[Trap]"]),
+  ("fill_zero", "reduce", 48, ["Basic(Memory_fill)", "nn == 0", "NIL"]),
+  ("fill_step", "reduce", 49, ["Basic(Memory_fill)", "Basic(Store("]),
   ("lbase", "Lfilled", 0, ["LBase("]),
   ("lrec", "Lfilled", 1, ["LRec("]),
   ("trans_refl", "reduce_trans", 0, ["reduce_trans("]),
@@ -109,6 +144,10 @@ fn setup() -> Unit raise {
     @lists.cons_11(),
     @ind_types.option_distinct(),
     @ind_types.option_inj(),
+    @lists.replicate(),
+    @lists.length_replicate(),
+    @lists.last(),
+    @pair.pair_eq(),
     @words.dimindex_8(),
     @words.dimindex_16(),
     @words.dimindex_32(),
@@ -118,7 +157,10 @@ fn setup() -> Unit raise {
     ths.push(th)
   }
   // constructors a side condition compares
-  for ty_name in ["einstr", "value", "v_num", "v_ref", "t_num", "t_ref", "valtype"] {
+  for ty_name in [
+    "einstr", "value", "v_num", "v_ref", "t_num", "t_ref", "valtype", "tp_num", "sx",
+    "mut", "cl", "tf", "limit_t", "global", "inst", "wstore", "wframe",
+  ] {
     ths.push(@ind_types.distinctness(ty_name)) catch {
       _ => ()
     }
@@ -126,7 +168,63 @@ fn setup() -> Unit raise {
       _ => ()
     }
   }
-  eval_rewrite.val = Some(@simp.rewrite_conv(@list.List(ths)))
+  // One rewrite at a time, everywhere (as rewrite_conv), and numeral and
+  // word arithmetic at each subterm, so a condition is decided before
+  // the branches of its `if` grow; definitions by SUC patterns apply to
+  // numerals through suc_arg_conv.
+  let rewrite_step = @simp.general_rewrite_conv(
+    true,
+    c => c,
+    @simp.basic_net(),
+    @list.List(ths),
+  )
+  let step = @equal.first_conv(@list.List([
+    rewrite_step,
+    @equal.thenc(suc_arg_conv, rewrite_step),
+    // a branch an `if` does not take may divide by zero
+    t => @calc_num.num_red_conv(t) catch { _ => raise Failure("num_red_conv") },
+    t => @words.word_red_conv(t) catch { _ => raise Failure("word_red_conv") },
+  ]))
+  eval_rewrite.val = Some(@equal.top_depth_conv(step))
+}
+
+///|
+/// The definitions by SUC patterns: (name, number of arguments, the
+/// argument with the pattern).
+let suc_args : Array[(String, Int, Int)] = [
+  ("take", 2, 0),
+  ("drop", 2, 0),
+  ("takefill", 3, 1),
+  ("list_update", 3, 1),
+  ("le_bytes", 2, 0),
+  ("upt", 2, 1),
+  ("REPLICATE", 2, 0),
+]
+
+///|
+/// REPLICATE(n, x) is written out only for n up to this, so a grown
+/// memory's new pages stay REPLICATE(65536 * k, 0).
+let replicate_limit : Int64 = 64
+
+///|
+/// `f(.., n, ..) == f(.., SUC(n - 1), ..)` for a definition by SUC
+/// patterns applied to a numeral n > 0.
+fn suc_arg_conv(t : @kernel.Term) -> @kernel.Thm raise {
+  let (name, args) = head_args(t)
+  for e in suc_args {
+    let (fname, arity, pos) = e
+    if fname == name && args.length() == arity && @nums.is_numeral(args[pos]) {
+      let n = @nums.dest_small_numeral(args[pos]) catch { _ => replicate_limit + 1 }
+      if n > 0 && (name != "REPLICATE" || n <= replicate_limit) {
+        let mut c = @equal.rand_conv(@calc_num.num_conv)
+        for _ in 0..<(arity - 1 - pos) {
+          c = @equal.rator_conv(c)
+        }
+        return c(t)
+      }
+    }
+  }
+  raise Failure("suc_arg_conv")
 }
 
 ///|
@@ -318,13 +416,20 @@ fn apply_rule(
   pairs : Array[(String, @kernel.Term)],
   given? : Array[@kernel.Thm] = [],
 ) -> @kernel.Thm raise {
-  let th = @equal.conv_rule(list_conv, inst(key, pairs))
-  let c = @kernel.concl(th)
-  if @basics.is_imp(c) {
-    @bool.mp(th, prove_cond(@basics.dest_imp(c).0, given))
-  } else {
-    th
+  let th = inst(key, pairs)
+  if !@basics.is_imp(@kernel.concl(th)) {
+    return @equal.conv_rule(list_conv, th)
   }
+  // the side conditions and the conclusion apart: numeral arithmetic on a
+  // false side condition can turn the whole rule into T
+  let th = @equal.conv_rule(
+    @equal.thenc(
+      @equal.rator_conv(@equal.rand_conv(list_conv)),
+      @equal.rand_conv(list_conv),
+    ),
+    th,
+  )
+  @bool.mp(th, prove_cond(@basics.dest_imp(@kernel.concl(th)).0, given))
 }
 
 ///|
@@ -358,8 +463,18 @@ fn as_reduce(
       apply_rule("lift", [("e", e), ("e'", e2), ("s", s), ("f", f)], given=[th])
     _ => th
   }
-  // the result's instructions: the last argument
-  @equal.conv_rule(@equal.rand_conv(eval_conv), th)
+  // the result's instructions (the last argument), and its store (the
+  // fourth) when the step changes it
+  let th = @equal.conv_rule(@equal.rand_conv(eval_conv), th)
+  let s2 = head_args(@kernel.concl(th)).1[3]
+  if @basics.aconv(s2, s) {
+    th
+  } else {
+    @equal.conv_rule(
+      @equal.rator_conv(@equal.rator_conv(@equal.rand_conv(eval_conv))),
+      th,
+    )
+  }
 }
 
 ///|
@@ -500,6 +615,128 @@ fn br_context(
 }
 
 ///|
+/// How many labels deep the next instruction of `items` is when it is a
+/// return.
+fn find_return(items : Array[@kernel.Term]) -> Int? raise {
+  guard first_instr(items) is Some(pos) else { return None }
+  match head_args(items[pos]) {
+    ("Basic", [b]) => if head_args(b).0 == "Return" { Some(0) } else { None }
+    ("Label", [_, _, li]) => {
+      let li_items = @basics.dest_list(li).to_array()
+      if is_final(li_items) {
+        None
+      } else {
+        find_return(li_items).map(d => d + 1)
+      }
+    }
+    _ => None
+  }
+}
+
+///|
+/// One step of `[Frame(n, f2, body)]` in (s, f).
+fn frame_step(
+  s : @kernel.Term,
+  f : @kernel.Term,
+  n : @kernel.Term,
+  f2 : @kernel.Term,
+  body : @kernel.Term,
+) -> @kernel.Thm raise {
+  let items = @basics.dest_list(body).to_array()
+  if first_instr(items) is None {
+    let vs = value_list(values_of(items[:])[:])
+    return as_reduce(apply_rule("frame_values", [("n", n), ("f", f2), ("vs", vs)]), s, f)
+  }
+  if is_final(items) {
+    return as_reduce(apply_rule("frame_trap", [("n", n), ("f", f2)]), s, f)
+  }
+  if find_return(items) is Some(d) {
+    let (used, lf) = br_context(items, d, @nums.dest_small_numeral(n).to_int())
+    let lholed = head_args(@kernel.concl(lf)).1[1]
+    let th = apply_rule(
+      "return",
+      [
+        ("vs", value_list(used[:])),
+        ("n", n),
+        ("j", small_num(d)),
+        ("lholed", lholed),
+        ("es", body),
+        ("f", f2),
+      ],
+      given=[lf],
+    )
+    return as_reduce(th, s, f)
+  }
+  match step(s, f2, body) {
+    Stepped(inner) => {
+      let a = head_args(@kernel.concl(inner)).1
+      apply_rule(
+        "frame_context",
+        [
+          ("s", a[0]),
+          ("f", a[1]),
+          ("es", a[2]),
+          ("s'", a[3]),
+          ("f'", a[4]),
+          ("es'", a[5]),
+          ("f0", f),
+          ("n", n),
+        ],
+        given=[inner],
+      )
+    }
+    Escapes => raise Stuck("a br leaves the blocks of a function")
+    Final => raise Failure("wasmcert/wasm eval: frame body is final")
+  }
+}
+
+///|
+/// The step of `Invoke(i_cl)` with the values `vals` before it: (how many
+/// values it takes, the step).
+fn invoke_step(
+  s : @kernel.Term,
+  f : @kernel.Term,
+  i_cl : @kernel.Term,
+  vals : Array[@kernel.Term],
+) -> (Int, @kernel.Thm) raise {
+  let cl = @equal.rhs(
+    @kernel.concl(eval_conv(@basics.list_mk_icomb("EL", @list.List([i_cl, call("s_funcs", [s])])))),
+  )
+  guard head_args(cl) is ("Func_native", [j, tf, ts, es]) else {
+    raise Stuck("no rule for invoking " + show_term(cl))
+  }
+  guard head_args(tf) is ("Tf", [t1s, t2s]) else {
+    raise Stuck("cannot compute the type of " + show_term(cl))
+  }
+  let n = @basics.dest_list(t1s).length()
+  if vals.length() < n {
+    raise Stuck("a call needs \{n} values and has \{vals.length()}")
+  }
+  let vcs = owned(vals[vals.length() - n:])
+  guard head_args(@equal.rhs(@kernel.concl(eval_conv(call("n_zeros", [ts]))))) is ("SOME", [zs]) else {
+    raise Stuck("cannot compute the locals of " + show_term(cl))
+  }
+  let ves = einstr_list(vcs.map(v => @equal.rhs(@kernel.concl(eval_conv(call("v_to_e", [v])))))[:])
+  let th = apply_rule("invoke", [
+    ("i_cl", i_cl),
+    ("s", s),
+    ("f", f),
+    ("j", j),
+    ("t1s", t1s),
+    ("t2s", t2s),
+    ("ts", ts),
+    ("es", es),
+    ("ves", ves),
+    ("vcs", value_list(vcs[:])),
+    ("n", small_num(n)),
+    ("k", small_num(@basics.dest_list(ts).length())),
+    ("m", small_num(@basics.dest_list(t2s).length())),
+    ("zs", zs),
+  ])
+  (n, th)
+}
+
+///|
 priv enum StepResult {
   Final
   Stepped(@kernel.Thm)
@@ -571,6 +808,11 @@ fn step(
       guard basic_step(s, f, b, vals) is Some((k, th)) else { return Escapes }
       Stepped(with_prefix(as_reduce(th, s, f), owned(vals[:vals.length() - k]), rest))
     }
+    ("Invoke", [i_cl]) => {
+      let (k, th) = invoke_step(s, f, i_cl, vals)
+      Stepped(with_prefix(as_reduce(th, s, f), owned(vals[:vals.length() - k]), rest))
+    }
+    ("Frame", [n, f2, body]) => Stepped(with_prefix(frame_step(s, f, n, f2, body), vals, rest))
     _ => raise Stuck("no rule for " + show_term(x))
   }
 }
@@ -739,9 +981,129 @@ fn basic_step(
       }
     }
     ("Local_tee", [i]) => (1, apply_rule("local_tee", [("v", take(1)[0]), ("i", i)]))
+    // its frame is further out
+    ("Return", []) => return None
+    ("Call", [j]) => (0, apply_rule("call", [("s", s), ("f", f), ("j", j)]))
+    ("Global_get", [j]) => (0, apply_rule("global_get", [("s", s), ("f", f), ("j", j)]))
+    ("Global_set", [j]) => {
+      let v = take(1)[0]
+      let s2 = value(call("supdate_glob", [s, call("f_inst", [f]), j, v]))
+      (1, apply_rule("global_set", [("s", s), ("f", f), ("j", j), ("v", v), ("s'", s2)]))
+    }
+    ("Load", [t, packed, a, off]) => {
+      let k = i32(take(1)[0])
+      let (j, m) = memory(s, f)
+      let common = [("f", f), ("j", j), ("s", s), ("m", m), ("k", k), ("off", off), ("t", t), ("a", a)]
+      let len = call("t_num_length", [t])
+      let addr = @basics.mk_icomb(@basics.mk_mconst("val", @basics.mk_fun_ty(@kernel.type_of(k), hol_type("num"))), k)
+      match head_args(packed) {
+        ("NONE", []) =>
+          match head_args(value(call("load", [m, addr, off, len]))) {
+            ("SOME", [bs]) => (1, apply_rule("load_some", common + [("bs", bs)]))
+            _ => (1, apply_rule("load_none", common))
+          }
+        ("SOME", [tp_sx]) => {
+          let (tp, sx) = @pair.dest_pair(tp_sx)
+          let lp = call("tp_num_length", [tp])
+          let more = common + [("tp", tp), ("sx", sx)]
+          match head_args(value(call("load_packed", [sx, m, addr, off, lp, len]))) {
+            ("SOME", [bs]) => (1, apply_rule("load_packed_some", more + [("bs", bs)]))
+            _ => (1, apply_rule("load_packed_none", more))
+          }
+        }
+        _ => raise Stuck("cannot read " + show_term(b))
+      }
+    }
+    ("Store", [t, packed, a, off]) => {
+      let vs = take(2)
+      let k = i32(vs[0])
+      let v = num(vs[1])
+      let (j, m) = memory(s, f)
+      let common = [
+        ("v", v),
+        ("t", t),
+        ("f", f),
+        ("j", j),
+        ("s", s),
+        ("m", m),
+        ("k", k),
+        ("off", off),
+        ("a", a),
+      ]
+      let addr = @basics.mk_icomb(@basics.mk_mconst("val", @basics.mk_fun_ty(@kernel.type_of(k), hol_type("num"))), k)
+      let bits = call("bits_num", [v])
+      let (op, len, extra, key) = match head_args(packed) {
+        ("NONE", []) => ("store", call("t_num_length", [t]), [], "store")
+        ("SOME", [tp]) => ("store_packed", call("tp_num_length", [tp]), [("tp", tp)], "store_packed")
+        _ => raise Stuck("cannot read " + show_term(b))
+      }
+      match head_args(value(call(op, [m, addr, off, bits, len]))) {
+        ("SOME", [mem2]) => (2, apply_rule(key + "_some", common + extra + [("mem'", mem2)]))
+        _ => (2, apply_rule(key + "_none", common + extra))
+      }
+    }
+    ("Memory_size", []) => {
+      let (j, m) = memory(s, f)
+      let n = value(call("mem_size", [m]))
+      (0, apply_rule("memory_size", [("f", f), ("j", j), ("s", s), ("m", m), ("n", n)]))
+    }
+    ("Memory_grow", []) => {
+      let c = i32(take(1)[0])
+      let (j, m) = memory(s, f)
+      let n = value(call("mem_size", [m]))
+      let addr = @basics.mk_icomb(@basics.mk_mconst("val", @basics.mk_fun_ty(@kernel.type_of(c), hol_type("num"))), c)
+      let common = [("f", f), ("j", j), ("s", s), ("m", m), ("n", n), ("c", c)]
+      match head_args(value(call("mem_grow", [m, addr]))) {
+        ("SOME", [mem2]) => (1, apply_rule("memory_grow", common + [("mem'", mem2)]))
+        _ => (1, apply_rule("memory_grow_fail", common))
+      }
+    }
+    ("Memory_copy" | "Memory_fill", []) => {
+      let v = take(3)
+      let (ma, m) = memory(s, f)
+      let dest = i32(v[0])
+      let n = i32(v[2])
+      fn nat(w : @kernel.Term) -> @kernel.Term raise {
+        value(@basics.mk_icomb(@basics.mk_mconst("val", @basics.mk_fun_ty(@kernel.type_of(w), hol_type("num"))), w))
+      }
+      let nn = nat(n)
+      let common = [("f", f), ("ma", ma), ("s", s), ("m", m), ("dest", dest), ("ndest", nat(dest)), ("n", n), ("nn", nn)]
+      let pred = if @nums.dest_small_numeral(nn) > 0L {
+        [("nn_pred", small_num(@nums.dest_small_numeral(nn).to_int() - 1))]
+      } else {
+        []
+      }
+      if op_name == "Memory_copy" {
+        let src = i32(v[1])
+        let both = common + [("src", src), ("nsrc", nat(src))]
+        (3, first_rule(["copy_trap", "copy_zero"], both) catch {
+          Stuck(_) => first_rule(["copy_up", "copy_down"], both + pred)
+          e => raise e
+        })
+      } else {
+        let both = common + [("fv", i32(v[1]))]
+        (3, first_rule(["fill_trap", "fill_zero"], both) catch {
+          Stuck(_) => apply_rule("fill_step", both + pred)
+          e => raise e
+        })
+      }
+    }
     _ => raise Stuck("no rule for " + show_term(b))
   }
   Some(r)
+}
+
+///|
+/// The current memory of (s, f): its index in the store and its value.
+fn memory(s : @kernel.Term, f : @kernel.Term) -> (@kernel.Term, @kernel.Term) raise {
+  let ind = @equal.rhs(@kernel.concl(eval_conv(call("smem_ind", [call("f_inst", [f])]))))
+  guard head_args(ind) is ("SOME", [j]) else {
+    raise Stuck("no memory: the instance's memories are " + show_term(ind))
+  }
+  let m = @equal.rhs(
+    @kernel.concl(eval_conv(@basics.list_mk_icomb("EL", @list.List([j, call("s_mems", [s])])))),
+  )
+  (j, m)
 }
 
 ///|

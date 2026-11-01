@@ -22,6 +22,8 @@ pub fn run(@kernel.Term, max_steps? : Int32) -> @kernel.Thm raise
 
 pub fn step_cases(@kernel.Term, @kernel.Term, @kernel.Term) -> @kernel.Thm raise
 
+pub fn store(funcs? : Array[Func], memory? : Array[Byte], max_pages? : Int32, globals? : Array[Value]) -> (@kernel.Term, @kernel.Term) raise
+
 pub fn thm(String) -> @kernel.Thm
 
 pub fn traps_stmt(@kernel.Term) -> @kernel.Term raise
@@ -33,6 +35,13 @@ pub(all) enum BlockType {
   NoResult
   Result(NumType)
   TypeIndex(Int32)
+}
+
+pub(all) struct Func {
+  params : Array[NumType]
+  results : Array[NumType]
+  locals : Array[NumType]
+  body : Array[Instr]
 }
 
 pub(all) enum Instr {
@@ -59,6 +68,18 @@ pub(all) enum Instr {
   LocalGet(Int32)
   LocalSet(Int32)
   LocalTee(Int32)
+  Return
+  Call(Int32)
+  GlobalGet(Int32)
+  GlobalSet(Int32)
+  Load(NumType, Int32)
+  LoadPacked(NumType, PackedType, Signedness, Int32)
+  Store(NumType, Int32)
+  StorePacked(NumType, PackedType, Int32)
+  MemorySize
+  MemoryGrow
+  MemoryFill
+  MemoryCopy
 }
 pub fn Instr::to_term(Self) -> @kernel.Term raise
 
@@ -95,6 +116,12 @@ pub(all) enum IntUnop {
 pub(all) enum NumType {
   I32
   I64
+}
+
+pub(all) enum PackedType {
+  P8
+  P16
+  P32
 }
 
 pub(all) enum RefType {

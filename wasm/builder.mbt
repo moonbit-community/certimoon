@@ -70,6 +70,14 @@ pub(all) enum Value {
 }
 
 ///|
+/// The width of a packed load or store.
+pub(all) enum PackedType {
+  P8
+  P16
+  P32
+}
+
+///|
 pub(all) enum Instr {
   I32Const(UInt)
   I64Const(UInt64)
@@ -94,6 +102,29 @@ pub(all) enum Instr {
   LocalGet(Int)
   LocalSet(Int)
   LocalTee(Int)
+  Return
+  Call(Int)
+  GlobalGet(Int)
+  GlobalSet(Int)
+  // loads and stores take their offset; the alignment hint is 0
+  Load(NumType, Int)
+  LoadPacked(NumType, PackedType, Signedness, Int)
+  Store(NumType, Int)
+  StorePacked(NumType, PackedType, Int)
+  MemorySize
+  MemoryGrow
+  MemoryFill
+  MemoryCopy
+}
+
+///|
+/// A function of the store: its parameter, result and local types and its
+/// body.
+pub(all) struct Func {
+  params : Array[NumType]
+  results : Array[NumType]
+  locals : Array[NumType]
+  body : Array[Instr]
 }
 
 // Kernel term construction, shared with the evaluator.
@@ -293,7 +324,116 @@ pub fn Instr::to_term(self : Instr) -> @kernel.Term raise {
     LocalGet(i) => call("Local_get", [small_num(i)])
     LocalSet(i) => call("Local_set", [small_num(i)])
     LocalTee(i) => call("Local_tee", [small_num(i)])
+    Return => con("Return")
+    Call(i) => call("Call", [small_num(i)])
+    GlobalGet(i) => call("Global_get", [small_num(i)])
+    GlobalSet(i) => call("Global_set", [small_num(i)])
+    Load(t, off) =>
+      call("Load", [t.term(), none_term(tp_sx_type()), small_num(0), small_num(off)])
+    LoadPacked(t, tp, sx, off) =>
+      call("Load", [
+        t.term(),
+        some_term(@pair.mk_pair((tp.term(), sx.term()))),
+        small_num(0),
+        small_num(off),
+      ])
+    Store(t, off) =>
+      call("Store", [t.term(), none_term(hol_type("tp_num")), small_num(0), small_num(off)])
+    StorePacked(t, tp, off) =>
+      call("Store", [t.term(), some_term(tp.term()), small_num(0), small_num(off)])
+    MemorySize => con("Memory_size")
+    MemoryGrow => con("Memory_grow")
+    MemoryFill => con("Memory_fill")
+    MemoryCopy => con("Memory_copy")
   }
+}
+
+///|
+fn PackedType::term(self : PackedType) -> @kernel.Term raise {
+  match self {
+    P8 => con("Tp_i8")
+    P16 => con("Tp_i16")
+    P32 => con("Tp_i32")
+  }
+}
+
+///|
+/// `(Tp_num, Sx)`.
+fn tp_sx_type() -> @kernel.HolType raise {
+  @kernel.mk_type("prod", @list.List([hol_type("tp_num"), hol_type("sx")]))
+}
+
+///|
+/// `[T_num(t), ...]`.
+fn valtypes_term(ts : Array[NumType]) -> @kernel.Term raise {
+  list_term(ts.map(t => call("T_num", [t.term()])), hol_type("valtype"))
+}
+
+///|
+/// `[0, 1, ..., n - 1]`.
+fn indices_term(n : Int) -> @kernel.Term raise {
+  list_term(Array::makei(n, small_num), hol_type("num"))
+}
+
+///|
+/// A store and its one instance `(s, i)`, written out: the functions
+/// `funcs` (function j is index j, and its type is type j of the
+/// instance), a memory with the bytes `memory` (if given; at most
+/// `max_pages` pages after growing) and mutable globals with the values
+/// `globals`. The memory is not rounded to pages: the evaluator computes
+/// on its bytes one by one, so keep it small.
+pub fn store(
+  funcs? : Array[Func] = [],
+  memory? : Array[Byte],
+  max_pages? : Int,
+  globals? : Array[Value] = [],
+) -> (@kernel.Term, @kernel.Term) raise {
+  load()
+  let num = hol_type("num")
+  let tfs = funcs.map(fn(fu) raise {
+    call("Tf", [valtypes_term(fu.params), valtypes_term(fu.results)])
+  })
+  let mems = match memory {
+    Some(_) => [0]
+    None => []
+  }
+  let inst = call("Inst", [
+    list_term(tfs, hol_type("tf")),
+    indices_term(funcs.length()),
+    list_term([], num),
+    list_term(mems.map(small_num), num),
+    indices_term(globals.length()),
+    list_term([], num),
+    list_term([], num),
+  ])
+  let cls = []
+  for i, fu in funcs {
+    cls.push(
+      call("Func_native", [inst, tfs[i], valtypes_term(fu.locals), instrs_term(fu.body)]),
+    )
+  }
+  let mem_items = match memory {
+    Some(bytes) => {
+      let max = match max_pages {
+        Some(p) => some_term(small_num(p))
+        None => none_term(num)
+      }
+      let lim = call("Limit_t", [small_num(bytes.length() / 65536), max])
+      let bs = list_term(bytes.map(b => word_term(8, b.to_int().to_string())), ty(w8))
+      [@pair.mk_pair((lim, bs))]
+    }
+    None => []
+  }
+  let globs = globals.map(v => call("Global", [con("T_mut"), v.to_term()]))
+  let s = call("Wstore", [
+    list_term(cls, hol_type("cl")),
+    list_term([], ty(tabinst_ty)),
+    list_term(mem_items, ty(mem_ty)),
+    list_term(globs, hol_type("global")),
+    list_term([], ty(eleminst_ty)),
+    list_term([], ty(bytes)),
+  ])
+  (s, inst)
 }
 
 ///|

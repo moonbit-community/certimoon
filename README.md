@@ -64,14 +64,38 @@ result to compare with.
 The evaluator covers integer instructions (const, unary, binary, `eqz`,
 comparisons, `i32.wrap_i64`, `i64.extend_i32_s/u`), `ref.null`,
 `ref.is_null`, `unreachable`, `nop`, `drop`, `select`, `block`, `loop`,
-`if`, `br`, `br_if`, `br_table`, `local.get/set/tee` and traps; these are
-the builder's instructions. Floating point (left unspecified, as in
-Isabelle), calls, globals, memory and tables are not covered: a term
-written out with them raises "no rule for". `run` also takes a term built
-any other way, when its instruction list and (for locals) frame are
-written out. A `computes` theorem is about one run: Wasm reduction is
-deterministic for this fragment, but the port does not prove that, so it
-does not yet rule out a trapping run. `wasm/eval_test.mbt` has examples.
+`if`, `br`, `br_if`, `br_table`, `local.get/set/tee`, `global.get/set`,
+`call` (of native functions) and `return`, loads and stores (packed
+too), `memory.size`, `memory.grow`, `memory.fill`, `memory.copy`, and
+traps; these are the builder's instructions. Floating point (left
+unspecified, as in Isabelle), indirect calls, host functions, vector
+instructions and tables are not covered: a term written out with them
+raises "no rule for". `run` also takes a term built any other way, when
+its instruction list, frame and (for globals, memory and calls) store are
+written out. A `computes` theorem is about one run: the port does not
+prove that reduction is deterministic, so it does not yet rule out a
+trapping run, and `memory.grow` may fail in any state (the evaluator takes
+the step that grows when it can). `wasm/eval_test.mbt` has examples.
+
+`store` writes out a store and its instance: functions (`Func`: parameter,
+result and local types, and a body), a memory and mutable globals.
+
+```moonbit
+let st = @wasm.store(memory=[b'\x01', b'\x02', b'\x03', b'\x04'])
+let cfg = @wasm.config([I32Const(0), Load(I32, 0)], store=st.0, inst=st.1)
+let th = @wasm.outcome(cfg) // ⊢ computes(cfg, s, [V_num(ConstInt32(word(67305985)))])
+```
+
+Memory is a byte list and loads and stores compute on it byte by byte, so
+the evaluator suits small memories; `store` does not round them to pages.
+
+`wasm/spec_test.mbt` checks the evaluator against the WebAssembly spec
+testsuite: the 720 integer assertions of `i32.wast` and `i64.wast` (all
+but the `extend*_s` operators, which the builder lacks), and the 60
+integer loads of `address.wast` at address 0 (in a memory of its data and
+zeros: the other addresses test the end of a 64 KiB page). Each holds as a
+theorem. `tools/spec_cases.py` writes `wasm/spec_cases_test.mbt` from the
+testsuite files; the header of that file names the testsuite commit.
 
 ## Facts about reduction
 
