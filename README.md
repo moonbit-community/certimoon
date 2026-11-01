@@ -120,6 +120,24 @@ D`, with the side conditions of each case computed as far as they go (for
 `10 / 2`, `s' = s ∧ f' = f ∧ es' = [5]`). The tests check, for each
 instruction the evaluator covers, that its step is the only one.
 
+## Program logic
+
+Package `logic` is a separation logic for linear memory, proved from the
+port's definitions (no axioms; `@logic.load()`, then `@logic.thm`):
+
+- heaps (`(Num) -> Option[byte]`), `hdisj`, `hunion`, `star`, `emp`,
+  points-to `pts(a, bs)`, and `heap_of(m)`, the heap a memory is;
+- `star_comm`, `star_assoc`, `star_mono`;
+- `read_pts`: if `heap_of(m)` satisfies `star(pts(a, bs), r)` (bs not
+  empty), the bytes are inside m and `read_bytes(m, a, LENGTH(bs)) = bs`;
+- `write_pts`: writing bs2 (as long as bs) there gives
+  `star(pts(a, bs2), r)`: the frame r still holds;
+- `load_pts`, `store_pts`: the same for WasmCert's `load` and `store` at
+  `n + off`, the functions the load and store reduction rules use.
+
+Triples over the reduction relation and the rules for instructions are the
+next step (not done yet).
+
 ## Tests
 
 `moon test` in a workspace tests every member, hol_light included, so
@@ -127,4 +145,8 @@ select the package. Its tests need a larger stack than the default:
 
 ```bash
 ulimit -s 65520 && moon test -p moonbit-community/wasmcert/wasm --target wasm-gc
+```
+
+```bash
+ulimit -s 65520 && moon test -p moonbit-community/wasmcert/logic --target wasm-gc
 ```
