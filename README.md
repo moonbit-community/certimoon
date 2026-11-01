@@ -161,8 +161,22 @@ Each rule's operands sit on top of a stack of any length. `prefix_<op>`
 shows that a step of such a configuration is a step of the instruction and
 its operands alone: `arity_<op>` says the instruction's base step takes
 exactly its operands (from the cases of reduce_base), and `step_cases`
-(with `compute=false` for the store) says what that step is. Sequencing
-(`bs1 ++ bs2`) and blocks, loops and branches are next.
+(with `compute=false` for the store) says what that step is.
+
+Sequencing: `safe_seq` (by induction on n: a step of `APPEND(es1, es2)`
+is a step of es1 by `reduce_append`, and a trap at the top of es1 leaves
+only `[Trap]`, which is never safe for a step more), then `triple_seq` and
+`sl_seq`: `sl_triple(p, bs1, q)` and `sl_triple(q, bs2, r)` give
+`sl_triple(p, APPEND(bs1, bs2), r)`.
+
+`logic/examples.mbt` verifies a program with the rules alone, gluing rule
+instances with `sl_seq` and `sl_conseq`: `example_store_load` says that
+`[i32.const k; i32.const v; i32.store; i32.const k; i32.load]`, from
+`pts(val(k) + off, bs) * p` (bs 4 bytes), ends with v on the stack and
+`pts(val(k) + off, serialise_i32(v)) * p` (`deserialise_serialise_i32`:
+loading back what was stored gives the value).
+
+Blocks, loops and branches are next.
 
 ## Tests
 

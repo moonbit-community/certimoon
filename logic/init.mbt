@@ -23,8 +23,10 @@ pub fn load() -> Unit {
     prove_memory()
     define_triples()
     prove_triples()
+    prove_sequencing()
     prove_rule_lemmas()
     prove_rules()
+    prove_examples()
   })() catch {
     e => {
       let msg = match e {
