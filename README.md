@@ -135,8 +135,34 @@ port's definitions (no axioms; `@logic.load()`, then `@logic.thm`):
 - `load_pts`, `store_pts`: the same for WasmCert's `load` and `store` at
   `n + off`, the functions the load and store reduction rules use.
 
-Triples over the reduction relation and the rules for instructions are the
-next step (not done yet).
+Triples are defined over the reduction relation:
+
+- `safe(n, s, f, es, q)`: for n steps, every run either has ended in
+  values satisfying q or can step, and every step is safe for one step
+  less; a trap is never safe, and every possible step counts (so
+  memory.grow's choice is covered);
+- `triple(p, bs, q)`: from a value stack satisfying p, the instructions bs
+  are safe for every n (partial correctness, no traps);
+- `sl_triple(p, bs, q)`: p and q are heap assertions on the value stack
+  and the locals, and the triple holds with any frame beside them on the
+  instance's memory (`lift`).
+
+Rules, all theorems:
+
+- `sl_conseq`, `sl_frame` (from `star_assoc`), `sl_const`;
+- `sl_binop`: a binary operator whose `app_binop` is `SOME(c)` replaces its
+  two operands by c;
+- `sl_load_i32`: with `pts(val(k) + off, bs) * p` (bs 4 bytes), `i32.load`
+  replaces the address k by `deserialise_i32(bs)`;
+- `sl_store_i32`: it turns `pts(val(k) + off, bs)` into
+  `pts(val(k) + off, serialise_i32(v))` and pops k and v.
+
+Each rule's operands sit on top of a stack of any length. `prefix_<op>`
+shows that a step of such a configuration is a step of the instruction and
+its operands alone: `arity_<op>` says the instruction's base step takes
+exactly its operands (from the cases of reduce_base), and `step_cases`
+(with `compute=false` for the store) says what that step is. Sequencing
+(`bs1 ++ bs2`) and blocks, loops and branches are next.
 
 ## Tests
 

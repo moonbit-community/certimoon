@@ -51,7 +51,7 @@ let trace : Ref[Bool] = Ref::{ val: false }
 fn lemma(name : String, stmt : String, tac : @tactics.Tactic) -> @kernel.Thm raise {
   let tac = if trace.val {
     println("proving " + name)
-    @tactics.then_tac(tac, fn(g) {
+    @tactics.then_tac(tac, g => {
       for a in g.0 {
         println("  [" + a.0 + "] " + show(@kernel.concl(a.1)))
       }
@@ -108,4 +108,19 @@ let mem_ty : String = "(Limit_t, List[\{w8}])"
 /// Substitutes the assumptions `x == t` (x a variable) everywhere.
 fn subst_vars() -> @tactics.Tactic {
   @tactics.repeat_tac(@tactics.first_x_assum(@tactics.subst_var_tac))
+}
+
+///|
+/// Prints the goal (when tracing), for debugging proofs.
+fn show_goal(label : String) -> @tactics.Tactic {
+  g => {
+    if trace.val {
+      println("goal at " + label + ":")
+      for a in g.0 {
+        println("  [" + a.0 + "] " + show(@kernel.concl(a.1)))
+      }
+      println("  ⊢ " + show(g.1))
+    }
+    @tactics.all_tac(g)
+  }
 }

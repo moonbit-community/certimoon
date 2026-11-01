@@ -7,18 +7,24 @@ let loaded : Ref[Bool] = Ref::{ val: false }
 
 ///|
 /// Load the logic's definitions and lemmas (once), after package wasm's
-/// definitions.
+/// facts about reduction.
 pub fn load() -> Unit {
   if loaded.val {
     return
   }
   loaded.val = true
-  @wasm.load()
+  @wasm.props() catch {
+    e => abort("wasmcert/logic: " + e.to_string())
+  }
   @parser.begin_theory("WasmLogic")
   (fn() raise {
     define_heap()
     prove_heap()
     prove_memory()
+    define_triples()
+    prove_triples()
+    prove_rule_lemmas()
+    prove_rules()
   })() catch {
     e => {
       let msg = match e {

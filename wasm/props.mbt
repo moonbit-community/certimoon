@@ -1019,11 +1019,14 @@ fn inversion_conv(t : @kernel.Term) -> @kernel.Thm raise {
 /// step to in store `s` and frame `f`:
 /// ⊢ ∀ s' f' es'. reduce(s, f, es, s', f', es') → D, D the possible
 /// results with their side conditions, computed as far as they go (for
-/// concrete operands, the one result).
+/// concrete operands, the one result). With `compute=false` the side
+/// conditions keep the port's functions (load, store, smem_ind, ...)
+/// rather than their computed values.
 pub fn step_cases(
   s : @kernel.Term,
   f : @kernel.Term,
   es : @kernel.Term,
+  compute? : Bool = true,
 ) -> @kernel.Thm raise {
   props()
   let items = @basics.dest_list(es).to_array()
@@ -1054,6 +1057,9 @@ pub fn step_cases(
     raise Failure("wasmcert/wasm step_cases: side conditions left: " + show_term(ant))
   }
   let th = @equal.conv_rule(@equal.rand_conv(inversion_conv), th)
+  if !compute {
+    return @bool.gen(s2, @bool.gen(f2, @bool.gen(es2, th)))
+  }
   // compute the side conditions (the evaluator's definitions and
   // arithmetic), and simplify again, until nothing changes
   setup()
