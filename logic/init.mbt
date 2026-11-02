@@ -25,6 +25,8 @@ pub fn load() -> Unit {
     prove_triples()
     prove_sequencing()
     prove_rule_lemmas()
+    define_labels()
+    prove_labels()
     prove_rules()
     prove_examples()
   })() catch {
