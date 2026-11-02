@@ -57,6 +57,7 @@ import {
 
 import {
   "bobzhang/hol_light/testkit",
+  "moonbitlang/core/test",
 } for "test"
 
 import {

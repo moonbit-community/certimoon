@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn listing() -> String raise
+
 pub fn load() -> Unit
 
 pub fn names() -> Array[String]

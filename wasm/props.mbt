@@ -28,6 +28,7 @@ pub fn props() -> Unit raise {
   }
   load()
   props_loaded.val = true
+  section("Facts about reduction (props.mbt)")
   define_props()
   prove_values()
   prove_lfill()
@@ -57,6 +58,7 @@ fn lemma(name : String, stmt : String, tac : @tactics.Tactic) -> @kernel.Thm rai
     e => raise Failure("wasmcert/wasm: proving " + name + ": " + e.to_string())
   }
   record(name, th)
+  list_entry("lemma", name, th)
   th
 }
 

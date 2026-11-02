@@ -40,6 +40,22 @@ Wasm_Soundness) are not ported yet.
 let rules = @wasm.thm("reduce_rules") // also b_e_typing_rules, typeof_num, ...
 ```
 
+## What is defined and proved
+
+Each package writes its theory as a document: every definition, datatype,
+relation (one rule per line) and lemma, in order, with the kernel's
+statement of it and short names for the long types:
+
+- [wasm/__snapshot__/theory.md](wasm/__snapshot__/theory.md): the WebAssembly
+  semantics and the facts about reduction;
+- [logic/__snapshot__/theory.md](logic/__snapshot__/theory.md): the program
+  logic, its rules and examples.
+
+They are snapshot tests (`theory_test.mbt`): a test fails when the file no
+longer matches what the package proves, and `moon test --update`
+regenerates it. Statements only: the proofs are the tactic code in the
+`.mbt` files, and loading a package checks them all.
+
 ## Running programs
 
 `run` executes a configuration `(s, f, es)` and proves each step from the

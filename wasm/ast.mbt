@@ -69,10 +69,9 @@ fn define_ast() -> Unit raise {
       tm("∃ x : \{w}, (UNIV : (\{w}) -> Bool)(x)"),
       @meson.meson_tac(@list.List([@sets.in_univ(), @sets.in_()])),
     )
-    record(
-      name + "_typedef",
-      @class.new_type_definition(name, ("mk_" + name, "dest_" + name), exists),
-    )
+    let def_th = @class.new_type_definition(name, ("mk_" + name, "dest_" + name), exists)
+    record(name + "_typedef", def_th)
+    list_entry("type definition", name, def_th)
   }
   // The vector operators are opaque (Isabelle: typedefs of unspecified
   // finite sets of numbers; their finiteness only serves code export).

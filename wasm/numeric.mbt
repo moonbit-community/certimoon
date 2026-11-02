@@ -115,10 +115,9 @@ fn define_float_ops() -> Unit raise {
         @simp.rewrite_tac(@list.List([@lists.length_replicate()])),
       ),
     )
-    record(
-      "serialise_" + name + "_len",
-      @nums.new_specification(@list.List(["serialise_" + name]))(exists),
-    )
+    let spec = @nums.new_specification(@list.List(["serialise_" + name]))(exists)
+    record("serialise_" + name + "_len", spec)
+    list_entry("specification", "serialise_" + name, spec)
   }
 }
 

@@ -79,12 +79,15 @@ fn ty(s : String) -> @kernel.HolType raise {
 
 ///|
 /// A definition by equations (`define`), recorded as `name`.
-fn def(name : String, s : String) -> Unit raise {
+fn def(name : String, s : String, listed~ : Bool = true) -> Unit raise {
   let th = @define.define_(tm(s)) catch {
     e => raise Failure("wasmcert/wasm: defining " + name + ": " + e.to_string())
   }
   record(name, th)
   def_thms.push(th)
+  if listed {
+    list_entry("definition", name, th)
+  }
 }
 
 ///|
@@ -123,6 +126,7 @@ fn inductive(
   record(name + "_rules", rules)
   record(name + "_induct", induct)
   record(name + "_cases", cases)
+  list_entry("relation", name, rules)
 }
 
 ///|
@@ -130,7 +134,11 @@ fn inductive(
 /// the types in the term syntax. The type refers to itself by its
 /// capitalised name (`List[B_e]` in `b_e`). Recorded as `name_induct` and
 /// `name_recursion`.
-fn datatype(name : String, ctors : Array[(String, Array[String])]) -> Unit raise {
+fn datatype(
+  name : String,
+  ctors : Array[(String, Array[String])],
+  listed~ : Bool = true,
+) -> Unit raise {
   let fail = (msg : String) => Failure(
     "wasmcert/wasm: datatype " + name + ": " + msg,
   )
@@ -162,6 +170,10 @@ fn datatype(name : String, ctors : Array[(String, Array[String])]) -> Unit raise
   }
   record(name + "_induct", induct)
   record(name + "_recursion", recursion)
+  if listed {
+    let shown = ctors.map(c => if c.1.is_empty() { c.0 } else { c.0 + "(" + c.1.join(", ") + ")" })
+    list_text("datatype", name, abbreviate_types(shown.join(" | ")))
+  }
 }
 
 ///|
@@ -175,6 +187,7 @@ fn enum_type(name : String, ctors : Array[String]) -> Unit raise {
 /// with its type in the term syntax.
 fn constant(name : String, t : String) -> Unit raise {
   @kernel.new_constant(name, ty(t))
+  list_text("constant", name, abbreviate_types(name + " : " + t))
 }
 
 ///|
@@ -187,15 +200,20 @@ fn record_type(
   ctor : String,
   fields : Array[(String, String)],
 ) -> Unit raise {
-  datatype(name, [(ctor, fields.map(f => f.1))])
+  datatype(name, [(ctor, fields.map(f => f.1))], listed=false)
+  // the record, with its fields (their accessors and updates are not
+  // listed one by one)
+  let shown = fields.map(f => f.0 + " : " + f.1)
+  list_text("record", name, abbreviate_types(ctor + "(" + shown.join(", ") + ")"))
   let vars = Array::makei(fields.length(), i => "x" + (i + 1).to_string())
   let whole = ctor + "(" + vars.join(", ") + ")"
   for i, f in fields {
-    def(f.0, "\{f.0}(\{whole}) == \{vars[i]}")
+    def(f.0, "\{f.0}(\{whole}) == \{vars[i]}", listed=false)
     let updated = vars.mapi((j, v) => if j == i { "v" } else { v })
     def(
       f.0 + "_update",
       "\{f.0}_update(v, \{whole}) == \{ctor}(\{updated.join(", ")})",
+      listed=false,
     )
   }
 }

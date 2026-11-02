@@ -140,5 +140,5 @@ fn prove_examples() -> Unit raise {
   )
   let th = then_rule(then_rule(then_rule(then_rule(t1, t2), t3), t4), t5)
   let th = @simp.rewrite_rule(ths([roundtrip]))(th)
-  record("example_store_load", @bool.gen_all(@bool.disch(length, th)))
+  record("example_store_load", @bool.gen_all(@bool.disch(length, th)), kind="example")
 }

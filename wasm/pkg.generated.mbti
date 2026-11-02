@@ -6,9 +6,13 @@ import {
 }
 
 // Values
+pub fn abbreviate_types(String) -> String
+
 pub fn computes_stmt(@kernel.Term, Array[Value]) -> @kernel.Term raise
 
 pub fn config(Array[Instr], locals? : Array[Value], store? : @kernel.Term, inst? : @kernel.Term) -> @kernel.Term raise
+
+pub fn listing() -> String raise
 
 pub fn load() -> Unit
 
@@ -17,6 +21,8 @@ pub fn names() -> Array[String]
 pub fn outcome(@kernel.Term, max_steps? : Int32) -> @kernel.Thm raise
 
 pub fn props() -> Unit raise
+
+pub fn render_listing(String, String, Array[(String, String, String)]) -> String
 
 pub fn run(@kernel.Term, max_steps? : Int32) -> @kernel.Thm raise
 
