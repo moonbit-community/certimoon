@@ -124,3 +124,23 @@ fn show_goal(label : String) -> @tactics.Tactic {
     @tactics.all_tac(g)
   }
 }
+
+///|
+/// `mp_tac` of `lemma` (∀ xs. A && B → C) applied to the first two
+/// assumptions that match A and B.
+fn forward2(lemma : @kernel.Thm) -> @tactics.Tactic {
+  g => {
+    let asms = g.0.to_array()
+    for a in asms {
+      for b in asms {
+        let th : @kernel.Thm? = Some(@drule.match_mp(lemma)(@bool.conj(a.1, b.1))) catch {
+          _ => None
+        }
+        if th is Some(th) {
+          return @tactics.mp_tac(th)(g)
+        }
+      }
+    }
+    raise Failure("forward2: no assumptions match")
+  }
+}

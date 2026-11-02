@@ -48,6 +48,11 @@ fn prove_rule_lemmas() -> Unit raise {
     ]),
   )
   let _ = lemma(
+    "snoc_eq_sym",
+    "∀ suf : List[A], ∀ x : A, ∀ l : List[A], l == APPEND(suf, [x]) == (!(l == NIL) && LAST(l) == x && suf == BUTLAST(l))",
+    @meson.meson_tac(ths([thm("snoc_eq")])),
+  )
+  let _ = lemma(
     "no_trap",
     "∀ suf : List[Einstr], ∀ b : B_e, ∀ lh : Lholed, Lfilled(0, lh, [Trap], APPEND(suf, [Basic(b)])) && ALL(is_val, suf) → false",
     seq([
@@ -66,6 +71,28 @@ fn prove_rule_lemmas() -> Unit raise {
         ),
       ),
       @simp.asm_rewrite_tac(ths([@wasm.thm("is_val_clauses"), @ind_types.distinctness("einstr")])),
+    ]),
+  )
+  let _ = lemma(
+    "no_trap_x",
+    "∀ suf : List[Einstr], ∀ x : Einstr, ∀ lh : Lholed, Lfilled(0, lh, [Trap], APPEND(suf, [x])) && ALL(is_val, suf) && !(x == Trap) → false",
+    seq([
+      @tactics.repeat_tac(@tactics.strip_tac),
+      have(
+        "trap_top(APPEND((suf : List[Einstr]), [(x : Einstr)]))",
+        @meson.asm_meson_tac(ths([@wasm.thm("lfilled_trap_iff")])),
+      ),
+      @tactics.undisch_tac(tm("trap_top(APPEND((suf : List[Einstr]), [(x : Einstr)]))")),
+      @simp.rewrite_tac(ths([@wasm.thm("trap_top")])),
+      @tactics.repeat_tac(@tactics.strip_tac),
+      @tactics.mp_tac(
+        @bool.ispecl(
+          @list.List([tm("(vs : List[Value])"), tm("(suf : List[Einstr])"), tm("(x : Einstr)"), tm("Trap"), tm("(r : List[Einstr])")]),
+          @wasm.thm("snoc_first_nonval"),
+        ),
+      ),
+      @simp.asm_rewrite_tac(ths([@wasm.thm("is_val_clauses")])),
+      @meson.asm_meson_tac(ths([])),
     ]),
   )
   let _ = lemma(
@@ -127,6 +154,7 @@ fn arity_conv(t : @kernel.Term) -> @kernel.Thm raise {
     None => {
       let facts = [
         thm("snoc_eq"),
+        thm("snoc_eq_sym"),
         @lists.last(),
         @lists.butlast(),
         @lists.last_append(),
@@ -204,13 +232,19 @@ fn prove_arity(
 ///|
 /// The arity lemmas for instruction `x` (its variables declared in it)
 /// with `n` operands: arity_simple_<name> and arity_<name>.
-fn prove_arities(name : String, x : String, n : Int) -> @kernel.Thm raise {
+fn prove_arities(
+  name : String,
+  x : String,
+  n : Int,
+  trap? : Array[@kernel.Thm] = [],
+) -> @kernel.Thm raise {
   // x's variables are free in the statements: generalize them
+  let trap = if trap.is_empty() { [thm("no_trap")] } else { trap }
   let simple = prove_arity(
     "arity_simple_" + name,
     "reduce_simple",
     "∀ suf : List[Einstr], ∀ e2 : List[Einstr], reduce_simple(APPEND(suf, [\{x}]), e2) && ALL(is_val, suf) → LENGTH(suf) == \{n}",
-    [thm("no_trap")],
+    trap,
   )
   let simple = @bool.gen_all(simple)
   prove_arity(

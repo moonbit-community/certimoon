@@ -27,6 +27,8 @@ pub fn load() -> Unit {
     prove_rule_lemmas()
     define_labels()
     prove_labels()
+    prove_label_steps()
+    prove_br_facts()
     prove_rules()
     prove_examples()
   })() catch {
