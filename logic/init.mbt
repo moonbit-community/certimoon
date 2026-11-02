@@ -29,6 +29,8 @@ pub fn load() -> Unit {
     prove_labels()
     prove_label_steps()
     prove_br_facts()
+    prove_label_safe()
+    prove_block_rule()
     prove_rules()
     prove_examples()
   })() catch {

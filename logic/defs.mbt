@@ -144,3 +144,35 @@ fn forward2(lemma : @kernel.Thm) -> @tactics.Tactic {
     raise Failure("forward2: no assumptions match")
   }
 }
+
+///|
+/// asm_meson_tac with `lemmas`, naming the goal (when tracing) if it fails.
+fn meson_at(label : String, lemmas : Array[@kernel.Thm]) -> @tactics.Tactic {
+  g => {
+    @meson.asm_meson_tac(ths(lemmas))(g) catch {
+      e => {
+        if trace.val {
+          println("meson failed at " + label + ":")
+          ignore(show_goal(label)(g))
+        }
+        raise e
+      }
+    }
+  }
+}
+
+///|
+/// `tac`, naming the goal (when tracing) if it fails.
+fn named(label : String, tac : @tactics.Tactic) -> @tactics.Tactic {
+  g => {
+    tac(g) catch {
+      e => {
+        if trace.val {
+          println("failed at " + label + ": " + e.to_string())
+          ignore(show_goal(label)(g))
+        }
+        raise e
+      }
+    }
+  }
+}

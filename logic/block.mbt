@@ -401,3 +401,373 @@ fn prove_br_facts() -> Unit raise {
     ]),
   )
 }
+
+///|
+/// label_safe: safety carries through a label. The body li is safe with
+/// postcondition qb and label 0 assertion lb (then the labels l around);
+/// its values vs leave the label as vs0 ++ vs, and a br to it with vs
+/// (of the label's arity) continues as vs0 ++ vs ++ e0.
+fn prove_label_safe() -> Unit raise {
+  let safel = thm("safel")
+  let lfill = @wasm.thm("lfill")
+  let depth = @wasm.thm("lh_depth")
+  let lfilled_eq = @wasm.thm("lfilled_eq")
+  let rs = @bool.conjuncts_rule(@wasm.thm("reduce_simple_rules")).to_array()
+  let rb_lift = @bool.conjuncts_rule(@wasm.thm("reduce_base_rules")).to_array()[0]
+  let einstr_d = @ind_types.distinctness("einstr")
+  let s = tm("(s : Wstore)")
+  let f = tm("(f : Wframe)")
+  let vs0 = "(vs0 : List[Value])"
+  let label = "Label((m : Num), (e0 : List[Einstr]), (li : List[Einstr]))"
+  // a step of vs0 ++ [label] from the base step `inner` -> `out`
+  let base_step = (inner : String, out : String, rule : @tactics.Tactic) => seq([
+    @tactics.exists_tac(s),
+    @tactics.exists_tac(f),
+    @tactics.exists_tac(tm("APPEND(MAP(v_to_e, \{vs0}), \{out})")),
+    @tactics.mp_tac(
+      @bool.ispecl(
+        @list.List([s, f, tm("LBase(\{vs0}, NIL)"), tm(inner), s, f, tm(out)]),
+        @wasm.thm("decomp_reduce"),
+      ),
+    ),
+    @simp.rewrite_tac(ths([lfill, @lists.append_nil()])),
+    @tactics.disch_then(th => @tactics.match_mp_tac(th)),
+    @tactics.match_mp_tac(rb_lift),
+    rule,
+  ])
+  let steps = (cases : Array[@tactics.Tactic]) => seq([
+    @tactics.x_gen_tac(tm("(t1 : Wstore)")),
+    @tactics.x_gen_tac(tm("(t2 : Wframe)")),
+    @tactics.x_gen_tac(tm("(t3 : List[Einstr])")),
+    @tactics.disch_tac,
+    @tactics.thenl(
+      @tactics.first_x_assum(th => @tactics.strip_assume_tac(@drule.match_mp(thm("label_steps"))(th))),
+      @list.List(cases),
+    ),
+  ])
+  // a step inside the label: the induction hypothesis
+  let inside = seq([
+    subst_vars(),
+    @tactics.first_x_assum(th => @tactics.match_mp_tac(th)),
+    @tactics.exists_tac(tm("(qb : \{assn})")),
+    @tactics.exists_tac(tm("(lb : \{assn})")),
+    @meson.asm_meson_tac(ths([])),
+  ])
+  let not_vals = seq([subst_vars(), @meson.asm_meson_tac(ths([thm("br_not_vals"), @wasm.thm("all_vals_map")]))])
+  let not_trap = seq([subst_vars(), @meson.asm_meson_tac(ths([thm("br_not_trap")]))])
+  let map_trap = [@wasm.thm("map_v_to_e_eq_cons"), @wasm.thm("eq_v_to_e"), einstr_d, @equal.gsym(einstr_d)]
+  let arith_suc = arith("∀ i : Num, ∀ d : Num, SUC(i) + d == i + (d + 1)")
+  let arith_ne = arith("∀ i : Num, ∀ d : Num, !(d == SUC(i) + d)")
+  let _ = lemma(
+    "label_safe",
+    "∀ n : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ vs0 : List[Value], ∀ m : Num, ∀ e0 : List[Einstr], ∀ li : List[Einstr], ∀ qb : \{assn}, ∀ lb : \{assn}, ∀ q : \{assn}, ∀ l : List[\{assn}], safel(n, s, f, li, qb, CONS(lb, l)) && (∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], qb(s, f, vs) → q(s, f, APPEND(vs0, vs))) && (∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ k : Num, lb(s, f, vs) → LENGTH(vs) == m && safel(k, s, f, APPEND(MAP(v_to_e, vs0), APPEND(MAP(v_to_e, vs), e0)), q, l)) → safel(n, s, f, APPEND(MAP(v_to_e, vs0), [\{label}]), q, l)",
+    @tactics.thenl(
+      @nums.induct_tac,
+      @list.List([
+        @simp.rewrite_tac(ths([safel])),
+        seq([
+          @tactics.repeat_tac(@tactics.gen_tac),
+          @tactics.conv_tac(
+            @equal.rator_conv(@equal.rand_conv(@equal.rator_conv(@equal.rand_conv(@simp.pure_once_rewrite_conv(ths([safel])))))),
+          ),
+          @tactics.thenl(
+            @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+            @list.List([
+              // the body has ended with values vs: they leave the label
+              seq([
+                subst_vars(),
+                @simp.rewrite_tac(ths([safel])),
+                @tactics.disj2_tac,
+                @tactics.disj2_tac,
+                @tactics.thenl(
+                  @tactics.conj_tac,
+                  @list.List([
+                    base_step(
+                      "[Label((m : Num), (e0 : List[Einstr]), MAP(v_to_e, (vs : List[Value])))]",
+                      "MAP(v_to_e, (vs : List[Value]))",
+                      @tactics.match_accept_tac(rs[27]),
+                    ),
+                    steps([
+                      @meson.asm_meson_tac(ths([@wasm.thm("reduce_not_vals")])),
+                      seq([
+                        @tactics.rule_assum_tac(@simp.rewrite_rule(ths([thm("map_v_to_e_inj")]))),
+                        subst_vars(),
+                        @simp.rewrite_tac(ths([@equal.gsym(@lists.map_append())])),
+                        @tactics.match_mp_tac(thm("safel_vals")),
+                        @meson.asm_meson_tac(ths([])),
+                      ]),
+                      seq([
+                        @tactics.rule_assum_tac(@simp.rewrite_rule(ths(map_trap))),
+                        @meson.asm_meson_tac(ths([])),
+                      ]),
+                      seq([
+                        @tactics.rule_assum_tac(@simp.rewrite_rule(ths([lfilled_eq]))),
+                        @meson.asm_meson_tac(ths([thm("br_not_vals"), @wasm.thm("all_vals_map")])),
+                      ]),
+                    ]),
+                  ]),
+                ),
+              ]),
+              // the body stopped at a br to label i
+              @tactics.thenl(
+                @tactics.disj_cases_tac(@bool.spec(tm("(i : Num)"), @nums.num_cases())),
+                @list.List([
+                  // to this label: the label takes the br
+                  seq([
+                    subst_vars(),
+                    @tactics.rule_assum_tac(@simp.rewrite_rule(ths([@lists.el(), @lists.hd(), @arith.add_clauses()]))),
+                    @simp.rewrite_tac(ths([safel, @arith.add_clauses()])),
+                    @tactics.disj2_tac,
+                    @tactics.disj2_tac,
+                    have("LENGTH((vs : List[Value])) == (m : Num)", @meson.asm_meson_tac(ths([]))),
+                    @tactics.thenl(
+                      @tactics.conj_tac,
+                      @list.List([
+                        seq([
+                          base_step(
+                            "[Label((m : Num), (e0 : List[Einstr]), lfill((lh : Lholed), APPEND(MAP(v_to_e, (vs : List[Value])), [Basic(Br(lh_depth(lh)))])))]",
+                            "APPEND(MAP(v_to_e, (vs : List[Value])), (e0 : List[Einstr]))",
+                            seq([
+                              @tactics.match_mp_tac(rs[29]),
+                              @tactics.exists_tac(tm("(lh : Lholed)")),
+                              @tactics.exists_tac(tm("lh_depth((lh : Lholed))")),
+                              @simp.asm_rewrite_tac(ths([@wasm.thm("lfilled_lfill")])),
+                            ]),
+                          ),
+                        ]),
+                        steps([
+                          inside,
+                          not_vals,
+                          not_trap,
+                          seq([
+                            @tactics.rule_assum_tac(@simp.rewrite_rule(ths([lfilled_eq]))),
+                            subst_vars(),
+                            have(
+                              "(vs' : List[Value]) == (vs : List[Value])",
+                              @meson.asm_meson_tac(ths([thm("br_unique")])),
+                            ),
+                            subst_vars(),
+                            @meson.asm_meson_tac(ths([])),
+                          ]),
+                        ]),
+                      ]),
+                    ),
+                  ]),
+                  // to a label outside: so does the labelled configuration
+                  seq([
+                    @tactics.first_x_assum(th => @tactics.x_choose_tac(tm("(i1 : Num)"), th)),
+                    subst_vars(),
+                    @simp.rewrite_tac(ths([safel])),
+                    @tactics.disj2_tac,
+                    @tactics.disj1_tac,
+                    @tactics.exists_tac(tm("(i1 : Num)")),
+                    @tactics.exists_tac(tm("(vs : List[Value])")),
+                    @tactics.exists_tac(tm("LRec(\{vs0}, (m : Num), (e0 : List[Einstr]), (lh : Lholed), NIL)")),
+                    @tactics.rule_assum_tac(
+                      @simp.rewrite_rule(ths([@lists.el(), @lists.tl(), @lists.length(), @arith.lt_suc()])),
+                    ),
+                    @tactics.repeat_tac(@tactics.conj_tac),
+                    @tactics.first(@list.List([
+                      solve(@simp.asm_rewrite_tac(ths([lfill, depth, arith_suc]))),
+                      steps([
+                        inside,
+                        not_vals,
+                        not_trap,
+                        seq([
+                          @tactics.rule_assum_tac(@simp.rewrite_rule(ths([lfilled_eq]))),
+                          subst_vars(),
+                          @meson.asm_meson_tac(ths([thm("br_unique"), arith_ne])),
+                        ]),
+                      ]),
+                    ])),
+                  ]),
+                ]),
+              ),
+              // the body steps
+              seq([
+                @simp.rewrite_tac(ths([safel])),
+                @tactics.disj2_tac,
+                @tactics.disj2_tac,
+                @tactics.thenl(
+                  @tactics.conj_tac,
+                  @list.List([
+                    @meson.asm_meson_tac(ths([thm("reduce_label")])),
+                    steps([
+                      inside,
+                      seq([subst_vars(), @meson.asm_meson_tac(ths([@wasm.thm("reduce_not_vals")]))]),
+                      seq([subst_vars(), @meson.asm_meson_tac(ths([@wasm.thm("reduce_not_trap")]))]),
+                      seq([
+                        @tactics.rule_assum_tac(@simp.rewrite_rule(ths([lfilled_eq]))),
+                        subst_vars(),
+                        @meson.asm_meson_tac(ths([thm("br_stuck"), @arith.le_refl()])),
+                      ]),
+                    ]),
+                  ]),
+                ),
+              ]),
+            ]),
+          ),
+        ]),
+      ]),
+    ),
+  )
+}
+
+///|
+/// The rule for blocks with no parameters (block types Tbv(ot)).
+fn prove_block_rule() -> Unit raise {
+  def(
+    "tbv_results",
+    "tbv_results((NONE : Option[Valtype])) == (NIL : List[Valtype]) && tbv_results(SOME(t)) == [t]",
+  )
+  let tb_tf_tbv = lemma(
+    "tb_tf_tbv",
+    "∀ i : Inst, ∀ ot : Option[Valtype], tb_tf(i, Tbv(ot)) == Tf(NIL, tbv_results(ot))",
+    seq([
+      @tactics.repeat_tac(@tactics.gen_tac),
+      @tactics.struct_cases_tac(@bool.ispec(tm("(ot : Option[Valtype])"), @ind_types.cases("option"))),
+      @simp.rewrite_tac(ths([@wasm.thm("tb_tf"), thm("tbv_results")])),
+    ]),
+  )
+  let block = "Basic(Block(Tbv((ot : Option[Valtype])), (bs : List[B_e])))"
+  let simple = @bool.gen_all(
+    prove_arity(
+      "arity_simple_block",
+      "reduce_simple",
+      "∀ suf : List[Einstr], ∀ e2 : List[Einstr], reduce_simple(APPEND(suf, [\{block}]), e2) && ALL(is_val, suf) → LENGTH(suf) == 0",
+      [thm("no_trap")],
+    ),
+  )
+  let arity = prove_arity(
+    "arity_block",
+    "reduce_base",
+    "∀ s : Wstore, ∀ f : Wframe, ∀ suf : List[Einstr], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ e2 : List[Einstr], reduce_base(s, f, APPEND(suf, [\{block}]), s2, f2, e2) && ALL(is_val, suf) → LENGTH(suf) == 0",
+    [simple, tb_tf_tbv, @ind_types.injectivity("tf"), @lists.length_map(), @lists.length()],
+  )
+  let prefix = @bool.gen_all(prove_prefix("block", [], block, arity))
+  let s_ = tm("(s : Wstore)")
+  let f_ = tm("(f : Wframe)")
+  let cases = @wasm.step_cases(s_, f_, tm("[\{block}]"), compute=false)
+  let rb = @bool.conjuncts_rule(@wasm.thm("reduce_base_rules")).to_array()
+  let lists = [@lists.map(), @lists.append(), @lists.append_nil()]
+  let enter = "[Label(LENGTH(tbv_results((ot : Option[Valtype]))), NIL, MAP(Basic, (bs : List[B_e])))]"
+  let vs0 = "(vs0 : List[Value])"
+  let block_step = lemma(
+    "block_step",
+    "∀ s : Wstore, ∀ f : Wframe, ∀ vs0 : List[Value], ∀ ot : Option[Valtype], ∀ bs : List[B_e], reduce(s, f, APPEND(MAP(v_to_e, vs0), [\{block}]), s, f, APPEND(MAP(v_to_e, vs0), \{enter}))",
+    seq([
+      @tactics.repeat_tac(@tactics.gen_tac),
+      have(
+        "reduce_base((s : Wstore), (f : Wframe), APPEND(MAP(v_to_e, (NIL : List[Value])), [\{block}]), s, f, [Label(LENGTH(tbv_results((ot : Option[Valtype]))), NIL, APPEND(MAP(v_to_e, (NIL : List[Value])), MAP(Basic, (bs : List[B_e]))))])",
+        seq([
+          @tactics.match_mp_tac(rb[36]),
+          @simp.rewrite_tac(ths([tb_tf_tbv, @ind_types.injectivity("tf"), @lists.length()])),
+          @tactics.conv_tac(@equal.top_depth_conv(@ind_types.unwind_conv)),
+          @simp.rewrite_tac(ths([@lists.length()])),
+        ]),
+      ),
+      @tactics.first_x_assum(th => @tactics.mp_tac(@drule.match_mp(@wasm.thm("decomp_reduce"))(th))),
+      @tactics.disch_then(th => @tactics.mp_tac(@bool.ispec(tm("LBase(\{vs0}, NIL)"), th))),
+      @simp.rewrite_tac(ths([@wasm.thm("lfill")] + lists)),
+    ]),
+  )
+  let star = thm("star")
+  let star_some = lemma(
+    "star_some",
+    "∀ p : \{hprop}, ∀ r : \{hprop}, ∀ h : \{heap}, star(p, r, h) → (∃ h1 : \{heap}, p(h1))",
+    seq([@simp.rewrite_tac(ths([star])), @meson.meson_tac(ths([]))]),
+  )
+  let lift = thm("lift")
+  let pre = "(vs : List[Value]) => (lc : List[Value]) => (h : \{heap}) => vs == vs0 && pb(NIL, lc, h)"
+  let post = "(vs : List[Value]) => (lc : List[Value]) => (h : \{heap}) => (∃ r : List[Value], vs == APPEND(vs0, r) && (qb(r, lc, h) || lb(r, lc, h)))"
+  let sa = "\{sassn}"
+  // the post of the block from the body's values (or a br)
+  let from_body = (which : String) => seq([
+    @tactics.match_mp_tac(thm("lift_mono")),
+    @tactics.exists_tac(tm("(\{which} : \{sa})")),
+    @tactics.exists_tac(tm("(vs : List[Value])")),
+    @simp.asm_rewrite_tac(ths([])),
+    @meson.meson_tac(ths([])),
+  ])
+  let _ = lemma(
+    "sl_block",
+    "∀ ot : Option[Valtype], ∀ bs : List[B_e], ∀ pb : \{sa}, ∀ qb : \{sa}, ∀ lb : \{sa}, ∀ ls : List[\{sa}], ∀ vs0 : List[Value], (∀ r : List[Value], ∀ lc : List[Value], ∀ h : \{heap}, lb(r, lc, h) → LENGTH(r) == LENGTH(tbv_results(ot))) && sl_triple_l(pb, bs, qb, CONS(lb, ls)) → sl_triple_l(\{pre}, [Block(Tbv(ot), bs)], \{post}, ls)",
+    seq([
+      @tactics.repeat_tac(@tactics.gen_tac),
+      @simp.rewrite_tac(ths([thm("sl_triple_l"), thm("triple_l")])),
+      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+      @tactics.x_gen_tac(tm("(fr : \{hprop})")),
+      @tactics.repeat_tac(@tactics.gen_tac),
+      @tactics.disch_then(th => @tactics.mp_tac(th)),
+      @simp.rewrite_tac(ths(lift_facts())),
+      @tactics.repeat_tac(@tactics.strip_tac),
+      subst_vars(),
+      @simp.rewrite_tac(ths(lists)),
+      @tactics.struct_cases_tac(@bool.spec(tm("(n : Num)"), @nums.num_cases())),
+      @simp.rewrite_tac(ths([thm("safel")])),
+      @tactics.disj2_tac,
+      @tactics.disj2_tac,
+      @tactics.thenl(
+        @tactics.conj_tac,
+        @list.List([
+          @meson.meson_tac(ths([block_step])),
+          seq([
+            @tactics.x_gen_tac(tm("(t1 : Wstore)")),
+            @tactics.x_gen_tac(tm("(t2 : Wframe)")),
+            @tactics.x_gen_tac(tm("(t3 : List[Einstr])")),
+            @tactics.disch_tac,
+            @tactics.first_x_assum(th => @tactics.strip_assume_tac(@drule.match_mp(prefix)(th))),
+            @tactics.first_x_assum(th => @tactics.mp_tac(@drule.match_mp(cases)(th))),
+            @simp.rewrite_tac(ths([tb_tf_tbv, @ind_types.injectivity("tf")] + lists)),
+            @tactics.repeat_tac(@tactics.strip_tac),
+            subst_vars(),
+            @tactics.match_mp_tac(thm("label_safe")),
+            @tactics.exists_tac(tm("lift((qb : \{sa}), (fr : \{hprop}))")),
+            @tactics.exists_tac(tm("lift((lb : \{sa}), (fr : \{hprop}))")),
+            @tactics.thenl(
+              @tactics.conj_tac,
+              @list.List([
+                // the body is safe: its triple, from an empty stack
+                seq([
+                  @tactics.first_x_assum(th => @tactics.mp_tac(
+                    @bool.ispecl(@list.List([tm("(fr : \{hprop})"), s_, f_, tm("(NIL : List[Value])"), tm("(n' : Num)")]), th),
+                  )),
+                  @simp.rewrite_tac(ths(lists + [lift])),
+                  @meson.asm_meson_tac(ths([])),
+                ]),
+                @tactics.thenl(
+                  @tactics.conj_tac,
+                  @list.List([
+                    seq([@tactics.repeat_tac(@tactics.strip_tac), from_body("qb")]),
+                    seq([
+                      @tactics.repeat_tac(@tactics.gen_tac),
+                      @tactics.disch_tac,
+                      @tactics.thenl(
+                        @tactics.conj_tac,
+                        @list.List([
+                          // a br to the block has its arity
+                          seq([
+                            @tactics.first_x_assum(th => @tactics.mp_tac(th)),
+                            @simp.rewrite_tac(ths([lift])),
+                            @tactics.repeat_tac(@tactics.strip_tac),
+                            @tactics.first_x_assum(th => @tactics.strip_assume_tac(@drule.match_mp(star_some)(th))),
+                            @meson.asm_meson_tac(ths([])),
+                          ]),
+                          seq([
+                            @simp.rewrite_tac(ths([@lists.append_nil(), @equal.gsym(@lists.map_append())])),
+                            @tactics.match_mp_tac(thm("safel_vals")),
+                            from_body("lb"),
+                          ]),
+                        ]),
+                      ),
+                    ]),
+                  ]),
+                ),
+              ]),
+            ),
+          ]),
+        ]),
+      ),
+    ]),
+  )
+}

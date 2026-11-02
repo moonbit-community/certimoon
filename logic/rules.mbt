@@ -48,6 +48,11 @@ fn prove_rule_lemmas() -> Unit raise {
     ]),
   )
   let _ = lemma(
+    "nil_eq_sym",
+    "∀ l : List[A], (NIL == l) == (l == NIL)",
+    @meson.meson_tac(ths([])),
+  )
+  let _ = lemma(
     "snoc_eq_sym",
     "∀ suf : List[A], ∀ x : A, ∀ l : List[A], l == APPEND(suf, [x]) == (!(l == NIL) && LAST(l) == x && suf == BUTLAST(l))",
     @meson.meson_tac(ths([thm("snoc_eq")])),
@@ -265,7 +270,7 @@ fn prove_prefix(
   arity : @kernel.Thm,
 ) -> @kernel.Thm raise {
   let code = "[" + (ops + [x]).join(", ") + "]"
-  let ops_t = "[" + ops.join(", ") + "]"
+  let ops_t = if ops.is_empty() { "(NIL : List[Einstr])" } else { "[" + ops.join(", ") + "]" }
   let vals = [
     @lists.all_append(),
     @wasm.thm("all_vals_map"),
@@ -324,7 +329,8 @@ fn prove_prefix(
       ),
       @simp.asm_rewrite_tac(ths([@lists.length()])),
       @tactics.conv_tac(@calc_num.num_reduce_conv),
-      @simp.rewrite_tac(ths([])),
+      // NIL == suf as suf == NIL, so suf is substituted
+      @simp.rewrite_tac(ths([thm("nil_eq_sym")])),
       @tactics.strip_tac,
       subst_vars(),
       @tactics.exists_tac(tm("(e' : List[Einstr])")),
