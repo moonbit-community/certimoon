@@ -9,7 +9,7 @@ test "the logic's lemmas are theorems, with no new axioms" {
     "sl_load_i32", "arity_store", "prefix_store", "sl_store_i32", "safe_seq", "triple_seq",
     "sl_seq", "deserialise_serialise_i32", "example_store_load", "safe_safel",
     "sl_triple_l_of", "safel_seq", "sl_seq_l", "sl_br", "label_steps", "br_unique", "br_stuck",
-    "label_safe", "block_step", "sl_block",
+    "label_safe", "block_step", "sl_block", "safel_down", "loop_step", "sl_loop",
   ] {
     assert_true(@kernel.hyp(@logic.thm(name)).is_empty(), msg=name)
   }
@@ -43,6 +43,17 @@ test "example_store_load states the program's result" {
     @term_syntax.print_term(@kernel.concl(@logic.thm("example_store_load"))),
     content=(
       #|∀ bs : List[Word[Tybit0[Tybit0[Tybit0[Unit]]]]], ∀ a : Num, ∀ k : Word[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Unit]]]]]], ∀ off : Num, ∀ v : Word[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Unit]]]]]], ∀ p : (List[Value], List[Value], (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) -> Bool, LENGTH(bs) == 4 → sl_triple((vs : List[Value]) => (ls : List[Value]) => (h : (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) => star(pts(val(k) + off, bs), p(vs, ls), h), [EConstNum(ConstInt32(k)), EConstNum(ConstInt32(v)), Store(T_i32, NONE, a, off), EConstNum(ConstInt32(k)), Load(T_i32, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (h : (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(v))]) && star(pts(val(k) + off, serialise_i32(v)), p(vs0, ls), h))
+    ),
+  )
+}
+
+///|
+test "sl_loop states the loop rule" {
+  @logic.load()
+  inspect(
+    @term_syntax.print_term(@kernel.concl(@logic.thm("sl_loop"))),
+    content=(
+      #|∀ ot : Option[Valtype], ∀ bs : List[B_e], ∀ linv : (List[Value], (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) -> Bool, ∀ qb : (List[Value], List[Value], (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) -> Bool, ∀ ls : List[(List[Value], List[Value], (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) -> Bool], ∀ vs0 : List[Value], sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (h : (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) => vs == NIL && linv(lc, h), bs, qb, CONS((vs : List[Value]) => (lc : List[Value]) => (h : (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) => vs == NIL && linv(lc, h), ls)) → sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (h : (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) => vs == vs0 && linv(lc, h), [Loop(Tbv(ot), bs)], (vs : List[Value]) => (lc : List[Value]) => (h : (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) => ∃ r : List[Value], vs == APPEND(vs0, r) && qb(r, lc, h), ls)
     ),
   )
 }

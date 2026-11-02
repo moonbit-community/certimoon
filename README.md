@@ -176,7 +176,30 @@ instances with `sl_seq` and `sl_conseq`: `example_store_load` says that
 `pts(val(k) + off, serialise_i32(v)) * p` (`deserialise_serialise_i32`:
 loading back what was stored gives the value).
 
-Blocks, loops and branches are next.
+Control flow (`logic/labels.mbt`, `block.mbt`, `loop.mbt`) uses triples
+with label assertions, innermost first:
+
+- `safel(n, s, f, es, q, l)`: as `safe`, and a run may also stop at a br
+  that leaves es, to the i-th label around it, with the i-th assertion of
+  l holding of the values it takes; `triple_l`, `sl_triple_l` (labels
+  lifted with the same frame). `sl_triple_l_of` carries every rule above
+  over to them, and `sl_seq_l` sequences them;
+- `sl_br`: `br i` with the i-th label assertion of its values;
+- `sl_block`: for `block` with no parameters (block type `Tbv(ot)`): if the
+  body is safe from an empty stack with postcondition qb and label 0
+  assertion lb (of the block's arity), the block leaves its stack vs0 with
+  `vs0 ++ r`, qb or lb of r;
+- `sl_loop`: for `loop` with no parameters: with an invariant on the
+  locals and memory that holds on entry and is what a `br 0` must
+  re-establish (with no values), the loop leaves `vs0 ++ r` with the body's
+  postcondition of r.
+
+Their proofs: `label_steps` (a step of `vs0 ++ [Label(m, e0, li)]` is a
+step of li inside, or the label leaving with values, a trap or a br to it),
+`br_unique` (a br's place is unique), `br_stuck` (a br to a label outside
+does not step), `label_safe` (safety through a label, by induction on n),
+and for loops `safel_down` (the run after a br 0 is the loop again, with
+fewer steps). `if` and `br_if` are next.
 
 ## Tests
 

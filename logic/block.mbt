@@ -406,7 +406,8 @@ fn prove_br_facts() -> Unit raise {
 /// label_safe: safety carries through a label. The body li is safe with
 /// postcondition qb and label 0 assertion lb (then the labels l around);
 /// its values vs leave the label as vs0 ++ vs, and a br to it with vs
-/// (of the label's arity) continues as vs0 ++ vs ++ e0.
+/// (of the label's arity) continues as vs0 ++ vs ++ e0, safe for as many
+/// steps as are left (a loop's continuation is the loop again).
 fn prove_label_safe() -> Unit raise {
   let safel = thm("safel")
   let lfill = @wasm.thm("lfill")
@@ -446,12 +447,14 @@ fn prove_label_safe() -> Unit raise {
     ),
   ])
   // a step inside the label: the induction hypothesis
+  let le_suc = arith("∀ k : Num, ∀ n : Num, k <= n → k <= SUC(n)")
+  let le_n_suc = arith("∀ n : Num, n <= SUC(n)")
   let inside = seq([
     subst_vars(),
     @tactics.first_x_assum(th => @tactics.match_mp_tac(th)),
     @tactics.exists_tac(tm("(qb : \{assn})")),
     @tactics.exists_tac(tm("(lb : \{assn})")),
-    @meson.asm_meson_tac(ths([])),
+    @meson.asm_meson_tac(ths([le_suc])),
   ])
   let not_vals = seq([subst_vars(), @meson.asm_meson_tac(ths([thm("br_not_vals"), @wasm.thm("all_vals_map")]))])
   let not_trap = seq([subst_vars(), @meson.asm_meson_tac(ths([thm("br_not_trap")]))])
@@ -460,7 +463,7 @@ fn prove_label_safe() -> Unit raise {
   let arith_ne = arith("∀ i : Num, ∀ d : Num, !(d == SUC(i) + d)")
   let _ = lemma(
     "label_safe",
-    "∀ n : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ vs0 : List[Value], ∀ m : Num, ∀ e0 : List[Einstr], ∀ li : List[Einstr], ∀ qb : \{assn}, ∀ lb : \{assn}, ∀ q : \{assn}, ∀ l : List[\{assn}], safel(n, s, f, li, qb, CONS(lb, l)) && (∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], qb(s, f, vs) → q(s, f, APPEND(vs0, vs))) && (∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ k : Num, lb(s, f, vs) → LENGTH(vs) == m && safel(k, s, f, APPEND(MAP(v_to_e, vs0), APPEND(MAP(v_to_e, vs), e0)), q, l)) → safel(n, s, f, APPEND(MAP(v_to_e, vs0), [\{label}]), q, l)",
+    "∀ n : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ vs0 : List[Value], ∀ m : Num, ∀ e0 : List[Einstr], ∀ li : List[Einstr], ∀ qb : \{assn}, ∀ lb : \{assn}, ∀ q : \{assn}, ∀ l : List[\{assn}], safel(n, s, f, li, qb, CONS(lb, l)) && (∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], qb(s, f, vs) → q(s, f, APPEND(vs0, vs))) && (∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ k : Num, k <= n → lb(s, f, vs) → LENGTH(vs) == m && safel(k, s, f, APPEND(MAP(v_to_e, vs0), APPEND(MAP(v_to_e, vs), e0)), q, l)) → safel(n, s, f, APPEND(MAP(v_to_e, vs0), [\{label}]), q, l)",
     @tactics.thenl(
       @nums.induct_tac,
       @list.List([
@@ -519,7 +522,7 @@ fn prove_label_safe() -> Unit raise {
                     @simp.rewrite_tac(ths([safel, @arith.add_clauses()])),
                     @tactics.disj2_tac,
                     @tactics.disj2_tac,
-                    have("LENGTH((vs : List[Value])) == (m : Num)", @meson.asm_meson_tac(ths([]))),
+                    have("LENGTH((vs : List[Value])) == (m : Num)", @meson.asm_meson_tac(ths([le_n_suc]))),
                     @tactics.thenl(
                       @tactics.conj_tac,
                       @list.List([
@@ -547,7 +550,7 @@ fn prove_label_safe() -> Unit raise {
                               @meson.asm_meson_tac(ths([thm("br_unique")])),
                             ),
                             subst_vars(),
-                            @meson.asm_meson_tac(ths([])),
+                            @meson.asm_meson_tac(ths([le_n_suc])),
                           ]),
                         ]),
                       ]),
@@ -741,6 +744,7 @@ fn prove_block_rule() -> Unit raise {
                     seq([@tactics.repeat_tac(@tactics.strip_tac), from_body("qb")]),
                     seq([
                       @tactics.repeat_tac(@tactics.gen_tac),
+                      @tactics.disch_tac,
                       @tactics.disch_tac,
                       @tactics.thenl(
                         @tactics.conj_tac,

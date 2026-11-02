@@ -31,6 +31,7 @@ pub fn load() -> Unit {
     prove_br_facts()
     prove_label_safe()
     prove_block_rule()
+    prove_loop_rule()
     prove_rules()
     prove_examples()
   })() catch {
