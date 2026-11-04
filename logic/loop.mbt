@@ -9,7 +9,7 @@
 fn prove_loop_rule() -> Unit raise {
   let safel = thm("safel")
   // safel for n steps is safel for fewer
-  let safel_down = lemma(
+  let _ = lemma(
     "safel_down",
     "∀ n : Num, ∀ k : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ es : List[Einstr], ∀ q : \{assn}, ∀ l : List[\{assn}], k <= n && safel(n, s, f, es, q, l) → safel(k, s, f, es, q, l)",
     @tactics.thenl(
@@ -112,7 +112,6 @@ fn prove_loop_rule() -> Unit raise {
   let pre = "(vs : List[Value]) => (lc : List[Value]) => (h : \{heap}) => vs == vs0 && linv(lc, h)"
   let post = "(vs : List[Value]) => (lc : List[Value]) => (h : \{heap}) => (∃ r : List[Value], vs == APPEND(vs0, r) && qb(r, lc, h))"
   let fr = "(fr : \{hprop})"
-  let lift_pre = "lift(\{pre}, \{fr})"
   let _ = lemma(
     "sl_loop",
     "∀ ot : Option[Valtype], ∀ bs : List[B_e], ∀ linv : (List[Value], \{heap}) -> Bool, ∀ qb : \{sa}, ∀ ls : List[\{sa}], ∀ vs0 : List[Value], sl_triple_l(\{lb}, bs, qb, CONS(\{lb}, ls)) → sl_triple_l(\{pre}, [Loop(Tbv(ot), bs)], \{post}, ls)",
@@ -211,5 +210,4 @@ fn prove_loop_rule() -> Unit raise {
       ),
     ]),
   )
-  ignore(lift_pre)
 }

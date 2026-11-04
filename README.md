@@ -19,11 +19,11 @@ cd wasmcert
 ```
 
 A plain `moon check` here checks hol_light too and, like `moon info`,
-rewrites its `pkg.generated.mbti` files. Check this module's package
-alone, which keeps its own interface file current:
+rewrites its `pkg.generated.mbti` files. Check this module's packages
+alone, which keeps their own interface files current:
 
 ```bash
-moon check wasm
+moon check wasm logic
 ```
 
 ## Status
@@ -34,6 +34,11 @@ numeric layer (on Library/words), and the typing and reduction relations.
 The header comments of `wasm/*.mbt` list where names and representations
 differ from Isabelle's. The soundness proofs (Wasm_Properties,
 Wasm_Soundness) are not ported yet.
+
+Package `logic` is a separation logic for linear memory on top of it, with
+rules for constants, binary operators, `i32.load`, `i32.store`, `br`, blocks
+and loops. See "Program logic" below, and [PLAN.md](PLAN.md) for the design,
+what is left and how to work on it.
 
 ```moonbit
 @wasm.load()

@@ -8,20 +8,6 @@
 //   star(pts(a, bs'), r): the frame r still holds.
 
 ///|
-/// `t` as a new assumption, proved by `proof`.
-fn have(t : String, proof : @tactics.Tactic) -> @tactics.Tactic raise {
-  @tactics.thenl(
-    @tactics.subgoal_then(tm(t), th => @tactics.assume_tac(th)),
-    @list.List([proof, @tactics.all_tac]),
-  )
-}
-
-///|
-fn arith(t : String) -> @kernel.Thm raise {
-  @int.arith_rule(tm(t))
-}
-
-///|
 fn prove_memory() -> Unit raise {
   let take = @wasm.thm("take")
   let drop = @wasm.thm("drop")

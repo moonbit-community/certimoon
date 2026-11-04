@@ -28,25 +28,6 @@ fn define_labels() -> Unit raise {
 }
 
 ///|
-/// For an unfolded `safe`/`safel` step goal: the hypothesis's values case
-/// (`values`), then its step case, where every step is safe by `ih`
-/// (matched against the goal) with `extra` closing what is left.
-fn step_case(ih_exists : String) -> @tactics.Tactic raise {
-  seq([
-    @tactics.repeat_tac(@tactics.strip_tac),
-    @tactics.first_x_assum(th => @tactics.match_mp_tac(th)),
-    @tactics.exists_tac(tm(ih_exists)),
-    @meson.asm_meson_tac(ths([])),
-  ])
-}
-
-///|
-/// `tac`, failing unless it proves the goal.
-fn solve(tac : @tactics.Tactic) -> @tactics.Tactic {
-  @tactics.then_tac(tac, @tactics.no_tac)
-}
-
-///|
 fn prove_labels() -> Unit raise {
   let safe = thm("safe")
   let safel = thm("safel")
@@ -94,7 +75,6 @@ fn prove_labels() -> Unit raise {
       @meson.meson_tac(ths([safe_safel])),
     ]),
   )
-  ignore(safe)
   let reduce_ok = @wasm.thm("reduce_ok")
   let reduce_not_trap = @wasm.thm("reduce_not_trap")
   let einstr = @ind_types.distinctness("einstr")

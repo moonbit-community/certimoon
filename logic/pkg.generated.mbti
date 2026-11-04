@@ -6,7 +6,7 @@ import {
 }
 
 // Values
-pub fn listing() -> String raise
+pub fn listing() -> String
 
 pub fn load() -> Unit
 

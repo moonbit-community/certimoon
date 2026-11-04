@@ -61,14 +61,14 @@ fn show_statement(th : @kernel.Thm) -> String {
 }
 
 ///|
-/// The listing in Markdown: a heading per section, each entry with its
-/// kind, name and statement. `abbreviate` shortens the printed types.
+/// The listing in Markdown: `items` are (kind, name, statement), and a
+/// ("section", title, _) is a heading for the items after it.
 pub fn render_listing(
   title : String,
   intro : String,
   items : Array[(String, String, String)],
 ) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("# " + title + "\n\n" + intro + "\n")
   for e in items {
     let (kind, name, text) = e

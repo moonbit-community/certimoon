@@ -3,7 +3,11 @@
 // - label_simple, label_base: a base step of [Label(m, e0, li)] leaves
 //   the label with li's values, or with [Trap], or takes a br to it;
 // - label_steps: a step of APPEND(MAP(v_to_e, vs0), [Label(m, e0, li)]) is
-//   a step of li inside the label, or one of those base steps.
+//   a step of li inside the label, or one of those base steps;
+// - br_unique, br_stuck: where a br is in a configuration, and that a br
+//   to a label outside the configuration does not step;
+// - label_safe: safety carries through a label (blocks and loops use it);
+// - sl_block: the rule for blocks with no parameters.
 
 ///|
 fn prove_label_steps() -> Unit raise {
