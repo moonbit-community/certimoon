@@ -75,7 +75,8 @@ the official spec testsuite (`wasm/spec_test.mbt`).
 | `sl_ex_l`, `sl_pure_l`, `sl_nil_l`, `sl_triple_of_l`, `pts_split` | done |
 | Exact-state rules (`st`, `st_const`, `st_binop`, `st_local_get`, `st_local_set`) | done |
 | Verified programs: `example_store_load`, `example_sum` (a loop) | done |
-| `example_fill` (a loop over memory) | not started |
+| Arrays: `arr`, `arr_split`, `arr_focus`, `st_arr_store`, `st_arr_load` | done |
+| `example_fill` (a loop over memory) | done |
 | Everything under "Next steps" | not started |
 
 Known limits of what exists:
@@ -91,66 +92,77 @@ Known limits of what exists:
 - WasmCert's soundness proofs (`Wasm_Properties`, `Wasm_Soundness`) are not
   ported. Nothing here depends on them.
 
+### What the first loops showed
+
+About the rules' shapes, from `example_sum` and `example_fill`:
+
+- The instruction rules' "operands on top of some vs0" form does not glue
+  by itself: each step needs an entailment. The exact-state `st_` rules
+  and `norm` (state.mbt) made straight-line code glue with `sl_seq` alone;
+  this is what the automation step should build on.
+- `sl_br_if` and `sl_if` fix the condition, so the body is proved for
+  each value and `sl_pure_l`, `sl_ex_l` put the invariant's facts and
+  values back into the precondition. That worked without changing them.
+- `sl_loop` and `sl_block` take their label assertions literally, so build
+  the rule instance first and read the label from it (as example_sum
+  does) rather than writing it again.
+- The array rules take the array split at the element (`ys ++ [x] ++ zs`),
+  so a loop that walks an array keeps the walked part and the rest in its
+  invariant, and no star rearranging is left to the loop's proof.
+- Arithmetic and list facts about the loop's state are best proved as
+  lemmas first (`fill_step`, `fill_exit`), so the loop proof only applies
+  them.
+
 ## Next steps
 
 In order. Each can be merged on its own. "Done when" means the named theorems
 appear in `theory.md`, with the tests passing.
 
-1. **A loop over memory.** `example_sum` is done (`logic/example_sum.mbt`);
-   `example_fill` is left: fill m words from address a0 with `i32.store`,
-   counting a local down as `example_sum` does. It needs, beyond what exists:
-   - `st_store_i32`: the store rule on exact states, with the heap part of
-     `R` written `star(pts(val(k), bs), F(gs))`.
-   - The bytes written so far, as a list: `rep(k, bs)` (k copies of bs) with
-     `LENGTH(rep(k, bs)) == k * LENGTH(bs)` and `rep(SUC(k), bs) ==
-     APPEND(rep(k, bs), bs)`; and splitting 4 bytes off a longer list (from
-     `take` and `drop`).
-   - The invariant: locals `[p, c]`, c ≠ 0, `val(p) == a0 + 4 * (m - val(c))`,
-     and the heap `pts(a0, rep(m - val(c), serialise_i32(x)))`, then
-     `pts(val(p), zs)` with `LENGTH(zs) == 4 * val(c)`, then the frame. A
-     bound `a0 + 4 * m < 2^32` keeps `val(p + 4) == val(p) + 4`.
-   - Rearranging stars: each iteration moves the stored word from the front of
-     the rest to the end of the written part. MESON does not do this; state
-     the rearrangement as a lemma (`star_assoc`, `star_comm`, `pts_split`),
-     and `pts(a, NIL)` as empty.
-   - Done when: `example_fill`.
-
-   What the sum loop showed about the rules' shapes:
-   - The instruction rules' "operands on top of some vs0" form does not glue
-     by itself: each step needs an entailment. The exact-state `st_` rules
-     and `norm` (state.mbt) made straight-line code glue with `sl_seq` alone;
-     this is what the automation step should build on.
-   - `sl_br_if` and `sl_if` fix the condition, so the body is proved for
-     each value and `sl_pure_l`, `sl_ex_l` put the invariant's facts and
-     values back into the precondition. That worked without changing them.
-   - `sl_loop` and `sl_block` take their label assertions literally, so build
-     the rule instance first and read the label from it (as example_sum
-     does) rather than writing it again.
+1. **Comparisons, and a loop that reads an array.** `sl_relop` and
+   `sl_testop` (with `eqz`), and their `st_` forms, by the recipe below.
+   - Then an array loop with an easy specification, such as the maximum or
+     the sum of an array: the first use of `st_arr_load` and of a comparison
+     as a loop condition.
+   - Done when: the two rules, and that example.
 
 2. **More instructions.** Mechanical, using the recipe below.
-   - `i64` and packed loads and stores, `unop`, `testop`, `relop`, `cvtop`,
-     `drop`, `select`, `nop`, `memory.size`.
+   - `i64` and packed loads and stores, `unop`, `cvtop`, `drop`, `select`,
+     `nop`, `memory.size`.
    - `memory.grow`: the heap gets bigger, so state the rule as gaining
      `pts(old length, zeros)`, with the failure case returning `-1`.
 
 3. **Automation.** A symbolic-execution tactic.
-   - Walk the instruction list, pick the rule for each instruction, find the
-     frame by matching `star` terms, and leave only real side conditions.
-     `then_rule` and `entails` in `examples.mbt` are the starting point.
+   - The `st_` rules and `norm` already glue straight-line code with no
+     entailments. Generalize them: walk the instruction list, pick the rule for
+     each instruction, find the frame by matching `star` terms, and leave only
+     the loop invariants and real side conditions.
    - Measure early on a program of about 100 instructions, because terms grow
      and the tests already need a large stack.
-   - Done when: the proofs of step 1 are a few lines each.
+   - Done when: the proofs of `example_sum` and `example_fill` are a few lines
+     each.
 
-4. **Calls.** `sl_call`, with per-function specs.
+4. **Sorting.** Insertion sort of an i32 array in linear memory, written by
+   hand: two nested loops, comparisons, array loads and stores.
+   - Specify it: `sorted(ys)` (by signed or unsigned word order, as the
+     program compares) and `perm(xs, ys)` (a permutation), with the lemmas
+     that a shift or a swap keeps a permutation.
+   - Invariants: the outer loop keeps the prefix sorted and the whole array a
+     permutation of the input; the inner loop shifts larger elements right.
+   - An element by index (`arr` at `i`, from `split_at`) is needed here.
+   - Done when: `example_insertion_sort`.
+
+5. **Calls.** `sl_call`, with per-function specs.
    - A `Frame` needs its own step inversion, like `label_steps`. `return` needs
      its own postcondition: add a return assertion as a further `safel` argument,
      as Wasm Logic does, rather than treating it as a label.
    - Recursive functions: induction on the steps left, as in `sl_loop`.
 
-5. **Real programs.** An untrusted `.wat` or `.wasm` importer that makes programs
-   through the builder, then verify a function from a compiled module. The theorem
-   is about the imported term, so the importer is trusted to match the file until
-   someone verifies a decoder.
+6. **Real programs.** An untrusted `.wat` or `.wasm` importer that makes programs
+   through the builder, then verify a function from a compiled module (a sort
+   from a C compiler is a good target: it adds a stack pointer global, its own
+   stack frame in memory, and more instructions). The theorem is about the
+   imported term, so the importer is trusted to match the file until someone
+   verifies a decoder.
 
 Separately, at any time: more spec coverage (block, loop, `br_table`, the
 `extend*_s` operators), since this checks the one thing the proofs rest on.
@@ -253,5 +265,5 @@ Syntax and names:
   need not be the order you expect.
 - `fn(g) { ... }` that raises is deprecated. Use `g => { ... }`.
 
-Costs: loading `logic` re-proves everything, about a minute and a half for its
+Costs: loading `logic` re-proves everything, about three minutes for its
 tests on `wasm-gc`. There is no theorem cache.

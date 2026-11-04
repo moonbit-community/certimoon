@@ -120,7 +120,7 @@ fn prove_roundtrip() -> @kernel.Thm raise {
 
 ///|
 fn prove_examples() -> Unit raise {
-  let roundtrip = prove_roundtrip()
+  let roundtrip = thm("deserialise_serialise_i32")
   // [i32.const k; i32.const v; i32.store; i32.const k; i32.load]: it loads
   // back v from val(k) + off, and the frame p still holds
   let addr = "val((k : \{w32})) + (off : Num)"
@@ -157,4 +157,5 @@ fn prove_examples() -> Unit raise {
   let th = @simp.rewrite_rule(ths([roundtrip]))(th)
   record("example_store_load", @bool.gen_all(@bool.disch(length, th)), kind="example")
   prove_example_sum()
+  prove_example_fill()
 }

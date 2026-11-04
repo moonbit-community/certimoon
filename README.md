@@ -37,7 +37,7 @@ Wasm_Soundness) are not ported yet.
 
 Package `logic` is a separation logic for linear memory on top of it, with
 rules for constants, binary operators, `i32.load`, `i32.store`, locals,
-globals, `br`, `br_if`, blocks, `if` and loops. See "Program logic"
+globals, `br`, `br_if`, blocks, `if` and loops, and arrays of i32 words. See "Program logic"
 below, and [PLAN.md](PLAN.md) for the design, what is left and how to work
 on it.
 
@@ -234,6 +234,32 @@ The loop's invariant goes into the body's precondition with `sl_pure_l`
 and `sl_ex_l` (a pure fact or an `∃` out of a precondition), the empty
 `else` is `sl_nil_l`, and `sl_triple_of_l` drops the empty list of labels
 at the end.
+
+Arrays (`logic/arrays.mbt`): `arr(a, xs)` is the i32 words xs from address
+a (`pts` of their bytes, `words_bytes`). `arr_split` splits an array into
+two, and `arr_focus` takes one element out of `ys ++ [x] ++ zs`, at
+`a + 4 * LENGTH(ys)`. The rules `st_arr_store` and `st_arr_load` are
+`i32.store` and `i32.load` of that element, on exact states whose `R` is
+`star(arr(a, ...), fp(gs))`. `example_fill` (`logic/example_fill.mbt`)
+verifies a loop over memory with them:
+
+```
+local.get 1
+if
+  loop
+    local.get 0; i32.const x; i32.store
+    local.get 0; i32.const 4; i32.add; local.set 0
+    local.get 1; i32.const 1; i32.sub; local.set 1
+    local.get 1; br_if 0
+  end
+end
+```
+
+from locals `[p0, m]` and m words at `val(p0)` (if `val(p0) + 4m < 2^32`)
+ends with locals `[p0 + 4m, 0]` and the words `REPLICATE(val(m), x)`. Its
+invariant keeps the array as the copies of x written so far, then the
+words still to write; `fill_step` and `fill_exit` are the arithmetic and
+list facts that keep it.
 
 Control flow (`logic/labels.mbt`, `block.mbt`, `loop.mbt`) uses triples
 with label assertions, innermost first:

@@ -52,6 +52,8 @@ pub fn load() -> Unit {
     prove_conditional_rules()
     section("Exact states (state.mbt)")
     prove_state_rules()
+    section("Arrays (arrays.mbt)")
+    prove_array_rules()
     section("Examples (examples.mbt)")
     prove_examples()
   })() catch {

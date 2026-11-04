@@ -1236,7 +1236,7 @@ lemma `sum_to_zero_word`
 (word : (Num) -> W32)(sum_to((val : (W32) -> Num)((word : (Num) -> W32)(0)))) == (word : (Num) -> W32)(0)
 ```
 
-## Examples (examples.mbt)
+## Arrays (arrays.mbt)
 
 lemma `num_of_le_bytes`
 
@@ -1249,6 +1249,74 @@ lemma `deserialise_serialise_i32`
 ```
 ∀ v : W32, deserialise_i32(serialise_i32(v)) == v
 ```
+
+definition `words_bytes`
+
+```
+words_bytes(NIL) == NIL && words_bytes(CONS((x : W32), (xs : List[W32]))) == APPEND(serialise_i32(x), words_bytes(xs))
+```
+
+definition `arr`
+
+```
+arr((a : Num), (xs : List[W32])) == pts(a, words_bytes(xs))
+```
+
+lemma `words_bytes_append`
+
+```
+∀ xs : List[W32], ∀ ys : List[W32], words_bytes(APPEND(xs, ys)) == APPEND(words_bytes(xs), words_bytes(ys))
+```
+
+lemma `length_words_bytes`
+
+```
+∀ xs : List[W32], LENGTH(words_bytes(xs)) == 4 * LENGTH(xs)
+```
+
+lemma `arr_split`
+
+```
+∀ a : Num, ∀ xs : List[W32], ∀ ys : List[W32], arr(a, APPEND(xs, ys)) == star(arr(a, xs), arr(a + 4 * LENGTH(xs), ys))
+```
+
+lemma `arr_cons`
+
+```
+∀ a : Num, ∀ x : W32, ∀ xs : List[W32], arr(a, CONS(x, xs)) == star(pts(a, serialise_i32(x)), arr(a + 4, xs))
+```
+
+lemma `star_left_comm`
+
+```
+∀ p : HProp, ∀ q : HProp, ∀ r : HProp, star(p, star(q, r)) == star(q, star(p, r))
+```
+
+lemma `arr_focus`
+
+```
+∀ a : Num, ∀ ys : List[W32], ∀ x : W32, ∀ zs : List[W32], arr(a, APPEND(ys, CONS(x, zs))) == star(pts(a + 4 * LENGTH(ys), serialise_i32(x)), star(arr(a, ys), arr(a + 4 * LENGTH(ys) + 4, zs)))
+```
+
+lemma `star_pure_r`
+
+```
+∀ c : Bool, ∀ p : HProp, ∀ r : HProp, ∀ h : Heap, star(p, (h1 : Heap) => c && r(h1), h) == (c && star(p, r, h))
+```
+
+lemma `st_arr_store`
+
+```
+∀ v : List[Value], ∀ l : List[Value], ∀ a : Num, ∀ ys : List[W32], ∀ x0 : W32, ∀ zs : List[W32], ∀ fp : GProp, ∀ k : W32, ∀ al : Num, ∀ off : Num, ∀ x : W32, val(k) + off == a + 4 * LENGTH(ys) → sl_triple(st(APPEND(v, [V_num(ConstInt32(k)), V_num(ConstInt32(x))]), l, (gs : List[Value]) => (h : Heap) => star(arr(a, APPEND(ys, CONS(x0, zs))), fp(gs), h)), [Store(T_i32, NONE, al, off)], st(v, l, (gs : List[Value]) => (h : Heap) => star(arr(a, APPEND(ys, CONS(x, zs))), fp(gs), h)))
+```
+
+lemma `st_arr_load`
+
+```
+∀ v : List[Value], ∀ l : List[Value], ∀ a : Num, ∀ ys : List[W32], ∀ x0 : W32, ∀ zs : List[W32], ∀ fp : GProp, ∀ k : W32, ∀ al : Num, ∀ off : Num, val(k) + off == a + 4 * LENGTH(ys) → sl_triple(st(APPEND(v, [V_num(ConstInt32(k))]), l, (gs : List[Value]) => (h : Heap) => star(arr(a, APPEND(ys, CONS(x0, zs))), fp(gs), h)), [Load(T_i32, NONE, al, off)], st(APPEND(v, [V_num(ConstInt32(x0))]), l, (gs : List[Value]) => (h : Heap) => star(arr(a, APPEND(ys, CONS(x0, zs))), fp(gs), h)))
+```
+
+## Examples (examples.mbt)
 
 example `example_store_load`
 
@@ -1266,4 +1334,52 @@ example `example_sum`
 
 ```
 ∀ vs0 : List[Value], ∀ acc0 : W32, ∀ n0 : W32, ∀ R : GProp, sl_triple(st(vs0, [V_num(ConstInt32(n0)), V_num(ConstInt32(acc0))], R), [Local_get(0), If(Tbv(NONE), [Loop(Tbv(NONE), [Local_get(1), Local_get(0), Binop(T_i32, Binop_i(Add)), Local_set(1), Local_get(0), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), Local_set(0), Local_get(0), Br_if(0)])], NIL)], st(vs0, [V_num(ConstInt32(word(0))), V_num(ConstInt32(word_add(acc0, word(sum_to(val(n0))))))], R))
+```
+
+lemma `val_sub_one`
+
+```
+∀ c : W32, !(c == word(0)) → val(word_sub(c, word(1))) == val(c) - 1
+```
+
+lemma `val_add_four`
+
+```
+∀ p : W32, val(p) + 4 < 4294967296 → val(word_add(p, word(4))) == val(p) + 4
+```
+
+lemma `replicate_shift`
+
+```
+∀ k : Num, ∀ x : A, ∀ l : List[A], APPEND(REPLICATE(k, x), CONS(x, l)) == APPEND(REPLICATE(SUC(k), x), l)
+```
+
+lemma `word_add_val`
+
+```
+∀ a : W32, ∀ b : W32, ∀ k : Num, val(a) + 4 == val(b) + k → word_add(a, word(4)) == word_add(b, word(k))
+```
+
+lemma `fill_entry`
+
+```
+∀ m : W32, ∀ ys : List[W32], !(m == word(0)) && LENGTH(ys) == val(m) → (∃ y : W32, ∃ zs : List[W32], ys == CONS(y, zs) && SUC(LENGTH(zs)) == val(m))
+```
+
+lemma `fill_step`
+
+```
+∀ p0 : W32, ∀ m : W32, ∀ p : W32, ∀ c : W32, ∀ x : W32, ∀ zs : List[W32], val(p0) + 4 * val(m) < 4294967296 && !(c == word(0)) && !(word_sub(c, word(1)) == word(0)) && val(p) == val(p0) + 4 * (val(m) - val(c)) && val(c) <= val(m) && SUC(LENGTH(zs)) == val(c) → (∃ y2 : W32, ∃ zs2 : List[W32], zs == CONS(y2, zs2) && val(word_add(p, word(4))) == val(p0) + 4 * (val(m) - val(word_sub(c, word(1)))) && val(word_sub(c, word(1))) <= val(m) && SUC(LENGTH(zs2)) == val(word_sub(c, word(1))) && APPEND(REPLICATE(val(m) - val(word_sub(c, word(1))), x), CONS(y2, zs2)) == APPEND(REPLICATE(val(m) - val(c), x), CONS(x, zs)))
+```
+
+lemma `fill_exit`
+
+```
+∀ p0 : W32, ∀ m : W32, ∀ p : W32, ∀ c : W32, ∀ x : W32, ∀ zs : List[W32], word_sub(c, word(1)) == word(0) && val(p) == val(p0) + 4 * (val(m) - val(c)) && val(c) <= val(m) && SUC(LENGTH(zs)) == val(c) → word_add(p, word(4)) == word_add(p0, word(4 * val(m))) && REPLICATE(val(m), x) == APPEND(REPLICATE(val(m) - val(c), x), CONS(x, zs))
+```
+
+example `example_fill`
+
+```
+∀ ys : List[W32], ∀ vs0 : List[Value], ∀ p0 : W32, ∀ m : W32, ∀ x : W32, ∀ fp : GProp, LENGTH(ys) == val(m) && val(p0) + 4 * val(m) < 4294967296 → sl_triple(st(vs0, [V_num(ConstInt32(p0)), V_num(ConstInt32(m))], (gs : List[Value]) => star(arr(val(p0), ys), fp(gs))), [Local_get(1), If(Tbv(NONE), [Loop(Tbv(NONE), [Local_get(0), EConstNum(ConstInt32(x)), Store(T_i32, NONE, 2, 0), Local_get(0), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Add)), Local_set(0), Local_get(1), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), Local_set(1), Local_get(1), Br_if(0)])], NIL)], st(vs0, [V_num(ConstInt32(word_add(p0, word(4 * val(m))))), V_num(ConstInt32(word(0)))], (gs : List[Value]) => star(arr(val(p0), REPLICATE(val(m), x)), fp(gs))))
 ```
