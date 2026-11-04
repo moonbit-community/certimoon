@@ -220,7 +220,7 @@ step of li inside, or the label leaving with values, a trap or a br to it),
 `br_unique` (a br's place is unique), `br_stuck` (a br to a label outside
 does not step), `label_safe` (safety through a label, by induction on n),
 and for loops `safel_down` (the run after a br 0 is the loop again, with
-fewer steps). `if` and `br_if` are next.
+fewer steps). [PLAN.md](PLAN.md) says what comes next.
 
 ## Tests
 
