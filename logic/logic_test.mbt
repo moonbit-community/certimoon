@@ -14,7 +14,7 @@ test "the logic's lemmas are theorems, with no new axioms" {
     "gvals_mems_update", "el_list_update_other", "el_gvals", "globs_ok_set", "s_mems_set",
     "gvals_set", "sl_global_get", "sl_global_set", "split_at", "el_split", "list_update_split",
     "local_get_step", "local_get_cases", "local_set_step", "local_set_cases", "sl_local_get",
-    "sl_local_set", "sl_local_tee",
+    "sl_local_set", "sl_local_tee", "prefix_br_if", "sl_br_if", "prefix_if", "sl_if",
   ] {
     assert_true(@kernel.hyp(@logic.thm(name)).is_empty(), msg=name)
   }

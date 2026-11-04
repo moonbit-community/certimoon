@@ -71,6 +71,7 @@ the official spec testsuite (`wasm/spec_test.mbt`).
 | `sl_conseq_l`, `sl_frame_l` (from `safel_mono`) | done |
 | Globals in assertions; `sl_global_get`, `sl_global_set` | done |
 | `sl_local_get`, `sl_local_set`, `sl_local_tee` | done |
+| `sl_br_if`, `sl_if` | done |
 | One verified program: `example_store_load` | done |
 | Everything under "Next steps" | not started |
 
@@ -92,22 +93,18 @@ Known limits of what exists:
 In order. Each can be merged on its own. "Done when" means the named theorems
 appear in `theory.md`, with the tests passing.
 
-1. **Conditionals.** `sl_br_if`, `sl_if`.
-   - `br_if` steps to `br i` or to nothing, depending on the condition (rules
-     30, 31), and then `sl_br` applies. `if` steps to a `block` (rules 25, 26),
-     and then `sl_block` applies.
-   - So `sl_if` has `sl_block`'s limit: block types `Tbv(ot)` only. Add it to
-     the known limits above.
-   - Done when: both rules.
-
-2. **First loops.** The test of whether the rules work together.
+1. **First loops.** The test of whether the rules work together.
    - A counting loop on locals first (sum `1..n`), then one over memory, such as
      filling a region.
-   - Comparisons (`relop`, `eqz`) and packed stores come in step 3, so write
+   - Comparisons (`relop`, `eqz`) and packed stores come in step 2, so write
      these loops without them. Count down and end the body with
      `local.get n; br_if 0`, which repeats while `n ≠ 0`; guard the loop with
      `if` for `n = 0`. Fill with `i32.store`, 4 bytes per iteration. If that
      turns out awkward, move `sl_relop` and `sl_testop` before this step.
+   - `sl_br_if` and `sl_if` fix the condition c in the precondition. A loop's
+     condition is a local that changes, so these proofs need a rule that takes
+     an `∃` out of a precondition (`sl_ex_l`: if the triple holds for every x,
+     it holds from `∃ x. p(x)`). Not proved yet; it follows from `star_ex`.
    - Memory loops need `pts_split`: `pts(a, xs ++ ys)` is
      `star(pts(a, xs), pts(a + LENGTH(xs), ys))`. Not proved yet.
    - Word side conditions should go to `@words.word_rule` and
@@ -115,27 +112,27 @@ appear in `theory.md`, with the tests passing.
    - Done when: `example_sum`, `example_fill`. Record any rule that turned out
      awkward to use: this is the point to change a rule's shape cheaply.
 
-3. **More instructions.** Mechanical, using the recipe below.
+2. **More instructions.** Mechanical, using the recipe below.
    - `i64` and packed loads and stores, `unop`, `testop`, `relop`, `cvtop`,
      `drop`, `select`, `nop`, `memory.size`.
    - `memory.grow`: the heap gets bigger, so state the rule as gaining
      `pts(old length, zeros)`, with the failure case returning `-1`.
 
-4. **Automation.** A symbolic-execution tactic.
+3. **Automation.** A symbolic-execution tactic.
    - Walk the instruction list, pick the rule for each instruction, find the
      frame by matching `star` terms, and leave only real side conditions.
      `then_rule` and `entails` in `examples.mbt` are the starting point.
    - Measure early on a program of about 100 instructions, because terms grow
      and the tests already need a large stack.
-   - Done when: the proofs of step 2 are a few lines each.
+   - Done when: the proofs of step 1 are a few lines each.
 
-5. **Calls.** `sl_call`, with per-function specs.
+4. **Calls.** `sl_call`, with per-function specs.
    - A `Frame` needs its own step inversion, like `label_steps`. `return` needs
      its own postcondition: add a return assertion as a further `safel` argument,
      as Wasm Logic does, rather than treating it as a label.
    - Recursive functions: induction on the steps left, as in `sl_loop`.
 
-6. **Real programs.** An untrusted `.wat` or `.wasm` importer that makes programs
+5. **Real programs.** An untrusted `.wat` or `.wasm` importer that makes programs
    through the builder, then verify a function from a compiled module. The theorem
    is about the imported term, so the importer is trusted to match the file until
    someone verifies a decoder.

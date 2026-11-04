@@ -45,6 +45,8 @@ pub fn load() -> Unit {
     prove_global_rules()
     section("Locals (locals.mbt)")
     prove_local_rules()
+    section("Conditionals (conditionals.mbt)")
+    prove_conditional_rules()
     section("Examples (examples.mbt)")
     prove_examples()
   })() catch {

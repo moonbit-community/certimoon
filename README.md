@@ -37,7 +37,7 @@ Wasm_Soundness) are not ported yet.
 
 Package `logic` is a separation logic for linear memory on top of it, with
 rules for constants, binary operators, `i32.load`, `i32.store`, locals,
-globals, `br`, blocks and loops. See "Program logic"
+globals, `br`, `br_if`, blocks, `if` and loops. See "Program logic"
 below, and [PLAN.md](PLAN.md) for the design, what is left and how to work
 on it.
 
@@ -226,6 +226,11 @@ with label assertions, innermost first:
   body is safe from an empty stack with postcondition qb and label 0
   assertion lb (of the block's arity), the block leaves its stack vs0 with
   `vs0 ++ r`, qb or lb of r;
+- `sl_br_if`, `sl_if` (`logic/conditionals.mbt`): with an i32 c on the
+  stack, `br_if i` is `br i` when c ≠ 0 and nothing when c = 0, and
+  `if tb bs1 bs2` is `block tb bs1` or `block tb bs2`: each rule takes a
+  triple (or, for `br_if` with c = 0, an entailment) for the case it steps
+  to. `sl_if` holds for any block type;
 - `sl_loop`: for `loop` with no parameters: with an invariant on the
   locals, globals and memory that holds on entry and is what a `br 0` must
   re-establish (with no values), the loop leaves `vs0 ++ r` with the body's

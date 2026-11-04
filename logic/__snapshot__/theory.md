@@ -1050,6 +1050,56 @@ lemma `sl_local_tee`
 ∀ p : SAssn, ∀ k : Num, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && k < LENGTH(ls) && p(vs0, ls, gs, h), [Local_tee(k)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], ∃ ls0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && ls == list_update(ls0, k, V_num(c)) && k < LENGTH(ls0) && p(vs0, ls0, gs, h))
 ```
 
+## Conditionals (conditionals.mbt)
+
+lemma `arity_simple_br_if`
+
+```
+∀ suf : List[Einstr], ∀ e2 : List[Einstr], reduce_simple(APPEND(suf, [Basic(Br_if((i : Num)))]), e2) && ALL(is_val, suf) → LENGTH(suf) == 1
+```
+
+lemma `arity_br_if`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ suf : List[Einstr], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ e2 : List[Einstr], reduce_base(s, f, APPEND(suf, [Basic(Br_if((i : Num)))]), s2, f2, e2) && ALL(is_val, suf) → LENGTH(suf) == 1
+```
+
+lemma `prefix_br_if`
+
+```
+∀ vs0 : List[Value], ∀ s : Wstore, ∀ f : Wframe, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum(ConstInt32((c : W32)))), Basic(Br_if((i : Num)))]), s2, f2, es2) → (∃ e : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e) && reduce(s, f, [Basic(EConstNum(ConstInt32(c))), Basic(Br_if(i))], s2, f2, e))
+```
+
+lemma `sl_br_if`
+
+```
+∀ p : SAssn, ∀ q : SAssn, ∀ ls : List[SAssn], ∀ i : Num, ∀ c : W32, (!(c == word(0)) → sl_triple_l(p, [Br(i)], q, ls)) && (c == word(0) → (∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ h : Heap, p(vs, lc, gs, h) → q(vs, lc, gs, h))) → sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(c))]) && p(vs0, lc, gs, h), [Br_if(i)], q, ls)
+```
+
+lemma `arity_simple_if`
+
+```
+∀ suf : List[Einstr], ∀ e2 : List[Einstr], reduce_simple(APPEND(suf, [Basic(If((tb : Tb), (bs1 : List[B_e]), (bs2 : List[B_e])))]), e2) && ALL(is_val, suf) → LENGTH(suf) == 1
+```
+
+lemma `arity_if`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ suf : List[Einstr], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ e2 : List[Einstr], reduce_base(s, f, APPEND(suf, [Basic(If((tb : Tb), (bs1 : List[B_e]), (bs2 : List[B_e])))]), s2, f2, e2) && ALL(is_val, suf) → LENGTH(suf) == 1
+```
+
+lemma `prefix_if`
+
+```
+∀ vs0 : List[Value], ∀ s : Wstore, ∀ f : Wframe, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum(ConstInt32((c : W32)))), Basic(If((tb : Tb), (bs1 : List[B_e]), (bs2 : List[B_e])))]), s2, f2, es2) → (∃ e : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e) && reduce(s, f, [Basic(EConstNum(ConstInt32(c))), Basic(If(tb, bs1, bs2))], s2, f2, e))
+```
+
+lemma `sl_if`
+
+```
+∀ p : SAssn, ∀ q : SAssn, ∀ ls : List[SAssn], ∀ tb : Tb, ∀ bs1 : List[B_e], ∀ bs2 : List[B_e], ∀ c : W32, (!(c == word(0)) → sl_triple_l(p, [Block(tb, bs1)], q, ls)) && (c == word(0) → sl_triple_l(p, [Block(tb, bs2)], q, ls)) → sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(c))]) && p(vs0, lc, gs, h), [If(tb, bs1, bs2)], q, ls)
+```
+
 ## Examples (examples.mbt)
 
 lemma `num_of_le_bytes`
