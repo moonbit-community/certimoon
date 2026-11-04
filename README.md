@@ -36,10 +36,10 @@ differ from Isabelle's. The soundness proofs (Wasm_Properties,
 Wasm_Soundness) are not ported yet.
 
 Package `logic` is a separation logic for linear memory on top of it, with
-rules for constants, binary operators, `i32.load`, `i32.store`, locals,
-globals, `br`, `br_if`, blocks, `if` and loops, and arrays of i32 words. See "Program logic"
-below, and [PLAN.md](PLAN.md) for the design, what is left and how to work
-on it.
+rules for constants, binary operators, comparisons, `i32.load`, `i32.store`,
+locals, globals, `br`, `br_if`, blocks, `if` and loops, and arrays of i32
+words. See "Program logic" below, and [PLAN.md](PLAN.md) for the design,
+what is left and how to work on it.
 
 ```moonbit
 @wasm.load()
@@ -260,6 +260,30 @@ ends with locals `[p0 + 4m, 0]` and the words `REPLICATE(val(m), x)`. Its
 invariant keeps the array as the copies of x written so far, then the
 words still to write; `fill_step` and `fill_exit` are the arithmetic and
 list facts that keep it.
+
+`sl_testop` and `sl_relop` (and `st_testop`, `st_relop`) are the rules for
+`i32.eqz` and the comparisons: they push `app_testop(op, c)` or
+`app_relop(op, c1, c2)`, which `norm` computes to `wasm_bool(...)` of the
+word comparison. `example_array_sum` (`logic/example_array_sum.mbt`) reads
+an array in a loop whose condition is `i32.lt_u`: from locals
+`[p, n, 0, 0]` and the n words xs at `val(p)` (if `val(p) + 4n < 2^32`),
+
+```
+local.get 2; local.get 1; i32.lt_u
+if
+  loop
+    local.get 3
+    local.get 0; local.get 2; i32.const 4; i32.mul; i32.add
+    i32.load
+    i32.add; local.set 3
+    local.get 2; i32.const 1; i32.add; local.set 2
+    local.get 2; local.get 1; i32.lt_u; br_if 0
+  end
+end
+```
+
+ends with locals `[p, n, n, wsum(xs)]` (the words' sum) and the array
+unchanged.
 
 Control flow (`logic/labels.mbt`, `block.mbt`, `loop.mbt`) uses triples
 with label assertions, innermost first:

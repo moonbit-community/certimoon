@@ -94,6 +94,18 @@ fn prove_state_rules() -> Unit raise {
     [frame, "(t : T_num)", "(op : Binop)", "(c1 : V_num)", "(c2 : V_num)", "(c : V_num)"],
   )
   let _ = st_rule(
+    "st_testop",
+    "\{vars}, ∀ t : T_num, ∀ op : Testop, ∀ c : V_num, sl_triple(\{state("APPEND(v, [V_num(c)])", "l")}, [Testop(t, op)], \{state("APPEND(v, [V_num(app_testop(op, c))])", "l")})",
+    "sl_testop",
+    [frame, "(t : T_num)", "(op : Testop)", "(c : V_num)"],
+  )
+  let _ = st_rule(
+    "st_relop",
+    "\{vars}, ∀ t : T_num, ∀ op : Relop, ∀ c1 : V_num, ∀ c2 : V_num, sl_triple(\{state("APPEND(v, [V_num(c1), V_num(c2)])", "l")}, [Relop(t, op)], \{state("APPEND(v, [V_num(app_relop(op, c1, c2))])", "l")})",
+    "sl_relop",
+    [frame, "(t : T_num)", "(op : Relop)", "(c1 : V_num)", "(c2 : V_num)"],
+  )
+  let _ = st_rule(
     "st_local_get",
     "\{vars}, ∀ k : Num, k < LENGTH(l) → sl_triple(\{state("v", "l")}, [Local_get(k)], \{state("APPEND(v, [EL(k, l)])", "l")})",
     "sl_local_get",
@@ -166,6 +178,11 @@ fn norm_thms() -> Array[@kernel.Thm] raise {
     @wasm.thm("app_binop_i_v"),
     @wasm.thm("app_binop_i"),
     @wasm.thm("map_option"),
+    @wasm.thm("app_relop"),
+    @wasm.thm("app_relop_i_v"),
+    @wasm.thm("app_relop_i"),
+    @wasm.thm("app_testop"),
+    @wasm.thm("app_testop_i"),
     thm("st_snoc_ex"),
     @class.eta_ax(),
   ]

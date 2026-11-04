@@ -158,4 +158,5 @@ fn prove_examples() -> Unit raise {
   record("example_store_load", @bool.gen_all(@bool.disch(length, th)), kind="example")
   prove_example_sum()
   prove_example_fill()
+  prove_example_array_sum()
 }

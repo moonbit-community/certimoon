@@ -384,7 +384,8 @@ fn prove_value_rule(
     stmt,
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
-      @tactics.disch_tac,
+      // the rule's hypothesis, if it has one
+      @tactics.try_tac(@tactics.disch_tac),
       @simp.rewrite_tac(ths([thm("sl_triple"), thm("triple")])),
       @tactics.repeat_tac(@tactics.strip_tac),
       // the precondition: the memory, the stack and the frame's assertion
@@ -471,6 +472,36 @@ fn prove_rules() -> Unit raise {
     prefix,
     cases,
     @meson.asm_meson_tac(ths([rb_lift, rs[1]])),
+  )
+  // test and comparison operators: always a value, an i32 0 or 1
+  let testop = "Basic(Testop((t : T_num), (op : Testop)))"
+  let c = ["Basic(EConstNum((c : V_num)))"]
+  let arity = prove_arities("testop", testop, 1)
+  let prefix = prove_prefix("testop", c, testop, arity)
+  let cases = @wasm.step_cases(s, f, tm("[" + (c + [testop]).join(", ") + "]"), compute=false)
+  let _ = prove_value_rule(
+    "sl_testop",
+    "∀ p : \{sassn}, ∀ t : T_num, ∀ op : Testop, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, h)), [Testop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(app_testop(op, c))]) && p(vs0, ls, gs, h)))",
+    c,
+    testop,
+    "app_testop((op : Testop), (c : V_num))",
+    prefix,
+    cases,
+    @meson.asm_meson_tac(ths([rb_lift, rs[3]])),
+  )
+  let relop = "Basic(Relop((t : T_num), (op : Relop)))"
+  let arity = prove_arities("relop", relop, 2)
+  let prefix = prove_prefix("relop", consts, relop, arity)
+  let cases = @wasm.step_cases(s, f, tm("[" + (consts + [relop]).join(", ") + "]"), compute=false)
+  let _ = prove_value_rule(
+    "sl_relop",
+    "∀ p : \{sassn}, ∀ t : T_num, ∀ op : Relop, ∀ c1 : V_num, ∀ c2 : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c1), V_num(c2)]) && p(vs0, ls, gs, h)), [Relop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(app_relop(op, c1, c2))]) && p(vs0, ls, gs, h)))",
+    consts,
+    relop,
+    "app_relop((op : Relop), (c1 : V_num), (c2 : V_num))",
+    prefix,
+    cases,
+    @meson.asm_meson_tac(ths([rb_lift, rs[4]])),
   )
   // i32.load
   let rb = @bool.conjuncts_rule(@wasm.thm("reduce_base_rules")).to_array()

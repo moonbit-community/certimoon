@@ -77,6 +77,8 @@ the official spec testsuite (`wasm/spec_test.mbt`).
 | Verified programs: `example_store_load`, `example_sum` (a loop) | done |
 | Arrays: `arr`, `arr_split`, `arr_focus`, `st_arr_store`, `st_arr_load` | done |
 | `example_fill` (a loop over memory) | done |
+| `sl_testop`, `sl_relop`, `st_testop`, `st_relop` | done |
+| `example_array_sum` (reads an array, a comparison as loop condition) | done |
 | Everything under "Next steps" | not started |
 
 Known limits of what exists:
@@ -112,36 +114,34 @@ About the rules' shapes, from `example_sum` and `example_fill`:
 - Arithmetic and list facts about the loop's state are best proved as
   lemmas first (`fill_step`, `fill_exit`), so the loop proof only applies
   them.
+- A comparison computes to `wasm_bool(word_ult(i, n))`; `wasm_bool_zero`
+  turns `sl_br_if`'s and `sl_if`'s cases on it into the comparison itself.
+- An invariant that names a fixed value of the specification (the array
+  `xs` in `example_array_sum`) puts it in the loop's label too: do not
+  rewrite or substitute it in a goal that still holds the labels.
 
 ## Next steps
 
 In order. Each can be merged on its own. "Done when" means the named theorems
 appear in `theory.md`, with the tests passing.
 
-1. **Comparisons, and a loop that reads an array.** `sl_relop` and
-   `sl_testop` (with `eqz`), and their `st_` forms, by the recipe below.
-   - Then an array loop with an easy specification, such as the maximum or
-     the sum of an array: the first use of `st_arr_load` and of a comparison
-     as a loop condition.
-   - Done when: the two rules, and that example.
-
-2. **More instructions.** Mechanical, using the recipe below.
+1. **More instructions.** Mechanical, using the recipe below.
    - `i64` and packed loads and stores, `unop`, `cvtop`, `drop`, `select`,
      `nop`, `memory.size`.
    - `memory.grow`: the heap gets bigger, so state the rule as gaining
      `pts(old length, zeros)`, with the failure case returning `-1`.
 
-3. **Automation.** A symbolic-execution tactic.
+2. **Automation.** A symbolic-execution tactic.
    - The `st_` rules and `norm` already glue straight-line code with no
      entailments. Generalize them: walk the instruction list, pick the rule for
      each instruction, find the frame by matching `star` terms, and leave only
      the loop invariants and real side conditions.
    - Measure early on a program of about 100 instructions, because terms grow
      and the tests already need a large stack.
-   - Done when: the proofs of `example_sum` and `example_fill` are a few lines
-     each.
+   - Done when: the proofs of `example_sum`, `example_fill` and
+     `example_array_sum` are a few lines each.
 
-4. **Sorting.** Insertion sort of an i32 array in linear memory, written by
+3. **Sorting.** Insertion sort of an i32 array in linear memory, written by
    hand: two nested loops, comparisons, array loads and stores.
    - Specify it: `sorted(ys)` (by signed or unsigned word order, as the
      program compares) and `perm(xs, ys)` (a permutation), with the lemmas
@@ -151,13 +151,13 @@ appear in `theory.md`, with the tests passing.
    - An element by index (`arr` at `i`, from `split_at`) is needed here.
    - Done when: `example_insertion_sort`.
 
-5. **Calls.** `sl_call`, with per-function specs.
+4. **Calls.** `sl_call`, with per-function specs.
    - A `Frame` needs its own step inversion, like `label_steps`. `return` needs
      its own postcondition: add a return assertion as a further `safel` argument,
      as Wasm Logic does, rather than treating it as a label.
    - Recursive functions: induction on the steps left, as in `sl_loop`.
 
-6. **Real programs.** An untrusted `.wat` or `.wasm` importer that makes programs
+5. **Real programs.** An untrusted `.wat` or `.wasm` importer that makes programs
    through the builder, then verify a function from a compiled module (a sort
    from a C compiler is a good target: it adds a stack pointer global, its own
    stack frame in memory, and more instructions). The theorem is about the

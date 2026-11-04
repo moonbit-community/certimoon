@@ -19,7 +19,9 @@ test "the logic's lemmas are theorems, with no new axioms" {
     "sl_triple_of_l", "st_snoc_ex", "st_const", "st_binop", "st_local_get", "st_local_set",
     "sum_to_step", "sum_inv_step", "example_sum", "arr_split", "arr_cons", "arr_focus",
     "star_left_comm", "star_pure_r", "st_arr_store", "st_arr_load", "replicate_shift",
-    "fill_entry", "fill_step", "fill_exit", "example_fill",
+    "fill_entry", "fill_step", "fill_exit", "example_fill", "sl_testop", "sl_relop",
+    "st_testop", "st_relop", "wsum_snoc", "wasm_bool_zero", "asum_addr", "asum_step",
+    "asum_exit", "example_array_sum",
   ] {
     assert_true(@kernel.hyp(@logic.thm(name)).is_empty(), msg=name)
   }

@@ -802,6 +802,54 @@ lemma `sl_binop`
 ∀ p : SAssn, ∀ t : T_num, ∀ op : Binop, ∀ c1 : V_num, ∀ c2 : V_num, ∀ c : V_num, app_binop(op, c1, c2) == SOME(c) → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c1), V_num(c2)]) && p(vs0, ls, gs, h), [Binop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, h))
 ```
 
+lemma `arity_simple_testop`
+
+```
+∀ suf : List[Einstr], ∀ e2 : List[Einstr], reduce_simple(APPEND(suf, [Basic(Testop((t : T_num), (op : Testop)))]), e2) && ALL(is_val, suf) → LENGTH(suf) == 1
+```
+
+lemma `arity_testop`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ suf : List[Einstr], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ e2 : List[Einstr], reduce_base(s, f, APPEND(suf, [Basic(Testop((t : T_num), (op : Testop)))]), s2, f2, e2) && ALL(is_val, suf) → LENGTH(suf) == 1
+```
+
+lemma `prefix_testop`
+
+```
+∀ vs0 : List[Value], ∀ s : Wstore, ∀ f : Wframe, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c : V_num))), Basic(Testop((t : T_num), (op : Testop)))]), s2, f2, es2) → (∃ e : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e) && reduce(s, f, [Basic(EConstNum(c)), Basic(Testop(t, op))], s2, f2, e))
+```
+
+lemma `sl_testop`
+
+```
+∀ p : SAssn, ∀ t : T_num, ∀ op : Testop, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, h), [Testop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(app_testop(op, c))]) && p(vs0, ls, gs, h))
+```
+
+lemma `arity_simple_relop`
+
+```
+∀ suf : List[Einstr], ∀ e2 : List[Einstr], reduce_simple(APPEND(suf, [Basic(Relop((t : T_num), (op : Relop)))]), e2) && ALL(is_val, suf) → LENGTH(suf) == 2
+```
+
+lemma `arity_relop`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ suf : List[Einstr], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ e2 : List[Einstr], reduce_base(s, f, APPEND(suf, [Basic(Relop((t : T_num), (op : Relop)))]), s2, f2, e2) && ALL(is_val, suf) → LENGTH(suf) == 2
+```
+
+lemma `prefix_relop`
+
+```
+∀ vs0 : List[Value], ∀ s : Wstore, ∀ f : Wframe, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c1 : V_num))), Basic(EConstNum((c2 : V_num))), Basic(Relop((t : T_num), (op : Relop)))]), s2, f2, es2) → (∃ e : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e) && reduce(s, f, [Basic(EConstNum(c1)), Basic(EConstNum(c2)), Basic(Relop(t, op))], s2, f2, e))
+```
+
+lemma `sl_relop`
+
+```
+∀ p : SAssn, ∀ t : T_num, ∀ op : Relop, ∀ c1 : V_num, ∀ c2 : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c1), V_num(c2)]) && p(vs0, ls, gs, h), [Relop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(app_relop(op, c1, c2))]) && p(vs0, ls, gs, h))
+```
+
 lemma `arity_simple_load`
 
 ```
@@ -1194,6 +1242,18 @@ lemma `st_binop`
 ∀ v : List[Value], ∀ l : List[Value], ∀ r : GProp, ∀ t : T_num, ∀ op : Binop, ∀ c1 : V_num, ∀ c2 : V_num, ∀ c : V_num, app_binop(op, c1, c2) == SOME(c) → sl_triple(st(APPEND(v, [V_num(c1), V_num(c2)]), l, r), [Binop(t, op)], st(APPEND(v, [V_num(c)]), l, r))
 ```
 
+lemma `st_testop`
+
+```
+∀ v : List[Value], ∀ l : List[Value], ∀ r : GProp, ∀ t : T_num, ∀ op : Testop, ∀ c : V_num, sl_triple(st(APPEND(v, [V_num(c)]), l, r), [Testop(t, op)], st(APPEND(v, [V_num(app_testop(op, c))]), l, r))
+```
+
+lemma `st_relop`
+
+```
+∀ v : List[Value], ∀ l : List[Value], ∀ r : GProp, ∀ t : T_num, ∀ op : Relop, ∀ c1 : V_num, ∀ c2 : V_num, sl_triple(st(APPEND(v, [V_num(c1), V_num(c2)]), l, r), [Relop(t, op)], st(APPEND(v, [V_num(app_relop(op, c1, c2))]), l, r))
+```
+
 lemma `st_local_get`
 
 ```
@@ -1382,4 +1442,64 @@ example `example_fill`
 
 ```
 ∀ ys : List[W32], ∀ vs0 : List[Value], ∀ p0 : W32, ∀ m : W32, ∀ x : W32, ∀ fp : GProp, LENGTH(ys) == val(m) && val(p0) + 4 * val(m) < 4294967296 → sl_triple(st(vs0, [V_num(ConstInt32(p0)), V_num(ConstInt32(m))], (gs : List[Value]) => star(arr(val(p0), ys), fp(gs))), [Local_get(1), If(Tbv(NONE), [Loop(Tbv(NONE), [Local_get(0), EConstNum(ConstInt32(x)), Store(T_i32, NONE, 2, 0), Local_get(0), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Add)), Local_set(0), Local_get(1), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), Local_set(1), Local_get(1), Br_if(0)])], NIL)], st(vs0, [V_num(ConstInt32(word_add(p0, word(4 * val(m))))), V_num(ConstInt32(word(0)))], (gs : List[Value]) => star(arr(val(p0), REPLICATE(val(m), x)), fp(gs))))
+```
+
+definition `wsum`
+
+```
+wsum(NIL) == word(0) && wsum(CONS((x : W32), (xs : List[W32]))) == word_add(x, wsum(xs))
+```
+
+lemma `wsum_snoc`
+
+```
+∀ ys : List[W32], ∀ y : W32, wsum(APPEND(ys, [y])) == word_add(wsum(ys), y)
+```
+
+lemma `wasm_bool_zero`
+
+```
+∀ b : Bool, (wasm_bool(b) == word(0)) == !b
+```
+
+lemma `val_add_one`
+
+```
+∀ i : W32, ∀ n : W32, val(i) < val(n) → val(word_add(i, word(1))) == val(i) + 1
+```
+
+lemma `asum_addr`
+
+```
+∀ p : W32, ∀ n : W32, ∀ i : W32, ∀ xs : List[W32], ∀ ys : List[W32], ∀ y : W32, ∀ zs : List[W32], val(p) + 4 * val(n) < 4294967296 && LENGTH(xs) == val(n) && xs == APPEND(ys, CONS(y, zs)) && LENGTH(ys) == val(i) → val(word_add(p, word_mul(i, word(4)))) + 0 == val(p) + 4 * LENGTH(ys)
+```
+
+lemma `asum_step`
+
+```
+∀ p : W32, ∀ n : W32, ∀ i : W32, ∀ xs : List[W32], ∀ ys : List[W32], ∀ y : W32, ∀ zs : List[W32], LENGTH(xs) == val(n) && xs == APPEND(ys, CONS(y, zs)) && LENGTH(ys) == val(i) && word_ult(word_add(i, word(1)), n) → (∃ y2 : W32, ∃ zs2 : List[W32], zs == CONS(y2, zs2) && LENGTH(APPEND(ys, [y])) == val(word_add(i, word(1))))
+```
+
+lemma `asum_exit`
+
+```
+∀ p : W32, ∀ n : W32, ∀ i : W32, ∀ xs : List[W32], ∀ ys : List[W32], ∀ y : W32, ∀ zs : List[W32], LENGTH(xs) == val(n) && xs == APPEND(ys, CONS(y, zs)) && LENGTH(ys) == val(i) && !word_ult(word_add(i, word(1)), n) → word_add(i, word(1)) == n && word_add(wsum(ys), y) == wsum(xs)
+```
+
+lemma `asum_entry`
+
+```
+∀ n : W32, ∀ xs : List[W32], word_ult(word(0), n) && LENGTH(xs) == val(n) → (∃ y : W32, ∃ zs : List[W32], xs == CONS(y, zs))
+```
+
+lemma `asum_none`
+
+```
+∀ n : W32, ∀ xs : List[W32], !word_ult(word(0), n) && LENGTH(xs) == val(n) → n == word(0) && xs == NIL
+```
+
+example `example_array_sum`
+
+```
+∀ vs0 : List[Value], ∀ n : W32, ∀ p : W32, ∀ xs : List[W32], ∀ fp : GProp, LENGTH(xs) == val(n) && val(p) + 4 * val(n) < 4294967296 → sl_triple(st(vs0, [V_num(ConstInt32(p)), V_num(ConstInt32(n)), V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))], (gs : List[Value]) => star(arr(val(p), xs), fp(gs))), [Local_get(2), Local_get(1), Relop(T_i32, Relop_i(Lt(U))), If(Tbv(NONE), [Loop(Tbv(NONE), [Local_get(3), Local_get(0), Local_get(2), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Binop(T_i32, Binop_i(Add)), Local_set(3), Local_get(2), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Add)), Local_set(2), Local_get(2), Local_get(1), Relop(T_i32, Relop_i(Lt(U))), Br_if(0)])], NIL)], st(vs0, [V_num(ConstInt32(p)), V_num(ConstInt32(n)), V_num(ConstInt32(n)), V_num(ConstInt32(wsum(xs)))], (gs : List[Value]) => star(arr(val(p), xs), fp(gs))))
 ```
