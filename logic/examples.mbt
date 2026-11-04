@@ -19,9 +19,15 @@ fn triple_parts(th : @kernel.Thm) -> (@kernel.Term, @kernel.Term, @kernel.Term) 
 }
 
 ///|
-/// ⊢ ∀ vs ls h. a(vs, ls, gs, h) → b(vs, ls, gs, h): the stacks agree after
-/// reassociating appends, and the rest follows from the premise.
-fn entails(a : @kernel.Term, b : @kernel.Term) -> @kernel.Thm raise {
+/// ⊢ ∀ vs ls gs h. a(vs, ls, gs, h) → b(vs, ls, gs, h): the stacks agree
+/// (after reassociating appends, with `reassoc`), and the rest follows from
+/// the premise. Without `reassoc`, b's stack must match a's as written:
+/// MESON cannot see that vs0 ++ [x, y] is (vs0 ++ [x]) ++ [y].
+fn entails(
+  a : @kernel.Term,
+  b : @kernel.Term,
+  reassoc? : Bool = true,
+) -> @kernel.Thm raise {
   let vs = tm("(vs : List[Value])")
   let ls = tm("(ls : List[Value])")
   let gs = tm("(gs : List[Value])")
@@ -35,7 +41,11 @@ fn entails(a : @kernel.Term, b : @kernel.Term) -> @kernel.Thm raise {
       @simp.rewrite_tac(ths([])),
       @tactics.repeat_tac(@tactics.strip_tac),
       subst_vars(),
-      @simp.rewrite_tac(ths([@equal.gsym(@lists.append_assoc()), @lists.append()])),
+      if reassoc {
+        @simp.rewrite_tac(ths([@equal.gsym(@lists.append_assoc()), @lists.append()]))
+      } else {
+        @tactics.all_tac
+      },
       @meson.asm_meson_tac(ths([])),
     ]),
   )
@@ -43,8 +53,12 @@ fn entails(a : @kernel.Term, b : @kernel.Term) -> @kernel.Thm raise {
 
 ///|
 /// t1 then t2: sl_seq, after weakening t2's precondition to t1's
-/// postcondition when they differ.
-fn then_rule(t1 : @kernel.Thm, t2 : @kernel.Thm) -> @kernel.Thm raise {
+/// postcondition when they differ (`entails`, with `reassoc`).
+fn then_rule(
+  t1 : @kernel.Thm,
+  t2 : @kernel.Thm,
+  reassoc? : Bool = true,
+) -> @kernel.Thm raise {
   let t1 = beta(t1)
   let t2 = beta(t2)
   let (_, _, q1) = triple_parts(t1)
@@ -53,7 +67,7 @@ fn then_rule(t1 : @kernel.Thm, t2 : @kernel.Thm) -> @kernel.Thm raise {
     t2
   } else {
     @drule.match_mp(thm("sl_conseq"))(
-      @bool.conj(entails(q1, p2), @bool.conj(t2, entails(q2, q2))),
+      @bool.conj(entails(q1, p2, reassoc~), @bool.conj(t2, entails(q2, q2, reassoc~))),
     )
   }
   @simp.rewrite_rule(ths([@lists.append()]))(

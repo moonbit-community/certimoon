@@ -36,8 +36,8 @@ differ from Isabelle's. The soundness proofs (Wasm_Properties,
 Wasm_Soundness) are not ported yet.
 
 Package `logic` is a separation logic for linear memory on top of it, with
-rules for constants, binary operators, `i32.load`, `i32.store`,
-`global.get`, `global.set`, `br`, blocks and loops. See "Program logic"
+rules for constants, binary operators, `i32.load`, `i32.store`, locals,
+globals, `br`, blocks and loops. See "Program logic"
 below, and [PLAN.md](PLAN.md) for the design, what is left and how to work
 on it.
 
@@ -183,7 +183,14 @@ Rules, all theorems:
 - `sl_global_get`: `global.get i` (i < LENGTH(gs)) pushes `EL(i, gs)`;
 - `sl_global_set`: `global.set i` pops a number c, and the globals become
   `list_update(gs0, i, c)` of the globals gs0 before (`gvals_set`, which
-  needs the addresses distinct).
+  needs the addresses distinct);
+- `sl_local_get`, `sl_local_set`: the same for the locals (`local.get k`
+  pushes `EL(k, ls)`), from `local_get_cases` and `local_set_cases`, which
+  state their steps for any frame (the reduction rules take the locals
+  split at k: `split_at`);
+- `sl_local_tee`: `local.tee k` keeps c on the stack and sets local k; it
+  steps to `[c, c, local.set k]`, so the rule comes from `sl_const` and
+  `sl_local_set`.
 
 Each rule's operands sit on top of a stack of any length. `prefix_<op>`
 shows that a step of such a configuration is a step of the instruction and

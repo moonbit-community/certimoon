@@ -928,6 +928,128 @@ lemma `sl_global_set`
 ∀ p : SAssn, ∀ i : Num, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && i < LENGTH(gs) && p(vs0, ls, gs, h), [Global_set(i)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ gs0 : List[Value], gs == list_update(gs0, i, V_num(c)) && i < LENGTH(gs0) && p(vs, ls, gs0, h))
 ```
 
+## Locals (locals.mbt)
+
+lemma `split_at`
+
+```
+∀ l : List[A], ∀ k : Num, k < LENGTH(l) → (∃ vi : List[A], ∃ vs : List[A], LENGTH(vi) == k && l == APPEND(vi, CONS(EL(k, l), vs)))
+```
+
+lemma `el_split`
+
+```
+∀ vi : List[A], ∀ v : A, ∀ vs : List[A], EL(LENGTH(vi), APPEND(vi, CONS(v, vs))) == v
+```
+
+lemma `list_update_split`
+
+```
+∀ vi : List[A], ∀ v : A, ∀ vs : List[A], ∀ x : A, list_update(APPEND(vi, CONS(v, vs)), LENGTH(vi), x) == APPEND(vi, CONS(x, vs))
+```
+
+lemma `f_locs_update_get`
+
+```
+∀ l : List[Value], ∀ f : Wframe, ∀ s : Wstore, f_locs(f_locs_update(l, f)) == l && f_inst(f_locs_update(l, f)) == f_inst(f) && gvals(s, f_locs_update(l, f)) == gvals(s, f) && globs_ok(s, f_locs_update(l, f)) == globs_ok(s, f)
+```
+
+lemma `arity_simple_local_get`
+
+```
+∀ suf : List[Einstr], ∀ e2 : List[Einstr], reduce_simple(APPEND(suf, [Basic(Local_get((k : Num)))]), e2) && ALL(is_val, suf) → LENGTH(suf) == 0
+```
+
+lemma `arity_local_get`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ suf : List[Einstr], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ e2 : List[Einstr], reduce_base(s, f, APPEND(suf, [Basic(Local_get((k : Num)))]), s2, f2, e2) && ALL(is_val, suf) → LENGTH(suf) == 0
+```
+
+lemma `prefix_local_get`
+
+```
+∀ vs0 : List[Value], ∀ s : Wstore, ∀ f : Wframe, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(Local_get((k : Num)))]), s2, f2, es2) → (∃ e : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e) && reduce(s, f, [Basic(Local_get(k))], s2, f2, e))
+```
+
+lemma `local_get_step`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ k : Num, k < LENGTH(f_locs(f)) → reduce_base(s, f, [Basic(Local_get(k))], s, f, [v_to_e(EL(k, f_locs(f)))])
+```
+
+lemma `local_get_cases`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ k : Num, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, [Basic(Local_get(k))], s2, f2, es2) → s2 == s && f2 == f && es2 == [v_to_e(EL(k, f_locs(f)))]
+```
+
+lemma `arity_simple_local_set`
+
+```
+∀ suf : List[Einstr], ∀ e2 : List[Einstr], reduce_simple(APPEND(suf, [Basic(Local_set((k : Num)))]), e2) && ALL(is_val, suf) → LENGTH(suf) == 1
+```
+
+lemma `arity_local_set`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ suf : List[Einstr], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ e2 : List[Einstr], reduce_base(s, f, APPEND(suf, [Basic(Local_set((k : Num)))]), s2, f2, e2) && ALL(is_val, suf) → LENGTH(suf) == 1
+```
+
+lemma `prefix_local_set`
+
+```
+∀ vs0 : List[Value], ∀ s : Wstore, ∀ f : Wframe, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c : V_num))), Basic(Local_set((k : Num)))]), s2, f2, es2) → (∃ e : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e) && reduce(s, f, [Basic(EConstNum(c)), Basic(Local_set(k))], s2, f2, e))
+```
+
+lemma `local_set_step`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ k : Num, ∀ c : V_num, k < LENGTH(f_locs(f)) → reduce_base(s, f, [Basic(EConstNum(c)), Basic(Local_set(k))], s, f_locs_update(list_update(f_locs(f), k, V_num(c)), f), NIL)
+```
+
+lemma `local_set_cases`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ k : Num, ∀ c : V_num, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, [Basic(EConstNum(c)), Basic(Local_set(k))], s2, f2, es2) → s2 == s && es2 == NIL && f2 == f_locs_update(list_update(f_locs(f), k, V_num(c)), f)
+```
+
+lemma `sl_local_get`
+
+```
+∀ p : SAssn, ∀ k : Num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => k < LENGTH(ls) && p(vs, ls, gs, h), [Local_get(k)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [EL(k, ls)]) && k < LENGTH(ls) && p(vs0, ls, gs, h))
+```
+
+lemma `sl_local_set`
+
+```
+∀ p : SAssn, ∀ k : Num, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && k < LENGTH(ls) && p(vs0, ls, gs, h), [Local_set(k)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ ls0 : List[Value], ls == list_update(ls0, k, V_num(c)) && k < LENGTH(ls0) && p(vs, ls0, gs, h))
+```
+
+lemma `arity_simple_local_tee`
+
+```
+∀ suf : List[Einstr], ∀ e2 : List[Einstr], reduce_simple(APPEND(suf, [Basic(Local_tee((k : Num)))]), e2) && ALL(is_val, suf) → LENGTH(suf) == 1
+```
+
+lemma `arity_local_tee`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ suf : List[Einstr], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ e2 : List[Einstr], reduce_base(s, f, APPEND(suf, [Basic(Local_tee((k : Num)))]), s2, f2, e2) && ALL(is_val, suf) → LENGTH(suf) == 1
+```
+
+lemma `prefix_local_tee`
+
+```
+∀ vs0 : List[Value], ∀ s : Wstore, ∀ f : Wframe, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c : V_num))), Basic(Local_tee((k : Num)))]), s2, f2, es2) → (∃ e : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e) && reduce(s, f, [Basic(EConstNum(c)), Basic(Local_tee(k))], s2, f2, e))
+```
+
+lemma `sl_local_tee`
+
+```
+∀ p : SAssn, ∀ k : Num, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && k < LENGTH(ls) && p(vs0, ls, gs, h), [Local_tee(k)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], ∃ ls0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && ls == list_update(ls0, k, V_num(c)) && k < LENGTH(ls0) && p(vs0, ls0, gs, h))
+```
+
 ## Examples (examples.mbt)
 
 lemma `num_of_le_bytes`

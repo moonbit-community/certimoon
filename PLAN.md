@@ -70,13 +70,15 @@ the official spec testsuite (`wasm/spec_test.mbt`).
 | `sl_seq_l`, `sl_br`, `sl_block`, `sl_loop` | done |
 | `sl_conseq_l`, `sl_frame_l` (from `safel_mono`) | done |
 | Globals in assertions; `sl_global_get`, `sl_global_set` | done |
+| `sl_local_get`, `sl_local_set`, `sl_local_tee` | done |
 | One verified program: `example_store_load` | done |
 | Everything under "Next steps" | not started |
 
 Known limits of what exists:
 
 - `sl_block` and `sl_loop` cover only block types `Tbv(ot)`, with no parameters.
-- `sl_global_set` sets a number (`V_num`), not a reference. Triples assume
+- `sl_global_set`, `sl_local_set` and `sl_local_tee` take a number (`V_num`),
+  not a reference, as their operand. Triples assume
   `globs_ok`, so a module that imports one global twice is not covered.
 - The evaluator computes on memory byte by byte, so it suits small memories.
   The spec cases that test the end of a 64 KiB page are not covered.
@@ -90,16 +92,7 @@ Known limits of what exists:
 In order. Each can be merged on its own. "Done when" means the named theorems
 appear in `theory.md`, with the tests passing.
 
-1. **Locals.** `sl_local_get`, `sl_local_set`, `sl_local_tee`.
-   - `reduce` rule 8 needs `f_locs(f) == vi ++ [v] ++ vs`, and rule 9 needs the
-     frame written as `Wframe(vi ++ [v] ++ vs, i)`, so split the locals list at
-     `j` and case on `f`. Tee is `reduce_simple` rule 37: it steps to
-     `[v, v, local.set]`, so prove it from the other two.
-   - `prove_value_rule` assumes a `V_num` result, and `local.get` can push any
-     value: generalize it, or write these rules directly as `sl_store_i32` does.
-   - Done when: the three rules.
-
-2. **Conditionals.** `sl_br_if`, `sl_if`.
+1. **Conditionals.** `sl_br_if`, `sl_if`.
    - `br_if` steps to `br i` or to nothing, depending on the condition (rules
      30, 31), and then `sl_br` applies. `if` steps to a `block` (rules 25, 26),
      and then `sl_block` applies.
@@ -107,10 +100,10 @@ appear in `theory.md`, with the tests passing.
      the known limits above.
    - Done when: both rules.
 
-3. **First loops.** The test of whether the rules work together.
+2. **First loops.** The test of whether the rules work together.
    - A counting loop on locals first (sum `1..n`), then one over memory, such as
      filling a region.
-   - Comparisons (`relop`, `eqz`) and packed stores come in step 4, so write
+   - Comparisons (`relop`, `eqz`) and packed stores come in step 3, so write
      these loops without them. Count down and end the body with
      `local.get n; br_if 0`, which repeats while `n ≠ 0`; guard the loop with
      `if` for `n = 0`. Fill with `i32.store`, 4 bytes per iteration. If that
@@ -122,27 +115,27 @@ appear in `theory.md`, with the tests passing.
    - Done when: `example_sum`, `example_fill`. Record any rule that turned out
      awkward to use: this is the point to change a rule's shape cheaply.
 
-4. **More instructions.** Mechanical, using the recipe below.
+3. **More instructions.** Mechanical, using the recipe below.
    - `i64` and packed loads and stores, `unop`, `testop`, `relop`, `cvtop`,
      `drop`, `select`, `nop`, `memory.size`.
    - `memory.grow`: the heap gets bigger, so state the rule as gaining
      `pts(old length, zeros)`, with the failure case returning `-1`.
 
-5. **Automation.** A symbolic-execution tactic.
+4. **Automation.** A symbolic-execution tactic.
    - Walk the instruction list, pick the rule for each instruction, find the
      frame by matching `star` terms, and leave only real side conditions.
      `then_rule` and `entails` in `examples.mbt` are the starting point.
    - Measure early on a program of about 100 instructions, because terms grow
      and the tests already need a large stack.
-   - Done when: the proofs of step 3 are a few lines each.
+   - Done when: the proofs of step 2 are a few lines each.
 
-6. **Calls.** `sl_call`, with per-function specs.
+5. **Calls.** `sl_call`, with per-function specs.
    - A `Frame` needs its own step inversion, like `label_steps`. `return` needs
      its own postcondition: add a return assertion as a further `safel` argument,
      as Wasm Logic does, rather than treating it as a label.
    - Recursive functions: induction on the steps left, as in `sl_loop`.
 
-7. **Real programs.** An untrusted `.wat` or `.wasm` importer that makes programs
+6. **Real programs.** An untrusted `.wat` or `.wasm` importer that makes programs
    through the builder, then verify a function from a compiled module. The theorem
    is about the imported term, so the importer is trusted to match the file until
    someone verifies a decoder.
@@ -172,7 +165,10 @@ Add a new theorem you rely on to the list in `logic/logic_test.mbt`.
 3. `@wasm.step_cases(s, f, ops ++ [x])`: what that step can be. Pass
    `compute=false` to keep functions like `store` in the side conditions.
 4. The rule. If `x` leaves the store and frame alone and pushes one number, use
-   `prove_value_rule`. Otherwise copy `prove_store_rule`.
+   `prove_value_rule`. If it pushes any value or changes the store or frame,
+   copy `sl_global_get` or `sl_local_set`: prove `<x>_step` (the step exists)
+   and `<x>_cases` (the only steps), for any state, first, and the rule's
+   proof then follows `prove_value_rule`'s shape.
 
 The reduction rules are referred to by position in `reduce_rule_texts()`
 (`reduce_base` has the same rules without the context rule, at index 38).
@@ -194,6 +190,10 @@ Proof search:
 - MESON can run for a very long time before failing, so calling it speculatively
   is expensive. Use it on small goals, with a short lemma list. Lists with big
   distinctness theorems have overflowed the stack.
+- MESON does not reassociate appends: `vs0 ++ [x, y]` does not unify with
+  `xs ++ [y]` ("solve_goal: Too deep"). `entails` and `then_rule` rewrite
+  stacks to `vs0 ++ [x, y]` by default; pass `reassoc=false` when the target
+  is written `(vs0 ++ [x]) ++ [y]`.
 - `@tactics.first` takes the first alternative that does not fail, even if it
   leaves goals. Wrap alternatives in `solve`. When the cases are known, prefer
   `thenl` with one tactic per case: it is faster and fails more clearly.
@@ -205,6 +205,7 @@ Tactics:
 - `seq` runs each tactic on all goals. To treat goals differently, use `thenl`.
 - `struct_cases_tac` substitutes only in the goal. To reach the assumptions, use
   `disj_cases_tac` and then `subst_vars`.
+- `@lists.list_induct_tac` names the head and tail `h` and `t`.
 - `first_x_assum` tries every assumption, so the error you see may come from
   another assumption, and a tracing wrapper will report harmless failures.
 - `subst_vars` can substitute in an unwanted direction: `NIL == suf` replaced
