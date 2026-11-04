@@ -344,7 +344,7 @@ fn prove_prefix(
 
 ///|
 /// Rewrites that bring a lifted assertion `lift(p, r, s, f, vs)` with p
-/// of the form `∃ vs0, vs == ... && q(vs0, ls, h)` to its pure part and
+/// of the form `∃ vs0, vs == ... && q(vs0, ls, gs, h)` to its pure part and
 /// a star.
 fn lift_facts() -> Array[@kernel.Thm] {
   [thm("lift"), thm("star_ex"), thm("star_pure"), @class.eta_ax()]
@@ -464,7 +464,7 @@ fn prove_rules() -> Unit raise {
   let cases = @wasm.step_cases(s, f, tm("[" + (consts + [binop]).join(", ") + "]"))
   let _ = prove_value_rule(
     "sl_binop",
-    "∀ p : \{sassn}, ∀ t : T_num, ∀ op : Binop, ∀ c1 : V_num, ∀ c2 : V_num, ∀ c : V_num, app_binop(op, c1, c2) == SOME(c) → sl_triple((vs : List[Value]) => (ls : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c1), V_num(c2)]) && p(vs0, ls, h)), [Binop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, h)))",
+    "∀ p : \{sassn}, ∀ t : T_num, ∀ op : Binop, ∀ c1 : V_num, ∀ c2 : V_num, ∀ c : V_num, app_binop(op, c1, c2) == SOME(c) → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c1), V_num(c2)]) && p(vs0, ls, gs, h)), [Binop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, h)))",
     consts,
     binop,
     "(c : V_num)",
@@ -481,11 +481,11 @@ fn prove_rules() -> Unit raise {
   let cases = @wasm.step_cases(s, f, tm("[\{k}, \{load}]"))
   let mem = "EL((j : Num), s_mems((s : Wstore)))"
   let bs = "(bs : List[\{w8}])"
-  let frame = "star((p : \{sassn})((vs0 : List[Value]), f_locs((f : Wframe))), (r : \{hprop}))"
+  let frame = "star((p : \{sassn})((vs0 : List[Value]), f_locs((f : Wframe)), gvals((s : Wstore), (f : Wframe))), (r : \{hprop}))"
   let unfold = ["smem_ind", "load", "read_bytes", "mem_length", "deserialise_i32", "t_num_length"].map(@wasm.thm)
   let _ = prove_value_rule(
     "sl_load_i32",
-    "∀ p : \{sassn}, ∀ k : \{w32}, ∀ a : Num, ∀ off : Num, ∀ bs : List[\{w8}], LENGTH(bs) == 4 → sl_triple((vs : List[Value]) => (ls : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k))]) && star(pts(val(k) + off, bs), p(vs0, ls), h)), [Load(T_i32, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(deserialise_i32(bs)))]) && star(pts(val(k) + off, bs), p(vs0, ls), h)))",
+    "∀ p : \{sassn}, ∀ k : \{w32}, ∀ a : Num, ∀ off : Num, ∀ bs : List[\{w8}], LENGTH(bs) == 4 → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs), h)), [Load(T_i32, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(deserialise_i32(bs)))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs), h)))",
     [k],
     load,
     "wasm_deserialise_num(\{bs}, T_i32)",
@@ -559,6 +559,21 @@ fn prove_store_rule(
       @simp.rewrite_tac(ths([@wasm.thm("s_mems_update"), @wasm.thm("s_mems")])),
     ]),
   )
+  // writing memory leaves the globals alone
+  let globs_mems = lemma(
+    "s_globs_mems_update",
+    "∀ v : List[\{mem_ty}], ∀ s : Wstore, s_globs(s_mems_update(v, s)) == s_globs(s)",
+    seq([
+      @tactics.repeat_tac(@tactics.gen_tac),
+      @tactics.struct_cases_tac(@bool.spec(s, @ind_types.cases("wstore"))),
+      @simp.rewrite_tac(ths([@wasm.thm("s_mems_update"), @wasm.thm("s_globs")])),
+    ]),
+  )
+  let gvals_mems = lemma(
+    "gvals_mems_update",
+    "∀ v : List[\{mem_ty}], ∀ s : Wstore, ∀ f : Wframe, gvals(s_mems_update(v, s), f) == gvals(s, f) && (globs_ok(s_mems_update(v, s), f) == globs_ok(s, f))",
+    @simp.rewrite_tac(ths([thm("gvals"), thm("globs_ok"), globs_mems])),
+  )
   let serialise_len = lemma(
     "serialise_i32_length",
     "∀ v : \{w32}, LENGTH(serialise_i32(v)) == 4",
@@ -581,11 +596,11 @@ fn prove_store_rule(
   let bytes = "serialise_i32((v : \{w32}))"
   let written = "write_bytes(\{mem}, val((k : \{w32})) + (off : Num), \{bytes})"
   let updated = "s_mems_update(list_update(s_mems((s : Wstore)), (j : Num), \{written}), s)"
-  let frame = "star((p : \{sassn})((vs0 : List[Value]), f_locs((f : Wframe))), (r : \{hprop}))"
+  let frame = "star((p : \{sassn})((vs0 : List[Value]), f_locs((f : Wframe)), gvals((s : Wstore), (f : Wframe))), (r : \{hprop}))"
   let defs = ["typeof_num", "bits_num", "t_num_length"].map(@wasm.thm)
   let _ = lemma(
     "sl_store_i32",
-    "∀ p : \{sassn}, ∀ k : \{w32}, ∀ a : Num, ∀ off : Num, ∀ v : \{w32}, ∀ bs : List[\{w8}], LENGTH(bs) == 4 → sl_triple((vs : List[Value]) => (ls : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(ConstInt32(v))]) && star(pts(val(k) + off, bs), p(vs0, ls), h)), [Store(T_i32, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == vs0 && star(pts(val(k) + off, serialise_i32(v)), p(vs0, ls), h)))",
+    "∀ p : \{sassn}, ∀ k : \{w32}, ∀ a : Num, ∀ off : Num, ∀ v : \{w32}, ∀ bs : List[\{w8}], LENGTH(bs) == 4 → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(ConstInt32(v))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs), h)), [Store(T_i32, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == vs0 && star(pts(val(k) + off, serialise_i32(v)), p(vs0, ls, gs), h)))",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @tactics.disch_tac,
@@ -648,7 +663,7 @@ fn prove_store_rule(
             subst_vars(),
             @simp.rewrite_tac(ths([@lists.append_nil()])),
             @tactics.match_mp_tac(thm("safe_vals")),
-            @simp.rewrite_tac(ths(lift_facts + [mems_update, length_update])),
+            @simp.rewrite_tac(ths(lift_facts + [mems_update, length_update, gvals_mems])),
             @tactics.exists_tac(tm("(j : Num)")),
             @simp.asm_simp_tac(ths([el_update])),
             @simp.rewrite_tac(ths([thm("star_assoc")])),

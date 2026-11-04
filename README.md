@@ -36,9 +36,10 @@ differ from Isabelle's. The soundness proofs (Wasm_Properties,
 Wasm_Soundness) are not ported yet.
 
 Package `logic` is a separation logic for linear memory on top of it, with
-rules for constants, binary operators, `i32.load`, `i32.store`, `br`, blocks
-and loops. See "Program logic" below, and [PLAN.md](PLAN.md) for the design,
-what is left and how to work on it.
+rules for constants, binary operators, `i32.load`, `i32.store`,
+`global.get`, `global.set`, `br`, blocks and loops. See "Program logic"
+below, and [PLAN.md](PLAN.md) for the design, what is left and how to work
+on it.
 
 ```moonbit
 @wasm.load()
@@ -164,9 +165,11 @@ Triples are defined over the reduction relation:
   memory.grow's choice is covered);
 - `triple(p, bs, q)`: from a value stack satisfying p, the instructions bs
   are safe for every n (partial correctness, no traps);
-- `sl_triple(p, bs, q)`: p and q are heap assertions on the value stack
-  and the locals, and the triple holds with any frame beside them on the
-  instance's memory (`lift`).
+- `sl_triple(p, bs, q)`: p and q are heap assertions on the value stack,
+  the locals and the globals (`gvals(s, f)`: the instance's globals by
+  index), and the triple holds with any frame beside them on the
+  instance's memory (`lift`). `lift` also asks that the instance's global
+  addresses are in the store and distinct (`globs_ok`).
 
 Rules, all theorems:
 
@@ -176,7 +179,11 @@ Rules, all theorems:
 - `sl_load_i32`: with `pts(val(k) + off, bs) * p` (bs 4 bytes), `i32.load`
   replaces the address k by `deserialise_i32(bs)`;
 - `sl_store_i32`: it turns `pts(val(k) + off, bs)` into
-  `pts(val(k) + off, serialise_i32(v))` and pops k and v.
+  `pts(val(k) + off, serialise_i32(v))` and pops k and v;
+- `sl_global_get`: `global.get i` (i < LENGTH(gs)) pushes `EL(i, gs)`;
+- `sl_global_set`: `global.set i` pops a number c, and the globals become
+  `list_update(gs0, i, c)` of the globals gs0 before (`gvals_set`, which
+  needs the addresses distinct).
 
 Each rule's operands sit on top of a stack of any length. `prefix_<op>`
 shows that a step of such a configuration is a step of the instruction and
@@ -213,7 +220,7 @@ with label assertions, innermost first:
   assertion lb (of the block's arity), the block leaves its stack vs0 with
   `vs0 ++ r`, qb or lb of r;
 - `sl_loop`: for `loop` with no parameters: with an invariant on the
-  locals and memory that holds on entry and is what a `br 0` must
+  locals, globals and memory that holds on entry and is what a `br 0` must
   re-establish (with no values), the loop leaves `vs0 ++ r` with the body's
   postcondition of r.
 

@@ -44,8 +44,11 @@ the official spec testsuite (`wasm/spec_test.mbt`).
   nondeterministic. Termination is not claimed.
 - **The frame is built in.** `sl_triple` quantifies over a frame `r` on the
   memory (`lift`), so the frame rule follows from `star_assoc`.
-- **Stack and locals are plain data.** Assertions (`SAssn`) take the value
-  stack and the locals as arguments. Only memory uses `star`.
+- **Stack, locals and globals are plain data.** Assertions (`SAssn`) take the
+  value stack, the locals and the globals (`gvals(s, f)`, the instance's
+  globals by index) as arguments. Only memory uses `star`. `lift` also asks
+  that the instance's global addresses are in the store and distinct
+  (`globs_ok`), so `global.set` changes exactly one entry.
 - **Structured control flow, in the style of Wasm Logic** (Watt et al., ECOOP
   2019). `sl_triple_l` has one assertion per enclosing label, innermost first.
   A `br` state counts as finished if its label's assertion holds.
@@ -66,12 +69,15 @@ the official spec testsuite (`wasm/spec_test.mbt`).
 | `sl_load_i32`, `sl_store_i32` | done |
 | `sl_seq_l`, `sl_br`, `sl_block`, `sl_loop` | done |
 | `sl_conseq_l`, `sl_frame_l` (from `safel_mono`) | done |
+| Globals in assertions; `sl_global_get`, `sl_global_set` | done |
 | One verified program: `example_store_load` | done |
 | Everything under "Next steps" | not started |
 
 Known limits of what exists:
 
 - `sl_block` and `sl_loop` cover only block types `Tbv(ot)`, with no parameters.
+- `sl_global_set` sets a number (`V_num`), not a reference. Triples assume
+  `globs_ok`, so a module that imports one global twice is not covered.
 - The evaluator computes on memory byte by byte, so it suits small memories.
   The spec cases that test the end of a 64 KiB page are not covered.
 - The builder lacks `extend8_s`, `extend16_s` and `extend32_s`, so their spec
@@ -84,15 +90,7 @@ Known limits of what exists:
 In order. Each can be merged on its own. "Done when" means the named theorems
 appear in `theory.md`, with the tests passing.
 
-1. **Globals.** `SAssn` has no argument for them, so this is a design change.
-   - Add globals to `lift` as a further plain-data argument, as locals are. This
-     changes the statement of every rule once, so do it now, while there are
-     about a dozen rules, and before the locals rules are written.
-   - Then `sl_global_get` and `sl_global_set`, which read and write the store
-     through the instance's global addresses.
-   - Done when: every existing rule is restated with globals, and the two rules.
-
-2. **Locals.** `sl_local_get`, `sl_local_set`, `sl_local_tee`.
+1. **Locals.** `sl_local_get`, `sl_local_set`, `sl_local_tee`.
    - `reduce` rule 8 needs `f_locs(f) == vi ++ [v] ++ vs`, and rule 9 needs the
      frame written as `Wframe(vi ++ [v] ++ vs, i)`, so split the locals list at
      `j` and case on `f`. Tee is `reduce_simple` rule 37: it steps to
@@ -101,7 +99,7 @@ appear in `theory.md`, with the tests passing.
      value: generalize it, or write these rules directly as `sl_store_i32` does.
    - Done when: the three rules.
 
-3. **Conditionals.** `sl_br_if`, `sl_if`.
+2. **Conditionals.** `sl_br_if`, `sl_if`.
    - `br_if` steps to `br i` or to nothing, depending on the condition (rules
      30, 31), and then `sl_br` applies. `if` steps to a `block` (rules 25, 26),
      and then `sl_block` applies.
@@ -109,10 +107,10 @@ appear in `theory.md`, with the tests passing.
      the known limits above.
    - Done when: both rules.
 
-4. **First loops.** The test of whether the rules work together.
+3. **First loops.** The test of whether the rules work together.
    - A counting loop on locals first (sum `1..n`), then one over memory, such as
      filling a region.
-   - Comparisons (`relop`, `eqz`) and packed stores come in step 5, so write
+   - Comparisons (`relop`, `eqz`) and packed stores come in step 4, so write
      these loops without them. Count down and end the body with
      `local.get n; br_if 0`, which repeats while `n ≠ 0`; guard the loop with
      `if` for `n = 0`. Fill with `i32.store`, 4 bytes per iteration. If that
@@ -124,27 +122,27 @@ appear in `theory.md`, with the tests passing.
    - Done when: `example_sum`, `example_fill`. Record any rule that turned out
      awkward to use: this is the point to change a rule's shape cheaply.
 
-5. **More instructions.** Mechanical, using the recipe below.
+4. **More instructions.** Mechanical, using the recipe below.
    - `i64` and packed loads and stores, `unop`, `testop`, `relop`, `cvtop`,
      `drop`, `select`, `nop`, `memory.size`.
    - `memory.grow`: the heap gets bigger, so state the rule as gaining
      `pts(old length, zeros)`, with the failure case returning `-1`.
 
-6. **Automation.** A symbolic-execution tactic.
+5. **Automation.** A symbolic-execution tactic.
    - Walk the instruction list, pick the rule for each instruction, find the
      frame by matching `star` terms, and leave only real side conditions.
      `then_rule` and `entails` in `examples.mbt` are the starting point.
    - Measure early on a program of about 100 instructions, because terms grow
      and the tests already need a large stack.
-   - Done when: the proofs of step 4 are a few lines each.
+   - Done when: the proofs of step 3 are a few lines each.
 
-7. **Calls.** `sl_call`, with per-function specs.
+6. **Calls.** `sl_call`, with per-function specs.
    - A `Frame` needs its own step inversion, like `label_steps`. `return` needs
      its own postcondition: add a return assertion as a further `safel` argument,
      as Wasm Logic does, rather than treating it as a label.
    - Recursive functions: induction on the steps left, as in `sl_loop`.
 
-8. **Real programs.** An untrusted `.wat` or `.wasm` importer that makes programs
+7. **Real programs.** An untrusted `.wat` or `.wasm` importer that makes programs
    through the builder, then verify a function from a compiled module. The theorem
    is about the imported term, so the importer is trusted to match the file until
    someone verifies a decoder.

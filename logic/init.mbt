@@ -41,6 +41,8 @@ pub fn load() -> Unit {
     prove_loop_rule()
     section("Instruction rules (rules.mbt)")
     prove_rules()
+    section("Globals (globals.mbt)")
+    prove_global_rules()
     section("Examples (examples.mbt)")
     prove_examples()
   })() catch {

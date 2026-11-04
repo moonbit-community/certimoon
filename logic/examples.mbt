@@ -19,14 +19,15 @@ fn triple_parts(th : @kernel.Thm) -> (@kernel.Term, @kernel.Term, @kernel.Term) 
 }
 
 ///|
-/// ⊢ ∀ vs ls h. a(vs, ls, h) → b(vs, ls, h): the stacks agree after
+/// ⊢ ∀ vs ls h. a(vs, ls, gs, h) → b(vs, ls, gs, h): the stacks agree after
 /// reassociating appends, and the rest follows from the premise.
 fn entails(a : @kernel.Term, b : @kernel.Term) -> @kernel.Thm raise {
   let vs = tm("(vs : List[Value])")
   let ls = tm("(ls : List[Value])")
+  let gs = tm("(gs : List[Value])")
   let h = tm("(h : \{heap})")
-  let app = (t : @kernel.Term) => @basics.list_mk_comb(t, @list.List([vs, ls, h]))
-  let goal = @bool.list_mk_forall(@list.List([vs, ls, h]), @bool.mk_imp(app(a), app(b)))
+  let app = (t : @kernel.Term) => @basics.list_mk_comb(t, @list.List([vs, ls, gs, h]))
+  let goal = @bool.list_mk_forall(@list.List([vs, ls, gs, h]), @bool.mk_imp(app(a), app(b)))
   @tactics.prove(
     goal,
     seq([
@@ -115,7 +116,7 @@ fn prove_examples() -> Unit raise {
   let v = tm("ConstInt32((v : \{w32}))")
   let length = tm("LENGTH(\{bs}) == 4")
   let pre = tm(
-    "(vs : List[Value]) => (ls : List[Value]) => (h : \{heap}) => star(pts(\{addr}, \{bs}), \{p}(vs, ls), h)",
+    "(vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => star(pts(\{addr}, \{bs}), \{p}(vs, ls, gs), h)",
   )
   let const_rule = (q : @kernel.Term, c : @kernel.Term) => beta(
     @bool.ispecl(@list.List([q, c]), thm("sl_const")),

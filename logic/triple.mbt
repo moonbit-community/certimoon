@@ -7,19 +7,22 @@
 //   since every step is.
 // - triple(p, bs, q): from a value stack vs with p(s, f, vs), the
 //   instructions bs are safe for every n: partial correctness, no traps.
-// - sl_triple(p, bs, q): p and q describe the value stack and the locals
-//   as heap assertions on the current memory, and the triple holds with
-//   any frame r beside them (lift(p, r): on the memory the instance
-//   uses), so the frame rule is a lemma.
+// - sl_triple(p, bs, q): p and q describe the value stack, the locals and
+//   the globals as heap assertions on the current memory, and the triple
+//   holds with any frame r beside them (lift(p, r): on the memory the
+//   instance uses), so the frame rule is a lemma.
+// - gvals(s, f): the values of the instance's globals, by index. lift also
+//   asks that the instance's global addresses are in the store and
+//   distinct (globs_ok), so setting one global changes no other.
 
 ///|
 /// An assertion on a configuration: store, frame, value stack.
 let assn : String = "(Wstore, Wframe, List[Value]) -> Bool"
 
 ///|
-/// A separation assertion: on the value stack and the locals, a heap
-/// assertion.
-let sassn : String = "(List[Value], List[Value], \{heap}) -> Bool"
+/// A separation assertion: on the value stack, the locals and the globals,
+/// a heap assertion.
+let sassn : String = "(List[Value], List[Value], List[Value], \{heap}) -> Bool"
 
 ///|
 fn define_triples() -> Unit raise {
@@ -32,8 +35,16 @@ fn define_triples() -> Unit raise {
     "triple((p : \{assn}), (bs : List[B_e]), (q : \{assn})) == (∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ n : Num, p(s, f, vs) → safe(n, s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs)), q))",
   )
   def(
+    "gvals",
+    "gvals((s : Wstore), (f : Wframe)) == MAP((a : Num) => g_val(EL(a, s_globs(s))), inst_globs(f_inst(f)))",
+  )
+  def(
+    "globs_ok",
+    "globs_ok((s : Wstore), (f : Wframe)) == (∀ i : Num, i < LENGTH(inst_globs(f_inst(f))) → EL(i, inst_globs(f_inst(f))) < LENGTH(s_globs(s)) && (∀ k : Num, k < LENGTH(inst_globs(f_inst(f))) && EL(k, inst_globs(f_inst(f))) == EL(i, inst_globs(f_inst(f))) → k == i))",
+  )
+  def(
     "lift",
-    "lift((p : \{sassn}), (r : \{hprop}), (s : Wstore), (f : Wframe), (vs : List[Value])) == (∃ j : Num, smem_ind(f_inst(f)) == SOME(j) && j < LENGTH(s_mems(s)) && star(p(vs, f_locs(f)), r, heap_of(EL(j, s_mems(s)))))",
+    "lift((p : \{sassn}), (r : \{hprop}), (s : Wstore), (f : Wframe), (vs : List[Value])) == (∃ j : Num, smem_ind(f_inst(f)) == SOME(j) && j < LENGTH(s_mems(s)) && globs_ok(s, f) && star(p(vs, f_locs(f), gvals(s, f)), r, heap_of(EL(j, s_mems(s)))))",
   )
   def(
     "sl_triple",
@@ -104,14 +115,14 @@ fn prove_triples() -> Unit raise {
   let star_mono = thm("star_mono")
   let lift_mono = lemma(
     "lift_mono",
-    "∀ p : \{sassn}, ∀ p2 : \{sassn}, ∀ r : \{hprop}, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ vs2 : List[Value], (∀ ls : List[Value], ∀ h : \{heap}, p(vs, ls, h) → p2(vs2, ls, h)) && lift(p, r, s, f, vs) → lift(p2, r, s, f, vs2)",
+    "∀ p : \{sassn}, ∀ p2 : \{sassn}, ∀ r : \{hprop}, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ vs2 : List[Value], (∀ ls : List[Value], ∀ gs : List[Value], ∀ h : \{heap}, p(vs, ls, gs, h) → p2(vs2, ls, gs, h)) && lift(p, r, s, f, vs) → lift(p2, r, s, f, vs2)",
     seq([
       @simp.rewrite_tac(ths([lift])),
       @tactics.repeat_tac(@tactics.strip_tac),
       @tactics.exists_tac(tm("(j : Num)")),
       @simp.asm_rewrite_tac(ths([])),
       @tactics.match_mp_tac(star_mono),
-      @tactics.exists_tac(tm("(p : \{sassn})(vs, f_locs(f))")),
+      @tactics.exists_tac(tm("(p : \{sassn})(vs, f_locs(f), gvals(s, f))")),
       @tactics.exists_tac(tm("(r : \{hprop})")),
       @simp.asm_rewrite_tac(ths([])),
       @meson.asm_meson_tac(ths([])),
@@ -124,7 +135,7 @@ fn prove_triples() -> Unit raise {
   )
   let _ = lemma(
     "sl_conseq",
-    "∀ p : \{sassn}, ∀ p2 : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ q2 : \{sassn}, (∀ vs : List[Value], ∀ ls : List[Value], ∀ h : \{heap}, p2(vs, ls, h) → p(vs, ls, h)) && sl_triple(p, bs, q) && (∀ vs : List[Value], ∀ ls : List[Value], ∀ h : \{heap}, q(vs, ls, h) → q2(vs, ls, h)) → sl_triple(p2, bs, q2)",
+    "∀ p : \{sassn}, ∀ p2 : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ q2 : \{sassn}, (∀ vs : List[Value], ∀ ls : List[Value], ∀ gs : List[Value], ∀ h : \{heap}, p2(vs, ls, gs, h) → p(vs, ls, gs, h)) && sl_triple(p, bs, q) && (∀ vs : List[Value], ∀ ls : List[Value], ∀ gs : List[Value], ∀ h : \{heap}, q(vs, ls, gs, h) → q2(vs, ls, gs, h)) → sl_triple(p2, bs, q2)",
     seq([
       @simp.rewrite_tac(ths([sl_triple])),
       @tactics.repeat_tac(@tactics.strip_tac),
@@ -141,14 +152,14 @@ fn prove_triples() -> Unit raise {
   let fun_eq = @class.fun_eq_thm()
   let lift_frame = lemma(
     "lift_frame",
-    "∀ p : \{sassn}, ∀ fr : \{hprop}, ∀ r : \{hprop}, lift((vs : List[Value]) => (ls : List[Value]) => star(p(vs, ls), fr), r) == lift(p, star(fr, r))",
+    "∀ p : \{sassn}, ∀ fr : \{hprop}, ∀ r : \{hprop}, lift((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => star(p(vs, ls, gs), fr), r) == lift(p, star(fr, r))",
     seq([
       @simp.rewrite_tac(ths([fun_eq, lift, thm("star_assoc")])),
     ]),
   )
   let _ = lemma(
     "sl_frame",
-    "∀ p : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ fr : \{hprop}, sl_triple(p, bs, q) → sl_triple((vs : List[Value]) => (ls : List[Value]) => star(p(vs, ls), fr), bs, (vs : List[Value]) => (ls : List[Value]) => star(q(vs, ls), fr))",
+    "∀ p : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ fr : \{hprop}, sl_triple(p, bs, q) → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => star(p(vs, ls, gs), fr), bs, (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => star(q(vs, ls, gs), fr))",
     seq([
       @simp.rewrite_tac(ths([sl_triple, lift_frame])),
       @meson.meson_tac(ths([])),
@@ -156,7 +167,7 @@ fn prove_triples() -> Unit raise {
   )
   let _ = lemma(
     "sl_const",
-    "∀ p : \{sassn}, ∀ c : V_num, sl_triple(p, [EConstNum(c)], (vs : List[Value]) => (ls : List[Value]) => (h : \{heap}) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, h))",
+    "∀ p : \{sassn}, ∀ c : V_num, sl_triple(p, [EConstNum(c)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, h))",
     seq([
       @simp.rewrite_tac(ths([sl_triple, triple])),
       @tactics.repeat_tac(@tactics.strip_tac),

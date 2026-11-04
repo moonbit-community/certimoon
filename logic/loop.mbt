@@ -108,13 +108,13 @@ fn prove_loop_rule() -> Unit raise {
     ]),
   )
   let sa = "\{sassn}"
-  let lb = "(vs : List[Value]) => (lc : List[Value]) => (h : \{heap}) => vs == NIL && linv(lc, h)"
-  let pre = "(vs : List[Value]) => (lc : List[Value]) => (h : \{heap}) => vs == vs0 && linv(lc, h)"
-  let post = "(vs : List[Value]) => (lc : List[Value]) => (h : \{heap}) => (∃ r : List[Value], vs == APPEND(vs0, r) && qb(r, lc, h))"
+  let lb = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => vs == NIL && linv(lc, gs, h)"
+  let pre = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => vs == vs0 && linv(lc, gs, h)"
+  let post = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ r : List[Value], vs == APPEND(vs0, r) && qb(r, lc, gs, h))"
   let fr = "(fr : \{hprop})"
   let _ = lemma(
     "sl_loop",
-    "∀ ot : Option[Valtype], ∀ bs : List[B_e], ∀ linv : (List[Value], \{heap}) -> Bool, ∀ qb : \{sa}, ∀ ls : List[\{sa}], ∀ vs0 : List[Value], sl_triple_l(\{lb}, bs, qb, CONS(\{lb}, ls)) → sl_triple_l(\{pre}, [Loop(Tbv(ot), bs)], \{post}, ls)",
+    "∀ ot : Option[Valtype], ∀ bs : List[B_e], ∀ linv : (List[Value], List[Value], \{heap}) -> Bool, ∀ qb : \{sa}, ∀ ls : List[\{sa}], ∀ vs0 : List[Value], sl_triple_l(\{lb}, bs, qb, CONS(\{lb}, ls)) → sl_triple_l(\{pre}, [Loop(Tbv(ot), bs)], \{post}, ls)",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @simp.rewrite_tac(ths([thm("sl_triple_l"), thm("triple_l")])),

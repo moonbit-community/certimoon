@@ -685,8 +685,8 @@ fn prove_block_rule() -> Unit raise {
     seq([@simp.rewrite_tac(ths([star])), @meson.meson_tac(ths([]))]),
   )
   let lift = thm("lift")
-  let pre = "(vs : List[Value]) => (lc : List[Value]) => (h : \{heap}) => vs == vs0 && pb(NIL, lc, h)"
-  let post = "(vs : List[Value]) => (lc : List[Value]) => (h : \{heap}) => (∃ r : List[Value], vs == APPEND(vs0, r) && (qb(r, lc, h) || lb(r, lc, h)))"
+  let pre = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => vs == vs0 && pb(NIL, lc, gs, h)"
+  let post = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ r : List[Value], vs == APPEND(vs0, r) && (qb(r, lc, gs, h) || lb(r, lc, gs, h)))"
   let sa = "\{sassn}"
   // the post of the block from the body's values (or a br)
   let from_body = (which : String) => seq([
@@ -698,7 +698,7 @@ fn prove_block_rule() -> Unit raise {
   ])
   let _ = lemma(
     "sl_block",
-    "∀ ot : Option[Valtype], ∀ bs : List[B_e], ∀ pb : \{sa}, ∀ qb : \{sa}, ∀ lb : \{sa}, ∀ ls : List[\{sa}], ∀ vs0 : List[Value], (∀ r : List[Value], ∀ lc : List[Value], ∀ h : \{heap}, lb(r, lc, h) → LENGTH(r) == LENGTH(tbv_results(ot))) && sl_triple_l(pb, bs, qb, CONS(lb, ls)) → sl_triple_l(\{pre}, [Block(Tbv(ot), bs)], \{post}, ls)",
+    "∀ ot : Option[Valtype], ∀ bs : List[B_e], ∀ pb : \{sa}, ∀ qb : \{sa}, ∀ lb : \{sa}, ∀ ls : List[\{sa}], ∀ vs0 : List[Value], (∀ r : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ h : \{heap}, lb(r, lc, gs, h) → LENGTH(r) == LENGTH(tbv_results(ot))) && sl_triple_l(pb, bs, qb, CONS(lb, ls)) → sl_triple_l(\{pre}, [Block(Tbv(ot), bs)], \{post}, ls)",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @simp.rewrite_tac(ths([thm("sl_triple_l"), thm("triple_l")])),
