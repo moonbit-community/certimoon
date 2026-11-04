@@ -155,7 +155,8 @@ port's definitions (no axioms; `@logic.load()`, then `@logic.thm`):
 - `write_pts`: writing bs2 (as long as bs) there gives
   `star(pts(a, bs2), r)`: the frame r still holds;
 - `load_pts`, `store_pts`: the same for WasmCert's `load` and `store` at
-  `n + off`, the functions the load and store reduction rules use.
+  `n + off`, the functions the load and store reduction rules use;
+- `pts_split`: `pts(a, xs ++ ys)` is `star(pts(a, xs), pts(a + LENGTH(xs), ys))`.
 
 Triples are defined over the reduction relation:
 
@@ -204,12 +205,35 @@ only `[Trap]`, which is never safe for a step more), then `triple_seq` and
 `sl_seq`: `sl_triple(p, bs1, q)` and `sl_triple(q, bs2, r)` give
 `sl_triple(p, APPEND(bs1, bs2), r)`.
 
-`logic/examples.mbt` verifies a program with the rules alone, gluing rule
-instances with `sl_seq` and `sl_conseq`: `example_store_load` says that
+`logic/examples.mbt` and `logic/example_sum.mbt` verify programs with the
+rules alone, gluing rule instances with `sl_seq` and `sl_conseq`: `example_store_load` says that
 `[i32.const k; i32.const v; i32.store; i32.const k; i32.load]`, from
 `pts(val(k) + off, bs) * p` (bs 4 bytes), ends with v on the stack and
 `pts(val(k) + off, serialise_i32(v)) * p` (`deserialise_serialise_i32`:
-loading back what was stored gives the value).
+loading back what was stored gives the value). `example_sum` verifies a
+loop on locals: from locals `[n0, acc0]`,
+
+```
+local.get 0
+if
+  loop
+    local.get 1; local.get 0; i32.add; local.set 1
+    local.get 0; i32.const 1; i32.sub; local.set 0
+    local.get 0; br_if 0
+  end
+end
+```
+
+ends with locals `[0, acc0 + sum_to(val(n0))]` (`sum_to(n)` is
+1 + ... + n; the additions are on words), and the stack and `R` (the
+globals and memory) as they were. Its straight-line code uses the rules on
+exact states (`logic/state.mbt`): `st(v, l, R)` says the stack is v, the
+locals l and R holds of the globals and heap, and the `st_` rules (from the
+rules above) step from one exact state to the next, written out by `norm`.
+The loop's invariant goes into the body's precondition with `sl_pure_l`
+and `sl_ex_l` (a pure fact or an `∃` out of a precondition), the empty
+`else` is `sl_nil_l`, and `sl_triple_of_l` drops the empty list of labels
+at the end.
 
 Control flow (`logic/labels.mbt`, `block.mbt`, `loop.mbt`) uses triples
 with label assertions, innermost first:

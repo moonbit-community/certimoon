@@ -15,6 +15,9 @@ test "the logic's lemmas are theorems, with no new axioms" {
     "gvals_set", "sl_global_get", "sl_global_set", "split_at", "el_split", "list_update_split",
     "local_get_step", "local_get_cases", "local_set_step", "local_set_cases", "sl_local_get",
     "sl_local_set", "sl_local_tee", "prefix_br_if", "sl_br_if", "prefix_if", "sl_if",
+    "pts_split", "lift_ex", "lift_pure", "sl_ex_l", "sl_pure_l", "sl_nil_l", "safel_nil",
+    "sl_triple_of_l", "st_snoc_ex", "st_const", "st_binop", "st_local_get", "st_local_set",
+    "sum_to_step", "sum_inv_step", "example_sum",
   ] {
     assert_true(@kernel.hyp(@logic.thm(name)).is_empty(), msg=name)
   }

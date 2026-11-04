@@ -72,7 +72,10 @@ the official spec testsuite (`wasm/spec_test.mbt`).
 | Globals in assertions; `sl_global_get`, `sl_global_set` | done |
 | `sl_local_get`, `sl_local_set`, `sl_local_tee` | done |
 | `sl_br_if`, `sl_if` | done |
-| One verified program: `example_store_load` | done |
+| `sl_ex_l`, `sl_pure_l`, `sl_nil_l`, `sl_triple_of_l`, `pts_split` | done |
+| Exact-state rules (`st`, `st_const`, `st_binop`, `st_local_get`, `st_local_set`) | done |
+| Verified programs: `example_store_load`, `example_sum` (a loop) | done |
+| `example_fill` (a loop over memory) | not started |
 | Everything under "Next steps" | not started |
 
 Known limits of what exists:
@@ -93,24 +96,36 @@ Known limits of what exists:
 In order. Each can be merged on its own. "Done when" means the named theorems
 appear in `theory.md`, with the tests passing.
 
-1. **First loops.** The test of whether the rules work together.
-   - A counting loop on locals first (sum `1..n`), then one over memory, such as
-     filling a region.
-   - Comparisons (`relop`, `eqz`) and packed stores come in step 2, so write
-     these loops without them. Count down and end the body with
-     `local.get n; br_if 0`, which repeats while `n ≠ 0`; guard the loop with
-     `if` for `n = 0`. Fill with `i32.store`, 4 bytes per iteration. If that
-     turns out awkward, move `sl_relop` and `sl_testop` before this step.
-   - `sl_br_if` and `sl_if` fix the condition c in the precondition. A loop's
-     condition is a local that changes, so these proofs need a rule that takes
-     an `∃` out of a precondition (`sl_ex_l`: if the triple holds for every x,
-     it holds from `∃ x. p(x)`). Not proved yet; it follows from `star_ex`.
-   - Memory loops need `pts_split`: `pts(a, xs ++ ys)` is
-     `star(pts(a, xs), pts(a + LENGTH(xs), ys))`. Not proved yet.
-   - Word side conditions should go to `@words.word_rule` and
-     `@words.word_arith_tac`.
-   - Done when: `example_sum`, `example_fill`. Record any rule that turned out
-     awkward to use: this is the point to change a rule's shape cheaply.
+1. **A loop over memory.** `example_sum` is done (`logic/example_sum.mbt`);
+   `example_fill` is left: fill m words from address a0 with `i32.store`,
+   counting a local down as `example_sum` does. It needs, beyond what exists:
+   - `st_store_i32`: the store rule on exact states, with the heap part of
+     `R` written `star(pts(val(k), bs), F(gs))`.
+   - The bytes written so far, as a list: `rep(k, bs)` (k copies of bs) with
+     `LENGTH(rep(k, bs)) == k * LENGTH(bs)` and `rep(SUC(k), bs) ==
+     APPEND(rep(k, bs), bs)`; and splitting 4 bytes off a longer list (from
+     `take` and `drop`).
+   - The invariant: locals `[p, c]`, c ≠ 0, `val(p) == a0 + 4 * (m - val(c))`,
+     and the heap `pts(a0, rep(m - val(c), serialise_i32(x)))`, then
+     `pts(val(p), zs)` with `LENGTH(zs) == 4 * val(c)`, then the frame. A
+     bound `a0 + 4 * m < 2^32` keeps `val(p + 4) == val(p) + 4`.
+   - Rearranging stars: each iteration moves the stored word from the front of
+     the rest to the end of the written part. MESON does not do this; state
+     the rearrangement as a lemma (`star_assoc`, `star_comm`, `pts_split`),
+     and `pts(a, NIL)` as empty.
+   - Done when: `example_fill`.
+
+   What the sum loop showed about the rules' shapes:
+   - The instruction rules' "operands on top of some vs0" form does not glue
+     by itself: each step needs an entailment. The exact-state `st_` rules
+     and `norm` (state.mbt) made straight-line code glue with `sl_seq` alone;
+     this is what the automation step should build on.
+   - `sl_br_if` and `sl_if` fix the condition, so the body is proved for
+     each value and `sl_pure_l`, `sl_ex_l` put the invariant's facts and
+     values back into the precondition. That worked without changing them.
+   - `sl_loop` and `sl_block` take their label assertions literally, so build
+     the rule instance first and read the label from it (as example_sum
+     does) rather than writing it again.
 
 2. **More instructions.** Mechanical, using the recipe below.
    - `i64` and packed loads and stores, `unop`, `testop`, `relop`, `cvtop`,
@@ -203,6 +218,11 @@ Tactics:
 - `struct_cases_tac` substitutes only in the goal. To reach the assumptions, use
   `disj_cases_tac` and then `subst_vars`.
 - `@lists.list_induct_tac` names the head and tail `h` and `t`.
+- `@tactics.prove` refuses a theorem with hypotheses ("additional assumptions
+  in result"): put them in the goal as antecedents and discharge them after
+  (`conseq_l`'s `hyps`).
+- `match_mp_tac(th)` fails when the tactic is built, not run, if `th` is not
+  an implication, so `first` and `solve` around it do not catch it.
 - `first_x_assum` tries every assumption, so the error you see may come from
   another assumption, and a tracing wrapper will report harmless failures.
 - `subst_vars` can substitute in an unwanted direction: `NIL == suf` replaced

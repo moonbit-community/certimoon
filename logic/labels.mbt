@@ -452,3 +452,103 @@ fn prove_label_structural() -> Unit raise {
     ]),
   )
 }
+
+///|
+/// More structural rules: an ∃ or a pure condition comes out of a
+/// precondition (sl_ex_l, sl_pure_l), the empty program (sl_nil_l), and
+/// a triple with no labels is a triple (sl_triple_of_l).
+fn prove_label_extras() -> Unit raise {
+  let safe = thm("safe")
+  let safel = thm("safel")
+  let sl_triple_l = thm("sl_triple_l")
+  let triple_l = thm("triple_l")
+  let lift = thm("lift")
+  let pp = "(pp : (A, List[Value], List[Value], List[Value], \{heap}) -> Bool)"
+  let lift_ex = lemma(
+    "lift_ex",
+    "∀ pp : (A, List[Value], List[Value], List[Value], \{heap}) -> Bool, ∀ r : \{hprop}, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], lift((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ x : A, \{pp}(x, vs, lc, gs, h)), r, s, f, vs) == (∃ x : A, lift(pp(x), r, s, f, vs))",
+    seq([
+      @simp.rewrite_tac(ths([lift, thm("star_ex"), @class.eta_ax()])),
+      @meson.meson_tac(ths([])),
+    ]),
+  )
+  let lift_pure = lemma(
+    "lift_pure",
+    "∀ c : Bool, ∀ p : \{sassn}, ∀ r : \{hprop}, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], lift((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => c && p(vs, lc, gs, h), r, s, f, vs) == (c && lift(p, r, s, f, vs))",
+    seq([
+      @simp.rewrite_tac(ths([lift, thm("star_pure"), @class.eta_ax()])),
+      @meson.meson_tac(ths([])),
+    ]),
+  )
+  let _ = lemma(
+    "sl_ex_l",
+    "∀ pp : (A, List[Value], List[Value], List[Value], \{heap}) -> Bool, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ ls : List[\{sassn}], (∀ x : A, sl_triple_l(pp(x), bs, q, ls)) → sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ x : A, pp(x, vs, lc, gs, h)), bs, q, ls)",
+    seq([
+      @simp.rewrite_tac(ths([sl_triple_l, triple_l, lift_ex])),
+      @meson.meson_tac(ths([])),
+    ]),
+  )
+  let _ = lemma(
+    "sl_pure_l",
+    "∀ c : Bool, ∀ p : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ ls : List[\{sassn}], (c → sl_triple_l(p, bs, q, ls)) → sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => c && p(vs, lc, gs, h), bs, q, ls)",
+    seq([
+      @simp.rewrite_tac(ths([sl_triple_l, triple_l, lift_pure])),
+      @meson.meson_tac(ths([])),
+    ]),
+  )
+  let _ = lemma(
+    "sl_nil_l",
+    "∀ p : \{sassn}, ∀ ls : List[\{sassn}], sl_triple_l(p, NIL, p, ls)",
+    seq([
+      @simp.rewrite_tac(ths([sl_triple_l, triple_l, @lists.map(), @lists.append_nil()])),
+      @tactics.repeat_tac(@tactics.strip_tac),
+      @tactics.match_mp_tac(thm("safel_vals")),
+      @simp.asm_rewrite_tac(ths([])),
+    ]),
+  )
+  let safel_nil = lemma(
+    "safel_nil",
+    "∀ n : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ es : List[Einstr], ∀ q : \{assn}, safel(n, s, f, es, q, NIL) → safe(n, s, f, es, q)",
+    @tactics.thenl(
+      @nums.induct_tac,
+      @list.List([
+        @simp.rewrite_tac(ths([safe])),
+        seq([
+          @simp.rewrite_tac(ths([safel, safe, @lists.length(), arith("∀ n : Num, !(n < 0)")])),
+          @tactics.thenl(
+            @tactics.repeat_tac(@tactics.strip_tac),
+            @list.List([
+              seq([
+                @tactics.disj1_tac,
+                @tactics.exists_tac(tm("(vs : List[Value])")),
+                @meson.asm_meson_tac(ths([])),
+              ]),
+              seq([
+                @tactics.disj2_tac,
+                @tactics.thenl(
+                  @tactics.conj_tac,
+                  @list.List([
+                    @meson.asm_meson_tac(ths([])),
+                    seq([
+                      @tactics.repeat_tac(@tactics.strip_tac),
+                      @tactics.first_x_assum(th => @tactics.match_mp_tac(th)),
+                      @meson.asm_meson_tac(ths([])),
+                    ]),
+                  ]),
+                ),
+              ]),
+            ]),
+          ),
+        ]),
+      ]),
+    ),
+  )
+  let _ = lemma(
+    "sl_triple_of_l",
+    "∀ p : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, sl_triple_l(p, bs, q, NIL) → sl_triple(p, bs, q)",
+    seq([
+      @simp.rewrite_tac(ths([thm("sl_triple"), sl_triple_l, thm("triple"), triple_l, @lists.map()])),
+      @meson.meson_tac(ths([safel_nil])),
+    ]),
+  )
+}

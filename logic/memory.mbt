@@ -360,3 +360,49 @@ fn prove_write(
     ]),
   )
 }
+
+///|
+/// pts_split: the bytes xs ++ ys at a are xs at a and, beside them, ys
+/// after xs.
+fn prove_pts_split() -> Unit raise {
+  let pts_heap = thm("pts_heap")
+  let opt = [
+    @ind_types.option_distinct(),
+    @equal.gsym(@ind_types.option_distinct()),
+    @ind_types.option_inj(),
+  ]
+  let disj = lemma(
+    "pts_heap_disj",
+    "∀ a : Num, ∀ xs : List[\{w8}], ∀ ys : List[\{w8}], hdisj(pts_heap(a, xs), pts_heap(a + LENGTH(xs), ys))",
+    seq([
+      @simp.rewrite_tac(ths([thm("hdisj"), thm("pts_heap_none")])),
+      @int.arith_tac,
+    ]),
+  )
+  let union = lemma(
+    "pts_heap_append",
+    "∀ a : Num, ∀ xs : List[\{w8}], ∀ ys : List[\{w8}], pts_heap(a, APPEND(xs, ys)) == hunion(pts_heap(a, xs), pts_heap(a + LENGTH(xs), ys))",
+    seq([
+      @simp.rewrite_tac(ths([@class.fun_eq_thm(), thm("hunion"), pts_heap, @lists.length_append(), @lists.el_append()])),
+      @tactics.repeat_tac(@tactics.gen_tac),
+      // which of the two ranges x is in
+      @class.asm_cases_tac(tm("(a : Num) <= (x : Num) && x < a + LENGTH((xs : List[\{w8}]))")),
+      @class.asm_cases_tac(tm("(a : Num) + LENGTH((xs : List[\{w8}])) <= (x : Num) && x < a + LENGTH(xs) + LENGTH((ys : List[\{w8}]))")),
+      @simp.asm_rewrite_tac(ths(opt)),
+      @tactics.repeat_tac(@class.cond_cases_tac),
+      @simp.asm_rewrite_tac(ths(opt + [arith("∀ x : Num, ∀ a : Num, ∀ b : Num, x - a - b == x - (a + b)")])),
+      @tactics.try_tac(@int.asm_arith_tac),
+    ]),
+  )
+  let _ = lemma(
+    "pts_split",
+    "∀ a : Num, ∀ xs : List[\{w8}], ∀ ys : List[\{w8}], pts(a, APPEND(xs, ys)) == star(pts(a, xs), pts(a + LENGTH(xs), ys))",
+    seq([
+      @simp.rewrite_tac(ths([thm("pts"), thm("star")])),
+      @tactics.repeat_tac(@tactics.gen_tac),
+      @tactics.abs_tac,
+      @tactics.conv_tac(@equal.top_depth_conv(@ind_types.unwind_conv)),
+      @simp.rewrite_tac(ths([disj, union])),
+    ]),
+  )
+}
