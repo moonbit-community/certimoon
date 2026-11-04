@@ -21,7 +21,8 @@ test "the logic's lemmas are theorems, with no new axioms" {
     "star_left_comm", "star_pure_r", "st_arr_store", "st_arr_load", "replicate_shift",
     "fill_entry", "fill_step", "fill_exit", "example_fill", "sl_testop", "sl_relop",
     "st_testop", "st_relop", "wsum_snoc", "wasm_bool_zero", "asum_addr", "asum_step",
-    "asum_exit", "example_array_sum",
+    "asum_exit", "example_array_sum", "sl_unop", "sl_nop", "sl_drop", "sl_select", "sl_load_i64",
+    "sl_store_i64", "serialise_i64_length",
   ] {
     assert_true(@kernel.hyp(@logic.thm(name)).is_empty(), msg=name)
   }

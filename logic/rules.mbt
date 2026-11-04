@@ -352,7 +352,8 @@ fn lift_facts() -> Array[@kernel.Thm] {
 
 ///|
 /// The rule `name` for a step of `ops ++ [x]` (each in the term syntax)
-/// that leaves the store and frame alone and ends in one value:
+/// that leaves the store and frame alone and ends in one value (or in
+/// `step`, such as NIL):
 /// `progress` proves the step exists (in the goal
 /// ∃ s2 f2 es2. reduce(...) with the prefix vs0), `prefix` and
 /// `cases` (step_cases on ops ++ [x]) say which steps there are, and
@@ -370,9 +371,10 @@ fn prove_value_rule(
   progress : @tactics.Tactic,
   facts? : @tactics.Tactic = @tactics.all_tac,
   unfold? : Array[@kernel.Thm] = [],
+  step? : String = "",
 ) -> @kernel.Thm raise {
   let code = "[" + (ops + [x]).join(", ") + "]"
-  let step = "[Basic(EConstNum(\{result}))]"
+  let step = if step == "" { "[Basic(EConstNum(\{result}))]" } else { step }
   let lfill = @wasm.thm("lfill")
   let opt = [
     @ind_types.option_distinct(),
@@ -437,7 +439,7 @@ fn prove_value_rule(
             @simp.asm_rewrite_tac(ths(opt + unfold)),
             @tactics.repeat_tac(@tactics.strip_tac),
             subst_vars(),
-            @simp.rewrite_tac(ths([@equal.gsym(@wasm.thm("v_to_e")), thm("map_snoc")])),
+            @simp.rewrite_tac(ths([@equal.gsym(@wasm.thm("v_to_e")), thm("map_snoc"), @lists.append_nil()])),
             @tactics.match_mp_tac(thm("safe_vals")),
             @simp.rewrite_tac(ths(lift_facts() + unfold)),
             @tactics.exists_tac(tm("(j : Num)")),
@@ -503,48 +505,144 @@ fn prove_rules() -> Unit raise {
     cases,
     @meson.asm_meson_tac(ths([rb_lift, rs[4]])),
   )
-  // i32.load
-  let rb = @bool.conjuncts_rule(@wasm.thm("reduce_base_rules")).to_array()
-  let k = "Basic(EConstNum(ConstInt32((k : \{w32}))))"
-  let load = "Basic(Load(T_i32, NONE, (a : Num), (off : Num)))"
-  let arity = prove_arities("load", "Basic(Load((t : T_num), (sx : Option[(Tp_num, Sx)]), (a : Num), (off : Num)))", 1)
-  let prefix = prove_prefix("load", [k], load, arity)
-  let cases = @wasm.step_cases(s, f, tm("[\{k}, \{load}]"))
-  let mem = "EL((j : Num), s_mems((s : Wstore)))"
-  let bs = "(bs : List[\{w8}])"
-  let frame = "star((p : \{sassn})((vs0 : List[Value]), f_locs((f : Wframe)), gvals((s : Wstore), (f : Wframe))), (r : \{hprop}))"
-  let unfold = ["smem_ind", "load", "read_bytes", "mem_length", "deserialise_i32", "t_num_length"].map(@wasm.thm)
+  // unary operators: always a value
+  let unop = "Basic(Unop((t : T_num), (op : Unop)))"
+  let arity = prove_arities("unop", unop, 1)
+  let prefix = prove_prefix("unop", c, unop, arity)
+  let cases = @wasm.step_cases(s, f, tm("[" + (c + [unop]).join(", ") + "]"), compute=false)
   let _ = prove_value_rule(
-    "sl_load_i32",
-    "∀ p : \{sassn}, ∀ k : \{w32}, ∀ a : Num, ∀ off : Num, ∀ bs : List[\{w8}], LENGTH(bs) == 4 → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs), h)), [Load(T_i32, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(deserialise_i32(bs)))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs), h)))",
-    [k],
-    load,
-    "wasm_deserialise_num(\{bs}, T_i32)",
+    "sl_unop",
+    "∀ p : \{sassn}, ∀ t : T_num, ∀ op : Unop, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, h)), [Unop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(app_unop(op, c))]) && p(vs0, ls, gs, h)))",
+    c,
+    unop,
+    "app_unop((op : Unop), (c : V_num))",
+    prefix,
+    cases,
+    @meson.asm_meson_tac(ths([rb_lift, rs[0]])),
+  )
+  // nop: nothing changes
+  let nop = "Basic(Nop)"
+  let arity = prove_arities("nop", nop, 0)
+  let prefix = prove_prefix("nop", [], nop, arity)
+  let cases = @wasm.step_cases(s, f, tm("[\{nop}]"), compute=false)
+  let stack = (v : String) => "(vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == \{v} && p(vs0, ls, gs, h))"
+  let nop_rule = prove_value_rule(
+    "sl_nop_stack",
+    "∀ p : \{sassn}, sl_triple(\{stack("vs0")}, [Nop], \{stack("vs0")})",
+    [],
+    nop,
+    "",
+    prefix,
+    cases,
+    @meson.asm_meson_tac(ths([rb_lift, rs[21]])),
+    step="(NIL : List[Einstr])",
+  )
+  let _ = lemma(
+    "sl_nop",
+    "∀ p : \{sassn}, sl_triple(p, [Nop], p)",
+    seq([
+      @tactics.gen_tac,
+      @tactics.match_mp_tac(thm("sl_conseq")),
+      @tactics.exists_tac(tm(stack("vs0"))),
+      @tactics.exists_tac(tm(stack("vs0"))),
+      @simp.rewrite_tac(ths([nop_rule])),
+      @meson.meson_tac(ths([])),
+    ]),
+  )
+  // drop and select, of numbers: their steps, from the rules for any value
+  let v_to_e = @wasm.thm("v_to_e")
+  let as_num = (rule : @kernel.Thm, vars : Array[(String, String)]) => {
+    let th = @bool.spec_all(rule)
+    @simp.rewrite_rule(ths([v_to_e]))(
+      @kernel.inst_rule(@list.List(vars.map(p => (tm(p.0), tm(p.1)))), th),
+    )
+  }
+  let drop_step = as_num(rs[22], [("V_num((c : V_num))", "(v : Value)")])
+  let c1c2 = [("V_num((c1 : V_num))", "(v1 : Value)"), ("V_num((c2 : V_num))", "(v2 : Value)")]
+  let select0 = as_num(rs[23], c1c2)
+  let select1 = as_num(rs[24], c1c2)
+  let drop = "Basic(Drop)"
+  let arity = prove_arities("drop", drop, 1)
+  let prefix = prove_prefix("drop", c, drop, arity)
+  let cases = @wasm.step_cases(s, f, tm("[" + (c + [drop]).join(", ") + "]"), compute=false)
+  let _ = prove_value_rule(
+    "sl_drop",
+    "∀ p : \{sassn}, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, h)), [Drop], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == vs0 && p(vs0, ls, gs, h)))",
+    c,
+    drop,
+    "",
+    prefix,
+    cases,
+    @meson.asm_meson_tac(ths([rb_lift, drop_step])),
+    step="(NIL : List[Einstr])",
+  )
+  let select = "Basic(Select((tt : Option[Valtype])))"
+  let ops = consts + ["Basic(EConstNum(ConstInt32((b : \{w32}))))"]
+  let arity = prove_arities("select", select, 3)
+  let prefix = prove_prefix("select", ops, select, arity)
+  let cases = @wasm.step_cases(s, f, tm("[" + (ops + [select]).join(", ") + "]"), compute=false)
+  let _ = prove_value_rule(
+    "sl_select",
+    "∀ p : \{sassn}, ∀ tt : Option[Valtype], ∀ c1 : V_num, ∀ c2 : V_num, ∀ b : \{w32}, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c1), V_num(c2), V_num(ConstInt32(b))]) && p(vs0, ls, gs, h)), [Select(tt)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(if b == word(0) { c2 } else { c1 })]) && p(vs0, ls, gs, h)))",
+    ops,
+    select,
+    "(if (b : \{w32}) == word(0) { (c2 : V_num) } else { (c1 : V_num) })",
     prefix,
     cases,
     seq([
-      @tactics.match_mp_tac(rb[12]),
-      @tactics.exists_tac(tm("(j : Num)")),
-      @tactics.exists_tac(tm(mem)),
-      @simp.asm_rewrite_tac(ths([@wasm.thm("t_num_length")])),
+      @tactics.match_mp_tac(rb_lift),
+      @class.cond_cases_tac,
+      @tactics.first(@list.List([
+        solve(seq([@tactics.match_mp_tac(select0), @simp.asm_rewrite_tac(ths([]))])),
+        solve(seq([@tactics.match_mp_tac(select1), @simp.asm_rewrite_tac(ths([]))])),
+      ])),
     ]),
-    facts=have(
-      "load(\{mem}, val((k : \{w32})), (off : Num), 4) == SOME(\{bs})",
-      seq([
-        @tactics.mp_tac(
-          @bool.ispecl(
-            @list.List([tm(mem), tm("val((k : \{w32}))"), tm("(off : Num)"), tm(bs), tm(frame)]),
-            thm("load_pts"),
-          ),
-        ),
-        @simp.rewrite_tac(ths([@equal.gsym(thm("star_assoc")), @equal.gsym(@lists.length_eq_nil())])),
-        @simp.asm_rewrite_tac(ths([])),
-        @tactics.conv_tac(@calc_num.num_reduce_conv),
-        @simp.rewrite_tac(ths([])),
-      ]),
-    ),
-    unfold~,
   )
+  // loads and stores of i32 and i64 (the address is an i32)
+  let rb = @bool.conjuncts_rule(@wasm.thm("reduce_base_rules")).to_array()
+  let k = "Basic(EConstNum(ConstInt32((k : \{w32}))))"
+  let arity = prove_arities("load", "Basic(Load((t : T_num), (sx : Option[(Tp_num, Sx)]), (a : Num), (off : Num)))", 1)
+  let mem = "EL((j : Num), s_mems((s : Wstore)))"
+  let bs = "(bs : List[\{w8}])"
+  let frame = "star((p : \{sassn})((vs0 : List[Value]), f_locs((f : Wframe)), gvals((s : Wstore), (f : Wframe))), (r : \{hprop}))"
+  for kind in num_kinds() {
+    let (sfx, ty, ctor, _, _, des, n, _) = kind
+    let load = "Basic(Load(\{ty}, NONE, (a : Num), (off : Num)))"
+    let prefix = prove_prefix(if sfx == "i32" { "load" } else { "load_" + sfx }, [k], load, arity)
+    let cases = @wasm.step_cases(s, f, tm("[\{k}, \{load}]"))
+    let unfold = ["smem_ind", "load", "read_bytes", "mem_length", des, "t_num_length"].map(@wasm.thm)
+    let _ = prove_value_rule(
+      "sl_load_" + sfx,
+      "∀ p : \{sassn}, ∀ k : \{w32}, ∀ a : Num, ∀ off : Num, ∀ bs : List[\{w8}], LENGTH(bs) == \{n} → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs), h)), [Load(\{ty}, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(\{ctor}(\{des}(bs)))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs), h)))",
+      [k],
+      load,
+      "wasm_deserialise_num(\{bs}, \{ty})",
+      prefix,
+      cases,
+      seq([
+        @tactics.match_mp_tac(rb[12]),
+        @tactics.exists_tac(tm("(j : Num)")),
+        @tactics.exists_tac(tm(mem)),
+        @simp.asm_rewrite_tac(ths([@wasm.thm("t_num_length")])),
+      ]),
+      facts=have(
+        "load(\{mem}, val((k : \{w32})), (off : Num), \{n}) == SOME(\{bs})",
+        seq([
+          @tactics.mp_tac(
+            @bool.ispecl(
+              @list.List([tm(mem), tm("val((k : \{w32}))"), tm("(off : Num)"), tm(bs), tm(frame)]),
+              thm("load_pts"),
+            ),
+          ),
+          @simp.rewrite_tac(ths([@equal.gsym(thm("star_assoc")), @equal.gsym(@lists.length_eq_nil())])),
+          @simp.asm_rewrite_tac(ths([])),
+          @tactics.conv_tac(@calc_num.num_reduce_conv),
+          @simp.rewrite_tac(ths([])),
+        ]),
+      ),
+      unfold~,
+    )
+  }
   prove_store_rule(rb, k, lift_facts(), [
     @ind_types.option_distinct(),
     @equal.gsym(@ind_types.option_distinct()),
@@ -605,33 +703,35 @@ fn prove_store_rule(
     "∀ v : List[\{mem_ty}], ∀ s : Wstore, ∀ f : Wframe, gvals(s_mems_update(v, s), f) == gvals(s, f) && (globs_ok(s_mems_update(v, s), f) == globs_ok(s, f))",
     @simp.rewrite_tac(ths([thm("gvals"), thm("globs_ok"), globs_mems])),
   )
+  let arity = prove_arities("store", "Basic(Store((t : T_num), (tp : Option[Tp_num]), (a : Num), (off : Num)))", 2)
+  for kind in num_kinds() {
+  let (sfx, ty, ctor, wty, ser, _, n, sucs) = kind
   let serialise_len = lemma(
-    "serialise_i32_length",
-    "∀ v : \{w32}, LENGTH(serialise_i32(v)) == 4",
+    "serialise_\{sfx}_length",
+    "∀ v : \{wty}, LENGTH(\{ser}(v)) == \{n}",
     @simp.rewrite_tac(
       ths([
-        @wasm.thm("serialise_i32"),
-        arith("4 == SUC(SUC(SUC(SUC(0))))"),
+        @wasm.thm(ser),
+        arith("\{n} == \{sucs}"),
         @wasm.thm("le_bytes"),
         @lists.length(),
       ]),
     ),
   )
-  let v = "Basic(EConstNum(ConstInt32((v : \{w32}))))"
-  let store = "Basic(Store(T_i32, NONE, (a : Num), (off : Num)))"
+  let v = "Basic(EConstNum(\{ctor}((v : \{wty}))))"
+  let store = "Basic(Store(\{ty}, NONE, (a : Num), (off : Num)))"
   let code = "[\{k}, \{v}, \{store}]"
-  let arity = prove_arities("store", "Basic(Store((t : T_num), (tp : Option[Tp_num]), (a : Num), (off : Num)))", 2)
-  let prefix = prove_prefix("store", [k, v], store, arity)
+  let prefix = prove_prefix(if sfx == "i32" { "store" } else { "store_" + sfx }, [k, v], store, arity)
   let cases = @wasm.step_cases(s, f, tm(code), compute=false)
   let mem = "EL((j : Num), s_mems((s : Wstore)))"
-  let bytes = "serialise_i32((v : \{w32}))"
+  let bytes = "\{ser}((v : \{wty}))"
   let written = "write_bytes(\{mem}, val((k : \{w32})) + (off : Num), \{bytes})"
   let updated = "s_mems_update(list_update(s_mems((s : Wstore)), (j : Num), \{written}), s)"
   let frame = "star((p : \{sassn})((vs0 : List[Value]), f_locs((f : Wframe)), gvals((s : Wstore), (f : Wframe))), (r : \{hprop}))"
   let defs = ["typeof_num", "bits_num", "t_num_length"].map(@wasm.thm)
   let _ = lemma(
-    "sl_store_i32",
-    "∀ p : \{sassn}, ∀ k : \{w32}, ∀ a : Num, ∀ off : Num, ∀ v : \{w32}, ∀ bs : List[\{w8}], LENGTH(bs) == 4 → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(ConstInt32(v))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs), h)), [Store(T_i32, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == vs0 && star(pts(val(k) + off, serialise_i32(v)), p(vs0, ls, gs), h)))",
+    "sl_store_" + sfx,
+    "∀ p : \{sassn}, ∀ k : \{w32}, ∀ a : Num, ∀ off : Num, ∀ v : \{wty}, ∀ bs : List[\{w8}], LENGTH(bs) == \{n} → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(\{ctor}(v))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs), h)), [Store(\{ty}, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == vs0 && star(pts(val(k) + off, \{ser}(v)), p(vs0, ls, gs), h)))",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @tactics.disch_tac,
@@ -643,7 +743,7 @@ fn prove_store_rule(
       subst_vars(),
       // the store succeeds, and the bytes are there after it
       have(
-        "store(\{mem}, val((k : \{w32})), (off : Num), \{bytes}, 4) == SOME(\{written}) && star(pts(val(k) + off, \{bytes}), \{frame}, heap_of(\{written}))",
+        "store(\{mem}, val((k : \{w32})), (off : Num), \{bytes}, \{n}) == SOME(\{written}) && star(pts(val(k) + off, \{bytes}), \{frame}, heap_of(\{written}))",
         seq([
           @tactics.mp_tac(
             @bool.ispecl(
@@ -704,5 +804,16 @@ fn prove_store_rule(
       ),
     ]),
   )
+  }
 }
 
+///|
+/// The number types the load and store rules cover: (suffix, type,
+/// constructor, word type, serialise, deserialise, bytes, the bytes as
+/// SUCs of 0).
+fn num_kinds() -> Array[(String, String, String, String, String, String, Int, String)] {
+  [
+    ("i32", "T_i32", "ConstInt32", w32, "serialise_i32", "deserialise_i32", 4, "SUC(SUC(SUC(SUC(0))))"),
+    ("i64", "T_i64", "ConstInt64", w64, "serialise_i64", "deserialise_i64", 8, "SUC(SUC(SUC(SUC(SUC(SUC(SUC(SUC(0))))))))"),
+  ]
+}

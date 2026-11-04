@@ -181,6 +181,11 @@ Rules, all theorems:
   replaces the address k by `deserialise_i32(bs)`;
 - `sl_store_i32`: it turns `pts(val(k) + off, bs)` into
   `pts(val(k) + off, serialise_i32(v))` and pops k and v;
+- `sl_load_i64`, `sl_store_i64`: the same with 8 bytes and
+  `deserialise_i64`, `serialise_i64` (the address is still an i32);
+- `sl_unop` (`app_unop`), `sl_nop` (`sl_triple(p, [Nop], p)`), `sl_drop`
+  and `sl_select` (of numbers: `select` keeps c1 if the i32 b is not 0,
+  else c2);
 - `sl_global_get`: `global.get i` (i < LENGTH(gs)) pushes `EL(i, gs)`;
 - `sl_global_set`: `global.set i` pops a number c, and the globals become
   `list_update(gs0, i, c)` of the globals gs0 before (`gvals_set`, which

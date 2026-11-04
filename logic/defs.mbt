@@ -90,6 +90,10 @@ let w8 : String = "Word[Tybit0[Tybit0[Tybit0[Unit]]]]"
 let w32 : String = "Word[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Unit]]]]]]"
 
 ///|
+/// The type of 64-bit words, as the term syntax writes it.
+let w64 : String = "Word[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Unit]]]]]]]"
+
+///|
 /// A heap: what each address holds, NONE outside it.
 let heap : String = "(Num) -> Option[\{w8}]"
 

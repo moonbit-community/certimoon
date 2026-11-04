@@ -850,6 +850,108 @@ lemma `sl_relop`
 ∀ p : SAssn, ∀ t : T_num, ∀ op : Relop, ∀ c1 : V_num, ∀ c2 : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c1), V_num(c2)]) && p(vs0, ls, gs, h), [Relop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(app_relop(op, c1, c2))]) && p(vs0, ls, gs, h))
 ```
 
+lemma `arity_simple_unop`
+
+```
+∀ suf : List[Einstr], ∀ e2 : List[Einstr], reduce_simple(APPEND(suf, [Basic(Unop((t : T_num), (op : Unop)))]), e2) && ALL(is_val, suf) → LENGTH(suf) == 1
+```
+
+lemma `arity_unop`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ suf : List[Einstr], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ e2 : List[Einstr], reduce_base(s, f, APPEND(suf, [Basic(Unop((t : T_num), (op : Unop)))]), s2, f2, e2) && ALL(is_val, suf) → LENGTH(suf) == 1
+```
+
+lemma `prefix_unop`
+
+```
+∀ vs0 : List[Value], ∀ s : Wstore, ∀ f : Wframe, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c : V_num))), Basic(Unop((t : T_num), (op : Unop)))]), s2, f2, es2) → (∃ e : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e) && reduce(s, f, [Basic(EConstNum(c)), Basic(Unop(t, op))], s2, f2, e))
+```
+
+lemma `sl_unop`
+
+```
+∀ p : SAssn, ∀ t : T_num, ∀ op : Unop, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, h), [Unop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(app_unop(op, c))]) && p(vs0, ls, gs, h))
+```
+
+lemma `arity_simple_nop`
+
+```
+∀ suf : List[Einstr], ∀ e2 : List[Einstr], reduce_simple(APPEND(suf, [Basic(Nop)]), e2) && ALL(is_val, suf) → LENGTH(suf) == 0
+```
+
+lemma `arity_nop`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ suf : List[Einstr], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ e2 : List[Einstr], reduce_base(s, f, APPEND(suf, [Basic(Nop)]), s2, f2, e2) && ALL(is_val, suf) → LENGTH(suf) == 0
+```
+
+lemma `prefix_nop`
+
+```
+∀ vs0 : List[Value], ∀ s : Wstore, ∀ f : Wframe, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(Nop)]), s2, f2, es2) → (∃ e : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e) && reduce(s, f, [Basic(Nop)], s2, f2, e))
+```
+
+lemma `sl_nop_stack`
+
+```
+∀ p : SAssn, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == vs0 && p(vs0, ls, gs, h), [Nop], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == vs0 && p(vs0, ls, gs, h))
+```
+
+lemma `sl_nop`
+
+```
+∀ p : SAssn, sl_triple(p, [Nop], p)
+```
+
+lemma `arity_simple_drop`
+
+```
+∀ suf : List[Einstr], ∀ e2 : List[Einstr], reduce_simple(APPEND(suf, [Basic(Drop)]), e2) && ALL(is_val, suf) → LENGTH(suf) == 1
+```
+
+lemma `arity_drop`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ suf : List[Einstr], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ e2 : List[Einstr], reduce_base(s, f, APPEND(suf, [Basic(Drop)]), s2, f2, e2) && ALL(is_val, suf) → LENGTH(suf) == 1
+```
+
+lemma `prefix_drop`
+
+```
+∀ vs0 : List[Value], ∀ s : Wstore, ∀ f : Wframe, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c : V_num))), Basic(Drop)]), s2, f2, es2) → (∃ e : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e) && reduce(s, f, [Basic(EConstNum(c)), Basic(Drop)], s2, f2, e))
+```
+
+lemma `sl_drop`
+
+```
+∀ p : SAssn, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, h), [Drop], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == vs0 && p(vs0, ls, gs, h))
+```
+
+lemma `arity_simple_select`
+
+```
+∀ suf : List[Einstr], ∀ e2 : List[Einstr], reduce_simple(APPEND(suf, [Basic(Select((tt : Option[Valtype])))]), e2) && ALL(is_val, suf) → LENGTH(suf) == 3
+```
+
+lemma `arity_select`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ suf : List[Einstr], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ e2 : List[Einstr], reduce_base(s, f, APPEND(suf, [Basic(Select((tt : Option[Valtype])))]), s2, f2, e2) && ALL(is_val, suf) → LENGTH(suf) == 3
+```
+
+lemma `prefix_select`
+
+```
+∀ vs0 : List[Value], ∀ s : Wstore, ∀ f : Wframe, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c1 : V_num))), Basic(EConstNum((c2 : V_num))), Basic(EConstNum(ConstInt32((b : W32)))), Basic(Select((tt : Option[Valtype])))]), s2, f2, es2) → (∃ e : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e) && reduce(s, f, [Basic(EConstNum(c1)), Basic(EConstNum(c2)), Basic(EConstNum(ConstInt32(b))), Basic(Select(tt))], s2, f2, e))
+```
+
+lemma `sl_select`
+
+```
+∀ p : SAssn, ∀ tt : Option[Valtype], ∀ c1 : V_num, ∀ c2 : V_num, ∀ b : W32, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c1), V_num(c2), V_num(ConstInt32(b))]) && p(vs0, ls, gs, h), [Select(tt)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(if b == word(0) { c2 } else { c1 })]) && p(vs0, ls, gs, h))
+```
+
 lemma `arity_simple_load`
 
 ```
@@ -872,6 +974,18 @@ lemma `sl_load_i32`
 
 ```
 ∀ p : SAssn, ∀ k : W32, ∀ a : Num, ∀ off : Num, ∀ bs : List[Byte], LENGTH(bs) == 4 → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs), h), [Load(T_i32, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(deserialise_i32(bs)))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs), h))
+```
+
+lemma `prefix_load_i64`
+
+```
+∀ vs0 : List[Value], ∀ s : Wstore, ∀ f : Wframe, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum(ConstInt32((k : W32)))), Basic(Load(T_i64, NONE, (a : Num), (off : Num)))]), s2, f2, es2) → (∃ e : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e) && reduce(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(Load(T_i64, NONE, a, off))], s2, f2, e))
+```
+
+lemma `sl_load_i64`
+
+```
+∀ p : SAssn, ∀ k : W32, ∀ a : Num, ∀ off : Num, ∀ bs : List[Byte], LENGTH(bs) == 8 → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs), h), [Load(T_i64, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt64(deserialise_i64(bs)))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs), h))
 ```
 
 lemma `length_list_update`
@@ -904,12 +1018,6 @@ lemma `gvals_mems_update`
 ∀ v : List[Mem], ∀ s : Wstore, ∀ f : Wframe, gvals(s_mems_update(v, s), f) == gvals(s, f) && globs_ok(s_mems_update(v, s), f) == globs_ok(s, f)
 ```
 
-lemma `serialise_i32_length`
-
-```
-∀ v : W32, LENGTH(serialise_i32(v)) == 4
-```
-
 lemma `arity_simple_store`
 
 ```
@@ -922,6 +1030,12 @@ lemma `arity_store`
 ∀ s : Wstore, ∀ f : Wframe, ∀ suf : List[Einstr], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ e2 : List[Einstr], reduce_base(s, f, APPEND(suf, [Basic(Store((t : T_num), (tp : Option[Tp_num]), (a : Num), (off : Num)))]), s2, f2, e2) && ALL(is_val, suf) → LENGTH(suf) == 2
 ```
 
+lemma `serialise_i32_length`
+
+```
+∀ v : W32, LENGTH(serialise_i32(v)) == 4
+```
+
 lemma `prefix_store`
 
 ```
@@ -932,6 +1046,24 @@ lemma `sl_store_i32`
 
 ```
 ∀ p : SAssn, ∀ k : W32, ∀ a : Num, ∀ off : Num, ∀ v : W32, ∀ bs : List[Byte], LENGTH(bs) == 4 → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(ConstInt32(v))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs), h), [Store(T_i32, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == vs0 && star(pts(val(k) + off, serialise_i32(v)), p(vs0, ls, gs), h))
+```
+
+lemma `serialise_i64_length`
+
+```
+∀ v : W64, LENGTH(serialise_i64(v)) == 8
+```
+
+lemma `prefix_store_i64`
+
+```
+∀ vs0 : List[Value], ∀ s : Wstore, ∀ f : Wframe, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum(ConstInt32((k : W32)))), Basic(EConstNum(ConstInt64((v : W64)))), Basic(Store(T_i64, NONE, (a : Num), (off : Num)))]), s2, f2, es2) → (∃ e : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e) && reduce(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(EConstNum(ConstInt64(v))), Basic(Store(T_i64, NONE, a, off))], s2, f2, e))
+```
+
+lemma `sl_store_i64`
+
+```
+∀ p : SAssn, ∀ k : W32, ∀ a : Num, ∀ off : Num, ∀ v : W64, ∀ bs : List[Byte], LENGTH(bs) == 8 → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(ConstInt64(v))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs), h), [Store(T_i64, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : Heap) => ∃ vs0 : List[Value], vs == vs0 && star(pts(val(k) + off, serialise_i64(v)), p(vs0, ls, gs), h))
 ```
 
 ## Globals (globals.mbt)
