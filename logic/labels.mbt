@@ -9,7 +9,8 @@
 //   assertions l (innermost first), lifted with the same frame.
 //
 // safel with no labels is safe, so every rule so far holds with any labels
-// (sl_triple_l_of).
+// (sl_triple_l_of). Consequence (sl_conseq_l) also weakens each label
+// assertion, and the frame rule (sl_frame_l) frames the labels too.
 
 ///|
 fn define_labels() -> Unit raise {
@@ -225,6 +226,7 @@ fn prove_labels() -> Unit raise {
     "∀ p : \{sassn}, ∀ bs1 : List[B_e], ∀ q : \{sassn}, ∀ bs2 : List[B_e], ∀ r : \{sassn}, ∀ ls : List[\{sassn}], sl_triple_l(p, bs1, q, ls) && sl_triple_l(q, bs2, r, ls) → sl_triple_l(p, APPEND(bs1, bs2), r, ls)",
     seq([@simp.rewrite_tac(ths([thm("sl_triple_l")])), @meson.meson_tac(ths([triple_l_seq]))]),
   )
+  prove_label_structural()
   // a br after values does not step
   let nobr_simple = @bool.gen_all(
     prove_arity(
@@ -312,6 +314,141 @@ fn prove_labels() -> Unit raise {
         solve(seq([@simp.asm_simp_tac(ths(simp_br)), @tactics.exists_tac(tm("(j : Num)")), @simp.asm_rewrite_tac(ths([]))])),
         solve(@simp.asm_simp_tac(ths(simp_br))),
       ])),
+    ]),
+  )
+}
+
+///|
+/// The structural rules with labels: consequence, which weakens the
+/// postcondition and each label assertion, and the frame rule, which frames
+/// the labels too.
+fn prove_label_structural() -> Unit raise {
+  let safel = thm("safel")
+  let triple_l = thm("triple_l")
+  let sl_triple_l = thm("sl_triple_l")
+  let lift_mono = thm("lift_mono")
+  // l2 is pointwise weaker than l
+  let weaker = (l : String, l2 : String) => "LENGTH(\{l2}) == LENGTH(\{l}) && (∀ i : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], i < LENGTH(\{l}) && EL(i, \{l}, s, f, vs) → EL(i, \{l2}, s, f, vs))"
+  let safel_mono = lemma(
+    "safel_mono",
+    "∀ n : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ es : List[Einstr], ∀ q : \{assn}, ∀ q2 : \{assn}, ∀ l : List[\{assn}], ∀ l2 : List[\{assn}], (∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], q(s, f, vs) → q2(s, f, vs)) && \{weaker("l", "l2")} && safel(n, s, f, es, q, l) → safel(n, s, f, es, q2, l2)",
+    @tactics.thenl(
+      @nums.induct_tac,
+      @list.List([
+        @simp.rewrite_tac(ths([safel])),
+        seq([
+          @simp.rewrite_tac(ths([safel])),
+          // ended in values, stopped at a br, or steps
+          @tactics.thenl(
+            @tactics.repeat_tac(@tactics.strip_tac),
+            @list.List([
+              seq([
+                @tactics.disj1_tac,
+                @tactics.exists_tac(tm("(vs : List[Value])")),
+                @meson.asm_meson_tac(ths([])),
+              ]),
+              seq([
+                @tactics.disj2_tac,
+                @tactics.disj1_tac,
+                @tactics.exists_tac(tm("(i : Num)")),
+                @tactics.exists_tac(tm("(vs : List[Value])")),
+                @tactics.exists_tac(tm("(lh : Lholed)")),
+                @tactics.thenl(
+                  @tactics.repeat_tac(@tactics.conj_tac),
+                  @list.List([
+                    @simp.asm_rewrite_tac(ths([])),
+                    @simp.asm_rewrite_tac(ths([])),
+                    seq([
+                      @tactics.first_x_assum(th => @tactics.match_mp_tac(th)),
+                      @simp.asm_rewrite_tac(ths([])),
+                    ]),
+                    seq([
+                      @tactics.repeat_tac(@tactics.strip_tac),
+                      @tactics.first_x_assum(th => @tactics.match_mp_tac(th)),
+                      @tactics.exists_tac(tm("(q : \{assn})")),
+                      @tactics.exists_tac(tm("(l : List[\{assn}])")),
+                      @meson.asm_meson_tac(ths([])),
+                    ]),
+                  ]),
+                ),
+              ]),
+              seq([
+                @tactics.disj2_tac,
+                @tactics.disj2_tac,
+                @tactics.thenl(
+                  @tactics.conj_tac,
+                  @list.List([
+                    @meson.asm_meson_tac(ths([])),
+                    seq([
+                      @tactics.repeat_tac(@tactics.strip_tac),
+                      @tactics.first_x_assum(th => @tactics.match_mp_tac(th)),
+                      @tactics.exists_tac(tm("(q : \{assn})")),
+                      @tactics.exists_tac(tm("(l : List[\{assn}])")),
+                      @meson.asm_meson_tac(ths([])),
+                    ]),
+                  ]),
+                ),
+              ]),
+            ]),
+          ),
+        ]),
+      ]),
+    ),
+  )
+  let triple_l_conseq = lemma(
+    "triple_l_conseq",
+    "∀ p : \{assn}, ∀ p2 : \{assn}, ∀ bs : List[B_e], ∀ q : \{assn}, ∀ q2 : \{assn}, ∀ l : List[\{assn}], ∀ l2 : List[\{assn}], (∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], p2(s, f, vs) → p(s, f, vs)) && triple_l(p, bs, q, l) && (∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], q(s, f, vs) → q2(s, f, vs)) && \{weaker("l", "l2")} → triple_l(p2, bs, q2, l2)",
+    seq([
+      @simp.rewrite_tac(ths([triple_l])),
+      @tactics.repeat_tac(@tactics.strip_tac),
+      @tactics.match_mp_tac(safel_mono),
+      @tactics.exists_tac(tm("(q : \{assn})")),
+      @tactics.exists_tac(tm("(l : List[\{assn}])")),
+      @meson.asm_meson_tac(ths([])),
+    ]),
+  )
+  let lift_l = "MAP((x : \{sassn}) => lift(x, (r : \{hprop})), (ls : List[\{sassn}]))"
+  let _ = lemma(
+    "sl_conseq_l",
+    "∀ p : \{sassn}, ∀ p2 : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ q2 : \{sassn}, ∀ ls : List[\{sassn}], ∀ ls2 : List[\{sassn}], (∀ vs : List[Value], ∀ lc : List[Value], ∀ h : \{heap}, p2(vs, lc, h) → p(vs, lc, h)) && sl_triple_l(p, bs, q, ls) && (∀ vs : List[Value], ∀ lc : List[Value], ∀ h : \{heap}, q(vs, lc, h) → q2(vs, lc, h)) && LENGTH(ls2) == LENGTH(ls) && (∀ i : Num, ∀ vs : List[Value], ∀ lc : List[Value], ∀ h : \{heap}, i < LENGTH(ls) && EL(i, ls, vs, lc, h) → EL(i, ls2, vs, lc, h)) → sl_triple_l(p2, bs, q2, ls2)",
+    seq([
+      @simp.rewrite_tac(ths([sl_triple_l])),
+      @tactics.repeat_tac(@tactics.strip_tac),
+      @tactics.match_mp_tac(triple_l_conseq),
+      @tactics.exists_tac(tm("lift((p : \{sassn}), (r : \{hprop}))")),
+      @tactics.exists_tac(tm("lift((q : \{sassn}), (r : \{hprop}))")),
+      @tactics.exists_tac(tm(lift_l)),
+      // the triple and the lengths
+      @simp.asm_rewrite_tac(ths([@lists.length_map()])),
+      @tactics.repeat_tac(@tactics.conj_tac),
+      @tactics.first(@list.List([
+        // the pre- and postcondition
+        solve(seq([
+          @tactics.repeat_tac(@tactics.strip_tac),
+          @tactics.match_mp_tac(lift_mono),
+          @meson.asm_meson_tac(ths([])),
+        ])),
+        // each label
+        solve(seq([
+          @tactics.repeat_tac(@tactics.strip_tac),
+          @tactics.first_x_assum(th => @tactics.mp_tac(th)),
+          have("(i : Num) < LENGTH((ls2 : List[\{sassn}]))", @simp.asm_rewrite_tac(ths([]))),
+          @simp.asm_simp_tac(ths([@lists.el_map()])),
+          @tactics.disch_tac,
+          @tactics.match_mp_tac(lift_mono),
+          @tactics.exists_tac(tm("EL((i : Num), (ls : List[\{sassn}]))")),
+          @tactics.exists_tac(tm("(vs : List[Value])")),
+          @meson.asm_meson_tac(ths([])),
+        ])),
+      ])),
+    ]),
+  )
+  let _ = lemma(
+    "sl_frame_l",
+    "∀ p : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ ls : List[\{sassn}], ∀ fr : \{hprop}, sl_triple_l(p, bs, q, ls) → sl_triple_l((vs : List[Value]) => (lc : List[Value]) => star(p(vs, lc), fr), bs, (vs : List[Value]) => (lc : List[Value]) => star(q(vs, lc), fr), MAP((x : \{sassn}) => (vs : List[Value]) => (lc : List[Value]) => star(x(vs, lc), fr), ls))",
+    seq([
+      @simp.rewrite_tac(ths([sl_triple_l, @equal.gsym(@lists.map_o()), @trivia.o_def(), thm("lift_frame")])),
+      @meson.meson_tac(ths([])),
     ]),
   )
 }

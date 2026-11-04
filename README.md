@@ -204,7 +204,9 @@ with label assertions, innermost first:
   that leaves es, to the i-th label around it, with the i-th assertion of
   l holding of the values it takes; `triple_l`, `sl_triple_l` (labels
   lifted with the same frame). `sl_triple_l_of` carries every rule above
-  over to them, and `sl_seq_l` sequences them;
+  over to them, and `sl_seq_l` sequences them. `sl_conseq_l` weakens the
+  postcondition and, pointwise, the label assertions (`safel_mono`), and
+  `sl_frame_l` adds a frame to the pre- and postcondition and every label;
 - `sl_br`: `br i` with the i-th label assertion of its values;
 - `sl_block`: for `block` with no parameters (block type `Tbv(ot)`): if the
   body is safe from an empty stack with postcondition qb and label 0

@@ -8,7 +8,8 @@ test "the logic's lemmas are theorems, with no new axioms" {
     "sl_const", "arity_binop", "prefix_binop", "sl_binop", "arity_load", "prefix_load",
     "sl_load_i32", "arity_store", "prefix_store", "sl_store_i32", "safe_seq", "triple_seq",
     "sl_seq", "deserialise_serialise_i32", "example_store_load", "safe_safel",
-    "sl_triple_l_of", "safel_seq", "sl_seq_l", "sl_br", "label_steps", "br_unique", "br_stuck",
+    "sl_triple_l_of", "safel_seq", "sl_seq_l", "safel_mono", "triple_l_conseq", "sl_conseq_l",
+    "sl_frame_l", "sl_br", "label_steps", "br_unique", "br_stuck",
     "label_safe", "block_step", "sl_block", "safel_down", "loop_step", "sl_loop",
   ] {
     assert_true(@kernel.hyp(@logic.thm(name)).is_empty(), msg=name)

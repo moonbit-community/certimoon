@@ -18,6 +18,7 @@ import {
   "bobzhang/hol_light/calc_num",
   "bobzhang/hol_light/ind_types",
   "bobzhang/hol_light/lists",
+  "bobzhang/hol_light/trivia",
   "bobzhang/hol_light/int",
   "bobzhang/hol_light/define",
   "bobzhang/hol_light/library/words",

@@ -442,6 +442,30 @@ lemma `sl_seq_l`
 ∀ p : SAssn, ∀ bs1 : List[B_e], ∀ q : SAssn, ∀ bs2 : List[B_e], ∀ r : SAssn, ∀ ls : List[SAssn], sl_triple_l(p, bs1, q, ls) && sl_triple_l(q, bs2, r, ls) → sl_triple_l(p, APPEND(bs1, bs2), r, ls)
 ```
 
+lemma `safel_mono`
+
+```
+∀ n : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ es : List[Einstr], ∀ q : Assn, ∀ q2 : Assn, ∀ l : List[Assn], ∀ l2 : List[Assn], (∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], q(s, f, vs) → q2(s, f, vs)) && LENGTH(l2) == LENGTH(l) && (∀ i : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], i < LENGTH(l) && EL(i, l, s, f, vs) → EL(i, l2, s, f, vs)) && safel(n, s, f, es, q, l) → safel(n, s, f, es, q2, l2)
+```
+
+lemma `triple_l_conseq`
+
+```
+∀ p : Assn, ∀ p2 : Assn, ∀ bs : List[B_e], ∀ q : Assn, ∀ q2 : Assn, ∀ l : List[Assn], ∀ l2 : List[Assn], (∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], p2(s, f, vs) → p(s, f, vs)) && triple_l(p, bs, q, l) && (∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], q(s, f, vs) → q2(s, f, vs)) && LENGTH(l2) == LENGTH(l) && (∀ i : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], i < LENGTH(l) && EL(i, l, s, f, vs) → EL(i, l2, s, f, vs)) → triple_l(p2, bs, q2, l2)
+```
+
+lemma `sl_conseq_l`
+
+```
+∀ p : SAssn, ∀ p2 : SAssn, ∀ bs : List[B_e], ∀ q : SAssn, ∀ q2 : SAssn, ∀ ls : List[SAssn], ∀ ls2 : List[SAssn], (∀ vs : List[Value], ∀ lc : List[Value], ∀ h : Heap, p2(vs, lc, h) → p(vs, lc, h)) && sl_triple_l(p, bs, q, ls) && (∀ vs : List[Value], ∀ lc : List[Value], ∀ h : Heap, q(vs, lc, h) → q2(vs, lc, h)) && LENGTH(ls2) == LENGTH(ls) && (∀ i : Num, ∀ vs : List[Value], ∀ lc : List[Value], ∀ h : Heap, i < LENGTH(ls) && EL(i, ls, vs, lc, h) → EL(i, ls2, vs, lc, h)) → sl_triple_l(p2, bs, q2, ls2)
+```
+
+lemma `sl_frame_l`
+
+```
+∀ p : SAssn, ∀ bs : List[B_e], ∀ q : SAssn, ∀ ls : List[SAssn], ∀ fr : HProp, sl_triple_l(p, bs, q, ls) → sl_triple_l((vs : List[Value]) => (lc : List[Value]) => star(p(vs, lc), fr), bs, (vs : List[Value]) => (lc : List[Value]) => star(q(vs, lc), fr), MAP((x : SAssn) => (vs : List[Value]) => (lc : List[Value]) => star(x(vs, lc), fr), ls))
+```
+
 lemma `nobr_simple`
 
 ```
