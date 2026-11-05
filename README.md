@@ -183,6 +183,14 @@ Rules, all theorems:
   `pts(val(k) + off, serialise_i32(v))` and pops k and v;
 - `sl_load_i64`, `sl_store_i64`: the same with 8 bytes and
   `deserialise_i64`, `serialise_i64` (the address is still an i32);
+- `sl_load_packed_i32`, `sl_load_packed_i64`: for any packing tp
+  (`Tp_i8`, `Tp_i16`, `Tp_i32`) and extension sx (`U`, `S`), with bs of
+  `tp_num_length(tp)` bytes, `i32.load8_u` and the others push
+  `deserialise_i32(sign_extend(sx, 4, bs))` (8 for i64);
+- `sl_store_packed_i32`, `sl_store_packed_i64`: `i32.store8` and the others
+  write the value's low bytes,
+  `bytes_takefill(zero_byte, tp_num_length(tp), serialise_i32(v))`, over
+  `tp_num_length(tp)` owned bytes (from `store_pts_fill`);
 - `sl_unop` (`app_unop`), `sl_nop` (`sl_triple(p, [Nop], p)`), `sl_drop`
   and `sl_select` (of numbers: `select` keeps c1 if the i32 b is not 0,
   else c2);

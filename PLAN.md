@@ -84,6 +84,7 @@ the official spec testsuite (`wasm/spec_test.mbt`).
 | `sl_unop`, `sl_nop`, `sl_drop`, `sl_select`, `sl_load_i64`, `sl_store_i64` | done |
 | The memory's length in assertions; `sl_memory_size`, `sl_memory_grow` | done |
 | `sl_convert`, `sl_reinterpret` (cvtop) | done |
+| Packed loads and stores: `sl_load_packed_i32/i64`, `sl_store_packed_i32/i64` | done |
 | Everything under "Next steps" | not started |
 
 Known limits of what exists:
@@ -131,10 +132,8 @@ In order. Each can be merged on its own. "Done when" means the named theorems
 appear in `theory.md`, with the tests passing.
 
 1. **More instructions.** `unop`, `nop`, `drop`, `select`, the i64 loads and
-   stores, `memory.size`, `memory.grow` and `cvtop` are done. Left:
-   - Packed loads and stores (`i32.load8_u`, `i32.store8`, ...): the
-     reduction rules use `load_packed` and `store_packed`, so they need
-     `load_pts`/`store_pts` for them, then the recipe below.
+   stores, `memory.size`, `memory.grow`, `cvtop` and the packed loads and
+   stores are done. Left:
    - `drop` and `select` take numbers (`V_num`), like `global.set`: values in
      general need `is_val(v_to_e(v))` in `prove_prefix`.
 
@@ -247,6 +246,10 @@ Tactics:
   another assumption, and a tracing wrapper will report harmless failures.
 - `prove_value_rule` names the step count `n`: a rule with its own variable
   `n` fails at `disj2_tac` (`sl_select` calls its condition `b`).
+- A rule over a pair in the instruction (`Load(t, SOME((tp, sx)), ...)`)
+  needs `pair_eq` in `unfold`. Its case's memory index is equated with the
+  precondition's only by the last `strip_tac`, so `again=true` rewrites the
+  case's condition after it; `subst_vars` then names the index `j'`.
 - A `prove_value_rule` hypothesis `e == x`, with x a variable of the code,
   lets `subst_vars` remove x from the goal but not from the code, so the
   step no longer matches. Prove the rule with e in the code, then derive it
