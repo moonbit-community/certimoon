@@ -85,6 +85,7 @@ the official spec testsuite (`wasm/spec_test.mbt`).
 | The memory's length in assertions; `sl_memory_size`, `sl_memory_grow` | done |
 | `sl_convert`, `sl_reinterpret` (cvtop) | done |
 | Packed loads and stores: `sl_load_packed_i32/i64`, `sl_store_packed_i32/i64` | done |
+| `sl_drop`, `sl_select` of any values (`value_cases`) | done |
 | Everything under "Next steps" | not started |
 
 Known limits of what exists:
@@ -131,11 +132,11 @@ About the rules' shapes, from `example_sum` and `example_fill`:
 In order. Each can be merged on its own. "Done when" means the named theorems
 appear in `theory.md`, with the tests passing.
 
-1. **More instructions.** `unop`, `nop`, `drop`, `select`, the i64 loads and
-   stores, `memory.size`, `memory.grow`, `cvtop` and the packed loads and
-   stores are done. Left:
-   - `drop` and `select` take numbers (`V_num`), like `global.set`: values in
-     general need `is_val(v_to_e(v))` in `prove_prefix`.
+1. **More instructions.** Done: `unop`, `nop`, `drop` and `select` (of any
+   values), the i64 and packed loads and stores, `memory.size`,
+   `memory.grow` and `cvtop`. The step is done. What a later step may want:
+   `global.set` and `local.set` of any values (by `value_cases`, as `drop`),
+   and lemmas that simplify packed loads (`deserialise_i32(sign_extend(...))`).
 
 2. **Automation.** A symbolic-execution tactic.
    - The `st_` rules and `norm` already glue straight-line code with no
@@ -246,6 +247,10 @@ Tactics:
   another assumption, and a tracing wrapper will report harmless failures.
 - `prove_value_rule` names the step count `n`: a rule with its own variable
   `n` fails at `disj2_tac` (`sl_select` calls its condition `b`).
+- `step_cases` takes only written-out values. For operands of any value,
+  write them `v_to_e((v : Value))` and get the cases from `value_cases`,
+  which splits each v into its three kinds; `prove_prefix` knows
+  `is_val(v_to_e(v))`.
 - A rule over a pair in the instruction (`Load(t, SOME((tp, sx)), ...)`)
   needs `pair_eq` in `unfold`. Its case's memory index is equated with the
   precondition's only by the last `strip_tac`, so `again=true` rewrites the
@@ -283,5 +288,9 @@ Syntax and names:
   need not be the order you expect.
 - `fn(g) { ... }` that raises is deprecated. Use `g => { ... }`.
 
-Costs: loading `logic` re-proves everything, about three minutes for its
-tests on `wasm-gc`. There is no theorem cache.
+Costs: loading `logic` re-proves everything, about nine minutes on
+`wasm-gc` (November 2026), and each test file loads it again, so
+`moon test -p moonbit-community/wasmcert/logic` takes about 18. There is no
+theorem cache. Run one file with `moon test logic/logic_test.mbt`
+(`-f` filters test names, not files). `-p logic` alone also runs
+hol_light's own `logic` package.

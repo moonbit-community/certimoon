@@ -21,6 +21,12 @@ fn then_split(
 ///|
 /// The lemmas the instruction rules share.
 fn prove_rule_lemmas() -> Unit raise {
+  // a value of any kind is one
+  let _ = lemma(
+    "is_val_v_to_e",
+    "∀ v : Value, is_val(v_to_e(v))",
+    seq([@simp.rewrite_tac(ths([@wasm.thm("is_val")])), @meson.meson_tac(ths([]))]),
+  )
   let _ = lemma(
     "snoc_eq",
     "∀ suf : List[A], ∀ x : A, ∀ l : List[A], APPEND(suf, [x]) == l == (!(l == NIL) && LAST(l) == x && suf == BUTLAST(l))",
@@ -277,6 +283,7 @@ fn prove_prefix(
     @lists.all(),
     @wasm.thm("is_val_clauses"),
     @ind_types.distinctness("einstr"),
+    thm("is_val_v_to_e"),
   ]
   let arity = @bool.gen_all(@tactics.prove(@kernel.concl(arity), @tactics.accept_tac(arity)))
   lemma(
@@ -468,6 +475,67 @@ fn prove_value_rule(
 }
 
 ///|
+/// `lemma(name, stmt)` for what ops ++ xs steps to, the ops values of any
+/// kind written v_to_e((v : Value)) (or other written-out values): split
+/// each such v into V_num, V_vec and V_ref, and close each case by
+/// step_cases on its written-out values.
+fn value_cases(
+  name : String,
+  stmt : String,
+  ops : Array[String],
+  xs : Array[String],
+) -> @kernel.Thm raise {
+  let s = tm("(s : Wstore)")
+  let f = tm("(f : Wframe)")
+  // the value variables, and each op's written-out forms
+  let vars = []
+  let forms : Array[Array[String]] = []
+  for op in ops {
+    if op.has_prefix("v_to_e((") {
+      let rest = op.split("((").collect()[1].to_owned()
+      let v = rest.split(" :").collect()[0].to_owned()
+      vars.push(v)
+      let i = vars.length()
+      forms.push([
+        "Basic(EConstNum((x\{i} : V_num)))",
+        "Basic(EConstVec((y\{i} : V_vec)))",
+        "Ref((r\{i} : V_ref))",
+      ])
+    } else {
+      forms.push([op])
+    }
+  }
+  let mut combos : Array[Array[String]] = [[]]
+  for fs in forms {
+    let next = []
+    for c in combos {
+      for x in fs {
+        next.push(c + [x])
+      }
+    }
+    combos = next
+  }
+  let cases = combos.map(c => {
+    let code = "[" + (c + xs).join(", ") + "]"
+    @bool.gen_all(@wasm.step_cases(s, f, tm(code), compute=false))
+  })
+  lemma(
+    name,
+    stmt,
+    seq([
+      @tactics.repeat_tac(@tactics.gen_tac),
+      seq(vars.map(v => @tactics.struct_cases_tac(@bool.spec(tm("(\{v} : Value)"), @ind_types.cases("value"))))),
+      @simp.rewrite_tac(ths([@wasm.thm("v_to_e")])),
+      @tactics.disch_tac,
+      @tactics.first(@list.List(cases.map(c => @tactics.first_x_assum(th => @tactics.mp_tac(@drule.match_mp(c)(th)))))),
+      @tactics.repeat_tac(@tactics.strip_tac),
+      subst_vars(),
+      @simp.asm_rewrite_tac(ths([@wasm.thm("v_to_e")])),
+    ]),
+  )
+}
+
+///|
 fn prove_rules() -> Unit raise {
   let s = tm("(s : Wstore)")
   let f = tm("(f : Wframe)")
@@ -604,54 +672,58 @@ fn prove_rules() -> Unit raise {
       @meson.meson_tac(ths([])),
     ]),
   )
-  // drop and select, of numbers: their steps, from the rules for any value
-  let v_to_e = @wasm.thm("v_to_e")
-  let as_num = (rule : @kernel.Thm, vars : Array[(String, String)]) => {
-    let th = @bool.spec_all(rule)
-    @simp.rewrite_rule(ths([v_to_e]))(
-      @kernel.inst_rule(@list.List(vars.map(p => (tm(p.0), tm(p.1)))), th),
-    )
-  }
-  let drop_step = as_num(rs[22], [("V_num((c : V_num))", "(v : Value)")])
-  let c1c2 = [("V_num((c1 : V_num))", "(v1 : Value)"), ("V_num((c2 : V_num))", "(v2 : Value)")]
-  let select0 = as_num(rs[23], c1c2)
-  let select1 = as_num(rs[24], c1c2)
+  // drop and select, of any values. step_cases needs written-out values,
+  // so value_cases splits each value v into V_num, V_vec and V_ref and
+  // runs it on each
   let drop = "Basic(Drop)"
+  let v = ["v_to_e((v : Value))"]
   let arity = prove_arities("drop", drop, 1)
-  let prefix = prove_prefix("drop", c, drop, arity)
-  let cases = @wasm.step_cases(s, f, tm("[" + (c + [drop]).join(", ") + "]"), compute=false)
+  let prefix = prove_prefix("drop", v, drop, arity)
+  let cases = value_cases(
+    "drop_cases",
+    "∀ s : Wstore, ∀ f : Wframe, ∀ v : Value, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, [v_to_e(v), Basic(Drop)], s2, f2, es2) → s2 == s && f2 == f && es2 == NIL",
+    v,
+    [drop],
+  )
   let _ = prove_value_rule(
     "sl_drop",
-    "∀ p : \{sassn}, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h)), [Drop], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == vs0 && p(vs0, ls, gs, ms, h)))",
-    c,
+    "∀ p : \{sassn}, ∀ v : Value, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [v]) && p(vs0, ls, gs, ms, h)), [Drop], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == vs0 && p(vs0, ls, gs, ms, h)))",
+    v,
     drop,
     "",
     prefix,
     cases,
-    @meson.asm_meson_tac(ths([rb_lift, drop_step])),
+    @meson.asm_meson_tac(ths([rb_lift, rs[22]])),
     step="(NIL : List[Einstr])",
   )
   let select = "Basic(Select((tt : Option[Valtype])))"
-  let ops = consts + ["Basic(EConstNum(ConstInt32((b : \{w32}))))"]
+  let vb = ["v_to_e((v1 : Value))", "v_to_e((v2 : Value))", "Basic(EConstNum(ConstInt32((b : \{w32}))))"]
+  let picked = "v_to_e(if (b : \{w32}) == word(0) { (v2 : Value) } else { (v1 : Value) })"
   let arity = prove_arities("select", select, 3)
-  let prefix = prove_prefix("select", ops, select, arity)
-  let cases = @wasm.step_cases(s, f, tm("[" + (ops + [select]).join(", ") + "]"), compute=false)
+  let prefix = prove_prefix("select", vb, select, arity)
+  let cases = value_cases(
+    "select_cases",
+    "∀ s : Wstore, ∀ f : Wframe, ∀ v1 : Value, ∀ v2 : Value, ∀ b : \{w32}, ∀ tt : Option[Valtype], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, [\{vb.join(", ")}, \{select}], s2, f2, es2) → s2 == s && f2 == f && es2 == [\{picked}]",
+    vb,
+    [select],
+  )
   let _ = prove_value_rule(
     "sl_select",
-    "∀ p : \{sassn}, ∀ tt : Option[Valtype], ∀ c1 : V_num, ∀ c2 : V_num, ∀ b : \{w32}, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c1), V_num(c2), V_num(ConstInt32(b))]) && p(vs0, ls, gs, ms, h)), [Select(tt)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(if b == word(0) { c2 } else { c1 })]) && p(vs0, ls, gs, ms, h)))",
-    ops,
+    "∀ p : \{sassn}, ∀ tt : Option[Valtype], ∀ v1 : Value, ∀ v2 : Value, ∀ b : \{w32}, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [v1, v2, V_num(ConstInt32(b))]) && p(vs0, ls, gs, ms, h)), [Select(tt)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [if b == word(0) { v2 } else { v1 }]) && p(vs0, ls, gs, ms, h)))",
+    vb,
     select,
-    "(if (b : \{w32}) == word(0) { (c2 : V_num) } else { (c1 : V_num) })",
+    "",
     prefix,
     cases,
     seq([
       @tactics.match_mp_tac(rb_lift),
       @class.cond_cases_tac,
       @tactics.first(@list.List([
-        solve(seq([@tactics.match_mp_tac(select0), @simp.asm_rewrite_tac(ths([]))])),
-        solve(seq([@tactics.match_mp_tac(select1), @simp.asm_rewrite_tac(ths([]))])),
+        solve(seq([@tactics.match_mp_tac(rs[23]), @simp.asm_rewrite_tac(ths([]))])),
+        solve(seq([@tactics.match_mp_tac(rs[24]), @simp.asm_rewrite_tac(ths([]))])),
       ])),
     ]),
+    step="[\{picked}]",
   )
   // loads and stores of i32 and i64 (the address is an i32)
   let rb = @bool.conjuncts_rule(@wasm.thm("reduce_base_rules")).to_array()

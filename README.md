@@ -192,8 +192,8 @@ Rules, all theorems:
   `bytes_takefill(zero_byte, tp_num_length(tp), serialise_i32(v))`, over
   `tp_num_length(tp)` owned bytes (from `store_pts_fill`);
 - `sl_unop` (`app_unop`), `sl_nop` (`sl_triple(p, [Nop], p)`), `sl_drop`
-  and `sl_select` (of numbers: `select` keeps c1 if the i32 b is not 0,
-  else c2);
+  and `sl_select` (of any values, numbers, vectors or references: `select`
+  keeps v1 if the i32 b is not 0, else v2);
 - `sl_convert`: for c of type t1 (`typeof_num(c) == t1`) and
   `cvt(t2, sat_sx, c) == SOME(d)`, `Cvtop(t2, Convert, t1, sat_sx)`
   (`i32.wrap_i64`, `i64.extend_i32_u`, ...) replaces c by d;

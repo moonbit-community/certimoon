@@ -350,6 +350,12 @@ lemma `sl_seq`
 
 ## Lemmas for the instruction rules (rules.mbt)
 
+lemma `is_val_v_to_e`
+
+```
+∀ v : Value, is_val(v_to_e(v))
+```
+
 lemma `snoc_eq`
 
 ```
@@ -973,13 +979,19 @@ lemma `arity_drop`
 lemma `prefix_drop`
 
 ```
-∀ vs0 : List[Value], ∀ s : Wstore, ∀ f : Wframe, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c : V_num))), Basic(Drop)]), s2, f2, es2) → (∃ e : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e) && reduce(s, f, [Basic(EConstNum(c)), Basic(Drop)], s2, f2, e))
+∀ vs0 : List[Value], ∀ s : Wstore, ∀ f : Wframe, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, APPEND(MAP(v_to_e, vs0), [v_to_e((v : Value)), Basic(Drop)]), s2, f2, es2) → (∃ e : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e) && reduce(s, f, [v_to_e(v), Basic(Drop)], s2, f2, e))
+```
+
+lemma `drop_cases`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ v : Value, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, [v_to_e(v), Basic(Drop)], s2, f2, es2) → s2 == s && f2 == f && es2 == NIL
 ```
 
 lemma `sl_drop`
 
 ```
-∀ p : SAssn, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h), [Drop], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == vs0 && p(vs0, ls, gs, ms, h))
+∀ p : SAssn, ∀ v : Value, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [v]) && p(vs0, ls, gs, ms, h), [Drop], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == vs0 && p(vs0, ls, gs, ms, h))
 ```
 
 lemma `arity_simple_select`
@@ -997,13 +1009,19 @@ lemma `arity_select`
 lemma `prefix_select`
 
 ```
-∀ vs0 : List[Value], ∀ s : Wstore, ∀ f : Wframe, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c1 : V_num))), Basic(EConstNum((c2 : V_num))), Basic(EConstNum(ConstInt32((b : W32)))), Basic(Select((tt : Option[Valtype])))]), s2, f2, es2) → (∃ e : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e) && reduce(s, f, [Basic(EConstNum(c1)), Basic(EConstNum(c2)), Basic(EConstNum(ConstInt32(b))), Basic(Select(tt))], s2, f2, e))
+∀ vs0 : List[Value], ∀ s : Wstore, ∀ f : Wframe, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, APPEND(MAP(v_to_e, vs0), [v_to_e((v1 : Value)), v_to_e((v2 : Value)), Basic(EConstNum(ConstInt32((b : W32)))), Basic(Select((tt : Option[Valtype])))]), s2, f2, es2) → (∃ e : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e) && reduce(s, f, [v_to_e(v1), v_to_e(v2), Basic(EConstNum(ConstInt32(b))), Basic(Select(tt))], s2, f2, e))
+```
+
+lemma `select_cases`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ v1 : Value, ∀ v2 : Value, ∀ b : W32, ∀ tt : Option[Valtype], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, [v_to_e(v1), v_to_e(v2), Basic(EConstNum(ConstInt32(b))), Basic(Select(tt))], s2, f2, es2) → s2 == s && f2 == f && es2 == [v_to_e(if b == word(0) { v2 } else { v1 })]
 ```
 
 lemma `sl_select`
 
 ```
-∀ p : SAssn, ∀ tt : Option[Valtype], ∀ c1 : V_num, ∀ c2 : V_num, ∀ b : W32, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c1), V_num(c2), V_num(ConstInt32(b))]) && p(vs0, ls, gs, ms, h), [Select(tt)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(if b == word(0) { c2 } else { c1 })]) && p(vs0, ls, gs, ms, h))
+∀ p : SAssn, ∀ tt : Option[Valtype], ∀ v1 : Value, ∀ v2 : Value, ∀ b : W32, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [v1, v2, V_num(ConstInt32(b))]) && p(vs0, ls, gs, ms, h), [Select(tt)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [if b == word(0) { v2 } else { v1 }]) && p(vs0, ls, gs, ms, h))
 ```
 
 lemma `arity_simple_load`
