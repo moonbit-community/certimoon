@@ -186,6 +186,11 @@ Rules, all theorems:
 - `sl_unop` (`app_unop`), `sl_nop` (`sl_triple(p, [Nop], p)`), `sl_drop`
   and `sl_select` (of numbers: `select` keeps c1 if the i32 b is not 0,
   else c2);
+- `sl_convert`: for c of type t1 (`typeof_num(c) == t1`) and
+  `cvt(t2, sat_sx, c) == SOME(d)`, `Cvtop(t2, Convert, t1, sat_sx)`
+  (`i32.wrap_i64`, `i64.extend_i32_u`, ...) replaces c by d;
+- `sl_reinterpret`: for c of type t1, `Cvtop(t2, Reinterpret, t1, NONE)`
+  replaces c by `wasm_reinterpret(t2, c)`;
 - `sl_memory_size`: pushes the length in pages, `DIV(ms, 65536)`;
 - `sl_memory_grow` by c pages: either it pushes the old size in pages, the
   length grows by `c * 65536` and `pts(old length, zeros)` appears beside

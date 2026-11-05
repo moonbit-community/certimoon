@@ -83,6 +83,7 @@ the official spec testsuite (`wasm/spec_test.mbt`).
 | `example_array_sum` (reads an array, a comparison as loop condition) | done |
 | `sl_unop`, `sl_nop`, `sl_drop`, `sl_select`, `sl_load_i64`, `sl_store_i64` | done |
 | The memory's length in assertions; `sl_memory_size`, `sl_memory_grow` | done |
+| `sl_convert`, `sl_reinterpret` (cvtop) | done |
 | Everything under "Next steps" | not started |
 
 Known limits of what exists:
@@ -130,12 +131,10 @@ In order. Each can be merged on its own. "Done when" means the named theorems
 appear in `theory.md`, with the tests passing.
 
 1. **More instructions.** `unop`, `nop`, `drop`, `select`, the i64 loads and
-   stores, `memory.size` and `memory.grow` are done. Left:
+   stores, `memory.size`, `memory.grow` and `cvtop` are done. Left:
    - Packed loads and stores (`i32.load8_u`, `i32.store8`, ...): the
      reduction rules use `load_packed` and `store_packed`, so they need
      `load_pts`/`store_pts` for them, then the recipe below.
-   - `cvtop` (`i32.wrap_i64`, `i64.extend_i32_s/u`): `cvt` gives an option,
-     as `app_binop` does, so the rule takes `cvt(...) == SOME(c)`.
    - `drop` and `select` take numbers (`V_num`), like `global.set`: values in
      general need `is_val(v_to_e(v))` in `prove_prefix`.
 
@@ -248,6 +247,11 @@ Tactics:
   another assumption, and a tracing wrapper will report harmless failures.
 - `prove_value_rule` names the step count `n`: a rule with its own variable
   `n` fails at `disj2_tac` (`sl_select` calls its condition `b`).
+- A `prove_value_rule` hypothesis `e == x`, with x a variable of the code,
+  lets `subst_vars` remove x from the goal but not from the code, so the
+  step no longer matches. Prove the rule with e in the code, then derive it
+  (`sl_reinterpret` from `reinterpret_typeof`). A conjunction is safe
+  (`sl_convert`).
 - `subst_vars` can substitute in an unwanted direction: `NIL == suf` replaced
   `NIL` by `suf`, and `LENGTH(vs) == m` replaces `m`. Orient equations first
   (`nil_eq_sym`), or substitute before adding such facts.

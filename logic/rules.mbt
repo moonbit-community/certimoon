@@ -520,6 +520,47 @@ fn prove_rules() -> Unit raise {
     cases,
     @meson.asm_meson_tac(ths([rb_lift, rs[0]])),
   )
+  // conversions: a value when cvt gives one (a trap otherwise), and
+  // reinterpretations: always a value. Both need c of type t1.
+  let num_assn = (v : String) => "(vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(\{v})]) && p(vs0, ls, gs, ms, h))"
+  let convert = "Basic(Cvtop((t2 : T_num), Convert, (t1 : T_num), (sat_sx : Option[(Sat, Sx)])))"
+  let arity = prove_arities("convert", convert, 1)
+  let prefix = prove_prefix("convert", c, convert, arity)
+  let cases = @wasm.step_cases(s, f, tm("[" + (c + [convert]).join(", ") + "]"), compute=false)
+  let _ = prove_value_rule(
+    "sl_convert",
+    "∀ p : \{sassn}, ∀ t1 : T_num, ∀ t2 : T_num, ∀ sat_sx : Option[(Sat, Sx)], ∀ c : V_num, ∀ d : V_num, typeof_num(c) == t1 && cvt(t2, sat_sx, c) == SOME(d) → sl_triple(\{num_assn("c")}, [Cvtop(t2, Convert, t1, sat_sx)], \{num_assn("d")})",
+    c,
+    convert,
+    "(d : V_num)",
+    prefix,
+    cases,
+    @meson.asm_meson_tac(ths([rb_lift, rs[5]])),
+  )
+  // proved with typeof_num(c) for t1 (a hypothesis typeof_num(c) == t1
+  // would let subst_vars remove t1 from the goal but not from the code)
+  let reinterpret = "Basic(Cvtop((t2 : T_num), Reinterpret, typeof_num((c : V_num)), (NONE : Option[(Sat, Sx)])))"
+  let arity = prove_arities("reinterpret", reinterpret, 1)
+  let prefix = prove_prefix("reinterpret", c, reinterpret, arity)
+  let cases = @wasm.step_cases(s, f, tm("[" + (c + [reinterpret]).join(", ") + "]"), compute=false)
+  let typeof_rule = prove_value_rule(
+    "reinterpret_typeof",
+    "∀ p : \{sassn}, ∀ t2 : T_num, ∀ c : V_num, sl_triple(\{num_assn("c")}, [Cvtop(t2, Reinterpret, typeof_num(c), NONE)], \{num_assn("wasm_reinterpret(t2, c)")})",
+    c,
+    reinterpret,
+    "wasm_reinterpret((t2 : T_num), (c : V_num))",
+    prefix,
+    cases,
+    @meson.asm_meson_tac(ths([rb_lift, rs[7]])),
+  )
+  let _ = lemma(
+    "sl_reinterpret",
+    "∀ p : \{sassn}, ∀ t1 : T_num, ∀ t2 : T_num, ∀ c : V_num, typeof_num(c) == t1 → sl_triple(\{num_assn("c")}, [Cvtop(t2, Reinterpret, t1, NONE)], \{num_assn("wasm_reinterpret(t2, c)")})",
+    seq([
+      @tactics.repeat_tac(@tactics.gen_tac),
+      @tactics.disch_then(th => @simp.rewrite_tac(ths([@equal.gsym(th), typeof_rule]))),
+    ]),
+  )
   // nop: nothing changes
   let nop = "Basic(Nop)"
   let arity = prove_arities("nop", nop, 0)

@@ -874,6 +874,60 @@ lemma `sl_unop`
 ∀ p : SAssn, ∀ t : T_num, ∀ op : Unop, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h), [Unop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(app_unop(op, c))]) && p(vs0, ls, gs, ms, h))
 ```
 
+lemma `arity_simple_convert`
+
+```
+∀ suf : List[Einstr], ∀ e2 : List[Einstr], reduce_simple(APPEND(suf, [Basic(Cvtop((t2 : T_num), Convert, (t1 : T_num), (sat_sx : Option[(Sat, Sx)])))]), e2) && ALL(is_val, suf) → LENGTH(suf) == 1
+```
+
+lemma `arity_convert`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ suf : List[Einstr], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ e2 : List[Einstr], reduce_base(s, f, APPEND(suf, [Basic(Cvtop((t2 : T_num), Convert, (t1 : T_num), (sat_sx : Option[(Sat, Sx)])))]), s2, f2, e2) && ALL(is_val, suf) → LENGTH(suf) == 1
+```
+
+lemma `prefix_convert`
+
+```
+∀ vs0 : List[Value], ∀ s : Wstore, ∀ f : Wframe, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c : V_num))), Basic(Cvtop((t2 : T_num), Convert, (t1 : T_num), (sat_sx : Option[(Sat, Sx)])))]), s2, f2, es2) → (∃ e : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e) && reduce(s, f, [Basic(EConstNum(c)), Basic(Cvtop(t2, Convert, t1, sat_sx))], s2, f2, e))
+```
+
+lemma `sl_convert`
+
+```
+∀ p : SAssn, ∀ t1 : T_num, ∀ t2 : T_num, ∀ sat_sx : Option[(Sat, Sx)], ∀ c : V_num, ∀ d : V_num, typeof_num(c) == t1 && cvt(t2, sat_sx, c) == SOME(d) → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h), [Cvtop(t2, Convert, t1, sat_sx)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(d)]) && p(vs0, ls, gs, ms, h))
+```
+
+lemma `arity_simple_reinterpret`
+
+```
+∀ suf : List[Einstr], ∀ e2 : List[Einstr], reduce_simple(APPEND(suf, [Basic(Cvtop((t2 : T_num), Reinterpret, typeof_num((c : V_num)), NONE))]), e2) && ALL(is_val, suf) → LENGTH(suf) == 1
+```
+
+lemma `arity_reinterpret`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ suf : List[Einstr], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ e2 : List[Einstr], reduce_base(s, f, APPEND(suf, [Basic(Cvtop((t2 : T_num), Reinterpret, typeof_num((c : V_num)), NONE))]), s2, f2, e2) && ALL(is_val, suf) → LENGTH(suf) == 1
+```
+
+lemma `prefix_reinterpret`
+
+```
+∀ vs0 : List[Value], ∀ s : Wstore, ∀ f : Wframe, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c : V_num))), Basic(Cvtop((t2 : T_num), Reinterpret, typeof_num(c), NONE))]), s2, f2, es2) → (∃ e : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e) && reduce(s, f, [Basic(EConstNum(c)), Basic(Cvtop(t2, Reinterpret, typeof_num(c), NONE))], s2, f2, e))
+```
+
+lemma `reinterpret_typeof`
+
+```
+∀ p : SAssn, ∀ t2 : T_num, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h), [Cvtop(t2, Reinterpret, typeof_num(c), NONE)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(wasm_reinterpret(t2, c))]) && p(vs0, ls, gs, ms, h))
+```
+
+lemma `sl_reinterpret`
+
+```
+∀ p : SAssn, ∀ t1 : T_num, ∀ t2 : T_num, ∀ c : V_num, typeof_num(c) == t1 → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h), [Cvtop(t2, Reinterpret, t1, NONE)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(wasm_reinterpret(t2, c))]) && p(vs0, ls, gs, ms, h))
+```
+
 lemma `arity_simple_nop`
 
 ```
