@@ -174,7 +174,7 @@ fn prove_example_fill() -> Unit raise {
   let zs = "(zs : List[\{w}])"
   let fp = "(fp : \{rty})"
   // the array at p0, as a state's R (with η done, as norm leaves it)
-  let array = (xs : String) => "(gs : List[Value]) => star(arr(val(\{p0}), \{xs}), \{fp}(gs))"
+  let array = (xs : String) => "(gs : List[Value]) => (ms : Num) => star(arr(val(\{p0}), \{xs}), \{fp}(gs, ms))"
   let written = "REPLICATE(val(\{m}) - val(\{c}), \{x})"
   let a_body = array("APPEND(\{written}, CONS(\{y}, \{zs}))")
   let a_after = array("APPEND(\{written}, CONS(\{x}, \{zs}))")
@@ -186,9 +186,9 @@ fn prove_example_fill() -> Unit raise {
   let l2 = "[\{i(p4)}, \{i(c1)}]"
   let body_code = "[Local_get(0), EConstNum(ConstInt32(\{x})), Store(T_i32, NONE, 2, 0), Local_get(0), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Add)), Local_set(0), Local_get(1), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), Local_set(1), Local_get(1), Br_if(0)]"
   let bound = tm("val(\{p0}) + 4 * val(\{m}) < 4294967296")
-  let linv = "(lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => ∃ p : \{w}, ∃ c : \{w}, ∃ y : \{w}, ∃ zs : List[\{w}], lc == [\{i("p")}, \{i("c")}] && !(c == word(0)) && val(p) == val(\{p0}) + 4 * (val(\{m}) - val(c)) && val(c) <= val(\{m}) && SUC(LENGTH(zs)) == val(c) && star(arr(val(\{p0}), APPEND(REPLICATE(val(\{m}) - val(c), \{x}), CONS(y, zs))), \{fp}(gs), h)"
+  let linv = "(lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => ∃ p : \{w}, ∃ c : \{w}, ∃ y : \{w}, ∃ zs : List[\{w}], lc == [\{i("p")}, \{i("c")}] && !(c == word(0)) && val(p) == val(\{p0}) + 4 * (val(\{m}) - val(c)) && val(c) <= val(\{m}) && SUC(LENGTH(zs)) == val(c) && star(arr(val(\{p0}), APPEND(REPLICATE(val(\{m}) - val(c), \{x}), CONS(y, zs))), \{fp}(gs, ms), h)"
   let done = "st(\{nil}, [\{i("word_add(\{p0}, word(4 * val(\{m})))")}, \{i("word(0)")}], \{a_final})"
-  let no_br = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => false"
+  let no_br = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => false"
   let loop_rule = beta(
     @bool.ispecl(
       @list.List([tm("(NONE : Option[Valtype])"), tm(body_code), tm(linv), tm(done), tm("[\{no_br}]"), tm(nil)]),

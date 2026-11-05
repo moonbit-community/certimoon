@@ -108,12 +108,12 @@ fn prove_conditional(
 fn prove_conditional_rules() -> Unit raise {
   let rs = @bool.conjuncts_rule(@wasm.thm("reduce_simple_rules")).to_array()
   let sa = sassn
-  let pre = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(c))]) && p(vs0, lc, gs, h))"
+  let pre = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(c))]) && p(vs0, lc, gs, ms, h))"
   // the continuation is safe by the hypothesis for its case
   let by_hypothesis = @meson.asm_meson_tac(ths([]))
   let _ = prove_conditional(
     "sl_br_if",
-    "∀ p : \{sa}, ∀ q : \{sa}, ∀ ls : List[\{sa}], ∀ i : Num, ∀ c : \{w32}, (!(c == word(0)) → sl_triple_l(p, [Br(i)], q, ls)) && (c == word(0) → (∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ h : \{heap}, p(vs, lc, gs, h) → q(vs, lc, gs, h))) → sl_triple_l(\{pre}, [Br_if(i)], q, ls)",
+    "∀ p : \{sa}, ∀ q : \{sa}, ∀ ls : List[\{sa}], ∀ i : Num, ∀ c : \{w32}, (!(c == word(0)) → sl_triple_l(p, [Br(i)], q, ls)) && (c == word(0) → (∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, p(vs, lc, gs, ms, h) → q(vs, lc, gs, ms, h))) → sl_triple_l(\{pre}, [Br_if(i)], q, ls)",
     "Basic(Br_if((i : Num)))",
     "(NIL : List[Einstr])",
     "[Basic(Br((i : Num)))]",

@@ -46,6 +46,8 @@ pub fn load() -> Unit {
     prove_rules()
     section("Globals (globals.mbt)")
     prove_global_rules()
+    section("Memory size (memsize.mbt)")
+    prove_memory_size_rules()
     section("Locals (locals.mbt)")
     prove_local_rules()
     section("Conditionals (conditionals.mbt)")

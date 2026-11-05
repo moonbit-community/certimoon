@@ -6,7 +6,7 @@
 // - arr_focus: the array ys ++ [x] ++ zs is x's bytes at a + 4 * LENGTH(ys)
 //   beside the rest, so i32.load and i32.store reach that element.
 // - st_arr_store, st_arr_load: those rules on exact states whose R is
-//   star(arr(a, ...), fp(gs)), with the array split at the element.
+//   star(arr(a, ...), fp(gs, ms)), with the array split at the element.
 
 ///|
 fn prove_array_rules() -> Unit raise {
@@ -76,8 +76,8 @@ fn prove_array_rules() -> Unit raise {
   )
   // the array rules, from sl_store_i32 and sl_load_i32 with the rest of
   // the array (and the stack and locals) as the frame
-  let frame = "(vs0 : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => vs0 == (v : List[Value]) && ls == (l : List[Value]) && star(star(arr((a : Num), (ys : List[\{w}])), arr(a + 4 * LENGTH(ys) + 4, (zs : List[\{w}]))), (fp : \{rty})(gs), h)"
-  let array = (elem : String) => "(gs : List[Value]) => (h : \{heap}) => star(arr(a, APPEND(ys, CONS(\{elem}, zs))), fp(gs), h)"
+  let frame = "(vs0 : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => vs0 == (v : List[Value]) && ls == (l : List[Value]) && star(star(arr((a : Num), (ys : List[\{w}])), arr(a + 4 * LENGTH(ys) + 4, (zs : List[\{w}]))), (fp : \{rty})(gs, ms), h)"
+  let array = (elem : String) => "(gs : List[Value]) => (ms : Num) => (h : \{heap}) => star(arr(a, APPEND(ys, CONS(\{elem}, zs))), fp(gs, ms), h)"
   let vars = "∀ v : List[Value], ∀ l : List[Value], ∀ a : Num, ∀ ys : List[\{w}], ∀ x0 : \{w}, ∀ zs : List[\{w}], ∀ fp : \{rty}, ∀ k : \{w}, ∀ al : Num, ∀ off : Num"
   // the element's address, as the rule's hypothesis says
   let at = @kernel.assume_rule(tm("val((k : \{w})) + (off : Num) == (a : Num) + 4 * LENGTH((ys : List[\{w}]))"))

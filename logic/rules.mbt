@@ -344,7 +344,7 @@ fn prove_prefix(
 
 ///|
 /// Rewrites that bring a lifted assertion `lift(p, r, s, f, vs)` with p
-/// of the form `∃ vs0, vs == ... && q(vs0, ls, gs, h)` to its pure part and
+/// of the form `∃ vs0, vs == ... && q(vs0, ls, gs, ms, h)` to its pure part and
 /// a star.
 fn lift_facts() -> Array[@kernel.Thm] {
   [thm("lift"), thm("star_ex"), thm("star_pure"), @class.eta_ax()]
@@ -467,7 +467,7 @@ fn prove_rules() -> Unit raise {
   let cases = @wasm.step_cases(s, f, tm("[" + (consts + [binop]).join(", ") + "]"))
   let _ = prove_value_rule(
     "sl_binop",
-    "∀ p : \{sassn}, ∀ t : T_num, ∀ op : Binop, ∀ c1 : V_num, ∀ c2 : V_num, ∀ c : V_num, app_binop(op, c1, c2) == SOME(c) → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c1), V_num(c2)]) && p(vs0, ls, gs, h)), [Binop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, h)))",
+    "∀ p : \{sassn}, ∀ t : T_num, ∀ op : Binop, ∀ c1 : V_num, ∀ c2 : V_num, ∀ c : V_num, app_binop(op, c1, c2) == SOME(c) → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c1), V_num(c2)]) && p(vs0, ls, gs, ms, h)), [Binop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h)))",
     consts,
     binop,
     "(c : V_num)",
@@ -483,7 +483,7 @@ fn prove_rules() -> Unit raise {
   let cases = @wasm.step_cases(s, f, tm("[" + (c + [testop]).join(", ") + "]"), compute=false)
   let _ = prove_value_rule(
     "sl_testop",
-    "∀ p : \{sassn}, ∀ t : T_num, ∀ op : Testop, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, h)), [Testop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(app_testop(op, c))]) && p(vs0, ls, gs, h)))",
+    "∀ p : \{sassn}, ∀ t : T_num, ∀ op : Testop, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h)), [Testop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(app_testop(op, c))]) && p(vs0, ls, gs, ms, h)))",
     c,
     testop,
     "app_testop((op : Testop), (c : V_num))",
@@ -497,7 +497,7 @@ fn prove_rules() -> Unit raise {
   let cases = @wasm.step_cases(s, f, tm("[" + (consts + [relop]).join(", ") + "]"), compute=false)
   let _ = prove_value_rule(
     "sl_relop",
-    "∀ p : \{sassn}, ∀ t : T_num, ∀ op : Relop, ∀ c1 : V_num, ∀ c2 : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c1), V_num(c2)]) && p(vs0, ls, gs, h)), [Relop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(app_relop(op, c1, c2))]) && p(vs0, ls, gs, h)))",
+    "∀ p : \{sassn}, ∀ t : T_num, ∀ op : Relop, ∀ c1 : V_num, ∀ c2 : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c1), V_num(c2)]) && p(vs0, ls, gs, ms, h)), [Relop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(app_relop(op, c1, c2))]) && p(vs0, ls, gs, ms, h)))",
     consts,
     relop,
     "app_relop((op : Relop), (c1 : V_num), (c2 : V_num))",
@@ -512,7 +512,7 @@ fn prove_rules() -> Unit raise {
   let cases = @wasm.step_cases(s, f, tm("[" + (c + [unop]).join(", ") + "]"), compute=false)
   let _ = prove_value_rule(
     "sl_unop",
-    "∀ p : \{sassn}, ∀ t : T_num, ∀ op : Unop, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, h)), [Unop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(app_unop(op, c))]) && p(vs0, ls, gs, h)))",
+    "∀ p : \{sassn}, ∀ t : T_num, ∀ op : Unop, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h)), [Unop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(app_unop(op, c))]) && p(vs0, ls, gs, ms, h)))",
     c,
     unop,
     "app_unop((op : Unop), (c : V_num))",
@@ -525,7 +525,7 @@ fn prove_rules() -> Unit raise {
   let arity = prove_arities("nop", nop, 0)
   let prefix = prove_prefix("nop", [], nop, arity)
   let cases = @wasm.step_cases(s, f, tm("[\{nop}]"), compute=false)
-  let stack = (v : String) => "(vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == \{v} && p(vs0, ls, gs, h))"
+  let stack = (v : String) => "(vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == \{v} && p(vs0, ls, gs, ms, h))"
   let nop_rule = prove_value_rule(
     "sl_nop_stack",
     "∀ p : \{sassn}, sl_triple(\{stack("vs0")}, [Nop], \{stack("vs0")})",
@@ -567,7 +567,7 @@ fn prove_rules() -> Unit raise {
   let cases = @wasm.step_cases(s, f, tm("[" + (c + [drop]).join(", ") + "]"), compute=false)
   let _ = prove_value_rule(
     "sl_drop",
-    "∀ p : \{sassn}, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, h)), [Drop], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == vs0 && p(vs0, ls, gs, h)))",
+    "∀ p : \{sassn}, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h)), [Drop], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == vs0 && p(vs0, ls, gs, ms, h)))",
     c,
     drop,
     "",
@@ -583,7 +583,7 @@ fn prove_rules() -> Unit raise {
   let cases = @wasm.step_cases(s, f, tm("[" + (ops + [select]).join(", ") + "]"), compute=false)
   let _ = prove_value_rule(
     "sl_select",
-    "∀ p : \{sassn}, ∀ tt : Option[Valtype], ∀ c1 : V_num, ∀ c2 : V_num, ∀ b : \{w32}, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c1), V_num(c2), V_num(ConstInt32(b))]) && p(vs0, ls, gs, h)), [Select(tt)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(if b == word(0) { c2 } else { c1 })]) && p(vs0, ls, gs, h)))",
+    "∀ p : \{sassn}, ∀ tt : Option[Valtype], ∀ c1 : V_num, ∀ c2 : V_num, ∀ b : \{w32}, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c1), V_num(c2), V_num(ConstInt32(b))]) && p(vs0, ls, gs, ms, h)), [Select(tt)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(if b == word(0) { c2 } else { c1 })]) && p(vs0, ls, gs, ms, h)))",
     ops,
     select,
     "(if (b : \{w32}) == word(0) { (c2 : V_num) } else { (c1 : V_num) })",
@@ -604,7 +604,7 @@ fn prove_rules() -> Unit raise {
   let arity = prove_arities("load", "Basic(Load((t : T_num), (sx : Option[(Tp_num, Sx)]), (a : Num), (off : Num)))", 1)
   let mem = "EL((j : Num), s_mems((s : Wstore)))"
   let bs = "(bs : List[\{w8}])"
-  let frame = "star((p : \{sassn})((vs0 : List[Value]), f_locs((f : Wframe)), gvals((s : Wstore), (f : Wframe))), (r : \{hprop}))"
+  let frame = "star((p : \{sassn})((vs0 : List[Value]), f_locs((f : Wframe)), gvals((s : Wstore), (f : Wframe)), mem_length(EL((j : Num), s_mems(s)))), (r : \{hprop}))"
   for kind in num_kinds() {
     let (sfx, ty, ctor, _, _, des, n, _) = kind
     let load = "Basic(Load(\{ty}, NONE, (a : Num), (off : Num)))"
@@ -613,7 +613,7 @@ fn prove_rules() -> Unit raise {
     let unfold = ["smem_ind", "load", "read_bytes", "mem_length", des, "t_num_length"].map(@wasm.thm)
     let _ = prove_value_rule(
       "sl_load_" + sfx,
-      "∀ p : \{sassn}, ∀ k : \{w32}, ∀ a : Num, ∀ off : Num, ∀ bs : List[\{w8}], LENGTH(bs) == \{n} → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs), h)), [Load(\{ty}, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(\{ctor}(\{des}(bs)))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs), h)))",
+      "∀ p : \{sassn}, ∀ k : \{w32}, ∀ a : Num, ∀ off : Num, ∀ bs : List[\{w8}], LENGTH(bs) == \{n} → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h)), [Load(\{ty}, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(\{ctor}(\{des}(bs)))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h)))",
       [k],
       load,
       "wasm_deserialise_num(\{bs}, \{ty})",
@@ -703,6 +703,34 @@ fn prove_store_rule(
     "∀ v : List[\{mem_ty}], ∀ s : Wstore, ∀ f : Wframe, gvals(s_mems_update(v, s), f) == gvals(s, f) && (globs_ok(s_mems_update(v, s), f) == globs_ok(s, f))",
     @simp.rewrite_tac(ths([thm("gvals"), thm("globs_ok"), globs_mems])),
   )
+  // a store keeps the memory's length
+  let length_takefill = lemma(
+    "length_takefill",
+    "∀ n : Num, ∀ a : A, ∀ l : List[A], LENGTH(takefill(a, n, l)) == n",
+    seq([
+      @nums.induct_tac,
+      @tactics.gen_tac,
+      @tactics.gen_tac,
+      @tactics.struct_cases_tac(@bool.ispec(tm("(l : List[A])"), @lists.list_cases())),
+      @simp.asm_rewrite_tac(ths([@wasm.thm("takefill"), @lists.length()])),
+    ]),
+  )
+  let store_len = lemma(
+    "store_length",
+    "∀ m : \{mem_ty}, ∀ n : Num, ∀ off : Num, ∀ bs : List[\{w8}], ∀ l : Num, ∀ m2 : \{mem_ty}, store(m, n, off, bs, l) == SOME(m2) → mem_length(m2) == mem_length(m)",
+    seq([
+      @tactics.repeat_tac(@tactics.gen_tac),
+      @simp.rewrite_tac(ths([@wasm.thm("store"), @wasm.thm("bytes_takefill")])),
+      @class.cond_cases_tac,
+      @simp.rewrite_tac(ths(opt)),
+      @tactics.repeat_tac(@tactics.strip_tac),
+      subst_vars(),
+      @simp.rewrite_tac(ths([@wasm.thm("write_bytes"), @wasm.thm("mem_length"), @pair.fst(), @pair.snd()])),
+      @tactics.match_mp_tac(thm("length_write")),
+      @tactics.rule_assum_tac(@simp.rewrite_rule(ths([@wasm.thm("mem_length")]))),
+      @simp.asm_rewrite_tac(ths([length_takefill])),
+    ]),
+  )
   let arity = prove_arities("store", "Basic(Store((t : T_num), (tp : Option[Tp_num]), (a : Num), (off : Num)))", 2)
   for kind in num_kinds() {
   let (sfx, ty, ctor, wty, ser, _, n, sucs) = kind
@@ -727,11 +755,11 @@ fn prove_store_rule(
   let bytes = "\{ser}((v : \{wty}))"
   let written = "write_bytes(\{mem}, val((k : \{w32})) + (off : Num), \{bytes})"
   let updated = "s_mems_update(list_update(s_mems((s : Wstore)), (j : Num), \{written}), s)"
-  let frame = "star((p : \{sassn})((vs0 : List[Value]), f_locs((f : Wframe)), gvals((s : Wstore), (f : Wframe))), (r : \{hprop}))"
+  let frame = "star((p : \{sassn})((vs0 : List[Value]), f_locs((f : Wframe)), gvals((s : Wstore), (f : Wframe)), mem_length(EL((j : Num), s_mems(s)))), (r : \{hprop}))"
   let defs = ["typeof_num", "bits_num", "t_num_length"].map(@wasm.thm)
   let _ = lemma(
     "sl_store_" + sfx,
-    "∀ p : \{sassn}, ∀ k : \{w32}, ∀ a : Num, ∀ off : Num, ∀ v : \{wty}, ∀ bs : List[\{w8}], LENGTH(bs) == \{n} → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(\{ctor}(v))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs), h)), [Store(\{ty}, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == vs0 && star(pts(val(k) + off, \{ser}(v)), p(vs0, ls, gs), h)))",
+    "∀ p : \{sassn}, ∀ k : \{w32}, ∀ a : Num, ∀ off : Num, ∀ v : \{wty}, ∀ bs : List[\{w8}], LENGTH(bs) == \{n} → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(\{ctor}(v))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h)), [Store(\{ty}, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == vs0 && star(pts(val(k) + off, \{ser}(v)), p(vs0, ls, gs, ms), h)))",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @tactics.disch_tac,
@@ -796,6 +824,7 @@ fn prove_store_rule(
             @tactics.match_mp_tac(thm("safe_vals")),
             @simp.rewrite_tac(ths(lift_facts + [mems_update, length_update, gvals_mems])),
             @tactics.exists_tac(tm("(j : Num)")),
+            have("mem_length(\{written}) == mem_length(\{mem})", @meson.asm_meson_tac(ths([store_len]))),
             @simp.asm_simp_tac(ths([el_update])),
             @simp.rewrite_tac(ths([thm("star_assoc")])),
             @simp.asm_rewrite_tac(ths([])),

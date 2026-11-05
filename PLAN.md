@@ -44,9 +44,11 @@ the official spec testsuite (`wasm/spec_test.mbt`).
   nondeterministic. Termination is not claimed.
 - **The frame is built in.** `sl_triple` quantifies over a frame `r` on the
   memory (`lift`), so the frame rule follows from `star_assoc`.
-- **Stack, locals and globals are plain data.** Assertions (`SAssn`) take the
-  value stack, the locals and the globals (`gvals(s, f)`, the instance's
-  globals by index) as arguments. Only memory uses `star`. `lift` also asks
+- **Stack, locals, globals and the memory's length are plain data.**
+  Assertions (`SAssn`) take the value stack, the locals, the globals
+  (`gvals(s, f)`, the instance's globals by index) and the memory's length
+  in bytes (`mem_length`, from which `memory.size` is the length in pages)
+  as arguments. Only the memory's bytes use `star`. `lift` also asks
   that the instance's global addresses are in the store and distinct
   (`globs_ok`), so `global.set` changes exactly one entry.
 - **Structured control flow, in the style of Wasm Logic** (Watt et al., ECOOP
@@ -80,6 +82,7 @@ the official spec testsuite (`wasm/spec_test.mbt`).
 | `sl_testop`, `sl_relop`, `st_testop`, `st_relop` | done |
 | `example_array_sum` (reads an array, a comparison as loop condition) | done |
 | `sl_unop`, `sl_nop`, `sl_drop`, `sl_select`, `sl_load_i64`, `sl_store_i64` | done |
+| The memory's length in assertions; `sl_memory_size`, `sl_memory_grow` | done |
 | Everything under "Next steps" | not started |
 
 Known limits of what exists:
@@ -126,18 +129,13 @@ About the rules' shapes, from `example_sum` and `example_fill`:
 In order. Each can be merged on its own. "Done when" means the named theorems
 appear in `theory.md`, with the tests passing.
 
-1. **More instructions.** `unop`, `nop`, `drop`, `select` and the i64 loads
-   and stores are done. Left:
+1. **More instructions.** `unop`, `nop`, `drop`, `select`, the i64 loads and
+   stores, `memory.size` and `memory.grow` are done. Left:
    - Packed loads and stores (`i32.load8_u`, `i32.store8`, ...): the
      reduction rules use `load_packed` and `store_packed`, so they need
      `load_pts`/`store_pts` for them, then the recipe below.
    - `cvtop` (`i32.wrap_i64`, `i64.extend_i32_s/u`): `cvt` gives an option,
      as `app_binop` does, so the rule takes `cvt(...) == SOME(c)`.
-   - `memory.size` and `memory.grow` need a design decision: an assertion
-     sees the memory only as a heap, not its size. Add the size as a further
-     plain-data argument of `lift` (as globals are), or a points-to for "the
-     memory has n pages". `memory.grow` then gains `pts(old length, zeros)`,
-     with the failure case returning `-1`.
    - `drop` and `select` take numbers (`V_num`), like `global.set`: values in
      general need `is_val(v_to_e(v))` in `prove_prefix`.
 

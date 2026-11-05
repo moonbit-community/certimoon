@@ -285,7 +285,7 @@ fn prove_labels() -> Unit raise {
   ]
   let _ = lemma(
     "sl_br",
-    "∀ i : Num, ∀ ls : List[\{sassn}], i < LENGTH(ls) → sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], ∃ vb : List[Value], vs == APPEND(vs0, vb) && EL(i, ls, vb, lc, gs, h)), [Br(i)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => false, ls)",
+    "∀ i : Num, ∀ ls : List[\{sassn}], i < LENGTH(ls) → sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], ∃ vb : List[Value], vs == APPEND(vs0, vb) && EL(i, ls, vb, lc, gs, ms, h)), [Br(i)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => false, ls)",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @tactics.disch_tac,
@@ -410,7 +410,7 @@ fn prove_label_structural() -> Unit raise {
   let lift_l = "MAP((x : \{sassn}) => lift(x, (r : \{hprop})), (ls : List[\{sassn}]))"
   let _ = lemma(
     "sl_conseq_l",
-    "∀ p : \{sassn}, ∀ p2 : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ q2 : \{sassn}, ∀ ls : List[\{sassn}], ∀ ls2 : List[\{sassn}], (∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ h : \{heap}, p2(vs, lc, gs, h) → p(vs, lc, gs, h)) && sl_triple_l(p, bs, q, ls) && (∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ h : \{heap}, q(vs, lc, gs, h) → q2(vs, lc, gs, h)) && LENGTH(ls2) == LENGTH(ls) && (∀ i : Num, ∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ h : \{heap}, i < LENGTH(ls) && EL(i, ls, vs, lc, gs, h) → EL(i, ls2, vs, lc, gs, h)) → sl_triple_l(p2, bs, q2, ls2)",
+    "∀ p : \{sassn}, ∀ p2 : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ q2 : \{sassn}, ∀ ls : List[\{sassn}], ∀ ls2 : List[\{sassn}], (∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, p2(vs, lc, gs, ms, h) → p(vs, lc, gs, ms, h)) && sl_triple_l(p, bs, q, ls) && (∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, q(vs, lc, gs, ms, h) → q2(vs, lc, gs, ms, h)) && LENGTH(ls2) == LENGTH(ls) && (∀ i : Num, ∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, i < LENGTH(ls) && EL(i, ls, vs, lc, gs, ms, h) → EL(i, ls2, vs, lc, gs, ms, h)) → sl_triple_l(p2, bs, q2, ls2)",
     seq([
       @simp.rewrite_tac(ths([sl_triple_l])),
       @tactics.repeat_tac(@tactics.strip_tac),
@@ -445,7 +445,7 @@ fn prove_label_structural() -> Unit raise {
   )
   let _ = lemma(
     "sl_frame_l",
-    "∀ p : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ ls : List[\{sassn}], ∀ fr : \{hprop}, sl_triple_l(p, bs, q, ls) → sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => star(p(vs, lc, gs), fr), bs, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => star(q(vs, lc, gs), fr), MAP((x : \{sassn}) => (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => star(x(vs, lc, gs), fr), ls))",
+    "∀ p : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ ls : List[\{sassn}], ∀ fr : \{hprop}, sl_triple_l(p, bs, q, ls) → sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => star(p(vs, lc, gs, ms), fr), bs, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => star(q(vs, lc, gs, ms), fr), MAP((x : \{sassn}) => (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => star(x(vs, lc, gs, ms), fr), ls))",
     seq([
       @simp.rewrite_tac(ths([sl_triple_l, @equal.gsym(@lists.map_o()), @trivia.o_def(), thm("lift_frame")])),
       @meson.meson_tac(ths([])),
@@ -463,10 +463,10 @@ fn prove_label_extras() -> Unit raise {
   let sl_triple_l = thm("sl_triple_l")
   let triple_l = thm("triple_l")
   let lift = thm("lift")
-  let pp = "(pp : (A, List[Value], List[Value], List[Value], \{heap}) -> Bool)"
+  let pp = "(pp : (A, List[Value], List[Value], List[Value], Num, \{heap}) -> Bool)"
   let lift_ex = lemma(
     "lift_ex",
-    "∀ pp : (A, List[Value], List[Value], List[Value], \{heap}) -> Bool, ∀ r : \{hprop}, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], lift((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ x : A, \{pp}(x, vs, lc, gs, h)), r, s, f, vs) == (∃ x : A, lift(pp(x), r, s, f, vs))",
+    "∀ pp : (A, List[Value], List[Value], List[Value], Num, \{heap}) -> Bool, ∀ r : \{hprop}, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], lift((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ x : A, \{pp}(x, vs, lc, gs, ms, h)), r, s, f, vs) == (∃ x : A, lift(pp(x), r, s, f, vs))",
     seq([
       @simp.rewrite_tac(ths([lift, thm("star_ex"), @class.eta_ax()])),
       @meson.meson_tac(ths([])),
@@ -474,7 +474,7 @@ fn prove_label_extras() -> Unit raise {
   )
   let lift_pure = lemma(
     "lift_pure",
-    "∀ c : Bool, ∀ p : \{sassn}, ∀ r : \{hprop}, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], lift((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => c && p(vs, lc, gs, h), r, s, f, vs) == (c && lift(p, r, s, f, vs))",
+    "∀ c : Bool, ∀ p : \{sassn}, ∀ r : \{hprop}, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], lift((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => c && p(vs, lc, gs, ms, h), r, s, f, vs) == (c && lift(p, r, s, f, vs))",
     seq([
       @simp.rewrite_tac(ths([lift, thm("star_pure"), @class.eta_ax()])),
       @meson.meson_tac(ths([])),
@@ -482,7 +482,7 @@ fn prove_label_extras() -> Unit raise {
   )
   let _ = lemma(
     "sl_ex_l",
-    "∀ pp : (A, List[Value], List[Value], List[Value], \{heap}) -> Bool, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ ls : List[\{sassn}], (∀ x : A, sl_triple_l(pp(x), bs, q, ls)) → sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ x : A, pp(x, vs, lc, gs, h)), bs, q, ls)",
+    "∀ pp : (A, List[Value], List[Value], List[Value], Num, \{heap}) -> Bool, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ ls : List[\{sassn}], (∀ x : A, sl_triple_l(pp(x), bs, q, ls)) → sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ x : A, pp(x, vs, lc, gs, ms, h)), bs, q, ls)",
     seq([
       @simp.rewrite_tac(ths([sl_triple_l, triple_l, lift_ex])),
       @meson.meson_tac(ths([])),
@@ -490,7 +490,7 @@ fn prove_label_extras() -> Unit raise {
   )
   let _ = lemma(
     "sl_pure_l",
-    "∀ c : Bool, ∀ p : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ ls : List[\{sassn}], (c → sl_triple_l(p, bs, q, ls)) → sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => c && p(vs, lc, gs, h), bs, q, ls)",
+    "∀ c : Bool, ∀ p : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ ls : List[\{sassn}], (c → sl_triple_l(p, bs, q, ls)) → sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => c && p(vs, lc, gs, ms, h), bs, q, ls)",
     seq([
       @simp.rewrite_tac(ths([sl_triple_l, triple_l, lift_pure])),
       @meson.meson_tac(ths([])),

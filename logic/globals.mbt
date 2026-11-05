@@ -149,7 +149,7 @@ fn prove_global_rules() -> Unit raise {
   let gval = "v_to_e(sglob_val((s : Wstore), f_inst((f : Wframe)), (i : Num)))"
   let _ = lemma(
     "sl_global_get",
-    "∀ p : \{sassn}, ∀ i : Num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => i < LENGTH(gs) && p(vs, ls, gs, h), [Global_get(i)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [EL(i, gs)]) && i < LENGTH(gs) && p(vs0, ls, gs, h)))",
+    "∀ p : \{sassn}, ∀ i : Num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => i < LENGTH(gs) && p(vs, ls, gs, ms, h), [Global_get(i)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [EL(i, gs)]) && i < LENGTH(gs) && p(vs0, ls, gs, ms, h)))",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @simp.rewrite_tac(ths([thm("sl_triple"), thm("triple")])),
@@ -219,7 +219,7 @@ fn prove_global_rules() -> Unit raise {
   let set_c = "supdate_glob((s : Wstore), f_inst((f : Wframe)), (i : Num), V_num((c : V_num)))"
   let _ = lemma(
     "sl_global_set",
-    "∀ p : \{sassn}, ∀ i : Num, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && i < LENGTH(gs) && p(vs0, ls, gs, h)), [Global_set(i)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ gs0 : List[Value], gs == list_update(gs0, i, V_num(c)) && i < LENGTH(gs0) && p(vs, ls, gs0, h)))",
+    "∀ p : \{sassn}, ∀ i : Num, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && i < LENGTH(gs) && p(vs0, ls, gs, ms, h)), [Global_set(i)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ gs0 : List[Value], gs == list_update(gs0, i, V_num(c)) && i < LENGTH(gs0) && p(vs, ls, gs0, ms, h)))",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @simp.rewrite_tac(ths([thm("sl_triple"), thm("triple")])),

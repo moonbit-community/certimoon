@@ -10,18 +10,18 @@
 // sum_to and its lemmas are for example_sum.
 
 ///|
-let rty : String = "(List[Value], \{heap}) -> Bool"
+let rty : String = "(List[Value], Num, \{heap}) -> Bool"
 
 ///|
 fn prove_state_rules() -> Unit raise {
   def(
     "st",
-    "st((v : List[Value]), (l : List[Value]), (r : \{rty}), (vs : List[Value]), (lc : List[Value]), (gs : List[Value]), (h : \{heap})) == (vs == v && lc == l && r(gs, h))",
+    "st((v : List[Value]), (l : List[Value]), (r : \{rty}), (vs : List[Value]), (lc : List[Value]), (gs : List[Value]), (ms : Num), (h : \{heap})) == (vs == v && lc == l && r(gs, ms, h))",
   )
   let st = thm("st")
   let _ = lemma(
     "st_snoc_ex",
-    "∀ v : List[Value], ∀ x : Value, ∀ l : List[Value], ∀ r : \{rty}, ∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ h : \{heap}, (∃ vs0 : List[Value], vs == APPEND(vs0, [x]) && st(v, l, r, vs0, lc, gs, h)) == st(APPEND(v, [x]), l, r, vs, lc, gs, h)",
+    "∀ v : List[Value], ∀ x : Value, ∀ l : List[Value], ∀ r : \{rty}, ∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, (∃ vs0 : List[Value], vs == APPEND(vs0, [x]) && st(v, l, r, vs0, lc, gs, ms, h)) == st(APPEND(v, [x]), l, r, vs, lc, gs, ms, h)",
     seq([@simp.rewrite_tac(ths([st])), @meson.meson_tac(ths([]))]),
   )
   let _ = lemma(

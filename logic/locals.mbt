@@ -149,7 +149,7 @@ fn prove_local_rules() -> Unit raise {
   // the rules
   let _ = lemma(
     "sl_local_get",
-    "∀ p : \{sassn}, ∀ k : Num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => k < LENGTH(ls) && p(vs, ls, gs, h), [Local_get(k)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [EL(k, ls)]) && k < LENGTH(ls) && p(vs0, ls, gs, h)))",
+    "∀ p : \{sassn}, ∀ k : Num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => k < LENGTH(ls) && p(vs, ls, gs, ms, h), [Local_get(k)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [EL(k, ls)]) && k < LENGTH(ls) && p(vs0, ls, gs, ms, h)))",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @simp.rewrite_tac(ths([thm("sl_triple"), thm("triple")])),
@@ -199,7 +199,7 @@ fn prove_local_rules() -> Unit raise {
   )
   let sl_local_set = lemma(
     "sl_local_set",
-    "∀ p : \{sassn}, ∀ k : Num, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && k < LENGTH(ls) && p(vs0, ls, gs, h)), [Local_set(k)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ ls0 : List[Value], ls == list_update(ls0, k, V_num(c)) && k < LENGTH(ls0) && p(vs, ls0, gs, h)))",
+    "∀ p : \{sassn}, ∀ k : Num, ∀ c : V_num, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && k < LENGTH(ls) && p(vs0, ls, gs, ms, h)), [Local_set(k)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ ls0 : List[Value], ls == list_update(ls0, k, V_num(c)) && k < LENGTH(ls0) && p(vs, ls0, gs, ms, h)))",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @simp.rewrite_tac(ths([thm("sl_triple"), thm("triple")])),
@@ -252,9 +252,9 @@ fn prove_local_rules() -> Unit raise {
   )
   // local.tee: [c, local.tee k] steps to [c, c, local.set k]; that is
   // i32.const c then local.set k from the same precondition
-  let pre = "(vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num((c : V_num))]) && (k : Num) < LENGTH(ls) && (p : \{sassn})(vs0, ls, gs, h))"
-  let post = "(vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], ∃ ls0 : List[Value], vs == APPEND(vs0, [V_num((c : V_num))]) && ls == list_update(ls0, (k : Num), V_num(c)) && k < LENGTH(ls0) && (p : \{sassn})(vs0, ls0, gs, h))"
-  let below = "(vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num((c : V_num))]) && (p : \{sassn})(vs0, ls, gs, h))"
+  let pre = "(vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num((c : V_num))]) && (k : Num) < LENGTH(ls) && (p : \{sassn})(vs0, ls, gs, ms, h))"
+  let post = "(vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], ∃ ls0 : List[Value], vs == APPEND(vs0, [V_num((c : V_num))]) && ls == list_update(ls0, (k : Num), V_num(c)) && k < LENGTH(ls0) && (p : \{sassn})(vs0, ls0, gs, ms, h))"
+  let below = "(vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num((c : V_num))]) && (p : \{sassn})(vs0, ls, gs, ms, h))"
   let t1 = beta(@bool.ispecl(@list.List([tm(pre), tm("(c : V_num)")]), thm("sl_const")))
   let t2 = beta(@bool.ispecl(@list.List([tm(below), tm("(k : Num)"), tm("(c : V_num)")]), sl_local_set))
   let body = then_rule(t1, t2, reassoc=false)

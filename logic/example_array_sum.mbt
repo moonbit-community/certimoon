@@ -165,7 +165,7 @@ fn prove_example_array_sum() -> Unit raise {
   let y = "(y : \{w})"
   let zs = "(zs : List[\{w}])"
   let fp = "(fp : \{rty})"
-  let array = (l : String) => "(gs : List[Value]) => star(arr(val(\{p}), \{l}), \{fp}(gs))"
+  let array = (l : String) => "(gs : List[Value]) => (ms : Num) => star(arr(val(\{p}), \{l}), \{fp}(gs, ms))"
   let a_split = array("APPEND(\{ys}, CONS(\{y}, \{zs}))")
   let a_xs = array(xs)
   let acc = "wsum(\{ys})"
@@ -179,9 +179,9 @@ fn prove_example_array_sum() -> Unit raise {
   let body_code = "[Local_get(3), Local_get(0), Local_get(2), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Binop(T_i32, Binop_i(Add)), Local_set(3), Local_get(2), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Add)), Local_set(2), Local_get(2), Local_get(1), Relop(T_i32, \{lt}), Br_if(0)]"
   let length = tm("LENGTH(\{xs}) == val(\{n})")
   let bound = tm("val(\{p}) + 4 * val(\{n}) < 4294967296")
-  let linv = "(lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => ∃ i : \{w}, ∃ ys : List[\{w}], ∃ y : \{w}, ∃ zs : List[\{w}], lc == [\{i_(p)}, \{i_(n)}, \{i_("i")}, \{i_("wsum(ys)")}] && \{xs} == APPEND(ys, CONS(y, zs)) && LENGTH(ys) == val(i) && star(arr(val(\{p}), APPEND(ys, CONS(y, zs))), \{fp}(gs), h)"
+  let linv = "(lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => ∃ i : \{w}, ∃ ys : List[\{w}], ∃ y : \{w}, ∃ zs : List[\{w}], lc == [\{i_(p)}, \{i_(n)}, \{i_("i")}, \{i_("wsum(ys)")}] && \{xs} == APPEND(ys, CONS(y, zs)) && LENGTH(ys) == val(i) && star(arr(val(\{p}), APPEND(ys, CONS(y, zs))), \{fp}(gs, ms), h)"
   let done = "st(\{nil}, [\{i_(p)}, \{i_(n)}, \{i_(n)}, \{i_("wsum(\{xs})")}], \{a_xs})"
-  let no_br = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => false"
+  let no_br = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => false"
   let loop_rule = beta(
     @bool.ispecl(
       @list.List([tm("(NONE : Option[Valtype])"), tm(body_code), tm(linv), tm(done), tm("[\{no_br}]"), tm(nil)]),

@@ -167,9 +167,9 @@ Triples are defined over the reduction relation:
 - `triple(p, bs, q)`: from a value stack satisfying p, the instructions bs
   are safe for every n (partial correctness, no traps);
 - `sl_triple(p, bs, q)`: p and q are heap assertions on the value stack,
-  the locals and the globals (`gvals(s, f)`: the instance's globals by
-  index), and the triple holds with any frame beside them on the
-  instance's memory (`lift`). `lift` also asks that the instance's global
+  the locals, the globals (`gvals(s, f)`: the instance's globals by index)
+  and the memory's length in bytes, and the triple holds with any frame
+  beside them on the instance's memory (`lift`). `lift` also asks that the instance's global
   addresses are in the store and distinct (`globs_ok`).
 
 Rules, all theorems:
@@ -186,6 +186,11 @@ Rules, all theorems:
 - `sl_unop` (`app_unop`), `sl_nop` (`sl_triple(p, [Nop], p)`), `sl_drop`
   and `sl_select` (of numbers: `select` keeps c1 if the i32 b is not 0,
   else c2);
+- `sl_memory_size`: pushes the length in pages, `DIV(ms, 65536)`;
+- `sl_memory_grow` by c pages: either it pushes the old size in pages, the
+  length grows by `c * 65536` and `pts(old length, zeros)` appears beside
+  the precondition (`star_grow`), or (it may always) it pushes -1 and
+  nothing changes;
 - `sl_global_get`: `global.get i` (i < LENGTH(gs)) pushes `EL(i, gs)`;
 - `sl_global_set`: `global.set i` pops a number c, and the globals become
   `list_update(gs0, i, c)` of the globals gs0 before (`gvals_set`, which

@@ -145,9 +145,9 @@ fn prove_example_sum() -> Unit raise {
   let l1 = "[\{i(n)}, \{i(acc1)}]"
   let l2 = "[\{i(n1)}, \{i(acc1)}]"
   let body_code = "[Local_get(1), Local_get(0), Binop(T_i32, Binop_i(Add)), Local_set(1), Local_get(0), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), Local_set(0), Local_get(0), Br_if(0)]"
-  let linv = "(lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => ∃ n : \{w}, ∃ acc : \{w}, lc == [\{i("n")}, \{i("acc")}] && !(n == word(0)) && word_add(acc, word(sum_to(val(n)))) == \{answer} && \{r}(gs, h)"
+  let linv = "(lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => ∃ n : \{w}, ∃ acc : \{w}, lc == [\{i("n")}, \{i("acc")}] && !(n == word(0)) && word_add(acc, word(sum_to(val(n)))) == \{answer} && \{r}(gs, ms, h)"
   let done = "st(\{nil}, [\{i("word(0)")}, \{i(answer)}], \{r})"
-  let no_br = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (h : \{heap}) => false"
+  let no_br = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => false"
   // the loop rule for this body: its premise names the label assertion
   let loop_rule = beta(
     @bool.ispecl(

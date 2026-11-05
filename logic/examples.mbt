@@ -19,7 +19,7 @@ fn triple_parts(th : @kernel.Thm) -> (@kernel.Term, @kernel.Term, @kernel.Term) 
 }
 
 ///|
-/// ⊢ ∀ vs ls gs h. a(vs, ls, gs, h) → b(vs, ls, gs, h): the stacks agree
+/// ⊢ ∀ vs ls gs h. a(vs, ls, gs, ms, h) → b(vs, ls, gs, ms, h): the stacks agree
 /// (after reassociating appends, with `reassoc`), and the rest follows from
 /// the premise. Without `reassoc`, b's stack must match a's as written:
 /// MESON cannot see that vs0 ++ [x, y] is (vs0 ++ [x]) ++ [y].
@@ -31,9 +31,10 @@ fn entails(
   let vs = tm("(vs : List[Value])")
   let ls = tm("(ls : List[Value])")
   let gs = tm("(gs : List[Value])")
+  let ms = tm("(ms : Num)")
   let h = tm("(h : \{heap})")
-  let app = (t : @kernel.Term) => @basics.list_mk_comb(t, @list.List([vs, ls, gs, h]))
-  let goal = @bool.list_mk_forall(@list.List([vs, ls, gs, h]), @bool.mk_imp(app(a), app(b)))
+  let app = (t : @kernel.Term) => @basics.list_mk_comb(t, @list.List([vs, ls, gs, ms, h]))
+  let goal = @bool.list_mk_forall(@list.List([vs, ls, gs, ms, h]), @bool.mk_imp(app(a), app(b)))
   @tactics.prove(
     goal,
     seq([
@@ -130,7 +131,7 @@ fn prove_examples() -> Unit raise {
   let v = tm("ConstInt32((v : \{w32}))")
   let length = tm("LENGTH(\{bs}) == 4")
   let pre = tm(
-    "(vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (h : \{heap}) => star(pts(\{addr}, \{bs}), \{p}(vs, ls, gs), h)",
+    "(vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => star(pts(\{addr}, \{bs}), \{p}(vs, ls, gs, ms), h)",
   )
   let const_rule = (q : @kernel.Term, c : @kernel.Term) => beta(
     @bool.ispecl(@list.List([q, c]), thm("sl_const")),
