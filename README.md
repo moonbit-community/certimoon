@@ -323,8 +323,25 @@ are the verification conditions: an invariant on entry and again, the
 postcondition at exit, and side conditions such as an array element's
 address. `vcs` has one tactic for each, in order (a mismatch lists them).
 So `example_sum` is its code, its invariant and three one-line arithmetic
-proofs. Each `block`, `if` and `loop` must end its instruction list for
-now.
+proofs. A `block`, `if` or `loop` with more code after it takes the state
+after it from `afters` (`sl_cons_l`). If a tactic fails, the error lists
+each condition with what its tactic left.
+
+Arrays by index: `st_arr_load_at` and `st_arr_store_at` read and write the
+element at `p + j * 4` of the whole array `arr(val(p), xs)`, as
+`EL(val(j), xs)` and `list_update(xs, val(j), x)`, if `val(j) <
+LENGTH(xs)` and the array ends below 2^32 (`addr_at`).
+
+`example_insertion_sort` (`logic/example_sort.mbt`) sorts n words at p by
+their unsigned values, with two nested loops (the inner one moves the
+larger words right, holding the new one aside, and leaves by `br_if 1`
+from the middle of its body): from locals `[p, n, 0, 0, 0]` and words xs
+(if `val(p) + 4n < 2^32`) it leaves words ys with `sorted(ys)` (`PAIRWISE`
+of `≤` on their values) and `perm(ys, xs)` (each value as often, by
+`FILTER`). sym_prove leaves twelve conditions; each is one of the
+`isort_` lemmas (`isort_shift`: moving a word right keeps the invariant,
+by `perm_swap`; `isort_next`: putting x back keeps the outer one, by
+`sorted_insert`).
 
 Control flow (`logic/labels.mbt`, `block.mbt`, `loop.mbt`) uses triples
 with label assertions, innermost first:

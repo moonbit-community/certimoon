@@ -183,6 +183,7 @@ fn norm_thms() -> Array[@kernel.Thm] raise {
     @wasm.thm("app_relop_i"),
     @wasm.thm("app_testop"),
     @wasm.thm("app_testop_i"),
+    @wasm.thm("int_eqz"),
     thm("st_snoc_ex"),
     @class.eta_ax(),
   ]

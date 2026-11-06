@@ -87,6 +87,7 @@ the official spec testsuite (`wasm/spec_test.mbt`).
 | Packed loads and stores: `sl_load_packed_i32/i64`, `sl_store_packed_i32/i64` | done |
 | `sl_drop`, `sl_select` of any values (`value_cases`) | done |
 | Symbolic execution: `sym_tac`, `sym_prove`; the loop examples use it | done |
+| `example_insertion_sort`; array rules by index; states after a block | done |
 | Everything else under "Next steps" | not started |
 
 Known limits of what exists:
@@ -160,9 +161,6 @@ appear in `theory.md`, with the tests passing.
    simplified. `example_sum`, `example_fill` and `example_array_sum` are now
    their code, their invariant and one short tactic per condition. What a
    later step will want:
-   - `block`, `if` and `loop` before more code (each must end its list now):
-     the sorting's inner loop is followed by the store of the element. The
-     way: an annotation for the state after it, then `sl_seq_l`.
    - `br` to a block with results, and values on a `br`'s label other than
      none; `local.tee`, `global.get`/`set`, `drop`, `select` and the other
      loads and stores as `st_` rules (`step_rules` lists what it knows).
@@ -170,15 +168,13 @@ appear in `theory.md`, with the tests passing.
      local.set`, repeated) on the native target: 20 instructions in 0.1 s,
      100 in 0.6 s, so a long program is not the problem; loading is.
 
-3. **Sorting.** Insertion sort of an i32 array in linear memory, written by
-   hand: two nested loops, comparisons, array loads and stores.
-   - Specify it: `sorted(ys)` (by signed or unsigned word order, as the
-     program compares) and `perm(xs, ys)` (a permutation), with the lemmas
-     that a shift or a swap keeps a permutation.
-   - Invariants: the outer loop keeps the prefix sorted and the whole array a
-     permutation of the input; the inner loop shifts larger elements right.
-   - An element by index (`arr` at `i`, from `split_at`) is needed here.
-   - Done when: `example_insertion_sort`.
+3. **Sorting.** Done: `example_insertion_sort` (`logic/example_sort.mbt`),
+   insertion sort by unsigned value, with `sorted` (`PAIRWISE`) and `perm`
+   (equal `FILTER` counts). It needed the array rules by index
+   (`st_arr_load_at`, `st_arr_store_at`) and states after a block with more
+   code after it (`afters`, `sl_cons_l`). What a later step may want:
+   signed order (`i32.le_s`, `word_ile`), and a library of list lemmas
+   instead of the `isort_` ones written for this proof.
 
 4. **Calls.** `sl_call`, with per-function specs.
    - A `Frame` needs its own step inversion, like `label_steps`. `return` needs
@@ -286,6 +282,9 @@ Tactics:
   `NIL` by `suf`, and `LENGTH(vs) == m` replaces `m`. Orient equations first
   (`nil_eq_sym`), or substitute before adding such facts.
 - `spec` fails on polymorphic theorems such as `list_cases`: use `ispec`.
+- `repeat_tac(cond_cases_tac)` keeps splitting conditions already decided
+  (leaving goals with `!true` among the assumptions). Split on the
+  conditions themselves with `asm_cases_tac`, then rewrite.
 
 Rewriting:
 
@@ -311,7 +310,11 @@ Syntax and names:
   parentheses. `∃` after `→` needs parentheses.
 - `MOD` and `EXP` are written as functions: `MOD(n, EXP(256, k))`.
 - HOL constants take priority over variables: `inv` is real inverse, so a variable
-  named `inv` gives a confusing type error.
+  named `inv` gives a confusing type error. Bound variables named after
+  constants (`S`, `T`) are renamed (`S'`), so a term mentioning them
+  afterwards no longer matches.
+- "Warning: inventing type variables" means a term has an unfixed type:
+  `val(word(1))` is a word of any size. Annotate it (`(word(1) : W32)`).
 - `const` and `loop` are MoonBit keywords.
 - A rule's `∃`s after `match_mp_tac` come in the rule's variable order, which
   need not be the order you expect.

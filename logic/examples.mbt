@@ -160,4 +160,5 @@ fn prove_examples() -> Unit raise {
   prove_example_sum()
   prove_example_fill()
   prove_example_array_sum()
+  prove_example_sort()
 }

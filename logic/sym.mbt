@@ -10,9 +10,9 @@
 //   and continues from the rule's postcondition (sl_step_l);
 // - for br_if, continues with c = 0, and leaves br's goal with c ≠ 0
 //   (sl_br_if_st);
-// - for if, block and loop (last in their list), goes into the branches
-//   and bodies (sl_if_st, sl_block_st, sl_loop_st), taking the loop's
-//   invariant from the caller;
+// - for if, block and loop, goes into the branches and bodies (sl_if_st,
+//   sl_block_st, sl_loop_st), taking the loop's invariant from the caller,
+//   and, if more code follows, the state after it (sl_cons_l);
 // - for br and the end of the code, leaves an entailment (sl_br_st,
 //   sl_nil_st).
 //
@@ -69,6 +69,17 @@ fn prove_sym_rules() -> Unit raise {
       @tactics.match_mp_tac(thm("sl_seq_l")),
       @tactics.exists_tac(tm("(q : \{sa})")),
       @meson.asm_meson_tac(ths([thm("sl_triple_l_of")])),
+    ]),
+  )
+  let _ = lemma(
+    "sl_cons_l",
+    "∀ q : \{sa}, ∀ p : \{sa}, ∀ i : B_e, ∀ rest : List[B_e], ∀ r : \{sa}, ∀ ls : List[\{sa}], sl_triple_l(p, [i], q, ls) && sl_triple_l(q, rest, r, ls) → sl_triple_l(p, CONS(i, rest), r, ls)",
+    seq([
+      @tactics.repeat_tac(@tactics.strip_tac),
+      @tactics.subst1_tac(cons_append("(i : B_e)", "(rest : List[B_e])")),
+      @tactics.match_mp_tac(thm("sl_seq_l")),
+      @tactics.exists_tac(tm("(q : \{sa})")),
+      @simp.asm_rewrite_tac(ths([])),
     ]),
   )
   let state = "st((v : List[Value]), (l : List[Value]), (R : \{rty}))"
@@ -244,6 +255,8 @@ fn prove_sym_rules() -> Unit raise {
 /// conditions.
 priv struct Sym {
   loops : Array[(@kernel.Term, @kernel.Term)]
+  afters : Array[(@kernel.Term, @kernel.Term)]
+  rules : Array[String]
   rws : Array[@kernel.Thm]
 }
 
@@ -356,16 +369,16 @@ fn fresh_spec(th : @kernel.Thm, avoid : @list.List[@kernel.Term]) -> @kernel.Thm
 /// The st_ rules sym_tac runs straight-line code with.
 let step_rules : Array[String] = [
   "st_const", "st_binop", "st_testop", "st_relop", "st_local_get", "st_local_set",
-  "st_arr_store", "st_arr_load",
+  "st_arr_store", "st_arr_load", "st_arr_load_at", "st_arr_store_at",
 ]
 
 ///|
 /// The rule for `instr` from the state st(s, l, r): sl_triple(st(s, l, r),
 /// [instr], post), written out, after a side condition if it keeps one.
-fn step_rule(instr : @kernel.Term, p : @kernel.Term) -> @kernel.Thm raise {
+fn step_rule(rules : Array[String], instr : @kernel.Term, p : @kernel.Term) -> @kernel.Thm raise {
   guard args_of(p, "st", 3) is Some([s, l, r]) else { raise Failure("step_rule") }
   let avoid = @kernel.frees(p) + @kernel.frees(instr)
-  for name in step_rules {
+  for name in rules {
     let th = @simp.rewrite_rule(ths([@class.eta_ax()]))(fresh_spec(thm(name), avoid))
     let c = @kernel.concl(th)
     let triple = if @basics.is_imp(c) { @basics.dest_imp(c).1 } else { c }
@@ -429,6 +442,8 @@ fn fact_tac() -> @tactics.Tactic {
 fn vc_tac(sym : Sym) -> @tactics.Tactic raise {
   let rws = [
     thm("st"),
+    thm("tbv_results"),
+    @lists.length_eq_nil(),
     @lists.cons_11(),
     @ind_types.injectivity("value"),
     @ind_types.injectivity("v_num"),
@@ -470,7 +485,26 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
     let need_last = (what : String) => if !last {
       raise Failure("wasmcert/logic: sym: " + what + " must end its instruction list")
     }
-    match head_name(instr) {
+    let name = head_name(instr)
+    if !last && (name == "Block" || name == "If" || name == "Loop") {
+      // [instr] to the state the caller gives, then the rest from it
+      let mut after = None
+      for a in sym.afters {
+        if @basics.aconv(a.0, instr) {
+          after = Some(a.1)
+        }
+      }
+      guard after is Some(q) else {
+        raise Failure("wasmcert/logic: sym: no state given for after " + show(instr))
+      }
+      return seq([
+        renorm,
+        @tactics.match_mp_tac(@bool.ispec(q, thm("sl_cons_l"))),
+        @tactics.conj_tac,
+        sym_tac(sym),
+      ])(g)
+    }
+    match name {
       "Br" => {
         need_last("br")
         seq([renorm, @tactics.match_mp_tac(thm("sl_br_st")), @tactics.conj_tac, vc_tac(sym)])(g)
@@ -516,7 +550,7 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
         )(g)
       }
       _ => {
-        let th = step_rule(instr, p)
+        let th = step_rule(sym.rules, instr, p)
         let c = @kernel.concl(th)
         if @basics.is_imp(c) {
           let (h, _) = @basics.dest_imp(c)
@@ -653,18 +687,25 @@ fn by_lemma(th : @kernel.Thm, args : Array[String]) -> @tactics.Tactic raise {
 }
 
 ///|
-/// The Loop instructions in `code`, outermost and first first.
-fn loops_in(code : @kernel.Term) -> Array[@kernel.Term] raise {
-  let out = []
+/// The Loop instructions in `code`, and the Block, If and Loop
+/// instructions with more code after them, each outermost and first first.
+fn structure_of(code : @kernel.Term) -> (Array[@kernel.Term], Array[@kernel.Term]) raise {
+  let loops = []
+  let afters = []
   fn walk(t : @kernel.Term) -> Unit raise {
     if !@basics.is_list(t) {
       return
     }
-    for i in @basics.dest_list(t) {
+    let instrs = @basics.dest_list(t).to_array()
+    for k, i in instrs {
       let (_, args) = @basics.strip_comb(i)
-      match head_name(i) {
+      let name = head_name(i)
+      if k + 1 < instrs.length() && (name == "Block" || name == "If" || name == "Loop") {
+        afters.push(i)
+      }
+      match name {
         "Loop" => {
-          out.push(i)
+          loops.push(i)
           walk(args.to_array()[1])
         }
         "Block" => walk(args.to_array()[1])
@@ -677,19 +718,23 @@ fn loops_in(code : @kernel.Term) -> Array[@kernel.Term] raise {
     }
   }
   walk(code)
-  out
+  (loops, afters)
 }
 
 ///|
 /// Proves `stmt` (∀ xs. hyps → sl_triple(p, code, q)) by sym_tac, with
 /// `invs` the invariants (linv, λ lc gs ms h. ...) of code's loops in
-/// order, and `vcs` the tactics for what sym_tac leaves, in order.
-/// Records it as `name`.
+/// order, `afters` the states after each block, if or loop that has more
+/// code after it (λ vs lc gs ms h. ...), in the same order, and `vcs` the
+/// tactics for what sym_tac leaves, in order. `rules` are the st_ rules
+/// for straight-line code, tried in order. Records it as `name`.
 fn sym_prove(
   name : String,
   stmt : String,
   invs : Array[String],
   vcs : Array[@tactics.Tactic],
+  afters? : Array[String] = [],
+  rules? : Array[String] = step_rules,
   rws? : Array[@kernel.Thm] = [],
   kind? : String = "example",
 ) -> @kernel.Thm raise {
@@ -699,14 +744,20 @@ fn sym_prove(
   guard args_of(triple, "sl_triple", 3) is Some([_, code, _]) else {
     raise Failure("wasmcert/logic: sym_prove: not a triple: " + show(triple))
   }
-  let loops = loops_in(code)
-  if loops.length() != invs.length() {
+  let (loops, after) = structure_of(code)
+  if loops.length() != invs.length() || after.length() != afters.length() {
     raise Failure(
       "wasmcert/logic: sym_prove " + name + ": " + loops.length().to_string() + " loops, " +
-      invs.length().to_string() + " invariants",
+      invs.length().to_string() + " invariants, " + after.length().to_string() +
+      " blocks with code after them, " + afters.length().to_string() + " states after",
     )
   }
-  let sym = { loops: loops.mapi((k, l) => (l, tm(invs[k]))), rws }
+  let sym = {
+    loops: loops.mapi((k, l) => (l, tm(invs[k]))),
+    afters: after.mapi((k, a) => (a, tm(afters[k]))),
+    rules,
+    rws,
+  }
   let run = seq([
     @tactics.repeat_tac(@tactics.gen_tac),
     @tactics.try_tac(@tactics.disch_then(th => @tactics.strip_assume_tac(th))),
@@ -720,12 +771,30 @@ fn sym_prove(
       let msg = StringBuilder()
       msg.write_string("wasmcert/logic: sym_prove " + name + ": " + e.to_string() + "; ")
       msg.write_string(left.length().to_string() + " goals left (" + vcs.length().to_string() + " tactics):")
-      for gl in left {
-        msg.write_string("\n--")
+      let goal_text = (gl : @tactics.Goal) => {
+        let b = StringBuilder()
         for a in gl.0 {
-          msg.write_string("\n  [" + a.0 + "] " + show(@kernel.concl(a.1)))
+          b.write_string("\n  [" + a.0 + "] " + show(@kernel.concl(a.1)))
         }
-        msg.write_string("\n  ⊢ " + show(gl.1))
+        b.write_string("\n  ⊢ " + show(gl.1))
+        b.to_string()
+      }
+      let gls = left.to_array()
+      for k, gl in gls {
+        // with as many tactics as goals, say which tactic fails
+        let verdict = if gls.length() != vcs.length() {
+          ""
+        } else {
+          let result : Result[@list.List[@tactics.Goal], Error] = try Ok(vcs[k](gl).1) catch {
+            e => Err(e)
+          }
+          match result {
+            Ok(after) if after.is_empty() => " (its tactic proves it)"
+            Ok(after) => " (its tactic leaves:" + after.to_array().map(goal_text).join("") + "\n  )"
+            Err(e) => " (its tactic fails: " + e.to_string() + ")"
+          }
+        }
+        msg.write_string("\n-- " + (k + 1).to_string() + verdict + goal_text(gl))
       }
       raise Failure(msg.to_string())
     }
@@ -733,3 +802,4 @@ fn sym_prove(
   record(name, th, kind~)
   th
 }
+
