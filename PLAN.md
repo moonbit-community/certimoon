@@ -88,6 +88,7 @@ the official spec testsuite (`wasm/spec_test.mbt`).
 | `sl_drop`, `sl_select` of any values (`value_cases`) | done |
 | Symbolic execution: `sym_tac`, `sym_prove`; the loop examples use it | done |
 | `example_insertion_sort`; array rules by index; states after a block | done |
+| Calls: call-free code, module triples, frames, `sl_call`, `example_call` | done (no return, no recursion) |
 | Everything else under "Next steps" | not started |
 
 Known limits of what exists:
@@ -176,11 +177,20 @@ appear in `theory.md`, with the tests passing.
    signed order (`i32.le_s`, `word_ile`), and a library of list lemmas
    instead of the `isort_` ones written for this proof.
 
-4. **Calls.** `sl_call`, with per-function specs.
-   - A `Frame` needs its own step inversion, like `label_steps`. `return` needs
-     its own postcondition: add a return assertion as a further `safel` argument,
-     as Wasm Logic does, rather than treating it as a label.
-   - Recursive functions: induction on the steps left, as in `sl_loop`.
+4. **Calls.** Partly done: `sl_call` (`logic/call_rule.mbt`) for a call
+   of a native function of the same module, with a spec of its body, and
+   `example_call`. It rests on module triples (`sl_triple_m`, calls.mbt:
+   triples for the stores whose function table is fixed, with every triple
+   of call-free code one) and frames (frames.mbt, as labels). Still to do:
+   - `return`: a return assertion as a further `safel` argument (as Wasm
+     Logic does), and the frame leaving with it. Today frame_safe asks the
+     body to be safe without returns (`return_stuck` rules them out).
+   - Recursive functions: induction on the steps left, as in `sl_loop`; the
+     body's triple may then assume the function's own spec for fewer steps.
+   - Calls in `sym_prove` (a call is a step from the stack's arguments to
+     its results, as an `st_` rule), and structural rules for module
+     triples (block, loop, if, br) beyond seq and conseq.
+   - `call_indirect`, other modules' functions, host functions.
 
 5. **Real programs.** An untrusted `.wat` or `.wasm` importer that makes programs
    through the builder, then verify a function from a compiled module (a sort
@@ -316,6 +326,14 @@ Syntax and names:
   named `inv` gives a confusing type error. Bound variables named after
   constants (`S`, `T`) are renamed (`S'`), so a term mentioning them
   afterwards no longer matches.
+- A failing `ABS` (or another kernel rule) can come from a tactic run much
+  earlier: the justifications run at the end. One cause: a theorem made with
+  `assume_rule` of a term that is not one of the goal's assumptions (a
+  conjunction of three of them is not), so its hypothesis stays and the final
+  `GEN` fails.
+- Instantiating a lemma's free variable with a goal variable of the same name
+  as one of the lemma's bound variables (`f0 := f` under `∀ f`) made
+  `match_mp_tac` fail: name bound variables apart (`s2`, `f2`).
 - "Warning: inventing type variables" means a term has an unfixed type:
   `val(word(1))` is a word of any size. Annotate it (`(word(1) : W32)`).
 - `const` and `loop` are MoonBit keywords.

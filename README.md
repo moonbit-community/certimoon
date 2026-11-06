@@ -343,6 +343,40 @@ of `≤` on their values) and `perm(ys, xs)` (each value as often, by
 by `perm_swap`; `isort_next`: putting x back keeps the outer one, by
 `sorted_insert`).
 
+Calls (`logic/calls.mbt`, `frames.mbt`, `call_rule.mbt`). A call's meaning
+depends on the store's function table, which the triples above do not see
+(they hold for every store), so calls are verified with module triples:
+
+- `has_call_b`, `has_call` (inductive): an instruction holds a `call` or
+  `call_indirect` at any depth (or is an `Invoke` or a `Frame`, which only
+  come from calls); `call_free(es)`: none does. `call_free_step`: a step of
+  call-free code keeps the store's functions and the frame's instance, and
+  leaves call-free code (by induction on the reduction rules);
+- `sl_triple_m(fs, inst, p, bs, q, ls)`: `sl_triple_l` for the stores whose
+  function table is fs, run in instance inst, before and after (`keep`).
+  `sl_triple_m_of`: every `sl_triple_l` of call-free code is one (from
+  `safel_keep`); `sl_seq_m`, `sl_conseq_m`;
+- frames, as labels: `frame_steps` (a step of `vs0 ++ [Frame(m, f1, es)]` is
+  a step of es in f1, or the frame leaving with es's values, a trap or a
+  return's values), `return_stuck` (a return in contexts does not step by
+  itself), `frame_safe` (the frame is safe while es is, and leaves with
+  es's results);
+- `call_step`, `invoke_step`: `call j` steps to `Invoke(sfunc_ind(inst,
+  j))`, which takes the arguments off the stack and becomes the frame
+  `Frame(m, Wframe(args ++ zeros, inst), [Label(m, NIL, body)])`;
+  `call_safe` puts them together;
+- `sl_call`: for function j of the module, native in instance inst, whose
+  body is proved from locals `args ++ zs` (and an empty stack) to results
+  Q (a br out of it also giving Q), `call j` takes the arguments (P) off
+  the stack and leaves results (Q), the caller's locals and the rest of its
+  stack as they were.
+
+`example_call` (`logic/example_call.mbt`): with function 0 the doubling
+function (`local.get 0; local.get 0; i32.add`, proved with `sym_prove` as
+`double_body`), `call 0` with x on the stack leaves x + x. Not yet: `return`
+(a body with return is not provable yet: frame_safe asks the body to be
+safe without it), recursion, `call_indirect`, calls in `sym_prove`.
+
 Control flow (`logic/labels.mbt`, `block.mbt`, `loop.mbt`) uses triples
 with label assertions, innermost first:
 

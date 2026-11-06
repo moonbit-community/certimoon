@@ -28,7 +28,12 @@ test "the logic's lemmas are theorems, with no new axioms" {
     "st_arr_load_at", "st_arr_store_at", "perm_refl", "perm_swap", "sorted_insert",
     "sorted_snoc_le", "snoc_cases", "list_update_snoc", "isort_bound", "isort_inner_entry",
     "isort_empty", "isort_stop", "isort_shift", "isort_next", "isort_done", "isort_start",
-    "isort_none", "example_insertion_sort",
+    "isort_none", "example_insertion_sort", "has_call_b_eq", "has_call_eq", "call_free_vals",
+    "call_free_basic", "call_free_lfill", "no_call_v_to_e", "s_funcs_updates", "simple_call_free",
+    "call_free_step", "safel_keep", "sl_triple_m_of", "sl_seq_m", "sl_conseq_m", "no_trap_frame",
+    "frame_simple", "frame_base", "frame_steps", "ret_not_vals", "return_stuck", "br_ret_distinct",
+    "frame_can_step", "frame_next", "frame_safe", "call_step", "invoke_base", "invoke_step",
+    "call_safe", "label_safe_top", "sl_call", "double_body", "example_call",
   ] {
     assert_true(@kernel.hyp(@logic.thm(name)).is_empty(), msg=name)
   }
