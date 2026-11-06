@@ -23,7 +23,8 @@ test "the logic's lemmas are theorems, with no new axioms" {
     "st_testop", "st_relop", "wsum_snoc", "wasm_bool_zero", "asum_addr", "asum_step",
     "asum_exit", "example_array_sum", "sl_unop", "sl_convert", "sl_reinterpret", "sl_nop", "is_val_v_to_e", "drop_cases", "sl_drop", "select_cases", "sl_select", "sl_load_i64",
     "sl_store_i64", "sl_load_packed_i32", "sl_load_packed_i64", "sl_store_packed_i32", "sl_store_packed_i64", "serialise_i64_length", "store_length", "mem_length_append", "heap_of_append",
-    "star_grow", "sl_memory_size", "sl_memory_grow",
+    "star_grow", "sl_memory_size", "sl_memory_grow", "sl_pre_l", "sl_step_l", "sl_nil_st",
+    "sl_br_st", "sl_br_if_st", "sl_if_st", "sl_block_st", "sl_loop_st",
   ] {
     assert_true(@kernel.hyp(@logic.thm(name)).is_empty(), msg=name)
   }

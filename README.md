@@ -228,13 +228,14 @@ only `[Trap]`, which is never safe for a step more), then `triple_seq` and
 `sl_seq`: `sl_triple(p, bs1, q)` and `sl_triple(q, bs2, r)` give
 `sl_triple(p, APPEND(bs1, bs2), r)`.
 
-`logic/examples.mbt` and `logic/example_sum.mbt` verify programs with the
-rules alone, gluing rule instances with `sl_seq` and `sl_conseq`: `example_store_load` says that
+`logic/examples.mbt` verifies a program with the rules alone, gluing rule
+instances with `sl_seq` and `sl_conseq`: `example_store_load` says that
 `[i32.const k; i32.const v; i32.store; i32.const k; i32.load]`, from
 `pts(val(k) + off, bs) * p` (bs 4 bytes), ends with v on the stack and
 `pts(val(k) + off, serialise_i32(v)) * p` (`deserialise_serialise_i32`:
-loading back what was stored gives the value). `example_sum` verifies a
-loop on locals: from locals `[n0, acc0]`,
+loading back what was stored gives the value). The other examples are
+proved by symbolic execution (below). `example_sum` verifies a loop on
+locals: from locals `[n0, acc0]`,
 
 ```
 local.get 0
@@ -249,14 +250,11 @@ end
 
 ends with locals `[0, acc0 + sum_to(val(n0))]` (`sum_to(n)` is
 1 + ... + n; the additions are on words), and the stack and `R` (the
-globals and memory) as they were. Its straight-line code uses the rules on
-exact states (`logic/state.mbt`): `st(v, l, R)` says the stack is v, the
-locals l and R holds of the globals and heap, and the `st_` rules (from the
-rules above) step from one exact state to the next, written out by `norm`.
-The loop's invariant goes into the body's precondition with `sl_pure_l`
-and `sl_ex_l` (a pure fact or an `∃` out of a precondition), the empty
-`else` is `sl_nil_l`, and `sl_triple_of_l` drops the empty list of labels
-at the end.
+globals and memory) as they were. The rules on exact states
+(`logic/state.mbt`) are what the symbolic execution runs: `st(v, l, R)`
+says the stack is v, the locals l and R holds of the globals and heap, and
+the `st_` rules (from the rules above) step from one exact state to the
+next, written out by `norm`.
 
 Arrays (`logic/arrays.mbt`): `arr(a, xs)` is the i32 words xs from address
 a (`pts` of their bytes, `words_bytes`). `arr_split` splits an array into
@@ -307,6 +305,26 @@ end
 
 ends with locals `[p, n, n, wsum(xs)]` (the words' sum) and the array
 unchanged.
+
+Symbolic execution (`logic/sym.mbt`): `sym_prove(name, stmt, invs, vcs)`
+proves a triple `sl_triple(st(...), code, q)` (after hypotheses) given an
+invariant for each loop, `λ lc gs ms h. ∃ xs. lc == l && facts && ...`.
+`sym_tac` runs the code: each straight-line instruction by the `st_` rule
+that matches the state (with `app_binop` and the others computed),
+`br_if` and `if` by going into both cases with the condition as an
+assumption, `block` and `loop` by going into the body (the loop's
+precondition taken apart into variables, facts and an exact state), and
+`br` and the end of the code by an entailment. The rules it uses are
+`sl_step_l`, `sl_br_if_st`, `sl_if_st`, `sl_block_st`, `sl_loop_st`,
+`sl_br_st`, `sl_nil_st` and `sl_pre_l`. The entailments are written out
+(lists and values compared elementwise, ∃s with an equation solved) and
+closed by rewriting with the assumptions when they can be; what is left
+are the verification conditions: an invariant on entry and again, the
+postcondition at exit, and side conditions such as an array element's
+address. `vcs` has one tactic for each, in order (a mismatch lists them).
+So `example_sum` is its code, its invariant and three one-line arithmetic
+proofs. Each `block`, `if` and `loop` must end its instruction list for
+now.
 
 Control flow (`logic/labels.mbt`, `block.mbt`, `loop.mbt`) uses triples
 with label assertions, innermost first:

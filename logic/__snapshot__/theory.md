@@ -1762,6 +1762,62 @@ lemma `st_arr_load`
 ∀ v : List[Value], ∀ l : List[Value], ∀ a : Num, ∀ ys : List[W32], ∀ x0 : W32, ∀ zs : List[W32], ∀ fp : GProp, ∀ k : W32, ∀ al : Num, ∀ off : Num, val(k) + off == a + 4 * LENGTH(ys) → sl_triple(st(APPEND(v, [V_num(ConstInt32(k))]), l, (gs : List[Value]) => (ms : Num) => (h : Heap) => star(arr(a, APPEND(ys, CONS(x0, zs))), fp(gs, ms), h)), [Load(T_i32, NONE, al, off)], st(APPEND(v, [V_num(ConstInt32(x0))]), l, (gs : List[Value]) => (ms : Num) => (h : Heap) => star(arr(a, APPEND(ys, CONS(x0, zs))), fp(gs, ms), h)))
 ```
 
+## Symbolic execution (sym.mbt)
+
+lemma `sl_pre_l`
+
+```
+∀ p : SAssn, ∀ p2 : SAssn, ∀ bs : List[B_e], ∀ q : SAssn, ∀ ls : List[SAssn], (∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, p2(vs, lc, gs, ms, h) → p(vs, lc, gs, ms, h)) && sl_triple_l(p, bs, q, ls) → sl_triple_l(p2, bs, q, ls)
+```
+
+lemma `sl_step_l`
+
+```
+∀ p : SAssn, ∀ i : B_e, ∀ q : SAssn, ∀ rest : List[B_e], ∀ r : SAssn, ∀ ls : List[SAssn], sl_triple(p, [i], q) → sl_triple_l(q, rest, r, ls) → sl_triple_l(p, CONS(i, rest), r, ls)
+```
+
+lemma `sl_nil_st`
+
+```
+∀ v : List[Value], ∀ l : List[Value], ∀ R : GProp, ∀ r : SAssn, ∀ ls : List[SAssn], (∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → r(v, l, gs, ms, h)) → sl_triple_l(st(v, l, R), NIL, r, ls)
+```
+
+lemma `sl_br_st`
+
+```
+∀ v : List[Value], ∀ l : List[Value], ∀ R : GProp, ∀ i : Num, ∀ r : SAssn, ∀ ls : List[SAssn], i < LENGTH(ls) && (∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → (∃ vs0 : List[Value], ∃ vb : List[Value], v == APPEND(vs0, vb) && EL(i, ls, vb, l, gs, ms, h))) → sl_triple_l(st(v, l, R), [Br(i)], r, ls)
+```
+
+lemma `sl_br_if_st`
+
+```
+∀ v : List[Value], ∀ l : List[Value], ∀ R : GProp, ∀ c : W32, ∀ i : Num, ∀ rest : List[B_e], ∀ r : SAssn, ∀ ls : List[SAssn], (!(c == word(0)) → sl_triple_l(st(v, l, R), [Br(i)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => false, ls)) && (c == word(0) → sl_triple_l(st(v, l, R), rest, r, ls)) → sl_triple_l(st(APPEND(v, [V_num(ConstInt32(c))]), l, R), CONS(Br_if(i), rest), r, ls)
+```
+
+lemma `sl_if_st`
+
+```
+∀ v : List[Value], ∀ l : List[Value], ∀ R : GProp, ∀ c : W32, ∀ tb : Tb, ∀ bs1 : List[B_e], ∀ bs2 : List[B_e], ∀ r : SAssn, ∀ ls : List[SAssn], (!(c == word(0)) → sl_triple_l(st(v, l, R), [Block(tb, bs1)], r, ls)) && (c == word(0) → sl_triple_l(st(v, l, R), [Block(tb, bs2)], r, ls)) → sl_triple_l(st(APPEND(v, [V_num(ConstInt32(c))]), l, R), [If(tb, bs1, bs2)], r, ls)
+```
+
+lemma `sl_block_st`
+
+```
+∀ v : List[Value], ∀ l : List[Value], ∀ R : GProp, ∀ ot : Option[Valtype], ∀ bs : List[B_e], ∀ r : SAssn, ∀ ls : List[SAssn], sl_triple_l(st(NIL, l, R), bs, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => r(APPEND(v, vs), lc, gs, ms, h), CONS((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => LENGTH(vs) == LENGTH(tbv_results(ot)) && r(APPEND(v, vs), lc, gs, ms, h), ls)) → sl_triple_l(st(v, l, R), [Block(Tbv(ot), bs)], r, ls)
+```
+
+lemma `sl_loop_st`
+
+```
+∀ linv : (List[Value], List[Value], Num, Heap) -> Bool, ∀ v : List[Value], ∀ l : List[Value], ∀ R : GProp, ∀ ot : Option[Valtype], ∀ bs : List[B_e], ∀ r : SAssn, ∀ ls : List[SAssn], (∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → linv(l, gs, ms, h)) && sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == NIL && linv(lc, gs, ms, h), bs, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => r(APPEND(v, vs), lc, gs, ms, h), CONS((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == NIL && linv(lc, gs, ms, h), ls)) → sl_triple_l(st(v, l, R), [Loop(Tbv(ot), bs)], r, ls)
+```
+
+lemma `wasm_bool_zero`
+
+```
+∀ b : Bool, (wasm_bool(b) == word(0)) == !b
+```
+
 ## Examples (examples.mbt)
 
 example `example_store_load`
@@ -1840,12 +1896,6 @@ lemma `wsum_snoc`
 
 ```
 ∀ ys : List[W32], ∀ y : W32, wsum(APPEND(ys, [y])) == word_add(wsum(ys), y)
-```
-
-lemma `wasm_bool_zero`
-
-```
-∀ b : Bool, (wasm_bool(b) == word(0)) == !b
 ```
 
 lemma `val_add_one`

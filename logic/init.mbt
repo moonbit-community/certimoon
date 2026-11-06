@@ -56,6 +56,8 @@ pub fn load() -> Unit {
     prove_state_rules()
     section("Arrays (arrays.mbt)")
     prove_array_rules()
+    section("Symbolic execution (sym.mbt)")
+    prove_sym_rules()
     section("Examples (examples.mbt)")
     prove_examples()
   })() catch {

@@ -13,29 +13,9 @@
 // from locals [p0, m] and the array ys (m words) at p0 ends with locals
 // [p0 + 4m, 0] and the array REPLICATE(m, x), if p0 + 4m < 2^32. The
 // loop's invariant: locals [p, c], c ≠ 0, p = p0 + 4(m - c), and the array
-// is (m - c) copies of x, then y :: zs (c words still to write). The
-// arithmetic and list facts are lemmas (fill_entry, fill_step,
-// fill_exit); the proof has the shape of example_sum's.
-
-///|
-/// `goal`, proved by `tac` with `hyps` as assumptions; the theorem keeps
-/// them as hypotheses.
-fn under(
-  hyps : Array[@kernel.Term],
-  goal : @kernel.Term,
-  tac : @tactics.Tactic,
-) -> @kernel.Thm raise {
-  let mut g = goal
-  for k = hyps.length() - 1; k >= 0; k = k - 1 {
-    g = @bool.mk_imp(hyps[k], g)
-  }
-  let disch = hyps.map(_ => @tactics.disch_then(th => @tactics.strip_assume_tac(th)))
-  let mut th = @tactics.prove(g, seq(disch + [tac]))
-  for h in hyps {
-    th = @bool.mp(th, @kernel.assume_rule(h))
-  }
-  th
-}
+// is (m - c) copies of x, then y :: zs (c words still to write).
+// sym_prove runs the code; the arithmetic and list facts it leaves are
+// lemmas (fill_entry, fill_step, fill_exit).
 
 ///|
 fn prove_fill_lemmas() -> Unit raise {
@@ -163,249 +143,45 @@ fn prove_example_fill() -> Unit raise {
   prove_fill_lemmas()
   let w = w32
   let i = (x : String) => "V_num(ConstInt32(\{x}))"
-  let nil = "(NIL : List[Value])"
-  let vs0 = "(vs0 : List[Value])"
-  let p0 = "(p0 : \{w})"
-  let m = "(m : \{w})"
-  let x = "(x : \{w})"
-  let p = "(p : \{w})"
-  let c = "(c : \{w})"
-  let y = "(y : \{w})"
-  let zs = "(zs : List[\{w}])"
-  let fp = "(fp : \{rty})"
-  // the array at p0, as a state's R (with η done, as norm leaves it)
-  let array = (xs : String) => "(gs : List[Value]) => (ms : Num) => star(arr(val(\{p0}), \{xs}), \{fp}(gs, ms))"
-  let written = "REPLICATE(val(\{m}) - val(\{c}), \{x})"
-  let a_body = array("APPEND(\{written}, CONS(\{y}, \{zs}))")
-  let a_after = array("APPEND(\{written}, CONS(\{x}, \{zs}))")
-  let a_final = array("REPLICATE(val(\{m}), \{x})")
-  let p4 = "word_add(\{p}, word(4))"
-  let c1 = "word_sub(\{c}, word(1))"
-  let l0 = "[\{i(p)}, \{i(c)}]"
-  let l1 = "[\{i(p4)}, \{i(c)}]"
-  let l2 = "[\{i(p4)}, \{i(c1)}]"
-  let body_code = "[Local_get(0), EConstNum(ConstInt32(\{x})), Store(T_i32, NONE, 2, 0), Local_get(0), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Add)), Local_set(0), Local_get(1), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), Local_set(1), Local_get(1), Br_if(0)]"
-  let bound = tm("val(\{p0}) + 4 * val(\{m}) < 4294967296")
-  let linv = "(lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => ∃ p : \{w}, ∃ c : \{w}, ∃ y : \{w}, ∃ zs : List[\{w}], lc == [\{i("p")}, \{i("c")}] && !(c == word(0)) && val(p) == val(\{p0}) + 4 * (val(\{m}) - val(c)) && val(c) <= val(\{m}) && SUC(LENGTH(zs)) == val(c) && star(arr(val(\{p0}), APPEND(REPLICATE(val(\{m}) - val(c), \{x}), CONS(y, zs))), \{fp}(gs, ms), h)"
-  let done = "st(\{nil}, [\{i("word_add(\{p0}, word(4 * val(\{m})))")}, \{i("word(0)")}], \{a_final})"
-  let no_br = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => false"
-  let loop_rule = beta(
-    @bool.ispecl(
-      @list.List([tm("(NONE : Option[Valtype])"), tm(body_code), tm(linv), tm(done), tm("[\{no_br}]"), tm(nil)]),
-      thm("sl_loop"),
-    ),
-  )
-  let (_, premise_args) = @basics.strip_comb(@kernel.rand(@kernel.rator(@kernel.concl(loop_rule))))
-  let lb = premise_args.to_array()[0]
-  let labels = premise_args.to_array()[3]
-  // the facts the invariant gives about p, c and zs
-  let facts = [
-    tm("!(\{c} == word(0))"),
-    tm("val(\{p}) == val(\{p0}) + 4 * (val(\{m}) - val(\{c}))"),
-    tm("val(\{c}) <= val(\{m})"),
-    tm("SUC(LENGTH(\{zs})) == val(\{c})"),
-  ]
-  // the element written is at p
-  let store = @bool.ispecl(
-    @list.List(
-      [nil, l0, "val(\{p0})", written, y, zs, fp, p, "2", "0", x].map(tm),
-    ),
-    thm("st_arr_store"),
-  )
-  let store = discharge(store, ant => under(
-    facts,
-    ant,
-    @simp.asm_rewrite_tac(ths([@lists.length_replicate(), @arith.add_clauses()])),
-  ))
-  let steps = [
-    inst("st_local_get", [nil, l0, a_body, "0"]),
-    inst("st_const", ["[\{i(p)}]", l0, a_body, "ConstInt32(\{x})"]),
-    norm(store),
-    inst("st_local_get", [nil, l0, a_after, "0"]),
-    inst("st_const", ["[\{i(p)}]", l0, a_after, "ConstInt32(word(4))"]),
-    inst("st_binop", [nil, l0, a_after, "T_i32", "Binop_i(Add)", "ConstInt32(\{p})", "ConstInt32(word(4))", "ConstInt32(\{p4})"]),
-    inst("st_local_set", [nil, l0, a_after, "0", "ConstInt32(\{p4})"]),
-    inst("st_local_get", [nil, l1, a_after, "1"]),
-    inst("st_const", ["[\{i(c)}]", l1, a_after, "ConstInt32(word(1))"]),
-    inst("st_binop", [nil, l1, a_after, "T_i32", "Binop_i(Sub)", "ConstInt32(\{c})", "ConstInt32(word(1))", "ConstInt32(\{c1})"]),
-    inst("st_local_set", [nil, l1, a_after, "1", "ConstInt32(\{c1})"]),
-    inst("st_local_get", [nil, l2, a_after, "1"]),
-  ]
-  let mut straight = steps[0]
-  for k in 1..<steps.length() {
-    straight = glue(straight, steps[k])
-  }
-  // br_if 0: back with the invariant (fill_step), or out (fill_exit)
-  let br_rule = @bool.ispecl(@list.List([tm("0"), labels]), thm("sl_br"))
-  let (br_pre, _, br_post, _) = triple_l_terms(@kernel.rand(@kernel.concl(br_rule)))
-  let br_if = norm(
-    @bool.ispecl(
-      @list.List([tm("st(\{nil}, \{l2}, \{a_after})"), tm(done), labels, tm("0"), tm(c1)]),
-      thm("sl_br_if"),
-    ),
-  )
-  let lemma_args = @list.List([p0, m, p, c, x, zs].map(tm))
-  let step = @bool.ispecl(lemma_args, thm("fill_step"))
-  let exit = @bool.ispecl(lemma_args, thm("fill_exit"))
-  let br_if = discharge(br_if, ant => under(
-    [bound] + facts,
-    ant,
-    @tactics.thenl(
-      @tactics.conj_tac,
-      @list.List([
-        seq([
-          @tactics.disch_tac,
-          @tactics.mp_tac(step),
-          @simp.asm_rewrite_tac(ths([])),
-          @tactics.repeat_tac(@tactics.strip_tac),
-          subst_vars(),
-          @tactics.match_mp_tac(thm("sl_conseq_l")),
-          @tactics.exists_tac(br_pre),
-          @tactics.exists_tac(br_post),
-          @tactics.exists_tac(labels),
-          @tactics.thenl(
-            @tactics.repeat_tac(@tactics.conj_tac),
-            @list.List([
-              seq([
-                @tactics.repeat_tac(@tactics.gen_tac),
-                @simp.rewrite_tac(ths([thm("st")])),
-                @tactics.repeat_tac(@tactics.strip_tac),
-                subst_vars(),
-                @tactics.exists_tac(tm(nil)),
-                @tactics.exists_tac(tm(nil)),
-                @simp.rewrite_tac(ths([@lists.append(), @lists.el_cons()])),
-                @tactics.conv_tac(@calc_num.num_reduce_conv),
-                @simp.rewrite_tac(ths([])),
-                @tactics.exists_tac(tm(p4)),
-                @tactics.exists_tac(tm(c1)),
-                @tactics.exists_tac(tm("(y2 : \{w})")),
-                @tactics.exists_tac(tm("(zs2 : List[\{w}])")),
-                @simp.asm_rewrite_tac(ths([])),
-              ]),
-              seq([
-                @tactics.match_mp_tac(br_rule),
-                @simp.rewrite_tac(ths([@lists.length(), arith("∀ n : Num, 0 < SUC(n)")])),
-              ]),
-              @simp.rewrite_tac(ths([])),
-              @simp.rewrite_tac(ths([])),
-              seq([@tactics.repeat_tac(@tactics.strip_tac), @simp.asm_rewrite_tac(ths([]))]),
-            ]),
-          ),
-        ]),
-        seq([
-          @tactics.disch_tac,
-          @tactics.mp_tac(exit),
-          @simp.asm_rewrite_tac(ths([])),
-          @tactics.strip_tac,
-          ent_tac(),
-        ]),
-      ]),
-    ),
-  ))
-  let body = glue(with_labels(straight, labels), br_if, rule="sl_seq_l")
-  let facts_conj = @bool.list_mk_conj(@list.List(facts))
-  let body = under(
-    [bound],
-    @bool.mk_imp(facts_conj, @kernel.concl(body)),
-    seq([@tactics.disch_then(th => @tactics.strip_assume_tac(th)), @tactics.accept_tac(body)]),
-  )
-  let body = beta(@drule.match_mp(thm("sl_pure_l"))(body))
-  let body = beta(@drule.match_mp(thm("sl_ex_l"))(@bool.gen(tm(zs), body)))
-  let body = beta(@drule.match_mp(thm("sl_ex_l"))(@bool.gen(tm(y), body)))
-  let body = beta(@drule.match_mp(thm("sl_ex_l"))(@bool.gen(tm(c), body)))
-  let body = beta(@drule.match_mp(thm("sl_ex_l"))(@bool.gen(tm(p), body)))
-  let (_, _, body_post, _) = triple_l_parts(body)
-  let body = conseq_l(body, lb, body_post, ent_tac(), hyps=[bound])
-  let looped = @bool.mp(loop_rule, body)
-  // the block around the loop (m ≠ 0), the empty block (m = 0), the if
-  let (loop_pre, loop_code, loop_post, _) = triple_l_parts(looped)
-  let ys = "(ys : List[\{w}])"
-  let start = tm("st(\{vs0}, [\{i(p0)}, \{i(m)}], \{array(ys)})")
-  let finish = tm("st(\{vs0}, [\{i("word_add(\{p0}, word(4 * val(\{m})))")}, \{i("word(0)")}], \{a_final})")
-  let length = tm("LENGTH(\{ys}) == val(\{m})")
-  let block_rule = (code : @kernel.Term, pb : @kernel.Term, qb : @kernel.Term) => beta(
-    @bool.ispecl(
-      @list.List([tm("(NONE : Option[Valtype])"), code, pb, qb, tm(no_br), tm("(NIL : List[\{sassn}])"), tm(vs0)]),
-      thm("sl_block"),
-    ),
-  )
-  let nonzero = @bool.mp(block_rule(loop_code, loop_pre, loop_post), looped)
-  let nz = tm("!(\{m} == word(0))")
-  let entry = @bool.ispecl(@list.List([tm(m), tm(ys)]), thm("fill_entry"))
-  let nonzero = conseq_l(
-    nonzero,
-    start,
-    finish,
-    seq([
-      // ys is y :: zs, all still to write
-      @tactics.mp_tac(entry),
-      @simp.asm_rewrite_tac(ths([])),
-      @tactics.strip_tac,
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @simp.rewrite_tac(ths([thm("st"), @lists.append(), @lists.append_nil()])),
-      @tactics.repeat_tac(@tactics.strip_tac),
-      subst_vars(),
-      @simp.rewrite_tac(ths([])),
-      @tactics.try_tac(seq([
-        @tactics.exists_tac(tm(p0)),
-        @tactics.exists_tac(tm(m)),
+  let array = (xs : String) => "(gs : List[Value]) => (ms : Num) => star(arr(val(p0), \{xs}), fp(gs, ms))"
+  let body = "[Local_get(0), EConstNum(ConstInt32(x)), Store(T_i32, NONE, 2, 0), Local_get(0), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Add)), Local_set(0), Local_get(1), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), Local_set(1), Local_get(1), Br_if(0)]"
+  let code = "[Local_get(1), If(Tbv(NONE), [Loop(Tbv(NONE), \{body})], NIL)]"
+  let inv = "(lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => ∃ p : \{w}, ∃ c : \{w}, ∃ y : \{w}, ∃ zs : List[\{w}], lc == [\{i("p")}, \{i("c")}] && !(c == word(0)) && val(p) == val((p0 : \{w})) + 4 * (val((m : \{w})) - val(c)) && val(c) <= val(m) && SUC(LENGTH(zs)) == val(c) && star(arr(val(p0), APPEND(REPLICATE(val(m) - val(c), (x : \{w})), CONS(y, zs))), (fp : \{rty})(gs, ms), h)"
+  let args = ["(p0 : \{w})", "(m : \{w})", "(p : \{w})", "(c : \{w})", "(x : \{w})", "(zs : List[\{w}])"]
+  let _ = sym_prove(
+    "example_fill",
+    "∀ ys : List[\{w}], ∀ vs0 : List[Value], ∀ p0 : \{w}, ∀ m : \{w}, ∀ x : \{w}, ∀ fp : \{rty}, LENGTH(ys) == val(m) && val(p0) + 4 * val(m) < 4294967296 → sl_triple(st(vs0, [\{i("p0")}, \{i("m")}], \{array("ys")}), \{code}, st(vs0, [\{i("word_add(p0, word(4 * val(m)))")}, \{i("word(0)")}], \{array("REPLICATE(val(m), x)")}))",
+    [inv],
+    [
+      // entry: ys is y :: zs, none written yet
+      seq([
+        by_lemma(thm("fill_entry"), ["(m : \{w})", "(ys : List[\{w}])"]),
+        subst_vars(),
         @tactics.exists_tac(tm("(y : \{w})")),
         @tactics.exists_tac(tm("(zs : List[\{w}])")),
-      ])),
-      @simp.asm_rewrite_tac(
-        ths([arith("∀ n : Num, n - n == 0"), @arith.mult_clauses(), @arith.add_clauses(), @lists.replicate(), @lists.append(), @lists.append_nil(), @arith.le_refl()]),
-      ),
-    ]),
-    hyps=[nz, length, bound],
-  )
-  let empty = tm("st(\{nil}, [\{i(p0)}, \{i(m)}], \{array(ys)})")
-  let zero = block_rule(tm("(NIL : List[B_e])"), empty, empty)
-  let zero = @bool.mp(zero, @bool.ispecl(@list.List([empty, tm("[\{no_br}]")]), thm("sl_nil_l")))
-  let z = tm("\{m} == word(0)")
-  let zero = conseq_l(
-    zero,
-    start,
-    finish,
-    seq([
-      subst_vars(),
-      @tactics.rule_assum_tac(@simp.rewrite_rule(ths([@words.val_word_0(), @lists.length_eq_nil()]))),
-      subst_vars(),
-      ent_tac(rws=[@words.val_word_0(), @arith.mult_clauses(), @words.word_add_0(), @lists.replicate()]),
-    ]),
-    hyps=[z, length],
-  )
-  let if_rule = norm(
-    @bool.ispecl(
-      @list.List([
-        start,
-        finish,
-        tm("(NIL : List[\{sassn}])"),
-        tm("Tbv((NONE : Option[Valtype]))"),
-        tm("[Loop(Tbv((NONE : Option[Valtype])), \{body_code})]"),
-        tm("(NIL : List[B_e])"),
-        tm(m),
+        @simp.asm_rewrite_tac(
+          ths([arith("∀ n : Num, n - n == 0"), @arith.mult_clauses(), @arith.add_clauses(), @lists.replicate(), @lists.append(), @arith.le_refl()]),
+        ),
       ]),
-      thm("sl_if"),
-    ),
-  )
-  let if_rule = discharge(if_rule, ant => under(
-    [length, bound],
-    ant,
-    @tactics.thenl(
-      @tactics.conj_tac,
-      @list.List([
-        seq([@tactics.disch_tac, @tactics.accept_tac(nonzero)]),
-        seq([@tactics.disch_tac, @tactics.accept_tac(zero)]),
+      // the word written is at p
+      @simp.rewrite_tac(ths([@lists.length_replicate(), @arith.add_clauses()])),
+      // the invariant again
+      seq([
+        by_lemma(thm("fill_step"), args),
+        subst_vars(),
+        @tactics.exists_tac(tm("(y2 : \{w})")),
+        @tactics.exists_tac(tm("(zs2 : List[\{w}])")),
+        @simp.asm_rewrite_tac(ths([])),
       ]),
-    ),
-  ))
-  let get = inst("st_local_get", [vs0, "[\{i(p0)}, \{i(m)}]", array(ys), "1"])
-  let all = glue(with_labels(get, tm("(NIL : List[\{sassn}])")), if_rule, rule="sl_seq_l")
-  let all = @drule.match_mp(thm("sl_triple_of_l"))(all)
-  let all = under(
-    [],
-    @bool.mk_imp(@bool.mk_conj(length, bound), @kernel.concl(all)),
-    seq([@tactics.disch_then(th => @tactics.strip_assume_tac(th)), @tactics.accept_tac(all)]),
+      // out of the loop
+      seq([by_lemma(thm("fill_exit"), args), @simp.asm_rewrite_tac(ths([]))]),
+      // m = 0: ys is empty
+      seq([
+        subst_vars(),
+        @tactics.rule_assum_tac(@simp.rewrite_rule(ths([@words.val_word_0(), @lists.length_eq_nil()]))),
+        subst_vars(),
+        @simp.asm_rewrite_tac(ths([@words.val_word_0(), @arith.mult_clauses(), @words.word_add_0(), @lists.replicate()])),
+      ]),
+    ],
   )
-  record("example_fill", @bool.gen_all(all), kind="example")
 }

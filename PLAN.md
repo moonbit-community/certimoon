@@ -86,7 +86,8 @@ the official spec testsuite (`wasm/spec_test.mbt`).
 | `sl_convert`, `sl_reinterpret` (cvtop) | done |
 | Packed loads and stores: `sl_load_packed_i32/i64`, `sl_store_packed_i32/i64` | done |
 | `sl_drop`, `sl_select` of any values (`value_cases`) | done |
-| Everything under "Next steps" | not started |
+| Symbolic execution: `sym_tac`, `sym_prove`; the loop examples use it | done |
+| Everything else under "Next steps" | not started |
 
 Known limits of what exists:
 
@@ -113,7 +114,7 @@ About the rules' shapes, from `example_sum` and `example_fill`:
   each value and `sl_pure_l`, `sl_ex_l` put the invariant's facts and
   values back into the precondition. That worked without changing them.
 - `sl_loop` and `sl_block` take their label assertions literally, so build
-  the rule instance first and read the label from it (as example_sum
+  the rule instance first and read the label from it (as sl_loop_st
   does) rather than writing it again.
 - The array rules take the array split at the element (`ys ++ [x] ++ zs`),
   so a loop that walks an array keeps the walked part and the rest in its
@@ -127,6 +128,21 @@ About the rules' shapes, from `example_sum` and `example_fill`:
   `xs` in `example_array_sum`) puts it in the loop's label too: do not
   rewrite or substitute it in a goal that still holds the labels.
 
+About the automation (`sym.mbt`):
+
+- It works backwards from the goal and rewrites only the precondition, so
+  the postcondition and the labels stay as the rules made them, and the
+  rule instances (`sl_loop`, `sl_block`) are built once, in `sl_loop_st`
+  and `sl_block_st`, rather than in each proof.
+- A straight-line rule is instantiated forwards, by matching its
+  precondition against the state with the stack split at its operands
+  (`split_stack`); its result (`app_binop`) is then computed, so the rule
+  needs no hypothesis about it.
+- Reshaping a loop invariant with MESON cost over a million inferences per
+  loop. Pulling the ∃s to the front by rewriting, taking them with
+  `sl_ex_l`, and then rearranging the conjuncts by rewriting with the
+  assumptions is immediate.
+
 ## Next steps
 
 In order. Each can be merged on its own. "Done when" means the named theorems
@@ -138,15 +154,21 @@ appear in `theory.md`, with the tests passing.
    `global.set` and `local.set` of any values (by `value_cases`, as `drop`),
    and lemmas that simplify packed loads (`deserialise_i32(sign_extend(...))`).
 
-2. **Automation.** A symbolic-execution tactic.
-   - The `st_` rules and `norm` already glue straight-line code with no
-     entailments. Generalize them: walk the instruction list, pick the rule for
-     each instruction, find the frame by matching `star` terms, and leave only
-     the loop invariants and real side conditions.
-   - Measure early on a program of about 100 instructions, because terms grow
-     and the tests already need a large stack.
-   - Done when: the proofs of `example_sum`, `example_fill` and
-     `example_array_sum` are a few lines each.
+2. **Automation.** Done: `sym_tac` and `sym_prove` (`logic/sym.mbt`) run
+   straight-line code with the `st_` rules, go into `br_if`, `if`, `block`
+   and `loop`, and leave the verification conditions, written out and
+   simplified. `example_sum`, `example_fill` and `example_array_sum` are now
+   their code, their invariant and one short tactic per condition. What a
+   later step will want:
+   - `block`, `if` and `loop` before more code (each must end its list now):
+     the sorting's inner loop is followed by the store of the element. The
+     way: an annotation for the state after it, then `sl_seq_l`.
+   - `br` to a block with results, and values on a `br`'s label other than
+     none; `local.tee`, `global.get`/`set`, `drop`, `select` and the other
+     loads and stores as `st_` rules (`step_rules` lists what it knows).
+   - Measured on straight-line code (`local.get; i32.const; i32.add;
+     local.set`, repeated) on the native target: 20 instructions in 0.1 s,
+     100 in 0.6 s, so a long program is not the problem; loading is.
 
 3. **Sorting.** Insertion sort of an i32 array in linear memory, written by
    hand: two nested loops, comparisons, array loads and stores.
@@ -267,6 +289,13 @@ Tactics:
 
 Rewriting:
 
+- `top_depth_conv` repeats its conversion until it fails, and a rewriting
+  conversion never fails, so `top_depth_conv(rewrite_conv(...))` never
+  stops (a stack overflow). Rewriting conversions already go to the end.
+- Matching `p(vs, lc, gs, ms, h)` against `st(v, l, R)(vs, lc, gs, ms, h)`
+  binds p to the η-expanded `λ vs ... . st(...)(vs, ...)`, so an
+  assumption about `st(v, l, R)` no longer matches: rewrite with
+  `@class.eta_ax()` first.
 - `@lists.append_assoc()` rewrites to the left-nested form. Use its `gsym` for
   the right-nested one.
 - Rewriting with both a theorem and its `gsym` loops, and the result is a stack
@@ -288,9 +317,13 @@ Syntax and names:
   need not be the order you expect.
 - `fn(g) { ... }` that raises is deprecated. Use `g => { ... }`.
 
-Costs: loading `logic` re-proves everything, about nine minutes on
-`wasm-gc` (November 2026), and each test file loads it again, so
-`moon test -p moonbit-community/wasmcert/logic` takes about 18. There is no
-theorem cache. Run one file with `moon test logic/logic_test.mbt`
-(`-f` filters test names, not files). `-p logic` alone also runs
-hol_light's own `logic` package.
+Costs: loading `logic` re-proves everything, and each test file loads it
+again; there is no theorem cache. With the build up to date,
+`moon test -p moonbit-community/wasmcert/logic` took about nine minutes on
+wasm (November 2026); a run after a change also recompiles, which can
+double that. Run one file with `moon test logic/logic_test.mbt` (`-f`
+filters test names, not files). `-p logic` alone also runs hol_light's own
+`logic` package. `--target native` gives the same listings in similar time
+and needs the large stack too (`ulimit -s 65520`). A crash there loses the
+buffered output: run the test executable under `lldb` (its argument is
+`logic_test.mbt:0-1`, the file and the tests' range) for a backtrace.
