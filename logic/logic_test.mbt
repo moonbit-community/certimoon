@@ -82,3 +82,12 @@ test "sl_loop states the loop rule" {
     ),
   )
 }
+
+///|
+/// The logic's theory as a document: __snapshot__/theory.md. It is in this
+/// file so that a test run loads the logic once (each test file is its own
+/// process).
+test "the theory listing" (t : @test.Test) {
+  t.write(@logic.listing())
+  t.snapshot(filename="theory.md")
+}

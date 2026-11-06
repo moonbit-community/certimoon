@@ -239,7 +239,10 @@ Proof search:
 
 - MESON can run for a very long time before failing, so calling it speculatively
   is expensive. Use it on small goals, with a short lemma list. Lists with big
-  distinctness theorems have overflowed the stack.
+  distinctness theorems have overflowed the stack. `first([meson, ...])`
+  over many goals runs it to failure on each goal it does not fit:
+  `reduce_imp_decomp` took 106 s that way and 0.6 s with one tactic per
+  case (`thenl`), and `length_drop` 39 s until arithmetic was tried first.
 - MESON does not reassociate appends: `vs0 ++ [x, y]` does not unify with
   `xs ++ [y]` ("solve_goal: Too deep"). `entails` and `then_rule` rewrite
   stacks to `vs0 ++ [x, y]` by default; pass `reassoc=false` when the target
@@ -320,13 +323,22 @@ Syntax and names:
   need not be the order you expect.
 - `fn(g) { ... }` that raises is deprecated. Use `g => { ... }`.
 
-Costs: loading `logic` re-proves everything, and each test file loads it
-again; there is no theorem cache. With the build up to date,
-`moon test -p moonbit-community/wasmcert/logic` took about nine minutes on
-wasm (November 2026); a run after a change also recompiles, which can
-double that. Run one file with `moon test logic/logic_test.mbt` (`-f`
-filters test names, not files). `-p logic` alone also runs hol_light's own
-`logic` package. `--target native` gives the same listings in similar time
-and needs the large stack too (`ulimit -s 65520`). A crash there loses the
+Costs: loading `logic` re-proves everything; there is no theorem cache.
+On wasm-gc, the module's preferred target, `moon test -p
+moonbit-community/wasmcert/logic` takes about a minute (November 2026),
+and rebuilding after a change a few seconds. Of a load: HOL Light's core
+and its words library about 20 s, the WasmCert definitions and facts 15 s,
+the logic 20 s, most of that in `step_cases` (expanding `reduce_base`'s
+40 cases for each way of splitting the operands; giving it the
+instruction's arity would avoid the split). The `wasm` and `native`
+targets are three to five times slower; `native --release` halves
+native's time but rebuilds the whole program, two minutes, after any
+change. Each test file is its own process and loads the logic again, so
+the logic's tests are all in `logic_test.mbt`. Run one file with `moon
+test logic/logic_test.mbt` (`-f` filters test names, not files); `-p
+logic` alone also runs hol_light's own `logic` package. To find what is
+slow, time `lemma` and `section` with `@env.now()` from a temporary
+whitebox test. On native (`ulimit -s 65520` too), a crash loses the
 buffered output: run the test executable under `lldb` (its argument is
-`logic_test.mbt:0-1`, the file and the tests' range) for a backtrace.
+`logic_test.mbt:0-1`, the file and the tests' range) for a backtrace, or
+`sample` it for a profile.

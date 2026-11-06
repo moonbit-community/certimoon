@@ -415,36 +415,35 @@ fn prove_decompose() -> Unit raise {
     "∀ s : Wstore, ∀ f : Wframe, ∀ lh : Lholed, ∀ e : List[Einstr], ∀ s' : Wstore, ∀ f' : Wframe, ∀ e' : List[Einstr], reduce_base(s, f, e, s', f', e') → reduce(s, f, lfill(lh, e), s', f', lfill(lh, e'))",
     @meson.meson_tac(ths([context, base_reduce, thm("lfilled_lfill")])),
   )
-  // each rule but the context rule is a base rule; the context rule
-  // composes contexts
-  let base_case = seq([
+  // each rule but the context rule is a base rule (reduce_base has the same
+  // rules without it, in the same order); the context rule composes
+  // contexts. One tactic per case: trying them in turn ran MESON to
+  // failure on every case it did not fit.
+  let base_case = (r : @kernel.Thm) => seq([
     @tactics.repeat_tac(@tactics.strip_tac),
     @tactics.match_mp_tac(base_lift),
-    @tactics.first(
-      @list.List(
-        base_rules.map(r => if @basics.is_imp(@basics.strip_forall(@kernel.concl(r)).1) {
-          seq([
-            @tactics.match_mp_tac(r),
-            @meson.asm_meson_tac(ths([decomp_reduce])),
-          ])
-        } else {
-          @tactics.match_accept_tac(r)
-        }),
-      ),
-    ),
+    if @basics.is_imp(@basics.strip_forall(@kernel.concl(r)).1) {
+      seq([@tactics.match_mp_tac(r), @meson.asm_meson_tac(ths([decomp_reduce]))])
+    } else {
+      @tactics.match_accept_tac(r)
+    },
   ])
   let context_case = seq([
     @tactics.repeat_tac(@tactics.strip_tac),
     @meson.asm_meson_tac(ths([thm("lfilled_eq"), thm("lfill_compose")])),
   ])
+  let cases = reduce_rules.mapi((k, _) => if k == context_rule_index {
+    context_case
+  } else {
+    base_case(base_rules[if k < context_rule_index { k } else { k - 1 }])
+  })
   let imp = lemma(
     "reduce_imp_decomp",
     "∀ s : Wstore, ∀ f : Wframe, ∀ les : List[Einstr], ∀ s' : Wstore, ∀ f' : Wframe, ∀ les' : List[Einstr], reduce(s, f, les, s', f', les') → (∃ lh : Lholed, ∃ e : List[Einstr], ∃ e' : List[Einstr], les == lfill(lh, e) && les' == lfill(lh, e') && reduce_base(s, f, e, s', f', e'))",
-    seq([
-      @tactics.match_mp_tac(thm("reduce_induct")),
-      @tactics.repeat_tac(@tactics.conj_tac),
-      @tactics.first(@list.List([context_case, base_case])),
-    ]),
+    @tactics.thenl(
+      seq([@tactics.match_mp_tac(thm("reduce_induct")), @tactics.repeat_tac(@tactics.conj_tac)]),
+      @list.List(cases),
+    ),
   )
   let _ = lemma(
     "reduce_decompose",
@@ -1070,6 +1069,10 @@ pub fn step_cases(
     for _ in 0..<6 {
       let cur = @equal.rhs(@kernel.concl(acc))
       let a = eval_conv(cur)
+      // nothing computed: cur is already simplified
+      if @basics.aconv(@equal.rhs(@kernel.concl(a)), cur) {
+        break
+      }
       let next = @kernel.trans(a, inversion_conv(@equal.rhs(@kernel.concl(a))))
       if @basics.aconv(@equal.rhs(@kernel.concl(next)), cur) {
         break

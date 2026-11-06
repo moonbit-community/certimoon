@@ -30,8 +30,9 @@ fn prove_memory() -> Unit raise {
     @arith.lt(),
     @nums.not_suc(),
   ]
+  // arithmetic first: MESON failing on an arithmetic goal is slow
   let finish = @tactics.try_tac(
-    @tactics.orelse_tac(@meson.asm_meson_tac(ths([])), @int.asm_arith_tac),
+    @tactics.orelse_tac(@int.asm_arith_tac, @meson.asm_meson_tac(ths([]))),
   )
   // induction on the list, then on n, then cases on i (when `on_i`)
   let induction = (on_i : Bool) => seq([

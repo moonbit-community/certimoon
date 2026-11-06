@@ -57,7 +57,7 @@ statement of it and short names for the long types:
 - [logic/__snapshot__/theory.md](logic/__snapshot__/theory.md): the program
   logic, its rules and examples.
 
-They are snapshot tests (`theory_test.mbt`): a test fails when the file no
+They are snapshot tests (`wasm/theory_test.mbt`, and one in `logic/logic_test.mbt`): a test fails when the file no
 longer matches what the package proves, and `moon test --update`
 regenerates it. Statements only: the proofs are the tactic code in the
 `.mbt` files, and loading a package checks them all.
@@ -378,7 +378,9 @@ fewer steps). [PLAN.md](PLAN.md) says what comes next.
 ## Tests
 
 `moon test` in a workspace tests every member, hol_light included, so
-select the package. Its tests need a larger stack than the default:
+select the package. Its tests need a larger stack than the default. The
+module's preferred target is wasm-gc, by far the fastest here (the logic's
+tests take about a minute), so `--target` can be left out:
 
 ```bash
 ulimit -s 65520 && moon test -p moonbit-community/wasmcert/wasm --target wasm-gc

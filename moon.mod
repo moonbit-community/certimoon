@@ -14,6 +14,6 @@ license = "BSD-2-Clause"
 
 keywords = [ "theorem-prover", "hol", "webassembly", "wasm" ]
 
-preferred_target = "wasm"
+preferred_target = "wasm-gc"
 
 description = "WasmCert-Isabelle's WebAssembly formalization, ported to bobzhang/hol_light"
