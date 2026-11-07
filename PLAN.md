@@ -91,6 +91,7 @@ the official spec testsuite (`wasm/spec_test.mbt`).
 | `example_insertion_sort`; array rules by index; states after a block | done |
 | Calls: call-free code, module triples, frames, `sl_call`, `example_call` | done |
 | Returns (`safer`), function specs and recursion (`sl_triple_g`, `sl_funs_g`), calls in `sym_prove`, `example_fact` | done |
+| `example_quicksort`: recursive quicksort with a partition function | done |
 | Everything else under "Next steps" | not started |
 
 Known limits of what exists:
@@ -194,6 +195,18 @@ appear in `theory.md`, with the tests passing.
      call by a spec theorem `∀ xs. G(a, P, Q)` whose P is `args == [..] &&
      R(gs, ms, h)` (the state's R is used as the frame).
    - `example_fact`: recursive factorial with an early return.
+   - `example_quicksort` (logic/example_qsort.mbt): quicksort and Lomuto's
+     partition as two functions, quicksort calling both. Calls whose spec's
+     variables are not on the stack (the array's parts) take them from
+     `sym_prove`'s `calls`, one entry per call. What it showed:
+     - Specs about a segment of a whole array (`A ++ B ++ Cs`, with lengths
+       for lo and hi) need no heap splitting: the recursive calls choose
+       A and Cs, and the caller's array is A ++ ys ++ Cs after each.
+     - Writing the loop's array as a right-nested APPEND and the indices
+       as sums of lengths (`val(i) == LENGTH(A) + LENGTH(L)`) lets one
+       lemma do each EL and list_update (`el_mid`, `part_swap`).
+     - perm by counts (`perm`'s FILTER lengths) needs no permutation
+       library: each perm lemma is a case on one value and arithmetic.
 
    Still to do:
    - `call_indirect`. The target comes from a table in the store, which
@@ -213,7 +226,8 @@ appear in `theory.md`, with the tests passing.
    - Calls in sym_prove whose spec frames memory (P not of the form
      `args == [..] && R(...)`): use sl_call_g and sl_conseq_g by hand.
    - Loops with calls in sym_prove are untested (sl_loop_st_g is proved
-     but no example uses it).
+     but no example uses it; the quicksort's loop is in the call-free
+     partition).
 
 5. **Real programs.** An untrusted `.wat` or `.wasm` importer that makes programs
    through the builder, then verify a function from a compiled module (a sort
@@ -295,6 +309,8 @@ Tactics:
 - `subst_vars` also substitutes away the module's fs and inst when an
   assumption says `s_funcs(s) == fs`: specs.mbt keeps these facts as one
   `in_mod(fs, inst, s, f)` (`keep_in_mod`) so that it does not.
+- `n_zeros` of a non-empty list needs `@ind_types.match_conv` (`those` is
+  a `match`), after rewriting with its definitions.
 - `match_accept_tac` can run for very long on a big triple that does not
   match at once: `accept_tac` of the exact instance (`ispecl`) instead.
 - `@lists.list_induct_tac` names the head and tail `h` and `t`.
@@ -363,6 +379,9 @@ Syntax and names:
 - Instantiating a lemma's free variable with a goal variable of the same name
   as one of the lemma's bound variables (`f0 := f` under `∀ f`) made
   `match_mp_tac` fail: name bound variables apart (`s2`, `f2`).
+- HOL constants named like variables: `F` (false), `C` (the flip
+  combinator) and `U` (unsigned, of `Lt(U)`) cannot be variables; an `∃ U`
+  binder is renamed `U'`.
 - A variable whose type only a binder fixes (`x` in `fact_w(val(x))`)
   gets a type variable in a term written alone (an `exists_tac` term), and
   then does not match the theorem's `x`; annotate it (`(x : W32)`).

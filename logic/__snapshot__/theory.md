@@ -2512,6 +2512,12 @@ lemma `sl_call_st_g`
 ∀ G : (Num, (List[Value], List[Value], Num, Heap) -> Bool, (List[Value], List[Value], Num, Heap) -> Bool) -> Bool, ∀ fs : List[Cl], ∀ inst : Inst, ∀ rp : SAssn, ∀ j : Num, ∀ P : (List[Value], List[Value], Num, Heap) -> Bool, ∀ aout : List[Value], ∀ Rout : GProp, ∀ v0 : List[Value], ∀ ain : List[Value], ∀ l : List[Value], ∀ R : GProp, ∀ rest : List[B_e], ∀ r : SAssn, ∀ ls : List[SAssn], G(sfunc_ind(inst, j), P, (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => res == aout && Rout(gs, ms, h)) → (∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → P(ain, gs, ms, h)) && sl_triple_g(G, fs, inst, rp, st(APPEND(v0, aout), l, Rout), rest, r, ls) → sl_triple_g(G, fs, inst, rp, st(APPEND(v0, ain), l, R), CONS(Call(j), rest), r, ls)
 ```
 
+lemma `sl_call_spec_g`
+
+```
+∀ G : (Num, (List[Value], List[Value], Num, Heap) -> Bool, (List[Value], List[Value], Num, Heap) -> Bool) -> Bool, ∀ fs : List[Cl], ∀ inst : Inst, ∀ rp : SAssn, ∀ j : Num, ∀ P : (List[Value], List[Value], Num, Heap) -> Bool, ∀ Q : (List[Value], List[Value], Num, Heap) -> Bool, ∀ v0 : List[Value], ∀ ain : List[Value], ∀ l : List[Value], ∀ R : GProp, ∀ rest : List[B_e], ∀ r : SAssn, ∀ ls : List[SAssn], G(sfunc_ind(inst, j), P, Q) → (∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → P(ain, gs, ms, h)) && sl_triple_g(G, fs, inst, rp, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ res : List[Value], vs == APPEND(v0, res) && lc == l && Q(res, gs, ms, h), rest, r, ls) → sl_triple_g(G, fs, inst, rp, st(APPEND(v0, ain), l, R), CONS(Call(j), rest), r, ls)
+```
+
 lemma `sl_return_st_g`
 
 ```
@@ -2806,4 +2812,178 @@ example `example_fact`
 
 ```
 ∀ fs : List[Cl], ∀ inst : Inst, ∀ x : W32, ∀ R : GProp, ∀ vs0 : List[Value], ∀ lc0 : List[Value], EL(sfunc_ind(inst, 0), fs) == Func_native(inst, Tf([T_num(T_i32)], [T_num(T_i32)]), NIL, [Local_get(0), Testop(T_i32, Eqz), If(Tbv(NONE), [EConstNum(ConstInt32(word(1))), Return], NIL), Local_get(0), Local_get(0), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), Call(0), Binop(T_i32, Binop_i(Mul))]) → sl_triple_m(fs, inst, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == APPEND(vs0, [V_num(ConstInt32(x))]) && lc == lc0 && R(gs, ms, h), [Call(0)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == APPEND(vs0, [V_num(ConstInt32(fact_w(val(x))))]) && lc == lc0 && R(gs, ms, h), NIL)
+```
+
+definition `rot`
+
+```
+rot(NIL) == NIL && rot(CONS((g : W32), (t : List[W32]))) == APPEND(t, [g])
+```
+
+lemma `val_pred`
+
+```
+∀ x : W32, 0 < val(x) → val(word_sub(x, word(1))) == val(x) - 1
+```
+
+lemma `val_succ`
+
+```
+∀ x : W32, val(x) + 1 < 4294967296 → val(word_add(x, word(1))) == val(x) + 1
+```
+
+lemma `nonempty_cons`
+
+```
+∀ l0 : List[A], !(LENGTH(l0) == 0) → (∃ u : A, ∃ U2 : List[A], l0 == CONS(u, U2))
+```
+
+lemma `el_at`
+
+```
+∀ l : List[A], ∀ vi : List[A], ∀ v : A, ∀ vs : List[A], ∀ k : Num, l == APPEND(vi, CONS(v, vs)) && LENGTH(vi) == k → EL(k, l) == v
+```
+
+lemma `update_at`
+
+```
+∀ l : List[A], ∀ vi : List[A], ∀ v : A, ∀ vs : List[A], ∀ k : Num, ∀ x : A, l == APPEND(vi, CONS(v, vs)) && LENGTH(vi) == k → list_update(l, k, x) == APPEND(vi, CONS(x, vs))
+```
+
+lemma `el_mid`
+
+```
+∀ A : List[W32], ∀ L : List[W32], ∀ G : List[W32], ∀ u : W32, ∀ R : List[W32], EL(LENGTH(A) + LENGTH(L) + LENGTH(G), APPEND(A, APPEND(L, APPEND(G, CONS(u, R))))) == u
+```
+
+lemma `el_mid2`
+
+```
+∀ A : List[W32], ∀ L : List[W32], ∀ u : W32, ∀ R : List[W32], EL(LENGTH(A) + LENGTH(L), APPEND(A, APPEND(L, CONS(u, R)))) == u
+```
+
+lemma `part_swap`
+
+```
+∀ A : List[W32], ∀ L : List[W32], ∀ G : List[W32], ∀ u : W32, ∀ R : List[W32], list_update(list_update(APPEND(A, APPEND(L, APPEND(G, CONS(u, R)))), LENGTH(A) + LENGTH(L), u), LENGTH(A) + LENGTH(L) + LENGTH(G), EL(LENGTH(A) + LENGTH(L), APPEND(A, APPEND(L, APPEND(G, CONS(u, R)))))) == APPEND(A, APPEND(L, CONS(u, APPEND(rot(G), R))))
+```
+
+lemma `count_rot`
+
+```
+∀ P : (W32) -> Bool, ∀ G : List[W32], LENGTH(FILTER(P, rot(G))) == LENGTH(FILTER(P, G))
+```
+
+lemma `length_rot`
+
+```
+∀ G : List[W32], LENGTH(rot(G)) == LENGTH(G)
+```
+
+lemma `all_rot`
+
+```
+∀ P : (W32) -> Bool, ∀ G : List[W32], ALL(P, rot(G)) == ALL(P, G)
+```
+
+lemma `perm_move`
+
+```
+∀ L : List[W32], ∀ G : List[W32], ∀ u : W32, ∀ R : List[W32], ∀ Bt : List[W32], perm(APPEND(L, APPEND(G, CONS(u, R))), Bt) → perm(APPEND(L, CONS(u, APPEND(rot(G), R))), Bt)
+```
+
+lemma `perm_rot`
+
+```
+∀ L : List[W32], ∀ G : List[W32], ∀ Bt : List[W32], perm(APPEND(L, G), Bt) → perm(APPEND(L, rot(G)), Bt)
+```
+
+lemma `partition_body`
+
+```
+∀ p : W32, ∀ lo : W32, ∀ hi : W32, ∀ A : List[W32], ∀ Bt : List[W32], ∀ pv : W32, ∀ Cs : List[W32], ∀ fp : GProp, LENGTH(A) == val(lo) && LENGTH(A) + LENGTH(Bt) + 1 == val(hi) && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296 → sl_triple(st(NIL, [V_num(ConstInt32(p)), V_num(ConstInt32(lo)), V_num(ConstInt32(hi)), V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))], (gs : List[Value]) => (ms : Num) => (h : Heap) => star(arr(val(p), APPEND(A, APPEND(Bt, CONS(pv, Cs)))), fp(gs, ms), h)), [Local_get(0), Local_get(2), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Local_set(5), Local_get(1), Local_set(3), Local_get(1), Local_set(4), Block(Tbv(NONE), [Loop(Tbv(NONE), [Local_get(4), Local_get(2), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), Relop(T_i32, Relop_i(Eq)), Br_if(1), Local_get(0), Local_get(4), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Local_get(5), Relop(T_i32, Relop_i(Lt(U))), If(Tbv(NONE), [Local_get(0), Local_get(3), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Local_set(6), Local_get(0), Local_get(3), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Local_get(0), Local_get(4), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Store(T_i32, NONE, 2, 0), Local_get(0), Local_get(4), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Local_get(6), Store(T_i32, NONE, 2, 0), Local_get(3), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Add)), Local_set(3)], NIL), Local_get(4), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Add)), Local_set(4), Br(0)])]), Local_get(0), Local_get(3), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Local_set(6), Local_get(0), Local_get(3), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Local_get(5), Store(T_i32, NONE, 2, 0), Local_get(0), Local_get(2), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Local_get(6), Store(T_i32, NONE, 2, 0), Local_get(3)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ i : W32, ∃ L : List[W32], ∃ G : List[W32], vs == [V_num(ConstInt32(i))] && LENGTH(A) + LENGTH(L) == val(i) && ALL((x : W32) => val(x) < val(pv), L) && ALL((x : W32) => val(pv) <= val(x), G) && perm(APPEND(L, G), Bt) && LENGTH(L) + LENGTH(G) == LENGTH(Bt) && star(arr(val(p), APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))), fp(gs, ms), h))
+```
+
+definition `qs_spec`
+
+```
+qs_spec((inst : Inst), (a : Num), (P : (List[Value], List[Value], Num, Heap) -> Bool), (Q : (List[Value], List[Value], Num, Heap) -> Bool)) == (a == sfunc_ind(inst, 0) && (∃ p : W32, ∃ lo : W32, ∃ hi : W32, ∃ A : List[W32], ∃ B : List[W32], ∃ Cs : List[W32], ∃ fp : GProp, P == ((args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => args == [V_num(ConstInt32(p)), V_num(ConstInt32(lo)), V_num(ConstInt32(hi))] && LENGTH(A) == val(lo) && LENGTH(A) + LENGTH(B) == val(hi) && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296 && star(arr(val(p), APPEND(A, APPEND(B, Cs))), fp(gs, ms), h)) && Q == ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => res == NIL && (∃ ys : List[W32], sorted(ys) && perm(ys, B) && LENGTH(ys) == LENGTH(B) && star(arr(val(p), APPEND(A, APPEND(ys, Cs))), fp(gs, ms), h)))) || a == sfunc_ind(inst, 1) && (∃ p : W32, ∃ lo : W32, ∃ hi : W32, ∃ A : List[W32], ∃ Bt : List[W32], ∃ pv : W32, ∃ Cs : List[W32], ∃ fp : GProp, P == ((args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => args == [V_num(ConstInt32(p)), V_num(ConstInt32(lo)), V_num(ConstInt32(hi))] && LENGTH(A) == val(lo) && LENGTH(A) + LENGTH(Bt) + 1 == val(hi) && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296 && star(arr(val(p), APPEND(A, APPEND(Bt, CONS(pv, Cs)))), fp(gs, ms), h)) && Q == ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ i : W32, ∃ L : List[W32], ∃ G : List[W32], res == [V_num(ConstInt32(i))] && LENGTH(A) + LENGTH(L) == val(i) && ALL((x : W32) => val(x) < val(pv), L) && ALL((x : W32) => val(pv) <= val(x), G) && perm(APPEND(L, G), Bt) && LENGTH(L) + LENGTH(G) == LENGTH(Bt) && star(arr(val(p), APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))), fp(gs, ms), h))))
+```
+
+lemma `qs_call`
+
+```
+∀ inst : Inst, ∀ p : W32, ∀ lo : W32, ∀ hi : W32, ∀ A : List[W32], ∀ B : List[W32], ∀ Cs : List[W32], ∀ fp : GProp, qs_spec(inst, sfunc_ind(inst, 0), (args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => args == [V_num(ConstInt32(p)), V_num(ConstInt32(lo)), V_num(ConstInt32(hi))] && LENGTH(A) == val(lo) && LENGTH(A) + LENGTH(B) == val(hi) && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296 && star(arr(val(p), APPEND(A, APPEND(B, Cs))), fp(gs, ms), h), (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => res == NIL && (∃ ys : List[W32], sorted(ys) && perm(ys, B) && LENGTH(ys) == LENGTH(B) && star(arr(val(p), APPEND(A, APPEND(ys, Cs))), fp(gs, ms), h)))
+```
+
+lemma `partition_call`
+
+```
+∀ inst : Inst, ∀ p : W32, ∀ lo : W32, ∀ hi : W32, ∀ A : List[W32], ∀ Bt : List[W32], ∀ pv : W32, ∀ Cs : List[W32], ∀ fp : GProp, qs_spec(inst, sfunc_ind(inst, 1), (args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => args == [V_num(ConstInt32(p)), V_num(ConstInt32(lo)), V_num(ConstInt32(hi))] && LENGTH(A) == val(lo) && LENGTH(A) + LENGTH(Bt) + 1 == val(hi) && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296 && star(arr(val(p), APPEND(A, APPEND(Bt, CONS(pv, Cs)))), fp(gs, ms), h), (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ i : W32, ∃ L : List[W32], ∃ G : List[W32], res == [V_num(ConstInt32(i))] && LENGTH(A) + LENGTH(L) == val(i) && ALL((x : W32) => val(x) < val(pv), L) && ALL((x : W32) => val(pv) <= val(x), G) && perm(APPEND(L, G), Bt) && LENGTH(L) + LENGTH(G) == LENGTH(Bt) && star(arr(val(p), APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))), fp(gs, ms), h))
+```
+
+lemma `qs_split`
+
+```
+∀ hi : W32, ∀ lo : W32, ∀ A : List[W32], ∀ B : List[W32], LENGTH(A) == val(lo) && LENGTH(A) + LENGTH(B) == val(hi) → word_ult(word_sub(hi, lo), word(2)) == (LENGTH(B) < 2)
+```
+
+lemma `sorted_short`
+
+```
+∀ B : List[W32], LENGTH(B) < 2 → sorted(B)
+```
+
+lemma `mem_count`
+
+```
+∀ x : W32, ∀ l : List[W32], MEM(x, l) == (0 < LENGTH(FILTER((z : W32) => z == x, l)))
+```
+
+lemma `perm_all`
+
+```
+∀ P : (W32) -> Bool, ∀ xs : List[W32], ∀ ys : List[W32], perm(xs, ys) && ALL(P, ys) → ALL(P, xs)
+```
+
+lemma `sorted_join`
+
+```
+∀ ys : List[W32], ∀ pv : W32, ∀ ys2 : List[W32], sorted(ys) && sorted(ys2) && ALL((x : W32) => val(x) < val(pv), ys) && ALL((x : W32) => val(pv) <= val(x), ys2) → sorted(APPEND(ys, CONS(pv, ys2)))
+```
+
+lemma `perm_join`
+
+```
+∀ ys : List[W32], ∀ L : List[W32], ∀ ys2 : List[W32], ∀ G : List[W32], ∀ Bt : List[W32], ∀ pv : W32, perm(ys, L) && perm(ys2, G) && perm(APPEND(L, G), Bt) → perm(APPEND(ys, CONS(pv, ys2)), APPEND(Bt, [pv]))
+```
+
+lemma `butlast_cons`
+
+```
+∀ B : List[W32], ∀ Cs : List[W32], !(B == NIL) → APPEND(BUTLAST(B), CONS(LAST(B), Cs)) == APPEND(B, Cs) && LENGTH(BUTLAST(B)) + 1 == LENGTH(B) && APPEND(BUTLAST(B), [LAST(B)]) == B
+```
+
+lemma `quicksort_body`
+
+```
+∀ fs : List[Cl], ∀ inst : Inst, ∀ p : W32, ∀ lo : W32, ∀ hi : W32, ∀ A : List[W32], ∀ B : List[W32], ∀ Cs : List[W32], ∀ fp : GProp, ∀ args : List[Value], sl_triple_g(qs_spec(inst), fs, inst, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => res == NIL && (∃ ys : List[W32], sorted(ys) && perm(ys, B) && LENGTH(ys) == LENGTH(B) && star(arr(val(p), APPEND(A, APPEND(ys, Cs))), fp(gs, ms), h)))(vs, gs, ms, h), (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == NIL && lc == APPEND(args, [V_num(ConstInt32(word(0)))]) && ((args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => args == [V_num(ConstInt32(p)), V_num(ConstInt32(lo)), V_num(ConstInt32(hi))] && LENGTH(A) == val(lo) && LENGTH(A) + LENGTH(B) == val(hi) && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296 && star(arr(val(p), APPEND(A, APPEND(B, Cs))), fp(gs, ms), h))(args, gs, ms, h), [Local_get(2), Local_get(1), Binop(T_i32, Binop_i(Sub)), EConstNum(ConstInt32(word(2))), Relop(T_i32, Relop_i(Lt(U))), If(Tbv(NONE), [Return], NIL), Local_get(0), Local_get(1), Local_get(2), Call(1), Local_set(3), Local_get(0), Local_get(1), Local_get(3), Call(0), Local_get(0), Local_get(3), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Add)), Local_get(2), Call(0)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => res == NIL && (∃ ys : List[W32], sorted(ys) && perm(ys, B) && LENGTH(ys) == LENGTH(B) && star(arr(val(p), APPEND(A, APPEND(ys, Cs))), fp(gs, ms), h)))(vs, gs, ms, h), [(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => res == NIL && (∃ ys : List[W32], sorted(ys) && perm(ys, B) && LENGTH(ys) == LENGTH(B) && star(arr(val(p), APPEND(A, APPEND(ys, Cs))), fp(gs, ms), h)))(vs, gs, ms, h)])
+```
+
+lemma `partition_fn`
+
+```
+∀ fs : List[Cl], ∀ inst : Inst, ∀ p : W32, ∀ lo : W32, ∀ hi : W32, ∀ A : List[W32], ∀ Bt : List[W32], ∀ pv : W32, ∀ Cs : List[W32], ∀ fp : GProp, ∀ args : List[Value], sl_triple_g(qs_spec(inst), fs, inst, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ i : W32, ∃ L : List[W32], ∃ G : List[W32], res == [V_num(ConstInt32(i))] && LENGTH(A) + LENGTH(L) == val(i) && ALL((x : W32) => val(x) < val(pv), L) && ALL((x : W32) => val(pv) <= val(x), G) && perm(APPEND(L, G), Bt) && LENGTH(L) + LENGTH(G) == LENGTH(Bt) && star(arr(val(p), APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))), fp(gs, ms), h))(vs, gs, ms, h), (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == NIL && lc == APPEND(args, [V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))]) && ((args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => args == [V_num(ConstInt32(p)), V_num(ConstInt32(lo)), V_num(ConstInt32(hi))] && LENGTH(A) == val(lo) && LENGTH(A) + LENGTH(Bt) + 1 == val(hi) && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296 && star(arr(val(p), APPEND(A, APPEND(Bt, CONS(pv, Cs)))), fp(gs, ms), h))(args, gs, ms, h), [Local_get(0), Local_get(2), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Local_set(5), Local_get(1), Local_set(3), Local_get(1), Local_set(4), Block(Tbv(NONE), [Loop(Tbv(NONE), [Local_get(4), Local_get(2), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), Relop(T_i32, Relop_i(Eq)), Br_if(1), Local_get(0), Local_get(4), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Local_get(5), Relop(T_i32, Relop_i(Lt(U))), If(Tbv(NONE), [Local_get(0), Local_get(3), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Local_set(6), Local_get(0), Local_get(3), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Local_get(0), Local_get(4), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Store(T_i32, NONE, 2, 0), Local_get(0), Local_get(4), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Local_get(6), Store(T_i32, NONE, 2, 0), Local_get(3), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Add)), Local_set(3)], NIL), Local_get(4), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Add)), Local_set(4), Br(0)])]), Local_get(0), Local_get(3), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Local_set(6), Local_get(0), Local_get(3), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Local_get(5), Store(T_i32, NONE, 2, 0), Local_get(0), Local_get(2), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Local_get(6), Store(T_i32, NONE, 2, 0), Local_get(3)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ i : W32, ∃ L : List[W32], ∃ G : List[W32], res == [V_num(ConstInt32(i))] && LENGTH(A) + LENGTH(L) == val(i) && ALL((x : W32) => val(x) < val(pv), L) && ALL((x : W32) => val(pv) <= val(x), G) && perm(APPEND(L, G), Bt) && LENGTH(L) + LENGTH(G) == LENGTH(Bt) && star(arr(val(p), APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))), fp(gs, ms), h))(vs, gs, ms, h), [(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ i : W32, ∃ L : List[W32], ∃ G : List[W32], res == [V_num(ConstInt32(i))] && LENGTH(A) + LENGTH(L) == val(i) && ALL((x : W32) => val(x) < val(pv), L) && ALL((x : W32) => val(pv) <= val(x), G) && perm(APPEND(L, G), Bt) && LENGTH(L) + LENGTH(G) == LENGTH(Bt) && star(arr(val(p), APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))), fp(gs, ms), h))(vs, gs, ms, h)])
+```
+
+lemma `quicksort_specs`
+
+```
+∀ fs : List[Cl], ∀ inst : Inst, EL(sfunc_ind(inst, 0), fs) == Func_native(inst, Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL), [T_num(T_i32)], [Local_get(2), Local_get(1), Binop(T_i32, Binop_i(Sub)), EConstNum(ConstInt32(word(2))), Relop(T_i32, Relop_i(Lt(U))), If(Tbv(NONE), [Return], NIL), Local_get(0), Local_get(1), Local_get(2), Call(1), Local_set(3), Local_get(0), Local_get(1), Local_get(3), Call(0), Local_get(0), Local_get(3), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Add)), Local_get(2), Call(0)]) && EL(sfunc_ind(inst, 1), fs) == Func_native(inst, Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], [T_num(T_i32)]), [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)], [Local_get(0), Local_get(2), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Local_set(5), Local_get(1), Local_set(3), Local_get(1), Local_set(4), Block(Tbv(NONE), [Loop(Tbv(NONE), [Local_get(4), Local_get(2), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), Relop(T_i32, Relop_i(Eq)), Br_if(1), Local_get(0), Local_get(4), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Local_get(5), Relop(T_i32, Relop_i(Lt(U))), If(Tbv(NONE), [Local_get(0), Local_get(3), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Local_set(6), Local_get(0), Local_get(3), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Local_get(0), Local_get(4), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Store(T_i32, NONE, 2, 0), Local_get(0), Local_get(4), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Local_get(6), Store(T_i32, NONE, 2, 0), Local_get(3), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Add)), Local_set(3)], NIL), Local_get(4), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Add)), Local_set(4), Br(0)])]), Local_get(0), Local_get(3), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Local_set(6), Local_get(0), Local_get(3), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Local_get(5), Store(T_i32, NONE, 2, 0), Local_get(0), Local_get(2), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Local_get(6), Store(T_i32, NONE, 2, 0), Local_get(3)]) → (∀ n : Num, specs_ok(n, qs_spec(inst), fs, inst))
+```
+
+example `example_quicksort`
+
+```
+∀ fs : List[Cl], ∀ inst : Inst, ∀ p : W32, ∀ n : W32, ∀ xs : List[W32], ∀ fp : GProp, ∀ vs0 : List[Value], ∀ lc0 : List[Value], EL(sfunc_ind(inst, 0), fs) == Func_native(inst, Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL), [T_num(T_i32)], [Local_get(2), Local_get(1), Binop(T_i32, Binop_i(Sub)), EConstNum(ConstInt32(word(2))), Relop(T_i32, Relop_i(Lt(U))), If(Tbv(NONE), [Return], NIL), Local_get(0), Local_get(1), Local_get(2), Call(1), Local_set(3), Local_get(0), Local_get(1), Local_get(3), Call(0), Local_get(0), Local_get(3), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Add)), Local_get(2), Call(0)]) && EL(sfunc_ind(inst, 1), fs) == Func_native(inst, Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], [T_num(T_i32)]), [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)], [Local_get(0), Local_get(2), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Local_set(5), Local_get(1), Local_set(3), Local_get(1), Local_set(4), Block(Tbv(NONE), [Loop(Tbv(NONE), [Local_get(4), Local_get(2), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), Relop(T_i32, Relop_i(Eq)), Br_if(1), Local_get(0), Local_get(4), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Local_get(5), Relop(T_i32, Relop_i(Lt(U))), If(Tbv(NONE), [Local_get(0), Local_get(3), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Local_set(6), Local_get(0), Local_get(3), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Local_get(0), Local_get(4), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Store(T_i32, NONE, 2, 0), Local_get(0), Local_get(4), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Local_get(6), Store(T_i32, NONE, 2, 0), Local_get(3), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Add)), Local_set(3)], NIL), Local_get(4), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Add)), Local_set(4), Br(0)])]), Local_get(0), Local_get(3), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Local_set(6), Local_get(0), Local_get(3), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Local_get(5), Store(T_i32, NONE, 2, 0), Local_get(0), Local_get(2), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Local_get(6), Store(T_i32, NONE, 2, 0), Local_get(3)]) && LENGTH(xs) == val(n) && val(p) + 4 * val(n) < 4294967296 → sl_triple_m(fs, inst, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == APPEND(vs0, [V_num(ConstInt32(p)), V_num(ConstInt32(word(0))), V_num(ConstInt32(n))]) && lc == lc0 && star(arr(val(p), xs), fp(gs, ms), h), [Call(0)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ ys : List[W32], vs == vs0 && lc == lc0 && sorted(ys) && perm(ys, xs) && star(arr(val(p), ys), fp(gs, ms), h), NIL)
 ```

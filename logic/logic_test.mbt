@@ -42,7 +42,11 @@ test "the logic's lemmas are theorems, with no new axioms" {
     "sl_br_if_g", "sl_if_g", "sl_block_g", "sl_loop_g", "sl_call_g", "sl_funs_g", "sl_step_g",
     "sl_pre_g", "sl_cons_g", "sl_nil_st_g", "sl_br_st_g", "sl_br_if_st_g", "sl_if_st_g",
     "sl_block_st_g", "sl_loop_st_g", "sl_call_st_g", "sl_return_st_g", "fact_w_suc",
-    "fact_w_step", "fact_call", "fact_body", "fact_specs", "example_fact",
+    "fact_w_step", "fact_call", "fact_body", "fact_specs", "example_fact", "sl_call_spec_g",
+    "val_pred", "val_succ", "nonempty_cons", "el_at", "update_at", "el_mid", "el_mid2", "part_swap",
+    "count_rot", "length_rot", "all_rot", "perm_move", "perm_rot", "partition_body", "qs_call",
+    "partition_call", "qs_split", "sorted_short", "mem_count", "perm_all", "sorted_join", "perm_join",
+    "butlast_cons", "quicksort_body", "partition_fn", "quicksort_specs", "example_quicksort",
   ] {
     assert_true(@kernel.hyp(@logic.thm(name)).is_empty(), msg=name)
   }

@@ -163,4 +163,5 @@ fn prove_examples() -> Unit raise {
   prove_example_sort()
   prove_example_call()
   prove_example_fact()
+  prove_example_qsort()
 }

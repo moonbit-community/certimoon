@@ -401,7 +401,11 @@ Returns, recursion and calls in `sym_prove` (`logic/returns.mbt`,
 - `sym_prove` runs code in g triples too: a call by a spec (its arguments
   matched against the stack, its frame R the state's), `return` by an
   entailment to rp, and everything else as before (`sl_call_st_g`,
-  `sl_return_st_g`, and the `_g` versions of the rules above).
+  `sl_return_st_g`, and the `_g` versions of the rules above). A spec
+  whose variables cannot be read off the state (an array's parts) is
+  given for each call in `calls` (a spec theorem and the terms for its
+  ∀s): the call leaves P of the arguments to prove, and the code after it
+  starts from Q (`sl_call_spec_g`).
 
 `example_fact` (`logic/example_fact.mbt`): factorial, recursive, with an
 early return:
@@ -426,6 +430,18 @@ early return:
 function's own spec (`fact_spec`: from x, the result `fact_w(val(x))`),
 and leaves two arithmetic conditions; `sl_funs_g` gives the spec
 (`fact_specs`), and `example_fact` is `call 0` from x as a module triple.
+`example_quicksort` (`logic/example_qsort.mbt`): quicksort, recursive,
+with Lomuto's partition as a second function. From n words xs at p (if
+`val(p) + 4n < 2^32`), `call 0` with `p, 0, n` on the stack leaves words ys
+there with `sorted(ys)` and `perm(ys, xs)`. The specs are about a segment:
+from the words `A ++ B ++ Cs` at p, with `|A| = lo` and `|A ++ B| = hi`,
+quicksort leaves `A ++ ys ++ Cs`, and partition leaves `A ++ L ++ [pv] ++ G
+++ Cs` (L below the pivot pv, G not). The partition's loop is proved by
+`sym_prove` as call-free code (15 conditions, one tactic each), quicksort's
+body by `sym_prove` as a g triple with its three calls, whose specs'
+variables (the array's parts) are given for each call (`calls`), leaving
+five conditions. `sl_funs_g` proves both specs at once.
+
 Not yet: `call_indirect`, functions of other modules, host functions.
 
 Control flow (`logic/labels.mbt`, `block.mbt`, `loop.mbt`) uses triples

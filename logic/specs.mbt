@@ -88,10 +88,13 @@ fn define_specs() -> Unit raise {
 ///|
 /// Proves call_free_b of written-out code.
 fn call_free_tac() -> @tactics.Tactic raise {
+  let rws = ths([thm("call_free_b"), @lists.all(), @lists.ex()])
   seq([
-    @simp.rewrite_tac(ths([thm("call_free_b"), @lists.all()])),
-    @tactics.conv_tac(@equal.top_depth_conv(has_call_conv())),
-    @simp.rewrite_tac(ths([])),
+    @simp.rewrite_tac(rws),
+    // blocks, loops and ifs: their bodies, until no has_call_b is left
+    @tactics.repeat_tac(
+      seq([@tactics.conv_tac(@equal.changed_conv(@equal.top_depth_conv(has_call_conv()))), @simp.rewrite_tac(rws)]),
+    ),
   ])
 }
 
@@ -1252,6 +1255,27 @@ fn prove_sym_g() -> Unit raise {
           ),
           solve(simple),
         ]),
+      ),
+    ]),
+  )
+  // a call by any spec: the state gives P of the arguments, and the
+  // code after the call starts from Q of its results
+  let _ = lemma(
+    "sl_call_spec_g",
+    "\{env}∀ j : Num, ∀ P : \{fprop}, ∀ Q : \{fprop}, ∀ v0 : List[Value], ∀ ain : List[Value], ∀ l : List[Value], ∀ R : \{rty}, ∀ rest : List[B_e], ∀ r : \{sa}, ∀ ls : List[\{sa}], G(sfunc_ind(inst, j), P, Q) → (∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, R(gs, ms, h) → P(ain, gs, ms, h)) && \{triple_g(call_post("Q", "v0", "l"), "rest", "r", "ls")} → \{triple_g("st(APPEND(v0, ain), l, R)", "CONS(Call(j), rest)", "r", "ls")}",
+    seq([
+      @tactics.repeat_tac(@tactics.gen_tac),
+      @tactics.disch_tac,
+      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+      @tactics.subst1_tac(cons_append("Call((j : Num))")),
+      @tactics.match_mp_tac(thm("sl_seq_g")),
+      @tactics.exists_tac(tm(call_post("Q", "v0", "l"))),
+      @simp.asm_rewrite_tac(ths([])),
+      @tactics.match_mp_tac(thm("sl_pre_g")),
+      @tactics.exists_tac(tm(call_pre("P", "v0", "l"))),
+      @tactics.thenl(
+        @tactics.conj_tac,
+        @list.List([simple, seq([@tactics.match_mp_tac(thm("sl_call_g")), @tactics.first_assum(th => @tactics.accept_tac(th))])]),
       ),
     ]),
   )

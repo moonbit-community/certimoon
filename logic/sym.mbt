@@ -286,6 +286,10 @@ priv struct Sym {
   rws : Array[@kernel.Thm]
   // for g triples: theorems ∀ xs. G(a, P, Q), the specs calls use
   specs : Array[@kernel.Thm]
+  // for each call, in order, if given: a spec (its index in specs) and
+  // the terms for its ∀s; the call then leaves P of the arguments to prove
+  calls : Array[(Int, Array[String])]
+  next_call : Ref[Int]
 }
 
 ///|
@@ -596,6 +600,17 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
         )(g)
       }
       "Return" if is_g(g.1) => seq([renorm, @tactics.match_mp_tac(rule_of(g.1, "sl_return_st")), vc_tac(sym)])(g)
+      "Call" if is_g(g.1) && sym.next_call.val < sym.calls.length() => {
+        let (which, terms) = sym.calls[sym.next_call.val]
+        sym.next_call.val = sym.next_call.val + 1
+        let spec = @bool.ispecl(@list.List(terms.map(tm)), sym.specs[which])
+        let k = spec_arity(spec)
+        let rule = @drule.match_mp(rule_of(g.1, "sl_call_spec"))(spec)
+        @tactics.thenl(
+          seq([renorm, split_tac(k), @tactics.match_mp_tac(rule), @tactics.conj_tac]),
+          @list.List([seq([beta_goal(), vc_tac(sym)]), seq([beta_goal(), sym_tac(sym)])]),
+        )(g)
+      }
       "Call" if is_g(g.1) => {
         let (k, spec) = call_spec(sym, g.1, instr, p)
         let rule = @drule.match_mp(rule_of(g.1, "sl_call_st"))(spec)
@@ -639,6 +654,21 @@ fn step_tac(th : @kernel.Thm, p : @kernel.Term, goal : @kernel.Term) -> @tactics
   } else {
     @tactics.match_mp_tac(step)
   }
+}
+
+///|
+/// The number of arguments of the spec G(a, P, Q): P says args is a list.
+fn spec_arity(spec : @kernel.Thm) -> Int raise {
+  let (_, sargs) = @basics.strip_comb(@kernel.concl(spec))
+  let pp = sargs.to_array()[sargs.length() - 2]
+  let (bvs, body) = @basics.strip_abs(pp)
+  guard bvs.to_array() is [args, _, _, _] else { raise Failure("wasmcert/logic: sym: not a spec: " + show(pp)) }
+  for c in @basics.conjuncts(body) {
+    if args_of(c, "=", 2) is Some([a, b]) && a == args && @basics.is_list(b) {
+      return @basics.dest_list(b).length()
+    }
+  }
+  raise Failure("wasmcert/logic: sym: the spec's P does not give its arguments: " + show(pp))
 }
 
 ///|
@@ -773,6 +803,9 @@ fn intro_tac() -> @tactics.Tactic {
           @simp.rewrite_tac(ths([thm("st")])),
           @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
           @simp.asm_rewrite_tac(ths([])),
+          // the state's R is written out: so are the facts it came from
+          @tactics.rule_assum_tac(@simp.rewrite_rule(ths(norm_thms()))),
+          @simp.asm_rewrite_tac(ths([])),
           g => raise Failure("wasmcert/logic: sym: cannot rearrange the precondition: " + show(g.1)),
         ]),
         @tactics.all_tac,
@@ -861,6 +894,7 @@ fn sym_prove(
   rules? : Array[String] = step_rules,
   rws? : Array[@kernel.Thm] = [],
   specs? : Array[@kernel.Thm] = [],
+  calls? : Array[(Int, Array[String])] = [],
   kind? : String = "example",
 ) -> @kernel.Thm raise {
   let goal = tm(stmt)
@@ -885,8 +919,15 @@ fn sym_prove(
     rules,
     rws,
     specs,
+    calls,
+    next_call: Ref::{ val: 0 },
   }
   let run = seq([
+    g => {
+      // the calls' specs are taken in order from the start
+      sym.next_call.val = 0
+      @tactics.all_tac(g)
+    },
     @tactics.repeat_tac(@tactics.gen_tac),
     @tactics.try_tac(@tactics.disch_then(th => @tactics.strip_assume_tac(th))),
     if g { beta_goal() } else { @tactics.match_mp_tac(thm("sl_triple_of_l")) },
