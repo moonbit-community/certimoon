@@ -255,7 +255,6 @@ fn prove_call_safe() -> Unit raise {
 fn prove_sl_call() -> Unit raise {
   let a = assn
   let sa = sassn
-  let fprop = "(List[Value], List[Value], Num, \{heap}) -> Bool"
   let label_top = lemma(
     "label_safe_top",
     "∀ n : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ m : Num, ∀ li : List[Einstr], ∀ qb : \{a}, safel(n, s, f, li, qb, [qb]) && (∀ s2 : Wstore, ∀ f2 : Wframe, ∀ vs : List[Value], qb(s2, f2, vs) → LENGTH(vs) == m) → safel(n, s, f, [Label(m, NIL, li)], qb, NIL)",
@@ -360,104 +359,4 @@ fn prove_sl_call() -> Unit raise {
       ),
     ]),
   )
-}
-
-///|
-/// Rewrites the other assumptions with one whose left side is an
-/// application of the constant `name` (and drops it): two equations for
-/// the same thing become an equation between their right sides.
-fn merge_by(name : String) -> @tactics.Tactic {
-  @tactics.first_x_assum(th => {
-    let c = @kernel.concl(th)
-    if @basics.is_eq(c) && @basics.strip_comb(@equal.lhs(c)).0 is Const(n, _) && n == name {
-      @tactics.rule_assum_tac(@simp.rewrite_rule(ths([th])))
-    } else {
-      @tactics.no_tac
-    }
-  })
-}
-
-///|
-/// Splits the assumptions that are conjunctions.
-fn split_conjs() -> @tactics.Tactic {
-  @tactics.repeat_tac(
-    @tactics.first_x_assum(th => if @basics.is_conj(@kernel.concl(th)) {
-      @tactics.strip_assume_tac(th)
-    } else {
-      @tactics.no_tac
-    }),
-  )
-}
-
-///|
-/// mp_tac of `lemma` (∀ xs. A && B && C && D → E) at assumptions that
-/// match its premises (the first, then the rest), as forward2 does for two.
-fn forward2_3(lemma : @kernel.Thm) -> @tactics.Tactic {
-  g => {
-    let asms = g.0.to_array()
-    let prems = @basics.conjuncts(@basics.dest_imp(@basics.strip_forall(@kernel.concl(lemma)).1).0).to_array()
-    let n = prems.length()
-    // the assumptions each premise matches on its own
-    let matches = (p : @kernel.Term, a : @kernel.Thm) => (try Some(@drule.term_match(@list.List([]), p, @kernel.concl(a))) catch {
-      _ => None
-    }) is Some(_)
-    let cands = prems.map(p => asms.filter(a => matches(p, a.1)).map(a => a.1))
-    // try every choice of them for the premises, in order
-    fn go(k : Int, chosen : Array[@kernel.Thm]) -> @kernel.Thm? {
-      if k == n {
-        let mut c = chosen[n - 1]
-        for j = n - 2; j >= 0; j = j - 1 {
-          c = @bool.conj(chosen[j], c) catch { _ => return None }
-        }
-        return try Some(@drule.match_mp(lemma)(c)) catch { _ => None }
-      }
-      for a in cands[k] {
-        if go(k + 1, chosen + [a]) is Some(th) {
-          return Some(th)
-        }
-      }
-      None
-    }
-    match go(0, []) {
-      Some(th) => @tactics.mp_tac(th)(g)
-      None => raise Failure("forward2_3: no assumptions match")
-    }
-  }
-}
-
-///|
-/// Substitutes the assumption `x == t` (or `t == x`), x the variable named
-/// `name`, everywhere.
-fn subst_only(name : String) -> @tactics.Tactic {
-  @tactics.first_x_assum(th => {
-    let c = @kernel.concl(th)
-    let is_it = (t : @kernel.Term) => t is Var(n, _) && n == name
-    if @basics.is_eq(c) && (is_it(@equal.lhs(c)) || is_it(@equal.rhs(c))) {
-      @tactics.subst_var_tac(th)
-    } else {
-      @tactics.no_tac
-    }
-  })
-}
-
-///|
-/// Rewrites the goal and the other assumptions with the assumption
-/// `f_inst(x) == ...`, x the variable named `name`.
-fn rw_inst(name : String) -> @tactics.Tactic {
-  @tactics.first_x_assum(th => {
-    let c = @kernel.concl(th)
-    let lhs_ok = @basics.is_eq(c) &&
-      @basics.strip_comb(@equal.lhs(c)) is (Const("f_inst", _), args) &&
-      args.to_array() is [Var(n, _)] &&
-      n == name
-    if lhs_ok {
-      seq([
-        @tactics.rule_assum_tac(@simp.rewrite_rule(ths([th]))),
-        @simp.rewrite_tac(ths([th])),
-        @tactics.assume_tac(th),
-      ])
-    } else {
-      @tactics.no_tac
-    }
-  })
 }

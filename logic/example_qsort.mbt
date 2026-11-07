@@ -278,26 +278,6 @@ fn prove_partition() -> Unit raise {
 let partition_parts : Ref[(String, String, String, @kernel.Thm)?] = Ref::{ val: None }
 
 ///|
-/// Rewrites the goal and the assumptions with the assumptions that are
-/// equations `pick` accepts.
-fn use_eqs(pick : (@kernel.Term) -> Bool) -> @tactics.Tactic {
-  g => {
-    let eqs = g.0.to_array().filter(a => pick(@kernel.concl(a.1))).map(a => a.1)
-    seq([@tactics.rule_assum_tac(@simp.rewrite_rule(ths(eqs))), @simp.rewrite_tac(ths(eqs))])(g)
-  }
-}
-
-///|
-/// Whether `t` is an equation whose left side starts with `f`.
-fn eq_of(t : @kernel.Term, f : String) -> Bool {
-  if args_of(t, "=", 2) is Some([l, _]) {
-    show(l).has_prefix(f)
-  } else {
-    false
-  }
-}
-
-///|
 /// The word facts of a verification condition: hi - 1, i + 1 and j + 1 as
 /// numbers, and equations between words as equations of their values.
 fn qs_words() -> @tactics.Tactic raise {
@@ -445,14 +425,6 @@ fn prove_quicksort() -> Unit raise {
     "qs_spec",
     "qs_spec((inst : Inst), (a : Num), (P : \{fprop}), (Q : \{fprop})) == ((a == sfunc_ind(inst, 0) && (\{qs_vars}, P == (\{qs_p}) && Q == (\{qs_q}))) || (a == sfunc_ind(inst, 1) && (\{pt_vars}, P == (\{pt_p}) && Q == (\{pt_q}))))",
   )
-  let spec_tac = (vars : Array[String]) => seq([
-    @tactics.repeat_tac(@tactics.gen_tac),
-    @simp.rewrite_tac(ths([thm("qs_spec")])),
-    @tactics.try_tac(@tactics.disj1_tac),
-    @tactics.try_tac(@tactics.disj2_tac),
-    seq(vars.map(v => @tactics.exists_tac(tm(v)))),
-    @simp.rewrite_tac(ths([])),
-  ])
   let qs_call = lemma(
     "qs_call",
     "∀ inst : Inst, ∀ p : \{w}, ∀ lo : \{w}, ∀ hi : \{w}, ∀ A : \{lw}, ∀ B : \{lw}, ∀ Cs : \{lw}, ∀ fp : \{rty}, qs_spec(inst, sfunc_ind(inst, 0), \{qs_p}, \{qs_q})",
@@ -475,7 +447,6 @@ fn prove_quicksort() -> Unit raise {
       @simp.rewrite_tac(ths([])),
     ]),
   )
-  let _ = spec_tac
   prove_qs_list_lemmas()
   let c = (x : String) => "EConstNum(ConstInt32(word(\{x})))"
   let add = "Binop(T_i32, Binop_i(Add))"
@@ -685,7 +656,6 @@ fn prove_quicksort_specs(qs_code : String, qs_th : @kernel.Thm, qs_call : @kerne
   record("example_quicksort", th, kind="example")
 }
 
-
 ///|
 /// What quicksort's verification conditions need about lists.
 fn prove_qs_list_lemmas() -> Unit raise {
@@ -779,7 +749,7 @@ fn prove_qs_list_lemmas() -> Unit raise {
       @tactics.disch_then(th => @tactics.assume_tac(@drule.match_mp(@lists.append_butlast_last())(th))),
       @tactics.first_assum(th => @tactics.assume_tac(@equal.ap_term(tm("(LENGTH : (\{lw}) -> Num)"), th))),
       @tactics.rule_assum_tac(@simp.rewrite_rule(ths([@lists.length_append(), @lists.length()]))),
-      @simp.once_rewrite_tac(ths([arith_cons_append()])),
+      @simp.once_rewrite_tac(ths([cons_as_snoc()])),
       @simp.asm_rewrite_tac(ths([@lists.append_nil()])),
       @int.asm_arith_tac,
     ]),
@@ -787,8 +757,9 @@ fn prove_qs_list_lemmas() -> Unit raise {
 }
 
 ///|
-/// APPEND(l, CONS(x, m)) is APPEND(APPEND(l, [x]), m).
-fn arith_cons_append() -> @kernel.Thm raise {
+/// APPEND(l, CONS(x, m)) is APPEND(APPEND(l, [x]), m) (not a rewrite to
+/// repeat: its right side matches its left).
+fn cons_as_snoc() -> @kernel.Thm raise {
   @tactics.prove(
     tm("∀ l : List[A], ∀ x : A, ∀ m : List[A], APPEND(l, CONS(x, m)) == APPEND(APPEND(l, [x]), m)"),
     @simp.rewrite_tac(ths([@equal.gsym(@lists.append_assoc()), @lists.append()])),
@@ -860,15 +831,4 @@ fn quicksort_vcs() -> Array[@tactics.Tactic] raise {
       lengths,
     ]),
   ]
-}
-
-///|
-/// The term `text` with its variable `name` (a spec's P or Q) replaced by
-/// the term `t`.
-fn with_spec(text : String, name : String, t : @kernel.Term) -> @kernel.Term raise {
-  let body = tm(text)
-  guard @kernel.frees(body).to_array().filter(v => v is Var(n, _) && n == name) is [v] else {
-    raise Failure("with_spec: no " + name)
-  }
-  @kernel.vsubst(@list.List([(t, v)]), body)
 }

@@ -24,7 +24,7 @@
 // (an array element's address). `sym_prove` proves a triple with them.
 
 ///|
-let sa_false : String = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => false"
+pub let sa_false : String = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => false"
 
 ///|
 /// The name of a rule for g triples (specs.mbt): sl_x_l is sl_x_g, and
@@ -311,25 +311,6 @@ fn rule_of(goal : @kernel.Term, name : String) -> @kernel.Thm raise {
 }
 
 ///|
-/// The arguments of `name` applied to `n` arguments, if `t` is that.
-fn args_of(t : @kernel.Term, name : String, n : Int) -> Array[@kernel.Term]? {
-  let (f, args) = @basics.strip_comb(t)
-  match f {
-    Const(c, _) if c == name && args.length() == n => Some(args.to_array())
-    _ => None
-  }
-}
-
-///|
-/// The name of the constructor at the head of `t`.
-fn head_name(t : @kernel.Term) -> String {
-  match @basics.strip_comb(t).0 {
-    Const(c, _) => c
-    _ => ""
-  }
-}
-
-///|
 /// Rewrites `norm_thms` (and `extra`) and numeral arithmetic to the end.
 fn norm_conv(extra? : Array[@kernel.Thm] = []) -> @equal.Conv raise {
   let rw = @simp.rewrite_conv(ths(norm_thms() + extra))
@@ -417,7 +398,7 @@ fn fresh_spec(th : @kernel.Thm, avoid : @list.List[@kernel.Term]) -> @kernel.Thm
 
 ///|
 /// The st_ rules sym_tac runs straight-line code with.
-let step_rules : Array[String] = [
+pub let step_rules : Array[String] = [
   "st_const", "st_binop", "st_testop", "st_relop", "st_local_get", "st_local_set",
   "st_arr_store", "st_arr_load", "st_arr_load_at", "st_arr_store_at",
 ]
@@ -507,11 +488,6 @@ fn vc_tac(sym : Sym) -> @tactics.Tactic raise {
     @tactics.try_tac(@tactics.conv_tac(@equal.top_depth_conv(@ind_types.unwind_conv))),
     @simp.asm_rewrite_tac(ths(norm_thms() + rws)),
   ])
-}
-
-///|
-fn beta_goal() -> @tactics.Tactic {
-  @tactics.conv_tac(@equal.try_conv(@equal.redepth_conv(@equal.beta_conv)))
 }
 
 ///|
@@ -711,7 +687,6 @@ fn call_spec(sym : Sym, goal : @kernel.Term, instr : @kernel.Term, p : @kernel.T
     // the spec's function must be the call's
     let rule = rule_of(goal, "sl_call_st")
     guard (try Some(@drule.match_mp(rule)(th)) catch { _ => None }) is Some(_) else { continue }
-    let _ = instr
     return (k, th)
   }
   raise Failure("wasmcert/logic: sym: no spec for " + show(instr) + " from " + show(p))
@@ -833,17 +808,6 @@ fn subst_facts_tac() -> @tactics.Tactic {
 }
 
 ///|
-/// mp_tac of `th` (∀ xs. a → b) at `args`, a from the assumptions, and b
-/// taken apart into assumptions: for verification conditions.
-fn by_lemma(th : @kernel.Thm, args : Array[String]) -> @tactics.Tactic raise {
-  seq([
-    @tactics.mp_tac(@bool.ispecl(@list.List(args.map(tm)), th)),
-    @simp.asm_rewrite_tac(ths([])),
-    @tactics.try_tac(@tactics.disch_then(th => @tactics.strip_assume_tac(th))),
-  ])
-}
-
-///|
 /// The Loop instructions in `code`, and the Block, If and Loop
 /// instructions with more code after them, each outermost and first first.
 fn structure_of(code : @kernel.Term) -> (Array[@kernel.Term], Array[@kernel.Term]) raise {
@@ -879,13 +843,30 @@ fn structure_of(code : @kernel.Term) -> (Array[@kernel.Term], Array[@kernel.Term
 }
 
 ///|
-/// Proves `stmt` (∀ xs. hyps → sl_triple(p, code, q)) by sym_tac, with
-/// `invs` the invariants (linv, λ lc gs ms h. ...) of code's loops in
-/// order, `afters` the states after each block, if or loop that has more
-/// code after it (λ vs lc gs ms h. ...), in the same order, and `vcs` the
-/// tactics for what sym_tac leaves, in order. `rules` are the st_ rules
-/// for straight-line code, tried in order. Records it as `name`.
-fn sym_prove(
+/// Proves `stmt` by running its code (sym_tac), and records it as `name`.
+///
+/// `stmt` is `∀ xs. hyps → sl_triple(p, code, q)` (code without calls),
+/// or `∀ xs. hyps → sl_triple_g(G, fs, inst, rp, p, code, q, ls)` (a
+/// function's body, or any code with calls and returns).
+///
+/// - `invs`: the invariants of code's loops, in order (outermost and first
+///   first), each `λ lc gs ms h. ...` (for the locals, globals, memory
+///   length and heap at the loop's start and at each `br` to it);
+/// - `vcs`: one tactic for each condition sym_tac leaves, in order (with
+///   the wrong number, the error lists the conditions and what each
+///   tactic leaves);
+/// - `afters`: the state after each block, if or loop that has more code
+///   after it, in the same order as `invs`, each `λ vs lc gs ms h. ...`;
+/// - `rules`: the st_ rules for straight-line instructions, tried in order;
+/// - `rws`: more rewrites for the conditions (before they are left);
+/// - `specs`: for calls, theorems `∀ xs. G(a, P, Q)`; a call uses the first
+///   whose P (of the form `args == [...] && R(gs, ms, h)`) matches the
+///   stack, with R the state's;
+/// - `calls`: for each call in order, if given, a spec (its index in
+///   `specs`) and the terms for its ∀s: the call then leaves "P of its
+///   arguments" to prove, and the code after it starts from Q;
+/// - `kind`: how load()'s listing shows it ("example" or "lemma").
+pub fn sym_prove(
   name : String,
   stmt : String,
   invs : Array[String],
@@ -971,4 +952,3 @@ fn sym_prove(
   record(name, th, kind~)
   th
 }
-

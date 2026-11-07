@@ -174,19 +174,6 @@ fn prove_frame_steps() -> Unit raise {
 }
 
 ///|
-/// The rule among `rules` (a conjunction) whose statement mentions all of
-/// `parts`.
-fn rule_with(rules : @kernel.Thm, parts : Array[String]) -> @kernel.Thm raise {
-  for r in @bool.conjuncts_rule(rules) {
-    let text = show(@kernel.concl(r))
-    if parts.iter().all(p => text.contains(p)) {
-      return r
-    }
-  }
-  raise Failure("wasmcert/logic: no rule with " + parts.join(", "))
-}
-
-///|
 /// A return waiting in contexts does not step: only the frame around it
 /// takes it.
 fn prove_return_stuck() -> Unit raise {

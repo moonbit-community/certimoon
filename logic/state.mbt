@@ -10,7 +10,7 @@
 // sum_to and its lemmas are for example_sum.
 
 ///|
-let rty : String = "(List[Value], Num, \{heap}) -> Bool"
+pub let rty : String = "(List[Value], Num, \{heap}) -> Bool"
 
 ///|
 fn prove_state_rules() -> Unit raise {

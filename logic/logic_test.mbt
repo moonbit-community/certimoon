@@ -109,3 +109,23 @@ test "the theory listing" (t : @test.Test) {
   t.write(@logic.listing())
   t.snapshot(filename="theory.md")
 }
+
+///|
+test "a program proved through the public API" {
+  @logic.load()
+  let w = @logic.w32
+  let i = (x : String) => "V_num(ConstInt32(\{x}))"
+  // local 0 becomes the larger (unsigned) of locals 0 and 1:
+  //   local.get 0; local.get 1; i32.lt_u; if; local.get 1; local.set 0; end
+  let code = "[Local_get(0), Local_get(1), Relop(T_i32, Relop_i(Lt(U))), If(Tbv(NONE), [Local_get(1), Local_set(0)], NIL)]"
+  let th = @logic.sym_prove(
+    "api_max",
+    "∀ vs0 : List[Value], ∀ x : \{w}, ∀ y : \{w}, ∀ R : \{@logic.rty}, sl_triple(st(vs0, [\{i("x")}, \{i("y")}], R), \{code}, st(vs0, [\{i("if word_ult(x, y) { y } else { x }")}, \{i("y")}], R))",
+    [],
+    [],
+  )
+  assert_true(@kernel.hyp(th).is_empty())
+  assert_true(@kernel.hyp(@logic.thm("api_max")).is_empty())
+  // a user's theorem is not in the package's theory listing
+  assert_false(@logic.listing().contains("api_max"))
+}

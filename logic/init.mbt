@@ -6,6 +6,10 @@
 let loaded : Ref[Bool] = Ref::{ val: false }
 
 ///|
+/// Whether load() is running: the theorems it records are the listing.
+let in_load : Ref[Bool] = Ref::{ val: false }
+
+///|
 /// Load the logic's definitions and lemmas (once), after package wasm's
 /// facts about reduction.
 pub fn load() -> Unit {
@@ -17,6 +21,7 @@ pub fn load() -> Unit {
     e => abort("wasmcert/logic: " + e.to_string())
   }
   @parser.begin_theory("WasmLogic")
+  in_load.val = true
   (fn() raise {
     section("Heaps and separating conjunction (heap.mbt)")
     define_heap()
@@ -96,5 +101,6 @@ pub fn load() -> Unit {
       abort("wasmcert/logic: loading failed: " + msg)
     }
   }
+  in_load.val = false
   @parser.end_theory()
 }

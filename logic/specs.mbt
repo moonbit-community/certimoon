@@ -24,34 +24,34 @@
 ///|
 /// The functions' pre- and postconditions: on the arguments (or
 /// results), the globals, the memory's length and the heap.
-let fprop : String = "(List[Value], List[Value], Num, \{heap}) -> Bool"
+pub let fprop : String = "(List[Value], List[Value], Num, \{heap}) -> Bool"
 
 ///|
 /// A set of function specs.
-let specs_ty : String = "(Num, \{fprop}, \{fprop}) -> Bool"
+pub let specs_ty : String = "(Num, \{fprop}, \{fprop}) -> Bool"
 
 ///|
 /// The precondition of a call: the arguments on top of vs0, the locals lc0.
-fn call_pre(p : String, vs0 : String, lc0 : String) -> String {
+pub fn call_pre(p : String, vs0 : String, lc0 : String) -> String {
   "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => ∃ args : List[Value], vs == APPEND(\{vs0}, args) && lc == \{lc0} && \{p}(args, gs, ms, h)"
 }
 
 ///|
 /// The postcondition of a call: the results on top of vs0, the locals lc0.
-fn call_post(q : String, vs0 : String, lc0 : String) -> String {
+pub fn call_post(q : String, vs0 : String, lc0 : String) -> String {
   "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => ∃ res : List[Value], vs == APPEND(\{vs0}, res) && lc == \{lc0} && \{q}(res, gs, ms, h)"
 }
 
 ///|
 /// A function body's precondition: no values, the arguments and zeros
 /// as locals.
-fn body_pre(p : String, args : String, zs : String) -> String {
+pub fn body_pre(p : String, args : String, zs : String) -> String {
   "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => vs == NIL && lc == APPEND(\{args}, \{zs}) && \{p}(\{args}, gs, ms, h)"
 }
 
 ///|
 /// A function body's postcondition (and its label's, and its return's).
-fn body_post(q : String) -> String {
+pub fn body_post(q : String) -> String {
   "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => \{q}(vs, gs, ms, h)"
 }
 
@@ -87,7 +87,7 @@ fn define_specs() -> Unit raise {
 
 ///|
 /// Proves call_free_b of written-out code.
-fn call_free_tac() -> @tactics.Tactic raise {
+pub fn call_free_tac() -> @tactics.Tactic raise {
   let rws = ths([thm("call_free_b"), @lists.all(), @lists.ex()])
   seq([
     @simp.rewrite_tac(rws),

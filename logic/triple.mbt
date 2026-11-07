@@ -17,12 +17,12 @@
 
 ///|
 /// An assertion on a configuration: store, frame, value stack.
-let assn : String = "(Wstore, Wframe, List[Value]) -> Bool"
+pub let assn : String = "(Wstore, Wframe, List[Value]) -> Bool"
 
 ///|
 /// A separation assertion: on the value stack, the locals, the globals and
 /// the memory's length in bytes, a heap assertion.
-let sassn : String = "(List[Value], List[Value], List[Value], Num, \{heap}) -> Bool"
+pub let sassn : String = "(List[Value], List[Value], List[Value], Num, \{heap}) -> Bool"
 
 ///|
 fn define_triples() -> Unit raise {

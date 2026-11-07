@@ -1,10 +1,31 @@
 # wasmcert
 
-A port of [WasmCert-Isabelle](https://github.com/WasmCert/WasmCert-Isabelle)
-(BSD-2-Clause; see LICENSE and CONTRIBUTORS) to [hol_light.mbt](https://github.com/bobzhang/hol-light.mbt),
-the MoonBit port of HOL Light.
+WebAssembly's semantics and a separation logic for it, in
+[hol_light.mbt](https://github.com/bobzhang/hol-light.mbt) (the MoonBit
+port of HOL Light), for proving that WebAssembly programs are correct.
 
-## Build
+- Package `wasm` is a port of
+  [WasmCert-Isabelle](https://github.com/WasmCert/WasmCert-Isabelle)
+  (BSD-2-Clause; see LICENSE and CONTRIBUTORS): the AST, the typing
+  relations and the reduction relation `reduce`, with an evaluator checked
+  against the official spec testsuite.
+- Package `logic` is a program logic on top of it. Every rule is a theorem
+  proved from `reduce`, so a proof trusts only the HOL Light kernel and
+  the definition of WebAssembly. A triple means: from a state satisfying
+  the precondition, the code does not trap, and if it ends, the
+  postcondition holds (partial correctness, over every run).
+
+What can be proved today: integer code, locals and globals, linear memory
+(bytes, i32 and i64 words, arrays), `block`, `loop`, `if`, `br`, `br_if`,
+`return`, and calls of the module's own functions, recursive ones too. The
+examples include a loop over an array, insertion sort, recursive factorial
+and a recursive quicksort (see [The examples](#the-examples)). Not yet:
+`call_indirect`, functions of other modules or the host, floats, SIMD,
+tables; and there is no `.wat` or `.wasm` importer, so programs are
+written as terms. [PLAN.md](PLAN.md) has the design, what is next and how
+to work on the code.
+
+## Build and test
 
 This module (`moonbit-community/wasmcert`) needs hol_light's current
 sources: it uses the term syntax, which the published `bobzhang/hol_light`
@@ -26,43 +47,323 @@ alone, which keeps their own interface files current:
 moon check wasm logic
 ```
 
-## Status
+Do not run `moon fmt` here: it formats every workspace member, hol-light.mbt
+included.
+
+`moon test` in a workspace tests every member, hol_light included, so
+select the package. The tests need a larger stack than the default. The
+module's preferred target is wasm-gc, by far the fastest here:
+
+```bash
+ulimit -s 65520 && moon test -p moonbit-community/wasmcert/wasm
+```
+
+```bash
+ulimit -s 65520 && moon test -p moonbit-community/wasmcert/logic
+```
+
+Loading the logic proves all of it again (there is no theorem cache):
+about a minute, most of the logic's test time.
+
+## Proving a program
+
+### The pieces
+
+**Code** is a list of WebAssembly instructions (`B_e`) written in
+hol_light's term syntax, with WasmCert's constructor names:
+
+```
+[Local_get(0), Local_get(1), Binop(T_i32, Binop_i(Add)), Local_set(0)]
+```
+
+The constructors are in [wasm/ast.mbt](wasm/ast.mbt); `i32.const 4` is
+`EConstNum(ConstInt32(word(4)))`, `i32.lt_u` is
+`Relop(T_i32, Relop_i(Lt(U)))`, `i32.load` is `Load(T_i32, NONE, 2, 0)`
+(alignment 2, offset 0), and a block is `Block(Tbv(NONE), [...])`.
+
+**Assertions** describe a state by five things: the value stack `vs`, the
+locals `lc`, the instance's globals `gs` (their values by index), the
+memory's length in bytes `ms`, and the memory's bytes as a heap `h`. An
+assertion is a term `(vs) (lc) (gs) (ms) (h) => ...` of type
+`@logic.sassn`. Values are WasmCert's: the i32 x is `V_num(ConstInt32(x))`,
+x a 32-bit word (`@logic.w32`; `val(x)` is its unsigned value).
+
+The heap part uses separating conjunction: `star(p, q, h)` says h splits
+into two disjoint heaps, one with p and one with q. `pts(a, bs)` is
+exactly the bytes bs at address a, and `arr(a, xs)` the i32 words xs from
+a. Every triple holds with any frame beside its heap, so the frame rule is
+built in.
+
+**Exact states** are what proofs usually start from:
+`st(v, l, R)` says the stack is v, the locals l, and `R(gs, ms, h)`
+(`R : @logic.rty`) holds of the rest, for example
+`(gs) (ms) (h) => star(arr(val(p), xs), fp(gs, ms), h)`: the words xs at
+p, and whatever `fp` says about the rest of memory and the globals.
+
+**Triples**, each a theorem:
+
+| Triple | For |
+|---|---|
+| `sl_triple(p, code, q)` | code without calls: for every store |
+| `sl_triple_l(p, code, q, ls)` | the same with label assertions `ls` for `br` out of the code (innermost label first) |
+| `sl_triple_m(fs, inst, p, code, q, ls)` | code in a module: stores whose function table is `fs`, run in instance `inst` |
+| `sl_triple_g(G, fs, inst, rp, p, code, q, ls)` | code with calls and returns: `G` is a set of function specs the code may assume, `rp` the assertion a `return` must meet |
+
+The theorem you want at the end is usually `sl_triple` (call-free code)
+or `sl_triple_m` (a call into the module).
+
+### A first proof
+
+`sym_prove` proves a triple by running the code symbolically, from an
+exact state, and leaves you the conditions it cannot close. In another
+package, import `moonbit-community/wasmcert/logic` (and the hol_light
+packages for tactics, such as `bobzhang/hol_light/tactics`):
+
+```moonbit
+let w = @logic.w32
+let i = (x : String) => "V_num(ConstInt32(\{x}))"
+// local 0 becomes the larger (unsigned) of locals 0 and 1:
+//   local.get 0; local.get 1; i32.lt_u; if; local.get 1; local.set 0; end
+let code = "[Local_get(0), Local_get(1), Relop(T_i32, Relop_i(Lt(U))), If(Tbv(NONE), [Local_get(1), Local_set(0)], NIL)]"
+let th = @logic.sym_prove(
+  "api_max",
+  "∀ vs0 : List[Value], ∀ x : \{w}, ∀ y : \{w}, ∀ R : \{@logic.rty}, sl_triple(st(vs0, [\{i("x")}, \{i("y")}], R), \{code}, st(vs0, [\{i("if word_ult(x, y) { y } else { x }")}, \{i("y")}], R))",
+  [], // the loops' invariants: none
+  [], // tactics for the conditions left: none
+)
+// th: ⊢ ∀ vs0 x y R. sl_triple(st(vs0, [x, y], R), code, st(vs0, [max, y], R))
+```
+
+This is a test in [logic/logic_test.mbt](logic/logic_test.mbt). sym_prove
+went into both branches of the `if` (with `word_ult(x, y)` or its negation
+as an assumption) and closed both endings by rewriting. `@logic.thm("api_max")`
+reads the theorem back.
+
+### Loops
+
+A loop needs an invariant, `(lc) (gs) (ms) (h) => ∃ xs. lc == [...] &&
+facts && ...`: the locals in terms of the variables xs, facts about them,
+and the rest (memory, globals) as in an exact state. sym_prove proves the
+invariant on entry, runs the body from it (the ∃s become variables, the
+facts assumptions), and proves it again at each `br` back to the loop. It
+leaves the conditions it cannot close: the invariant on entry and again,
+the postcondition at the exit, and side conditions such as an address
+being inside an array. Give a tactic for each in `vcs`, in order.
+
+```moonbit
+let inv = "(lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{@logic.heap}) => ∃ n : \{w}, ∃ acc : \{w}, lc == [\{i("n")}, \{i("acc")}] && !(n == word(0)) && word_add(acc, word(sum_to(val(n)))) == word_add((acc0 : \{w}), word(sum_to(val((n0 : \{w}))))) && (R : \{@logic.rty})(gs, ms, h)"
+```
+
+is `example_sum`'s ([logic/example_sum.mbt](logic/example_sum.mbt)): its
+proof is the code, this invariant and three one-line tactics. A `block`,
+`if` or `loop` with more code after it also needs the state after it, in
+`afters`. Arithmetic and list facts are best proved as lemmas first
+(`@logic.lemma(name, statement, tactic)`) and used by the condition's
+tactic (`@logic.by_lemma(th, [terms])` instantiates one at the
+assumptions).
+
+### Memory and arrays
+
+Pass `rules=[...]` with the array rules to have sym_prove load and store:
+`st_arr_load_at` and `st_arr_store_at` read and write the element at
+`p + j * 4` of `arr(val(p), xs)` as `EL(val(j), xs)` and
+`list_update(xs, val(j), x)`, leaving the side condition `val(p) + 4 *
+LENGTH(xs) < 2^32 && val(j) < LENGTH(xs)`. The state's R must then be
+`(gs) (ms) (h) => star(arr(val(p), xs), fp(gs, ms), h)`. See
+`example_array_sum`, `example_insertion_sort` and the partition in
+`example_quicksort`.
+
+### Functions, calls and recursion
+
+A module's functions are proved together, each from a spec:
+
+1. Write the specs as a set `G`, a definition
+   `G(inst, a, P, Q) == (a == sfunc_ind(inst, 0) && ∃ x. P == ... && Q == ...) || ...`:
+   the function at address a takes arguments with P
+   (`(args) (gs) (ms) (h) => args == [...] && ...`) and returns results
+   with Q (`(res) (gs) (ms) (h) => ...`). Prove each spec as a theorem
+   `∀ xs. G(inst, sfunc_ind(inst, j), P, Q)` (`fact_call`, `qs_call`).
+2. Prove each body as `sl_triple_g(G(inst), fs, inst, post, pre, body,
+   post, [post])` with `pre = @logic.body_pre(P, "args", zeros)` and `post
+   = @logic.body_post(Q)`, by sym_prove with `specs=[...]`. A call uses a
+   spec whose P is `args == [...] && R(gs, ms, h)`, matched against the
+   stack. When a spec's variables cannot be read off the state (the parts
+   of an array), give them for each call in `calls`: the call then leaves
+   "P of its arguments" to prove. A body may call its own function.
+3. `sl_funs_g` turns the bodies' triples into the specs, for a store
+   whose functions are these bodies (`fact_specs`, `quicksort_specs`).
+4. A caller's triple: `sl_call_g` (the call), `sl_conseq_g`, and
+   `sl_triple_m_of_g` to drop G and get an `sl_triple_m`.
+
+[logic/example_fact.mbt](logic/example_fact.mbt) does this for factorial in
+about 200 lines; [logic/example_qsort.mbt](logic/example_qsort.mbt) for two
+functions that call each other.
+
+### When a proof fails
+
+- sym_prove's error lists the conditions it left, in order, and for each
+  what its tactic left or why it failed.
+- `@logic.set_trace(true)` makes `lemma` print each lemma's name and what
+  its tactic leaves, and `@logic.show_goal("label")` inside a tactic print
+  the goal there.
+- Some names are HOL constants and cannot be variables: `T` and `F`
+  (true and false), `I`, `K`, `S`, and constructors such as `U`
+  (unsigned, from `Lt(U)`). A variable whose type
+  nothing fixes gets a type variable and then matches nothing: write
+  `(x : \{w})` in terms you build alone, such as an `exists_tac` witness.
+- [PLAN.md](PLAN.md), "Things that will catch you out", has more, mostly
+  about HOL Light's tactics.
+
+### The API
+
+Besides `@logic.load()`, `@logic.thm(name)` (any rule or lemma by name;
+[logic/__snapshot__/theory.md](logic/__snapshot__/theory.md) lists them
+all) and `@logic.listing()`:
+
+| Function | Does |
+|---|---|
+| `sym_prove(name, stmt, invs, vcs, afters~, rules~, rws~, specs~, calls~)` | proves a triple by running its code |
+| `lemma(name, stmt, tac)`, `def(name, eqs)`, `record(name, th)` | prove, define, record under a name for `thm` |
+| `tm(s)`, `show(t)`, `ths(xs)` | parse and print terms, lists of theorems |
+| `seq`, `solve`, `have(stmt, tac)`, `by_lemma(th, args)`, `forward2(th)` | putting tactics together |
+| `subst_vars`, `subst_only(name)`, `split_conjs`, `use_eqs(pick)` | working on assumptions |
+| `arith(stmt)` | a linear arithmetic fact |
+| `args_of(t, name, n)`, `eq_of(t, prefix)`, `beta_goal()` | reading terms (for `use_eqs`), beta-reducing the goal |
+| `call_free_tac` | proves `call_free_b(code)` for written-out code |
+| `w8`, `w32`, `w64`, `heap`, `hprop`, `assn`, `sassn`, `rty`, `fprop`, `specs_ty`, `sa_false` | the types and the false assertion, as term-syntax strings |
+| `call_pre`, `call_post`, `body_pre`, `body_post` | the assertions of a call and of a function body, from a spec's P and Q |
+
+Theorems a user proves after `load()` are recorded for `thm` but not added
+to the package's theory listing.
+
+## The examples
+
+All in [logic/](logic), proved when the logic loads:
+
+| Example | File | Proves |
+|---|---|---|
+| `example_store_load` | examples.mbt | `i32.store` then `i32.load` gives the value back (rules glued by hand) |
+| `example_sum` | example_sum.mbt | a loop on locals adds n0 + ... + 1 |
+| `example_fill` | example_fill.mbt | a loop fills m words with x |
+| `example_array_sum` | example_array_sum.mbt | a loop sums the words of an array |
+| `example_insertion_sort` | example_sort.mbt | insertion sort: the words end sorted (unsigned) and a permutation |
+| `example_call` | example_call.mbt | a call of a doubling function |
+| `example_fact` | example_fact.mbt | recursive factorial, with an early `return` |
+| `example_quicksort` | example_qsort.mbt | recursive quicksort with a partition function: sorted, a permutation |
+
+## Reference: the program logic
+
+The rules' statements are in
+[logic/__snapshot__/theory.md](logic/__snapshot__/theory.md), in the order
+they are proved, grouped by file. A snapshot test keeps it current
+(`moon test --update` regenerates it). What follows is a map.
+
+### Memory
+
+Heaps are `(Num) -> Option[byte]`, with `hdisj`, `hunion`, `star`, `emp`,
+points-to `pts(a, bs)`, and `heap_of(m)`, the heap a memory is
+(`logic/heap.mbt`). `load_pts` and `store_pts` connect points-to with
+WasmCert's `load` and `store` (`logic/memory.mbt`); `pts_split` splits a
+points-to. `arr(a, xs)` is the i32 words xs from a (`logic/arrays.mbt`),
+with `arr_split` and `arr_focus` (one element out of `ys ++ [x] ++ zs`).
+
+### Triples
+
+- `safe(n, s, f, es, q)`: for n steps, every run either has ended in values
+  satisfying q or can step, and every step is safe for one step less; a
+  trap is never safe, and every possible step counts (so memory.grow's
+  choice is covered). `triple(p, bs, q)`: from a stack with p, bs is safe
+  for every n. `sl_triple(p, bs, q)`: p and q as above, lifted to stores
+  and frames with any frame r beside them on the instance's memory
+  (`lift`, which also asks that the instance's global addresses are in the
+  store and distinct, `globs_ok`). `logic/triple.mbt`.
+- `safel` and `sl_triple_l` add label assertions: a run may stop at a `br`
+  out of the code, if the label's assertion holds of its values
+  (`logic/labels.mbt`). `sl_triple_l_of` carries every `sl_triple` over.
+- `sl_triple_m(fs, inst, ...)`: `sl_triple_l` for the stores whose function
+  table is fs and the frames of instance inst (`keep`); every triple of
+  call-free code is one (`sl_triple_m_of`, from `call_free_step`: a step of
+  call-free code keeps the functions and the instance). `logic/calls.mbt`.
+- `safer` adds a return assertion: a run may stop at a `return` whose
+  values meet it (`logic/returns.mbt`). `sl_triple_g(G, fs, inst, rp, ...)`
+  holds for n steps whenever the function specs G do (`specs_ok(n, G, fs,
+  inst)`: calling each is safe for n steps or fewer), which is what lets a
+  body assume its own spec (`logic/specs.mbt`). `sl_triple_g_of` brings in
+  any triple of call-free code, `sl_triple_m_of_g` drops G.
+
+### Instruction rules
+
+`logic/rules.mbt`, `globals.mbt`, `locals.mbt`, `memsize.mbt`,
+`arrays.mbt`, `conditionals.mbt`. Each instruction's operands sit on top of
+a stack of any length:
+
+- `sl_const`, `sl_unop`, `sl_binop`, `sl_testop`, `sl_relop`, `sl_convert`,
+  `sl_reinterpret`, `sl_nop`, `sl_drop`, `sl_select`: the value computed
+  by WasmCert's `app_binop` and the others;
+- `sl_load_i32`, `sl_store_i32`, `sl_load_i64`, `sl_store_i64`, and the
+  packed ones (`sl_load_packed_i32` and others): against `pts(val(k) + off,
+  bs)`, bs of the access's length;
+- `sl_memory_size`, `sl_memory_grow` (which may always fail, pushing -1);
+- `sl_global_get`, `sl_global_set`, `sl_local_get`, `sl_local_set`,
+  `sl_local_tee`;
+- the structural rules: `sl_conseq`, `sl_frame`, `sl_seq` (and their `_l`,
+  `_m` and `_g` versions), `sl_ex_l`, `sl_pure_l`, `sl_nil_l`.
+
+Each rule's proof follows one pattern (`arity_`, `prefix_`, `step_cases`;
+PLAN.md, "Adding an instruction rule").
+
+### Control flow
+
+`logic/labels.mbt`, `block.mbt`, `loop.mbt`, `conditionals.mbt`, and their
+`_g` versions in `specs.mbt`:
+
+- `sl_br`: `br i` with the i-th label assertion of its values;
+- `sl_block` (block types `Tbv(ot)`, no parameters): the body with label 0
+  assertion lb (of the block's arity); the block leaves `vs0 ++ r`, the
+  body's postcondition or lb of r;
+- `sl_loop`: an invariant that holds on entry and at each `br 0`;
+- `sl_br_if`, `sl_if`: with an i32 c on the stack, the case it steps to;
+- `sl_return_g`: `return` with the return assertion of its values.
+
+### Exact states and symbolic execution
+
+`logic/state.mbt` has the rules on exact states (`st_const`, `st_binop`,
+`st_local_get`, ..., `st_arr_load_at`): each steps from one written-out
+state to the next, computed by `norm`. `logic/sym.mbt` has sym_prove: it
+takes the code's first instruction, applies its `st_` rule (or goes into a
+block, loop or if), and leaves entailments for the ends of the code, the
+`br`s and the side conditions. Its rules are `sl_step_l`, `sl_cons_l`,
+`sl_if_st`, `sl_br_if_st`, `sl_block_st`, `sl_loop_st`, `sl_br_st`,
+`sl_nil_st`, `sl_pre_l`, and for g triples their `_g` versions with
+`sl_call_st_g`, `sl_call_spec_g` and `sl_return_st_g`.
+
+### Calls
+
+`logic/frames.mbt`, `call_rule.mbt`, `specs.mbt`: frames behave like labels
+(`frame_steps`, `frame_safe`, `frame_safe_r` with returns); a return waiting
+in contexts does not step by itself (`return_stuck`); `call j` steps to
+`Invoke(sfunc_ind(inst, j))`, which becomes the function's frame
+`Frame(m, Wframe(args ++ zeros, inst), [Label(m, NIL, body)])`
+(`call_step`, `invoke_step`). `sl_call` is a call of a function given its
+body's triple (no recursion); `sl_call_g` a call by a spec of G, and
+`sl_funs_g` proves G's specs from their bodies.
+
+## Reference: the semantics (package wasm)
 
 Package `wasm` has the definitions of Wasm_Ast, Wasm_Type_Abs/Word,
 Wasm_Base_Defs, Wasm_Subtyping and Wasm.thy: the WebAssembly AST, the
 numeric layer (on Library/words), and the typing and reduction relations.
 The header comments of `wasm/*.mbt` list where names and representations
 differ from Isabelle's. The soundness proofs (Wasm_Properties,
-Wasm_Soundness) are not ported yet.
-
-Package `logic` is a separation logic for linear memory on top of it, with
-rules for constants, binary operators, comparisons, `i32.load`, `i32.store`,
-locals, globals, `br`, `br_if`, blocks, `if` and loops, and arrays of i32
-words. See "Program logic" below, and [PLAN.md](PLAN.md) for the design,
-what is left and how to work on it.
+Wasm_Soundness) are not ported. Its theory is listed in
+[wasm/__snapshot__/theory.md](wasm/__snapshot__/theory.md).
 
 ```moonbit
 @wasm.load()
 let rules = @wasm.thm("reduce_rules") // also b_e_typing_rules, typeof_num, ...
 ```
 
-## What is defined and proved
-
-Each package writes its theory as a document: every definition, datatype,
-relation (one rule per line) and lemma, in order, with the kernel's
-statement of it and short names for the long types:
-
-- [wasm/__snapshot__/theory.md](wasm/__snapshot__/theory.md): the WebAssembly
-  semantics and the facts about reduction;
-- [logic/__snapshot__/theory.md](logic/__snapshot__/theory.md): the program
-  logic, its rules and examples.
-
-They are snapshot tests (`wasm/theory_test.mbt`, and one in `logic/logic_test.mbt`): a test fails when the file no
-longer matches what the package proves, and `moon test --update`
-regenerates it. Statements only: the proofs are the tactic code in the
-`.mbt` files, and loading a package checks them all.
-
-## Running programs
+### Running programs
 
 `run` executes a configuration `(s, f, es)` and proves each step from the
 reduction rules; `outcome` states the result as `computes` (the run ends in
@@ -119,7 +420,7 @@ zeros: the other addresses test the end of a 64 KiB page). Each holds as a
 theorem. `tools/spec_cases.py` writes `wasm/spec_cases_test.mbt` from the
 testsuite files; the header of that file names the testsuite commit.
 
-## Facts about reduction
+### Facts about reduction
 
 `wasm/props.mbt` proves the facts a program logic needs about `reduce`
 (on first use, or with `@wasm.props()`; read them with `@wasm.thm`):
@@ -141,352 +442,3 @@ proves what it can step to: `∀ s' f' es'. reduce(s, f, es, s', f', es') →
 D`, with the side conditions of each case computed as far as they go (for
 `10 / 2`, `s' = s ∧ f' = f ∧ es' = [5]`). The tests check, for each
 instruction the evaluator covers, that its step is the only one.
-
-## Program logic
-
-Package `logic` is a separation logic for linear memory, proved from the
-port's definitions (no axioms; `@logic.load()`, then `@logic.thm`):
-
-- heaps (`(Num) -> Option[byte]`), `hdisj`, `hunion`, `star`, `emp`,
-  points-to `pts(a, bs)`, and `heap_of(m)`, the heap a memory is;
-- `star_comm`, `star_assoc`, `star_mono`;
-- `read_pts`: if `heap_of(m)` satisfies `star(pts(a, bs), r)` (bs not
-  empty), the bytes are inside m and `read_bytes(m, a, LENGTH(bs)) = bs`;
-- `write_pts`: writing bs2 (as long as bs) there gives
-  `star(pts(a, bs2), r)`: the frame r still holds;
-- `load_pts`, `store_pts`: the same for WasmCert's `load` and `store` at
-  `n + off`, the functions the load and store reduction rules use;
-- `pts_split`: `pts(a, xs ++ ys)` is `star(pts(a, xs), pts(a + LENGTH(xs), ys))`.
-
-Triples are defined over the reduction relation:
-
-- `safe(n, s, f, es, q)`: for n steps, every run either has ended in
-  values satisfying q or can step, and every step is safe for one step
-  less; a trap is never safe, and every possible step counts (so
-  memory.grow's choice is covered);
-- `triple(p, bs, q)`: from a value stack satisfying p, the instructions bs
-  are safe for every n (partial correctness, no traps);
-- `sl_triple(p, bs, q)`: p and q are heap assertions on the value stack,
-  the locals, the globals (`gvals(s, f)`: the instance's globals by index)
-  and the memory's length in bytes, and the triple holds with any frame
-  beside them on the instance's memory (`lift`). `lift` also asks that the instance's global
-  addresses are in the store and distinct (`globs_ok`).
-
-Rules, all theorems:
-
-- `sl_conseq`, `sl_frame` (from `star_assoc`), `sl_const`;
-- `sl_binop`: a binary operator whose `app_binop` is `SOME(c)` replaces its
-  two operands by c;
-- `sl_load_i32`: with `pts(val(k) + off, bs) * p` (bs 4 bytes), `i32.load`
-  replaces the address k by `deserialise_i32(bs)`;
-- `sl_store_i32`: it turns `pts(val(k) + off, bs)` into
-  `pts(val(k) + off, serialise_i32(v))` and pops k and v;
-- `sl_load_i64`, `sl_store_i64`: the same with 8 bytes and
-  `deserialise_i64`, `serialise_i64` (the address is still an i32);
-- `sl_load_packed_i32`, `sl_load_packed_i64`: for any packing tp
-  (`Tp_i8`, `Tp_i16`, `Tp_i32`) and extension sx (`U`, `S`), with bs of
-  `tp_num_length(tp)` bytes, `i32.load8_u` and the others push
-  `deserialise_i32(sign_extend(sx, 4, bs))` (8 for i64);
-- `sl_store_packed_i32`, `sl_store_packed_i64`: `i32.store8` and the others
-  write the value's low bytes,
-  `bytes_takefill(zero_byte, tp_num_length(tp), serialise_i32(v))`, over
-  `tp_num_length(tp)` owned bytes (from `store_pts_fill`);
-- `sl_unop` (`app_unop`), `sl_nop` (`sl_triple(p, [Nop], p)`), `sl_drop`
-  and `sl_select` (of any values, numbers, vectors or references: `select`
-  keeps v1 if the i32 b is not 0, else v2);
-- `sl_convert`: for c of type t1 (`typeof_num(c) == t1`) and
-  `cvt(t2, sat_sx, c) == SOME(d)`, `Cvtop(t2, Convert, t1, sat_sx)`
-  (`i32.wrap_i64`, `i64.extend_i32_u`, ...) replaces c by d;
-- `sl_reinterpret`: for c of type t1, `Cvtop(t2, Reinterpret, t1, NONE)`
-  replaces c by `wasm_reinterpret(t2, c)`;
-- `sl_memory_size`: pushes the length in pages, `DIV(ms, 65536)`;
-- `sl_memory_grow` by c pages: either it pushes the old size in pages, the
-  length grows by `c * 65536` and `pts(old length, zeros)` appears beside
-  the precondition (`star_grow`), or (it may always) it pushes -1 and
-  nothing changes;
-- `sl_global_get`: `global.get i` (i < LENGTH(gs)) pushes `EL(i, gs)`;
-- `sl_global_set`: `global.set i` pops a number c, and the globals become
-  `list_update(gs0, i, c)` of the globals gs0 before (`gvals_set`, which
-  needs the addresses distinct);
-- `sl_local_get`, `sl_local_set`: the same for the locals (`local.get k`
-  pushes `EL(k, ls)`), from `local_get_cases` and `local_set_cases`, which
-  state their steps for any frame (the reduction rules take the locals
-  split at k: `split_at`);
-- `sl_local_tee`: `local.tee k` keeps c on the stack and sets local k; it
-  steps to `[c, c, local.set k]`, so the rule comes from `sl_const` and
-  `sl_local_set`.
-
-Each rule's operands sit on top of a stack of any length. `prefix_<op>`
-shows that a step of such a configuration is a step of the instruction and
-its operands alone: `arity_<op>` says the instruction's base step takes
-exactly its operands (from the cases of reduce_base), and `step_cases`
-(with `compute=false` for the store) says what that step is.
-
-Sequencing: `safe_seq` (by induction on n: a step of `APPEND(es1, es2)`
-is a step of es1 by `reduce_append`, and a trap at the top of es1 leaves
-only `[Trap]`, which is never safe for a step more), then `triple_seq` and
-`sl_seq`: `sl_triple(p, bs1, q)` and `sl_triple(q, bs2, r)` give
-`sl_triple(p, APPEND(bs1, bs2), r)`.
-
-`logic/examples.mbt` verifies a program with the rules alone, gluing rule
-instances with `sl_seq` and `sl_conseq`: `example_store_load` says that
-`[i32.const k; i32.const v; i32.store; i32.const k; i32.load]`, from
-`pts(val(k) + off, bs) * p` (bs 4 bytes), ends with v on the stack and
-`pts(val(k) + off, serialise_i32(v)) * p` (`deserialise_serialise_i32`:
-loading back what was stored gives the value). The other examples are
-proved by symbolic execution (below). `example_sum` verifies a loop on
-locals: from locals `[n0, acc0]`,
-
-```
-local.get 0
-if
-  loop
-    local.get 1; local.get 0; i32.add; local.set 1
-    local.get 0; i32.const 1; i32.sub; local.set 0
-    local.get 0; br_if 0
-  end
-end
-```
-
-ends with locals `[0, acc0 + sum_to(val(n0))]` (`sum_to(n)` is
-1 + ... + n; the additions are on words), and the stack and `R` (the
-globals and memory) as they were. The rules on exact states
-(`logic/state.mbt`) are what the symbolic execution runs: `st(v, l, R)`
-says the stack is v, the locals l and R holds of the globals and heap, and
-the `st_` rules (from the rules above) step from one exact state to the
-next, written out by `norm`.
-
-Arrays (`logic/arrays.mbt`): `arr(a, xs)` is the i32 words xs from address
-a (`pts` of their bytes, `words_bytes`). `arr_split` splits an array into
-two, and `arr_focus` takes one element out of `ys ++ [x] ++ zs`, at
-`a + 4 * LENGTH(ys)`. The rules `st_arr_store` and `st_arr_load` are
-`i32.store` and `i32.load` of that element, on exact states whose `R` is
-`star(arr(a, ...), fp(gs))`. `example_fill` (`logic/example_fill.mbt`)
-verifies a loop over memory with them:
-
-```
-local.get 1
-if
-  loop
-    local.get 0; i32.const x; i32.store
-    local.get 0; i32.const 4; i32.add; local.set 0
-    local.get 1; i32.const 1; i32.sub; local.set 1
-    local.get 1; br_if 0
-  end
-end
-```
-
-from locals `[p0, m]` and m words at `val(p0)` (if `val(p0) + 4m < 2^32`)
-ends with locals `[p0 + 4m, 0]` and the words `REPLICATE(val(m), x)`. Its
-invariant keeps the array as the copies of x written so far, then the
-words still to write; `fill_step` and `fill_exit` are the arithmetic and
-list facts that keep it.
-
-`sl_testop` and `sl_relop` (and `st_testop`, `st_relop`) are the rules for
-`i32.eqz` and the comparisons: they push `app_testop(op, c)` or
-`app_relop(op, c1, c2)`, which `norm` computes to `wasm_bool(...)` of the
-word comparison. `example_array_sum` (`logic/example_array_sum.mbt`) reads
-an array in a loop whose condition is `i32.lt_u`: from locals
-`[p, n, 0, 0]` and the n words xs at `val(p)` (if `val(p) + 4n < 2^32`),
-
-```
-local.get 2; local.get 1; i32.lt_u
-if
-  loop
-    local.get 3
-    local.get 0; local.get 2; i32.const 4; i32.mul; i32.add
-    i32.load
-    i32.add; local.set 3
-    local.get 2; i32.const 1; i32.add; local.set 2
-    local.get 2; local.get 1; i32.lt_u; br_if 0
-  end
-end
-```
-
-ends with locals `[p, n, n, wsum(xs)]` (the words' sum) and the array
-unchanged.
-
-Symbolic execution (`logic/sym.mbt`): `sym_prove(name, stmt, invs, vcs)`
-proves a triple `sl_triple(st(...), code, q)` (after hypotheses) given an
-invariant for each loop, `λ lc gs ms h. ∃ xs. lc == l && facts && ...`.
-`sym_tac` runs the code: each straight-line instruction by the `st_` rule
-that matches the state (with `app_binop` and the others computed),
-`br_if` and `if` by going into both cases with the condition as an
-assumption, `block` and `loop` by going into the body (the loop's
-precondition taken apart into variables, facts and an exact state), and
-`br` and the end of the code by an entailment. The rules it uses are
-`sl_step_l`, `sl_br_if_st`, `sl_if_st`, `sl_block_st`, `sl_loop_st`,
-`sl_br_st`, `sl_nil_st` and `sl_pre_l`. The entailments are written out
-(lists and values compared elementwise, ∃s with an equation solved) and
-closed by rewriting with the assumptions when they can be; what is left
-are the verification conditions: an invariant on entry and again, the
-postcondition at exit, and side conditions such as an array element's
-address. `vcs` has one tactic for each, in order (a mismatch lists them).
-So `example_sum` is its code, its invariant and three one-line arithmetic
-proofs. A `block`, `if` or `loop` with more code after it takes the state
-after it from `afters` (`sl_cons_l`). If a tactic fails, the error lists
-each condition with what its tactic left.
-
-Arrays by index: `st_arr_load_at` and `st_arr_store_at` read and write the
-element at `p + j * 4` of the whole array `arr(val(p), xs)`, as
-`EL(val(j), xs)` and `list_update(xs, val(j), x)`, if `val(j) <
-LENGTH(xs)` and the array ends below 2^32 (`addr_at`).
-
-`example_insertion_sort` (`logic/example_sort.mbt`) sorts n words at p by
-their unsigned values, with two nested loops (the inner one moves the
-larger words right, holding the new one aside, and leaves by `br_if 1`
-from the middle of its body): from locals `[p, n, 0, 0, 0]` and words xs
-(if `val(p) + 4n < 2^32`) it leaves words ys with `sorted(ys)` (`PAIRWISE`
-of `≤` on their values) and `perm(ys, xs)` (each value as often, by
-`FILTER`). sym_prove leaves twelve conditions; each is one of the
-`isort_` lemmas (`isort_shift`: moving a word right keeps the invariant,
-by `perm_swap`; `isort_next`: putting x back keeps the outer one, by
-`sorted_insert`).
-
-Calls (`logic/calls.mbt`, `frames.mbt`, `call_rule.mbt`). A call's meaning
-depends on the store's function table, which the triples above do not see
-(they hold for every store), so calls are verified with module triples:
-
-- `has_call_b`, `has_call` (inductive): an instruction holds a `call` or
-  `call_indirect` at any depth (or is an `Invoke` or a `Frame`, which only
-  come from calls); `call_free(es)`: none does. `call_free_step`: a step of
-  call-free code keeps the store's functions and the frame's instance, and
-  leaves call-free code (by induction on the reduction rules);
-- `sl_triple_m(fs, inst, p, bs, q, ls)`: `sl_triple_l` for the stores whose
-  function table is fs, run in instance inst, before and after (`keep`).
-  `sl_triple_m_of`: every `sl_triple_l` of call-free code is one (from
-  `safel_keep`); `sl_seq_m`, `sl_conseq_m`;
-- frames, as labels: `frame_steps` (a step of `vs0 ++ [Frame(m, f1, es)]` is
-  a step of es in f1, or the frame leaving with es's values, a trap or a
-  return's values), `return_stuck` (a return in contexts does not step by
-  itself), `frame_safe` (the frame is safe while es is, and leaves with
-  es's results);
-- `call_step`, `invoke_step`: `call j` steps to `Invoke(sfunc_ind(inst,
-  j))`, which takes the arguments off the stack and becomes the frame
-  `Frame(m, Wframe(args ++ zeros, inst), [Label(m, NIL, body)])`;
-  `call_safe` puts them together;
-- `sl_call`: for function j of the module, native in instance inst, whose
-  body is proved from locals `args ++ zs` (and an empty stack) to results
-  Q (a br out of it also giving Q), `call j` takes the arguments (P) off
-  the stack and leaves results (Q), the caller's locals and the rest of its
-  stack as they were.
-
-`example_call` (`logic/example_call.mbt`): with function 0 the doubling
-function (`local.get 0; local.get 0; i32.add`, proved with `sym_prove` as
-`double_body`), `call 0` with x on the stack leaves x + x.
-
-Returns, recursion and calls in `sym_prove` (`logic/returns.mbt`,
-`specs.mbt`):
-
-- `safer(n, s, f, es, q, l, rq)`: as `safel`, and a run may also stop at a
-  `return`, with the return assertion rq holding of the values it returns.
-  Sequencing (`safer_seq`) and labels (`safer_label`) pass a return on to
-  the code around them, and a frame takes it (`frame_safe_r`: the frame
-  leaves with a return's values, as with its body's);
-- function specs: a set G of triples (a, P, Q), "the function at address a,
-  from arguments with P, returns results with Q". `specs_ok(n, G, fs,
-  inst)`: calling each of them is safe for n steps or fewer;
-- `sl_triple_g(G, fs, inst, rp, p, bs, q, ls)`: the module triple with
-  labels ls and return assertion rp, for every n where G's specs hold for n
-  steps. It has the rules of `sl_triple_l`, for code with calls:
-  `sl_seq_g`, `sl_conseq_g`, `sl_block_g`, `sl_loop_g`, `sl_if_g`,
-  `sl_br_if_g`, `sl_br_g`, `sl_ex_g`, `sl_pure_g`, and `sl_return_g` (a
-  `return` with rp of its values). `sl_triple_g_of` brings in any triple of
-  call-free code;
-- `sl_call_g`: `call j` with a spec of G for its function takes the
-  arguments (P) and leaves the results (Q); `sl_funs_g`: G's specs hold for
-  every n when each function's body has its triple, which may itself call
-  the functions of G (recursion: a call takes a step before its body runs,
-  so the induction on n goes through). `sl_triple_m_of_g` drops G again;
-- `sym_prove` runs code in g triples too: a call by a spec (its arguments
-  matched against the stack, its frame R the state's), `return` by an
-  entailment to rp, and everything else as before (`sl_call_st_g`,
-  `sl_return_st_g`, and the `_g` versions of the rules above). A spec
-  whose variables cannot be read off the state (an array's parts) is
-  given for each call in `calls` (a spec theorem and the terms for its
-  ∀s): the call leaves P of the arguments to prove, and the code after it
-  starts from Q (`sl_call_spec_g`).
-
-`example_fact` (`logic/example_fact.mbt`): factorial, recursive, with an
-early return:
-
-```wat
-(func $fact (param i32) (result i32)
-  local.get 0
-  i32.eqz
-  if
-    i32.const 1
-    return
-  end
-  local.get 0
-  local.get 0
-  i32.const 1
-  i32.sub
-  call $fact
-  i32.mul)
-```
-
-`sym_prove` runs the body (`fact_body`), its recursive call by the
-function's own spec (`fact_spec`: from x, the result `fact_w(val(x))`),
-and leaves two arithmetic conditions; `sl_funs_g` gives the spec
-(`fact_specs`), and `example_fact` is `call 0` from x as a module triple.
-`example_quicksort` (`logic/example_qsort.mbt`): quicksort, recursive,
-with Lomuto's partition as a second function. From n words xs at p (if
-`val(p) + 4n < 2^32`), `call 0` with `p, 0, n` on the stack leaves words ys
-there with `sorted(ys)` and `perm(ys, xs)`. The specs are about a segment:
-from the words `A ++ B ++ Cs` at p, with `|A| = lo` and `|A ++ B| = hi`,
-quicksort leaves `A ++ ys ++ Cs`, and partition leaves `A ++ L ++ [pv] ++ G
-++ Cs` (L below the pivot pv, G not). The partition's loop is proved by
-`sym_prove` as call-free code (15 conditions, one tactic each), quicksort's
-body by `sym_prove` as a g triple with its three calls, whose specs'
-variables (the array's parts) are given for each call (`calls`), leaving
-five conditions. `sl_funs_g` proves both specs at once.
-
-Not yet: `call_indirect`, functions of other modules, host functions.
-
-Control flow (`logic/labels.mbt`, `block.mbt`, `loop.mbt`) uses triples
-with label assertions, innermost first:
-
-- `safel(n, s, f, es, q, l)`: as `safe`, and a run may also stop at a br
-  that leaves es, to the i-th label around it, with the i-th assertion of
-  l holding of the values it takes; `triple_l`, `sl_triple_l` (labels
-  lifted with the same frame). `sl_triple_l_of` carries every rule above
-  over to them, and `sl_seq_l` sequences them. `sl_conseq_l` weakens the
-  postcondition and, pointwise, the label assertions (`safel_mono`), and
-  `sl_frame_l` adds a frame to the pre- and postcondition and every label;
-- `sl_br`: `br i` with the i-th label assertion of its values;
-- `sl_block`: for `block` with no parameters (block type `Tbv(ot)`): if the
-  body is safe from an empty stack with postcondition qb and label 0
-  assertion lb (of the block's arity), the block leaves its stack vs0 with
-  `vs0 ++ r`, qb or lb of r;
-- `sl_br_if`, `sl_if` (`logic/conditionals.mbt`): with an i32 c on the
-  stack, `br_if i` is `br i` when c ≠ 0 and nothing when c = 0, and
-  `if tb bs1 bs2` is `block tb bs1` or `block tb bs2`: each rule takes a
-  triple (or, for `br_if` with c = 0, an entailment) for the case it steps
-  to. `sl_if` holds for any block type;
-- `sl_loop`: for `loop` with no parameters: with an invariant on the
-  locals, globals and memory that holds on entry and is what a `br 0` must
-  re-establish (with no values), the loop leaves `vs0 ++ r` with the body's
-  postcondition of r.
-
-Their proofs: `label_steps` (a step of `vs0 ++ [Label(m, e0, li)]` is a
-step of li inside, or the label leaving with values, a trap or a br to it),
-`br_unique` (a br's place is unique), `br_stuck` (a br to a label outside
-does not step), `label_safe` (safety through a label, by induction on n),
-and for loops `safel_down` (the run after a br 0 is the loop again, with
-fewer steps). [PLAN.md](PLAN.md) says what comes next.
-
-## Tests
-
-`moon test` in a workspace tests every member, hol_light included, so
-select the package. Its tests need a larger stack than the default. The
-module's preferred target is wasm-gc, by far the fastest here (the logic's
-tests take about a minute), so `--target` can be left out:
-
-```bash
-ulimit -s 65520 && moon test -p moonbit-community/wasmcert/wasm --target wasm-gc
-```
-
-```bash
-ulimit -s 65520 && moon test -p moonbit-community/wasmcert/logic --target wasm-gc
-```
