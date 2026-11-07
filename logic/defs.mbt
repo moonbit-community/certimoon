@@ -167,3 +167,21 @@ fn forward2(lemma : @kernel.Thm) -> @tactics.Tactic {
     raise Failure("forward2: no assumptions match")
   }
 }
+
+///|
+/// step_cases(s, f, code) without computing (`@wasm.step_cases`), kept
+/// for the next rule about the same code: it is the slow part of a rule.
+let step_cases_seen : Map[String, @kernel.Thm] = Map([])
+
+///|
+fn step_cases_of(s : @kernel.Term, f : @kernel.Term, code : String) -> @kernel.Thm raise {
+  let key = show(s) + "|" + show(f) + "|" + code
+  match step_cases_seen.get(key) {
+    Some(th) => th
+    None => {
+      let th = @wasm.step_cases(s, f, tm(code), compute=false)
+      step_cases_seen[key] = th
+      th
+    }
+  }
+}

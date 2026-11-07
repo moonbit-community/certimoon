@@ -27,9 +27,54 @@
 let sa_false : String = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => false"
 
 ///|
+/// The name of a rule for g triples (specs.mbt): sl_x_l is sl_x_g, and
+/// any other sl_x is sl_x_g.
+fn g_name(name : String) -> String {
+  if name.has_suffix("_l") {
+    name.unsafe_substring(start=0, end=name.length() - 2) + "_g"
+  } else {
+    name + "_g"
+  }
+}
+
+///|
 fn prove_sym_rules() -> Unit raise {
+  prove_sym_derived(false)
+  let _ = lemma(
+    "wasm_bool_zero",
+    "∀ b : Bool, (wasm_bool(b) == word(0)) == !b",
+    seq([
+      @tactics.gen_tac,
+      @class.bool_cases_tac(tm("(b : Bool)")),
+      @simp.rewrite_tac(
+        ths([@wasm.thm("wasm_bool"), @equal.gsym(@words.val_eq()), @words.val_word_1(), @words.val_word_0(), arith("!(1 == 0)")]),
+      ),
+    ]),
+  )
+}
+
+///|
+/// The rules sym_tac uses, from the triple's basic rules: for sl_triple_l
+/// (g = false), or for g triples (specs.mbt), where each also takes G, fs,
+/// inst and rp first, and is named by g_name.
+fn prove_sym_derived(g : Bool) -> Unit raise {
   let sa = sassn
   let st = thm("st")
+  // the triple, the quantifiers for G, fs, inst and rp, and the names
+  let tr = (p : String, bs : String, q : String, ls : String) => if g {
+    triple_g(p, bs, q, ls)
+  } else {
+    "sl_triple_l(\{p}, \{bs}, \{q}, \{ls})"
+  }
+  let env = if g { env_vars() } else { "" }
+  let name = (n : String) => if g { g_name(n) } else { n }
+  let rule = (n : String) => thm(name(n))
+  let env_terms = if g {
+    ["(G : \{specs_ty})", "(fs : List[Cl])", "(inst : Inst)", "(rp : \{sa})"].map(tm)
+  } else {
+    []
+  }
+  let spec_rule = (n : String, args : Array[String]) => @bool.ispecl(@list.List(env_terms + args.map(tm)), rule(n))
   // reasoning about pre- and postconditions that are lambdas
   let simple = seq([
     @tactics.repeat_tac(@tactics.gen_tac),
@@ -40,7 +85,7 @@ fn prove_sym_rules() -> Unit raise {
     @tactics.try_tac(@meson.asm_meson_tac(ths([]))),
   ])
   let conseq = (p : String, q : String, ls : String, triple : @tactics.Tactic) => seq([
-    @tactics.match_mp_tac(thm("sl_conseq_l")),
+    @tactics.match_mp_tac(rule("sl_conseq_l")),
     @tactics.exists_tac(tm(p)),
     @tactics.exists_tac(tm(q)),
     @tactics.exists_tac(tm(ls)),
@@ -48,8 +93,8 @@ fn prove_sym_rules() -> Unit raise {
     @tactics.first(@list.List([solve(triple), solve(simple)])),
   ])
   let _ = lemma(
-    "sl_pre_l",
-    "∀ p : \{sa}, ∀ p2 : \{sa}, ∀ bs : List[B_e], ∀ q : \{sa}, ∀ ls : List[\{sa}], (∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, p2(vs, lc, gs, ms, h) → p(vs, lc, gs, ms, h)) && sl_triple_l(p, bs, q, ls) → sl_triple_l(p2, bs, q, ls)",
+    name("sl_pre_l"),
+    "\{env}∀ p : \{sa}, ∀ p2 : \{sa}, ∀ bs : List[B_e], ∀ q : \{sa}, ∀ ls : List[\{sa}], (∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, p2(vs, lc, gs, ms, h) → p(vs, lc, gs, ms, h)) && \{tr("p", "bs", "q", "ls")} → \{tr("p2", "bs", "q", "ls")}",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
@@ -60,44 +105,46 @@ fn prove_sym_rules() -> Unit raise {
   let cons_append = (i : String, rest : String) => @equal.gsym(
     @simp.rewrite_conv(ths([@lists.append()]))(tm("APPEND([\{i}], \{rest})")),
   )
+  if !g {
+    let _ = lemma(
+      "sl_step_l",
+      "∀ p : \{sa}, ∀ i : B_e, ∀ q : \{sa}, ∀ rest : List[B_e], ∀ r : \{sa}, ∀ ls : List[\{sa}], sl_triple(p, [i], q) → sl_triple_l(q, rest, r, ls) → sl_triple_l(p, CONS(i, rest), r, ls)",
+      seq([
+        @tactics.repeat_tac(@tactics.strip_tac),
+        @tactics.subst1_tac(cons_append("(i : B_e)", "(rest : List[B_e])")),
+        @tactics.match_mp_tac(thm("sl_seq_l")),
+        @tactics.exists_tac(tm("(q : \{sa})")),
+        @meson.asm_meson_tac(ths([thm("sl_triple_l_of")])),
+      ]),
+    )
+  }
   let _ = lemma(
-    "sl_step_l",
-    "∀ p : \{sa}, ∀ i : B_e, ∀ q : \{sa}, ∀ rest : List[B_e], ∀ r : \{sa}, ∀ ls : List[\{sa}], sl_triple(p, [i], q) → sl_triple_l(q, rest, r, ls) → sl_triple_l(p, CONS(i, rest), r, ls)",
+    name("sl_cons_l"),
+    "\{env}∀ q : \{sa}, ∀ p : \{sa}, ∀ i : B_e, ∀ rest : List[B_e], ∀ r : \{sa}, ∀ ls : List[\{sa}], \{tr("p", "[i]", "q", "ls")} && \{tr("q", "rest", "r", "ls")} → \{tr("p", "CONS(i, rest)", "r", "ls")}",
     seq([
       @tactics.repeat_tac(@tactics.strip_tac),
       @tactics.subst1_tac(cons_append("(i : B_e)", "(rest : List[B_e])")),
-      @tactics.match_mp_tac(thm("sl_seq_l")),
-      @tactics.exists_tac(tm("(q : \{sa})")),
-      @meson.asm_meson_tac(ths([thm("sl_triple_l_of")])),
-    ]),
-  )
-  let _ = lemma(
-    "sl_cons_l",
-    "∀ q : \{sa}, ∀ p : \{sa}, ∀ i : B_e, ∀ rest : List[B_e], ∀ r : \{sa}, ∀ ls : List[\{sa}], sl_triple_l(p, [i], q, ls) && sl_triple_l(q, rest, r, ls) → sl_triple_l(p, CONS(i, rest), r, ls)",
-    seq([
-      @tactics.repeat_tac(@tactics.strip_tac),
-      @tactics.subst1_tac(cons_append("(i : B_e)", "(rest : List[B_e])")),
-      @tactics.match_mp_tac(thm("sl_seq_l")),
+      @tactics.match_mp_tac(rule("sl_seq_l")),
       @tactics.exists_tac(tm("(q : \{sa})")),
       @simp.asm_rewrite_tac(ths([])),
     ]),
   )
   let state = "st((v : List[Value]), (l : List[Value]), (R : \{rty}))"
-  let vars = "∀ v : List[Value], ∀ l : List[Value], ∀ R : \{rty}"
+  let vars = "\{env}∀ v : List[Value], ∀ l : List[Value], ∀ R : \{rty}"
   let ls = "(ls : List[\{sa}])"
   let _ = lemma(
-    "sl_nil_st",
-    "\{vars}, ∀ r : \{sa}, ∀ ls : List[\{sa}], (∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, R(gs, ms, h) → r(v, l, gs, ms, h)) → sl_triple_l(\{state}, NIL, r, ls)",
+    name("sl_nil_st"),
+    "\{vars}, ∀ r : \{sa}, ∀ ls : List[\{sa}], (∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, R(gs, ms, h) → r(v, l, gs, ms, h)) → \{tr(state, "NIL", "r", "ls")}",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @tactics.disch_tac,
-      conseq(state, state, ls, @tactics.match_accept_tac(thm("sl_nil_l"))),
+      conseq(state, state, ls, @tactics.match_accept_tac(rule("sl_nil_l"))),
     ]),
   )
   let br_pre = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], ∃ vb : List[Value], vs == APPEND(vs0, vb) && EL(i, ls, vb, lc, gs, ms, h))"
   let _ = lemma(
-    "sl_br_st",
-    "\{vars}, ∀ i : Num, ∀ r : \{sa}, ∀ ls : List[\{sa}], i < LENGTH(ls) && (∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, R(gs, ms, h) → (∃ vs0 : List[Value], ∃ vb : List[Value], v == APPEND(vs0, vb) && EL(i, ls, vb, l, gs, ms, h))) → sl_triple_l(\{state}, [Br(i)], r, ls)",
+    name("sl_br_st"),
+    "\{vars}, ∀ i : Num, ∀ r : \{sa}, ∀ ls : List[\{sa}], i < LENGTH(ls) && (∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, R(gs, ms, h) → (∃ vs0 : List[Value], ∃ vb : List[Value], v == APPEND(vs0, vb) && EL(i, ls, vb, l, gs, ms, h))) → \{tr(state, "[Br(i)]", "r", "ls")}",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
@@ -105,7 +152,7 @@ fn prove_sym_rules() -> Unit raise {
         br_pre,
         sa_false,
         ls,
-        seq([@tactics.match_mp_tac(thm("sl_br")), @tactics.first_assum(th => @tactics.accept_tac(th))]),
+        seq([@tactics.match_mp_tac(rule("sl_br")), @tactics.first_assum(th => @tactics.accept_tac(th))]),
       ),
     ]),
   )
@@ -114,7 +161,7 @@ fn prove_sym_rules() -> Unit raise {
   let pre_c = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [\{x}]) && \{state}(vs0, lc, gs, ms, h))"
   let top = "st(APPEND(v, [\{x}]), l, R)"
   let to_pre_c = (rest : @tactics.Tactic) => seq([
-    @tactics.match_mp_tac(thm("sl_pre_l")),
+    @tactics.match_mp_tac(rule("sl_pre_l")),
     @tactics.exists_tac(tm(pre_c)),
     @tactics.thenl(
       @tactics.conj_tac,
@@ -122,13 +169,13 @@ fn prove_sym_rules() -> Unit raise {
     ),
   ])
   let _ = lemma(
-    "sl_br_if_st",
-    "\{vars}, ∀ c : \{w32}, ∀ i : Num, ∀ rest : List[B_e], ∀ r : \{sa}, ∀ ls : List[\{sa}], (!(c == word(0)) → sl_triple_l(\{state}, [Br(i)], \{sa_false}, ls)) && (c == word(0) → sl_triple_l(\{state}, rest, r, ls)) → sl_triple_l(\{top}, CONS(Br_if(i), rest), r, ls)",
+    name("sl_br_if_st"),
+    "\{vars}, ∀ c : \{w32}, ∀ i : Num, ∀ rest : List[B_e], ∀ r : \{sa}, ∀ ls : List[\{sa}], (!(c == word(0)) → \{tr(state, "[Br(i)]", sa_false, "ls")}) && (c == word(0) → \{tr(state, "rest", "r", "ls")}) → \{tr(top, "CONS(Br_if(i), rest)", "r", "ls")}",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
       @tactics.subst1_tac(cons_append("Br_if((i : Num))", "(rest : List[B_e])")),
-      @tactics.match_mp_tac(thm("sl_seq_l")),
+      @tactics.match_mp_tac(rule("sl_seq_l")),
       @tactics.exists_tac(
         tm("(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (c : \{w32}) == word(0) && \{state}(vs, lc, gs, ms, h)"),
       ),
@@ -137,7 +184,7 @@ fn prove_sym_rules() -> Unit raise {
         @list.List([
           to_pre_c(
             @tactics.thenl(
-              seq([@tactics.match_mp_tac(thm("sl_br_if")), @tactics.conj_tac]),
+              seq([@tactics.match_mp_tac(rule("sl_br_if")), @tactics.conj_tac]),
               @list.List([
                 // c ≠ 0: br, whose postcondition is false
                 seq([@tactics.disch_tac, conseq(state, sa_false, ls, @meson.asm_meson_tac(ths([])))]),
@@ -146,7 +193,7 @@ fn prove_sym_rules() -> Unit raise {
             ),
           ),
           seq([
-            @tactics.match_mp_tac(thm("sl_pure_l")),
+            @tactics.match_mp_tac(rule("sl_pure_l")),
             @simp.rewrite_tac(ths([@class.eta_ax()])),
             @tactics.first_assum(th => @tactics.accept_tac(th)),
           ]),
@@ -155,14 +202,14 @@ fn prove_sym_rules() -> Unit raise {
     ]),
   )
   let _ = lemma(
-    "sl_if_st",
-    "\{vars}, ∀ c : \{w32}, ∀ tb : Tb, ∀ bs1 : List[B_e], ∀ bs2 : List[B_e], ∀ r : \{sa}, ∀ ls : List[\{sa}], (!(c == word(0)) → sl_triple_l(\{state}, [Block(tb, bs1)], r, ls)) && (c == word(0) → sl_triple_l(\{state}, [Block(tb, bs2)], r, ls)) → sl_triple_l(\{top}, [If(tb, bs1, bs2)], r, ls)",
+    name("sl_if_st"),
+    "\{vars}, ∀ c : \{w32}, ∀ tb : Tb, ∀ bs1 : List[B_e], ∀ bs2 : List[B_e], ∀ r : \{sa}, ∀ ls : List[\{sa}], (!(c == word(0)) → \{tr(state, "[Block(tb, bs1)]", "r", "ls")}) && (c == word(0) → \{tr(state, "[Block(tb, bs2)]", "r", "ls")}) → \{tr(top, "[If(tb, bs1, bs2)]", "r", "ls")}",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @tactics.disch_tac,
       to_pre_c(
         seq([
-          @tactics.match_mp_tac(thm("sl_if")),
+          @tactics.match_mp_tac(rule("sl_if")),
           @simp.rewrite_tac(ths([@class.eta_ax()])),
           @tactics.first_assum(th => @tactics.accept_tac(th)),
         ]),
@@ -174,22 +221,17 @@ fn prove_sym_rules() -> Unit raise {
   let ot = "(ot : Option[Valtype])"
   let lb = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => LENGTH(vs) == LENGTH(tbv_results(\{ot})) && (r : \{sa})(APPEND(v, vs), lc, gs, ms, h)"
   let block = @equal.beta_rule(
-    @bool.ispecl(
-      @list.List(
-        [ot, "(bs : List[B_e])", "st((NIL : List[Value]), l, R)", after, lb, ls, "(v : List[Value])"].map(tm),
-      ),
-      thm("sl_block"),
-    ),
+    spec_rule("sl_block", [ot, "(bs : List[B_e])", "st((NIL : List[Value]), l, R)", after, lb, ls, "(v : List[Value])"]),
   )
   let (_, block_concl) = @basics.dest_imp(@kernel.concl(block))
   let (block_pre, _, block_post, _) = triple_l_terms(block_concl)
   let _ = lemma(
-    "sl_block_st",
-    "\{vars}, ∀ ot : Option[Valtype], ∀ bs : List[B_e], ∀ r : \{sa}, ∀ ls : List[\{sa}], sl_triple_l(st(NIL, l, R), bs, \{after}, CONS(\{lb}, ls)) → sl_triple_l(\{state}, [Block(Tbv(ot), bs)], r, ls)",
+    name("sl_block_st"),
+    "\{vars}, ∀ ot : Option[Valtype], ∀ bs : List[B_e], ∀ r : \{sa}, ∀ ls : List[\{sa}], \{tr("st(NIL, l, R)", "bs", after, "CONS(\{lb}, ls)")} → \{tr(state, "[Block(Tbv(ot), bs)]", "r", "ls")}",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @tactics.disch_tac,
-      @tactics.match_mp_tac(thm("sl_conseq_l")),
+      @tactics.match_mp_tac(rule("sl_conseq_l")),
       @tactics.exists_tac(block_pre),
       @tactics.exists_tac(block_post),
       @tactics.exists_tac(tm(ls)),
@@ -207,21 +249,16 @@ fn prove_sym_rules() -> Unit raise {
   )
   let linv = "(linv : (List[Value], List[Value], Num, \{heap}) -> Bool)"
   let lbl = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => vs == NIL && \{linv}(lc, gs, ms, h)"
-  let looped = @equal.beta_rule(
-    @bool.ispecl(
-      @list.List([ot, "(bs : List[B_e])", linv, after, ls, "(v : List[Value])"].map(tm)),
-      thm("sl_loop"),
-    ),
-  )
+  let looped = @equal.beta_rule(spec_rule("sl_loop", [ot, "(bs : List[B_e])", linv, after, ls, "(v : List[Value])"]))
   let (_, loop_concl) = @basics.dest_imp(@kernel.concl(looped))
   let (loop_pre, _, loop_post, _) = triple_l_terms(loop_concl)
   let _ = lemma(
-    "sl_loop_st",
-    "∀ linv : (List[Value], List[Value], Num, \{heap}) -> Bool, \{vars}, ∀ ot : Option[Valtype], ∀ bs : List[B_e], ∀ r : \{sa}, ∀ ls : List[\{sa}], (∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, R(gs, ms, h) → linv(l, gs, ms, h)) && sl_triple_l(\{lbl}, bs, \{after}, CONS(\{lbl}, ls)) → sl_triple_l(\{state}, [Loop(Tbv(ot), bs)], r, ls)",
+    name("sl_loop_st"),
+    "\{env}∀ linv : (List[Value], List[Value], Num, \{heap}) -> Bool, ∀ v : List[Value], ∀ l : List[Value], ∀ R : \{rty}, ∀ ot : Option[Valtype], ∀ bs : List[B_e], ∀ r : \{sa}, ∀ ls : List[\{sa}], (∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, R(gs, ms, h) → linv(l, gs, ms, h)) && \{tr(lbl, "bs", after, "CONS(\{lbl}, ls)")} → \{tr(state, "[Loop(Tbv(ot), bs)]", "r", "ls")}",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      @tactics.match_mp_tac(thm("sl_conseq_l")),
+      @tactics.match_mp_tac(rule("sl_conseq_l")),
       @tactics.exists_tac(loop_pre),
       @tactics.exists_tac(loop_post),
       @tactics.exists_tac(tm(ls)),
@@ -230,17 +267,6 @@ fn prove_sym_rules() -> Unit raise {
         solve(seq([@tactics.match_mp_tac(looped), @tactics.first_assum(th => @tactics.accept_tac(th))])),
         solve(simple),
       ])),
-    ]),
-  )
-  let _ = lemma(
-    "wasm_bool_zero",
-    "∀ b : Bool, (wasm_bool(b) == word(0)) == !b",
-    seq([
-      @tactics.gen_tac,
-      @class.bool_cases_tac(tm("(b : Bool)")),
-      @simp.rewrite_tac(
-        ths([@wasm.thm("wasm_bool"), @equal.gsym(@words.val_eq()), @words.val_word_1(), @words.val_word_0(), arith("!(1 == 0)")]),
-      ),
     ]),
   )
 }
@@ -258,6 +284,26 @@ priv struct Sym {
   afters : Array[(@kernel.Term, @kernel.Term)]
   rules : Array[String]
   rws : Array[@kernel.Thm]
+  // for g triples: theorems ∀ xs. G(a, P, Q), the specs calls use
+  specs : Array[@kernel.Thm]
+}
+
+///|
+/// Whether the goal is a g triple (specs.mbt).
+fn is_g(goal : @kernel.Term) -> Bool {
+  head_name(goal) == "sl_triple_g"
+}
+
+///|
+/// The rule `name` for the goal's triple: as it is for sl_triple_l, and
+/// g_name(name) with the goal's G, fs, inst and rp for a g triple.
+fn rule_of(goal : @kernel.Term, name : String) -> @kernel.Thm raise {
+  if is_g(goal) {
+    let args = @basics.strip_comb(goal).1.to_array()
+    @bool.ispecl(@list.List(args[0:4].to_owned()), thm(g_name(name)))
+  } else {
+    thm(name)
+  }
 }
 
 ///|
@@ -476,7 +522,7 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
       return @tactics.then_tac(intro_tac(), sym_tac(sym))(g)
     }
     if @basics.is_list(code) && @basics.dest_list(code).is_empty() {
-      return seq([renorm, @tactics.match_mp_tac(thm("sl_nil_st")), vc_tac(sym)])(g)
+      return seq([renorm, @tactics.match_mp_tac(rule_of(g.1, "sl_nil_st")), vc_tac(sym)])(g)
     }
     guard args_of(code, "CONS", 2) is Some([instr, rest]) else {
       raise Failure("wasmcert/logic: sym: the code is not a list: " + show(code))
@@ -499,7 +545,7 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
       }
       return seq([
         renorm,
-        @tactics.match_mp_tac(@bool.ispec(q, thm("sl_cons_l"))),
+        @tactics.match_mp_tac(@bool.ispec(q, rule_of(g.1, "sl_cons_l"))),
         @tactics.conj_tac,
         sym_tac(sym),
       ])(g)
@@ -507,13 +553,13 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
     match name {
       "Br" => {
         need_last("br")
-        seq([renorm, @tactics.match_mp_tac(thm("sl_br_st")), @tactics.conj_tac, vc_tac(sym)])(g)
+        seq([renorm, @tactics.match_mp_tac(rule_of(g.1, "sl_br_st")), @tactics.conj_tac, vc_tac(sym)])(g)
       }
       "Br_if" =>
         seq([
           renorm,
           split_tac(1),
-          @tactics.match_mp_tac(thm("sl_br_if_st")),
+          @tactics.match_mp_tac(rule_of(g.1, "sl_br_if_st")),
           @tactics.conj_tac,
           fact_tac(),
           sym_tac(sym),
@@ -523,7 +569,7 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
         seq([
           renorm,
           split_tac(1),
-          @tactics.match_mp_tac(thm("sl_if_st")),
+          @tactics.match_mp_tac(rule_of(g.1, "sl_if_st")),
           @tactics.conj_tac,
           fact_tac(),
           sym_tac(sym),
@@ -531,7 +577,7 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
       }
       "Block" => {
         need_last("block")
-        seq([renorm, @tactics.match_mp_tac(thm("sl_block_st")), beta_goal(), sym_tac(sym)])(g)
+        seq([renorm, @tactics.match_mp_tac(rule_of(g.1, "sl_block_st")), beta_goal(), sym_tac(sym)])(g)
       }
       "Loop" => {
         need_last("loop")
@@ -545,7 +591,16 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
           raise Failure("wasmcert/logic: sym: no invariant for " + show(instr))
         }
         @tactics.thenl(
-          seq([renorm, @tactics.match_mp_tac(@bool.ispec(inv, thm("sl_loop_st"))), beta_goal(), @tactics.conj_tac]),
+          seq([renorm, @tactics.match_mp_tac(@bool.ispec(inv, rule_of(g.1, "sl_loop_st"))), beta_goal(), @tactics.conj_tac]),
+          @list.List([vc_tac(sym), sym_tac(sym)]),
+        )(g)
+      }
+      "Return" if is_g(g.1) => seq([renorm, @tactics.match_mp_tac(rule_of(g.1, "sl_return_st")), vc_tac(sym)])(g)
+      "Call" if is_g(g.1) => {
+        let (k, spec) = call_spec(sym, g.1, instr, p)
+        let rule = @drule.match_mp(rule_of(g.1, "sl_call_st"))(spec)
+        @tactics.thenl(
+          seq([renorm, split_tac(k), @tactics.match_mp_tac(rule), @tactics.conj_tac]),
           @list.List([vc_tac(sym), sym_tac(sym)]),
         )(g)
       }
@@ -555,11 +610,11 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
         if @basics.is_imp(c) {
           let (h, _) = @basics.dest_imp(c)
           @tactics.thenl(
-            seq([renorm, @tactics.subgoal_then(h, hth => step_tac(@bool.mp(th, hth), p))]),
+            seq([renorm, @tactics.subgoal_then(h, hth => step_tac(@bool.mp(th, hth), p, g.1))]),
             @list.List([vc_tac(sym), sym_tac(sym)]),
           )(g)
         } else {
-          seq([renorm, step_tac(th, p), sym_tac(sym)])(g)
+          seq([renorm, step_tac(th, p, g.1), sym_tac(sym)])(g)
         }
       }
     }
@@ -569,14 +624,67 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
 ///|
 /// sl_step_l with the instruction's rule `th`, whose precondition must be
 /// the goal's `p`.
-fn step_tac(th : @kernel.Thm, p : @kernel.Term) -> @tactics.Tactic raise {
-  guard args_of(@kernel.concl(th), "sl_triple", 3) is Some([p2, _, _]) else {
+fn step_tac(th : @kernel.Thm, p : @kernel.Term, goal : @kernel.Term) -> @tactics.Tactic raise {
+  guard args_of(@kernel.concl(th), "sl_triple", 3) is Some([p2, code, _]) else {
     raise Failure("step_tac: " + show(@kernel.concl(th)))
   }
   if !@basics.aconv(p, p2) {
     raise Failure("wasmcert/logic: sym: the rule's precondition " + show(p2) + " is not the state " + show(p))
   }
-  @tactics.match_mp_tac(@drule.match_mp(thm("sl_step_l"))(th))
+  let step = @drule.match_mp(rule_of(goal, "sl_step_l"))(th)
+  if is_g(goal) {
+    // the instruction has no calls
+    let cf = @tactics.prove(@basics.list_mk_comb(tm("call_free_b"), @list.List([code])), call_free_tac())
+    @tactics.match_mp_tac(@drule.match_mp(step)(cf))
+  } else {
+    @tactics.match_mp_tac(step)
+  }
+}
+
+///|
+/// For a call in state p: the number of arguments, and the theorem
+/// G(a, P, Q) of a spec in sym.specs whose P takes the arguments on
+/// top of p's stack, its variables chosen to match them, and its frame
+/// (a variable R applied to gs, ms and h) the state's.
+fn call_spec(sym : Sym, goal : @kernel.Term, instr : @kernel.Term, p : @kernel.Term) -> (Int, @kernel.Thm) raise {
+  guard args_of(p, "st", 3) is Some([s, _, r]) else { raise Failure("call_spec") }
+  let avoid = @kernel.frees(goal)
+  for spec in sym.specs {
+    let th = fresh_spec(spec, avoid)
+    let (_, sargs) = @basics.strip_comb(@kernel.concl(th))
+    let sargs = sargs.to_array()
+    if sargs.length() < 3 {
+      continue
+    }
+    let pp = sargs[sargs.length() - 2]
+    let (bvs, body) = @basics.strip_abs(pp)
+    guard bvs.to_array() is [args, gs, ms, h] else { continue }
+    let mut pat : @kernel.Term? = None
+    let mut frame : @kernel.Term? = None
+    for c in @basics.conjuncts(body) {
+      if args_of(c, "=", 2) is Some([a, b]) && a == args && @basics.is_list(b) {
+        pat = Some(b)
+      } else if @basics.strip_comb(c) is (Var(_, _) as rv, xs) && xs.to_array() == [gs, ms, h] {
+        frame = Some(rv)
+      }
+    }
+    guard pat is Some(pat) else { continue }
+    let k = @basics.dest_list(pat).length()
+    guard (try Some(split_stack(s, k)) catch { _ => None }) is Some((_, top)) else { continue }
+    let actual = @lists.mk_list(@list.List(top), values_ty())
+    guard (try Some(@drule.term_match(@list.List([]), pat, actual)) catch { _ => None }) is Some(i) else { continue }
+    let th = @drule.instantiate_rule(i, th)
+    let th = match frame {
+      Some(rv) => @kernel.inst_rule(@list.List([(r, rv)]), th)
+      None => th
+    }
+    // the spec's function must be the call's
+    let rule = rule_of(goal, "sl_call_st")
+    guard (try Some(@drule.match_mp(rule)(th)) catch { _ => None }) is Some(_) else { continue }
+    let _ = instr
+    return (k, th)
+  }
+  raise Failure("wasmcert/logic: sym: no spec for " + show(instr) + " from " + show(p))
 }
 
 ///|
@@ -608,7 +716,7 @@ fn intro_tac() -> @tactics.Tactic {
     if @basics.is_exists(body) {
       let (x, b) = @basics.dest_exists(body)
       let pp = @basics.list_mk_abs(bvs.prepend(x), b)
-      let th = @equal.beta_rule(@bool.ispecl(@list.List([pp, bs, q, ls]), thm("sl_ex_l")))
+      let th = @equal.beta_rule(@bool.ispecl(@list.List([pp, bs, q, ls]), rule_of(g.1, "sl_ex_l")))
       return seq([@tactics.match_mp_tac(th), @tactics.gen_tac])(g)
     }
     if has_exists(body) {
@@ -621,10 +729,8 @@ fn intro_tac() -> @tactics.Tactic {
     if @basics.is_conj(body) {
       let (c, rest) = @basics.dest_conj(body)
       if pure(c) && args_of(rest, "st", 8) is Some(args) && args[3:].to_owned() == bvs.to_array() {
-        return seq([
-          @tactics.match_mp_tac(thm("sl_pure_l")),
-          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-        ])(g)
+        let facts = if is_g(g.1) { subst_facts_tac() } else { @tactics.disch_then(th => @tactics.strip_assume_tac(th)) }
+        return seq([@tactics.match_mp_tac(rule_of(g.1, "sl_pure_l")), facts])(g)
       }
     }
     let conjs = @basics.conjuncts(body).to_array()
@@ -659,7 +765,7 @@ fn intro_tac() -> @tactics.Tactic {
       @basics.list_mk_abs(bvs, @bool.mk_conj(@bool.list_mk_conj(@list.List(facts)), applied))
     }
     @tactics.thenl(
-      seq([@tactics.match_mp_tac(thm("sl_pre_l")), @tactics.exists_tac(p2), @tactics.conj_tac]),
+      seq([@tactics.match_mp_tac(rule_of(g.1, "sl_pre_l")), @tactics.exists_tac(p2), @tactics.conj_tac]),
       @list.List([
         // the same conjuncts, rearranged
         seq([
@@ -673,6 +779,24 @@ fn intro_tac() -> @tactics.Tactic {
       ]),
     )(g)
   }
+}
+
+///|
+/// Takes the facts as assumptions, and substitutes those that say a
+/// variable is a term (a function's arguments).
+fn subst_facts_tac() -> @tactics.Tactic {
+  @tactics.disch_then(th => g => {
+    let parts = @bool.conjuncts_rule(th).to_array()
+    let tacs = parts.map(c => {
+      let t = @kernel.concl(c)
+      if args_of(t, "=", 2) is Some([Var(_, _) as v, b]) && !@basics.free_in(v, b) {
+        @tactics.subst_var_tac(c)
+      } else {
+        @tactics.strip_assume_tac(c)
+      }
+    })
+    seq(tacs)(g)
+  })
 }
 
 ///|
@@ -736,13 +860,16 @@ fn sym_prove(
   afters? : Array[String] = [],
   rules? : Array[String] = step_rules,
   rws? : Array[@kernel.Thm] = [],
+  specs? : Array[@kernel.Thm] = [],
   kind? : String = "example",
 ) -> @kernel.Thm raise {
   let goal = tm(stmt)
   let (_, body) = @basics.strip_forall(goal)
   let triple = if @basics.is_imp(body) { @basics.dest_imp(body).1 } else { body }
-  guard args_of(triple, "sl_triple", 3) is Some([_, code, _]) else {
-    raise Failure("wasmcert/logic: sym_prove: not a triple: " + show(triple))
+  let (code, g) = match (args_of(triple, "sl_triple", 3), args_of(triple, "sl_triple_g", 8)) {
+    (Some([_, code, _]), _) => (code, false)
+    (_, Some(args)) => (args[5], true)
+    _ => raise Failure("wasmcert/logic: sym_prove: not a triple: " + show(triple))
   }
   let (loops, after) = structure_of(code)
   if loops.length() != invs.length() || after.length() != afters.length() {
@@ -757,11 +884,12 @@ fn sym_prove(
     afters: after.mapi((k, a) => (a, tm(afters[k]))),
     rules,
     rws,
+    specs,
   }
   let run = seq([
     @tactics.repeat_tac(@tactics.gen_tac),
     @tactics.try_tac(@tactics.disch_then(th => @tactics.strip_assume_tac(th))),
-    @tactics.match_mp_tac(thm("sl_triple_of_l")),
+    if g { beta_goal() } else { @tactics.match_mp_tac(thm("sl_triple_of_l")) },
     sym_tac(sym),
   ])
   let th = @tactics.prove(goal, @tactics.thenl(run, @list.List(vcs))) catch {

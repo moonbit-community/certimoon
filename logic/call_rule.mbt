@@ -395,8 +395,14 @@ fn split_conjs() -> @tactics.Tactic {
 fn forward2_3(lemma : @kernel.Thm) -> @tactics.Tactic {
   g => {
     let asms = g.0.to_array()
-    let n = @basics.conjuncts(@basics.dest_imp(@basics.strip_forall(@kernel.concl(lemma)).1).0).length()
-    // try every choice of assumptions for the premises, in order
+    let prems = @basics.conjuncts(@basics.dest_imp(@basics.strip_forall(@kernel.concl(lemma)).1).0).to_array()
+    let n = prems.length()
+    // the assumptions each premise matches on its own
+    let matches = (p : @kernel.Term, a : @kernel.Thm) => (try Some(@drule.term_match(@list.List([]), p, @kernel.concl(a))) catch {
+      _ => None
+    }) is Some(_)
+    let cands = prems.map(p => asms.filter(a => matches(p, a.1)).map(a => a.1))
+    // try every choice of them for the premises, in order
     fn go(k : Int, chosen : Array[@kernel.Thm]) -> @kernel.Thm? {
       if k == n {
         let mut c = chosen[n - 1]
@@ -405,8 +411,8 @@ fn forward2_3(lemma : @kernel.Thm) -> @tactics.Tactic {
         }
         return try Some(@drule.match_mp(lemma)(c)) catch { _ => None }
       }
-      for a in asms {
-        if go(k + 1, chosen + [a.1]) is Some(th) {
+      for a in cands[k] {
+        if go(k + 1, chosen + [a]) is Some(th) {
           return Some(th)
         }
       }

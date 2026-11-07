@@ -373,9 +373,60 @@ depends on the store's function table, which the triples above do not see
 
 `example_call` (`logic/example_call.mbt`): with function 0 the doubling
 function (`local.get 0; local.get 0; i32.add`, proved with `sym_prove` as
-`double_body`), `call 0` with x on the stack leaves x + x. Not yet: `return`
-(a body with return is not provable yet: frame_safe asks the body to be
-safe without it), recursion, `call_indirect`, calls in `sym_prove`.
+`double_body`), `call 0` with x on the stack leaves x + x.
+
+Returns, recursion and calls in `sym_prove` (`logic/returns.mbt`,
+`specs.mbt`):
+
+- `safer(n, s, f, es, q, l, rq)`: as `safel`, and a run may also stop at a
+  `return`, with the return assertion rq holding of the values it returns.
+  Sequencing (`safer_seq`) and labels (`safer_label`) pass a return on to
+  the code around them, and a frame takes it (`frame_safe_r`: the frame
+  leaves with a return's values, as with its body's);
+- function specs: a set G of triples (a, P, Q), "the function at address a,
+  from arguments with P, returns results with Q". `specs_ok(n, G, fs,
+  inst)`: calling each of them is safe for n steps or fewer;
+- `sl_triple_g(G, fs, inst, rp, p, bs, q, ls)`: the module triple with
+  labels ls and return assertion rp, for every n where G's specs hold for n
+  steps. It has the rules of `sl_triple_l`, for code with calls:
+  `sl_seq_g`, `sl_conseq_g`, `sl_block_g`, `sl_loop_g`, `sl_if_g`,
+  `sl_br_if_g`, `sl_br_g`, `sl_ex_g`, `sl_pure_g`, and `sl_return_g` (a
+  `return` with rp of its values). `sl_triple_g_of` brings in any triple of
+  call-free code;
+- `sl_call_g`: `call j` with a spec of G for its function takes the
+  arguments (P) and leaves the results (Q); `sl_funs_g`: G's specs hold for
+  every n when each function's body has its triple, which may itself call
+  the functions of G (recursion: a call takes a step before its body runs,
+  so the induction on n goes through). `sl_triple_m_of_g` drops G again;
+- `sym_prove` runs code in g triples too: a call by a spec (its arguments
+  matched against the stack, its frame R the state's), `return` by an
+  entailment to rp, and everything else as before (`sl_call_st_g`,
+  `sl_return_st_g`, and the `_g` versions of the rules above).
+
+`example_fact` (`logic/example_fact.mbt`): factorial, recursive, with an
+early return:
+
+```wat
+(func $fact (param i32) (result i32)
+  local.get 0
+  i32.eqz
+  if
+    i32.const 1
+    return
+  end
+  local.get 0
+  local.get 0
+  i32.const 1
+  i32.sub
+  call $fact
+  i32.mul)
+```
+
+`sym_prove` runs the body (`fact_body`), its recursive call by the
+function's own spec (`fact_spec`: from x, the result `fact_w(val(x))`),
+and leaves two arithmetic conditions; `sl_funs_g` gives the spec
+(`fact_specs`), and `example_fact` is `call 0` from x as a module triple.
+Not yet: `call_indirect`, functions of other modules, host functions.
 
 Control flow (`logic/labels.mbt`, `block.mbt`, `loop.mbt`) uses triples
 with label assertions, innermost first:

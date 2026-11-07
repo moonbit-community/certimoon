@@ -83,7 +83,7 @@ fn prove_loop_rule() -> Unit raise {
   let prefix = @bool.gen_all(prove_prefix("loop", [], loop_e, arity))
   let s_ = tm("(s : Wstore)")
   let f_ = tm("(f : Wframe)")
-  let cases = @wasm.step_cases(s_, f_, tm("[\{loop_e}]"), compute=false)
+  let cases = step_cases_of(s_, f_, "[\{loop_e}]")
   let rb = @bool.conjuncts_rule(@wasm.thm("reduce_base_rules")).to_array()
   let lists = [@lists.map(), @lists.append(), @lists.append_nil(), @lists.length()]
   let vs0 = "(vs0 : List[Value])"

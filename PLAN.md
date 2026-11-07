@@ -20,7 +20,8 @@ programs work end to end.
 
 ```
 5. Programs       examples.mbt: rule instances glued together
-4. Program logic  triple.mbt, seq.mbt, rules.mbt, labels.mbt, block.mbt, loop.mbt
+4. Program logic  triple.mbt, seq.mbt, rules.mbt, labels.mbt, block.mbt, loop.mbt,
+                  sym.mbt; calls.mbt, frames.mbt, call_rule.mbt, returns.mbt, specs.mbt
 3. Memory model   heap.mbt, memory.mbt
 2. Semantics      package wasm: AST, reduce (WasmCert-Isabelle port), evaluator
 1. HOL Light      hol-light.mbt: the kernel
@@ -88,7 +89,8 @@ the official spec testsuite (`wasm/spec_test.mbt`).
 | `sl_drop`, `sl_select` of any values (`value_cases`) | done |
 | Symbolic execution: `sym_tac`, `sym_prove`; the loop examples use it | done |
 | `example_insertion_sort`; array rules by index; states after a block | done |
-| Calls: call-free code, module triples, frames, `sl_call`, `example_call` | done (no return, no recursion) |
+| Calls: call-free code, module triples, frames, `sl_call`, `example_call` | done |
+| Returns (`safer`), function specs and recursion (`sl_triple_g`, `sl_funs_g`), calls in `sym_prove`, `example_fact` | done |
 | Everything else under "Next steps" | not started |
 
 Known limits of what exists:
@@ -177,20 +179,41 @@ appear in `theory.md`, with the tests passing.
    signed order (`i32.le_s`, `word_ile`), and a library of list lemmas
    instead of the `isort_` ones written for this proof.
 
-4. **Calls.** Partly done: `sl_call` (`logic/call_rule.mbt`) for a call
-   of a native function of the same module, with a spec of its body, and
-   `example_call`. It rests on module triples (`sl_triple_m`, calls.mbt:
-   triples for the stores whose function table is fixed, with every triple
-   of call-free code one) and frames (frames.mbt, as labels). Still to do:
-   - `return`: a return assertion as a further `safel` argument (as Wasm
-     Logic does), and the frame leaving with it. Today frame_safe asks the
-     body to be safe without returns (`return_stuck` rules them out).
-   - Recursive functions: induction on the steps left, as in `sl_loop`; the
-     body's triple may then assume the function's own spec for fewer steps.
-   - Calls in `sym_prove` (a call is a step from the stack's arguments to
-     its results, as an `st_` rule), and structural rules for module
-     triples (block, loop, if, br) beyond seq and conseq.
-   - `call_indirect`, other modules' functions, host functions.
+4. **Calls.** Done, except `call_indirect`: `sl_call` (`logic/call_rule.mbt`)
+   for a call of a function of the same module given its body's spec, on
+   module triples (`sl_triple_m`, calls.mbt) and frames (frames.mbt); then
+   (`logic/returns.mbt`, `logic/specs.mbt`):
+   - `return`: `safer`, safel with a return assertion; a frame takes a
+     return with its values (`frame_safe_r`).
+   - Recursion: g triples `sl_triple_g(G, fs, inst, rp, ...)` hold for n
+     steps when the function specs G do; `sl_funs_g` proves G's specs from
+     their bodies' g triples by induction on n, so a body may call its own
+     function (or any of G's).
+   - The structural rules for g triples (seq, conseq, block, loop, if,
+     br_if, br, ex, pure, return, call), and `sym_prove` on g triples, a
+     call by a spec theorem `∀ xs. G(a, P, Q)` whose P is `args == [..] &&
+     R(gs, ms, h)` (the state's R is used as the frame).
+   - `example_fact`: recursive factorial with an early return.
+
+   Still to do:
+   - `call_indirect`. The target comes from a table in the store, which
+     the triples do not fix (code without calls may write tables). Plan:
+     keep the tables fixed in g triples as well as the functions, and
+     carry over only call-free code with no table writes (a predicate like
+     `call_free`, and its step lemma like `call_free_step`). Then
+     `call_indirect` with the table's entry for c is `call` of that
+     function, if its type is the one asked for.
+   - Functions of other modules: a spec's P and Q are about the caller's
+     instance (its globals and memory), so a callee in another instance
+     needs specs about that instance's state.
+   - Host functions are not provable as they are: WasmCert lets a host call
+     trap in any state (`reduce` has a rule from any host invoke to
+     `[Trap]`), so no triple of a host call holds. Covering them would mean
+     assuming more about the host.
+   - Calls in sym_prove whose spec frames memory (P not of the form
+     `args == [..] && R(...)`): use sl_call_g and sl_conseq_g by hand.
+   - Loops with calls in sym_prove are untested (sl_loop_st_g is proved
+     but no example uses it).
 
 5. **Real programs.** An untrusted `.wat` or `.wasm` importer that makes programs
    through the builder, then verify a function from a compiled module (a sort
@@ -267,7 +290,13 @@ Tactics:
   fails. Use `disch_then` with `strip_assume_tac` to keep the goal whole.
 - `seq` runs each tactic on all goals. To treat goals differently, use `thenl`.
 - `struct_cases_tac` substitutes only in the goal. To reach the assumptions, use
-  `disj_cases_tac` and then `subst_vars`.
+  `disj_cases_tac` and then `subst_vars`, or move the assumption into the
+  goal first (`cases_n_specs` in specs.mbt does that for `specs_ok(n)`).
+- `subst_vars` also substitutes away the module's fs and inst when an
+  assumption says `s_funcs(s) == fs`: specs.mbt keeps these facts as one
+  `in_mod(fs, inst, s, f)` (`keep_in_mod`) so that it does not.
+- `match_accept_tac` can run for very long on a big triple that does not
+  match at once: `accept_tac` of the exact instance (`ispecl`) instead.
 - `@lists.list_induct_tac` names the head and tail `h` and `t`.
 - `@tactics.prove` refuses a theorem with hypotheses ("additional assumptions
   in result"): put them in the goal as antecedents and discharge them after
@@ -334,12 +363,19 @@ Syntax and names:
 - Instantiating a lemma's free variable with a goal variable of the same name
   as one of the lemma's bound variables (`f0 := f` under `∀ f`) made
   `match_mp_tac` fail: name bound variables apart (`s2`, `f2`).
+- A variable whose type only a binder fixes (`x` in `fact_w(val(x))`)
+  gets a type variable in a term written alone (an `exists_tac` term), and
+  then does not match the theorem's `x`; annotate it (`(x : W32)`).
 - "Warning: inventing type variables" means a term has an unfixed type:
   `val(word(1))` is a word of any size. Annotate it (`(word(1) : W32)`).
 - `const` and `loop` are MoonBit keywords.
 - A rule's `∃`s after `match_mp_tac` come in the rule's variable order, which
   need not be the order you expect.
 - `fn(g) { ... }` that raises is deprecated. Use `g => { ... }`.
+
+Do not run `moon fmt`: moon.work makes `../hol-light.mbt` a member, so it
+reformats that repository too, and the current version crashed halfway
+(November 2026), leaving both reformatted and hol-light.mbt not compiling.
 
 Costs: loading `logic` re-proves everything; there is no theorem cache.
 On wasm-gc, the module's preferred target, `moon test -p

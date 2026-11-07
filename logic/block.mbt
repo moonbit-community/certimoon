@@ -654,7 +654,7 @@ fn prove_block_rule() -> Unit raise {
   let prefix = @bool.gen_all(prove_prefix("block", [], block, arity))
   let s_ = tm("(s : Wstore)")
   let f_ = tm("(f : Wframe)")
-  let cases = @wasm.step_cases(s_, f_, tm("[\{block}]"), compute=false)
+  let cases = step_cases_of(s_, f_, "[\{block}]")
   let rb = @bool.conjuncts_rule(@wasm.thm("reduce_base_rules")).to_array()
   let lists = [@lists.map(), @lists.append(), @lists.append_nil()]
   let enter = "[Label(LENGTH(tbv_results((ot : Option[Valtype]))), NIL, MAP(Basic, (bs : List[B_e])))]"

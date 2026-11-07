@@ -30,7 +30,7 @@ fn prove_conditional(
   let code = "[\{c}, \{x}]"
   let arity = prove_arities(name.replace(old="sl_", new=""), x, 1)
   let prefix = @bool.gen_all(prove_prefix(name.replace(old="sl_", new=""), [c], x, arity))
-  let cases = @wasm.step_cases(s, f, tm(code), compute=false)
+  let cases = step_cases_of(s, f, code)
   let rb_lift = @bool.conjuncts_rule(@wasm.thm("reduce_base_rules")).to_array()[0]
   let lfill = @wasm.thm("lfill")
   let vs0 = "(vs0 : List[Value])"

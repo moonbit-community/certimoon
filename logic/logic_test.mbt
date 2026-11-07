@@ -33,7 +33,16 @@ test "the logic's lemmas are theorems, with no new axioms" {
     "call_free_step", "safel_keep", "sl_triple_m_of", "sl_seq_m", "sl_conseq_m", "no_trap_frame",
     "frame_simple", "frame_base", "frame_steps", "ret_not_vals", "return_stuck", "br_ret_distinct",
     "frame_can_step", "frame_next", "frame_safe", "call_step", "invoke_base", "invoke_step",
-    "call_safe", "label_safe_top", "sl_call", "double_body", "example_call",
+    "call_safe", "label_safe_top", "sl_call", "double_body", "example_call", "safer_vals",
+    "safel_safer", "safer_safel", "safer_mono", "safer_down", "safer_trap", "safer_det_step",
+    "safer_seq", "ret_unique", "ret_frame_case", "safer_label", "safer_label_top",
+    "frame_can_step_r", "frame_next_r", "frame_safe_r", "specs_down", "sl_triple_g_of_m",
+    "sl_triple_g_of", "sl_triple_m_of_g", "sl_seq_g", "sl_conseq_g", "sl_conseq_ret_g",
+    "sl_nil_g", "sl_false_g", "sl_ex_g", "sl_pure_g", "sl_br_g", "sl_return_g", "keep_in_mod",
+    "sl_br_if_g", "sl_if_g", "sl_block_g", "sl_loop_g", "sl_call_g", "sl_funs_g", "sl_step_g",
+    "sl_pre_g", "sl_cons_g", "sl_nil_st_g", "sl_br_st_g", "sl_br_if_st_g", "sl_if_st_g",
+    "sl_block_st_g", "sl_loop_st_g", "sl_call_st_g", "sl_return_st_g", "fact_w_suc",
+    "fact_w_step", "fact_call", "fact_body", "fact_specs", "example_fact",
   ] {
     assert_true(@kernel.hyp(@logic.thm(name)).is_empty(), msg=name)
   }
