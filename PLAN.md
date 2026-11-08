@@ -200,7 +200,82 @@ About the automation (sym.mbt):
 Done so far, in this order: more instructions, the automation, sorting,
 calls (returns, recursion, calls in sym_prove), quicksort, and the public
 API. Next, each mergeable on its own ("done when" means the named theorems
-appear in `theory.md`, with the tests passing):
+appear in `theory.md`, with the tests passing). Reviewability comes before
+features, since every feature adds to what a reviewer must read.
+
+### Making the results reviewable
+
+A proof trusts the kernel, the definition of `reduce` and the statement
+proved, and nothing else, but the listings do not show which parts those
+are. To trust `example_quicksort` today, a reviewer must read:
+
+- the `wasm` definitions it rests on (the listing has 219 definitions and
+  relations);
+- the definitions behind `sl_triple_m`: `triple_l`, `safel`, `keep`,
+  `lift`, `globs_ok`, `gvals`, `star`, `arr`, `words_bytes`, `pts`,
+  `heap_of` and `mem_length`, spread among 442 lemmas that need no reading;
+- a statement of 4,390 characters on one line, with both functions'
+  bodies written out.
+
+These steps shrink that to `reduce`, the programs and a short statement
+about memory. The proofs are not part of a review, because the kernel
+checks them, and the review document should say so.
+
+1. **Spec coverage of control flow.** Every example rests on the reduction
+   rules for `block`, `loop`, `br`, `br_if`, `call` and `return`, and the
+   spec tests check none of them (they cover `i32.wast`, `i64.wast` and
+   loads from `address.wast`). Add the integer cases of `block.wast`,
+   `loop.wast`, `br.wast`, `br_if.wast`, `call.wast` and `return.wast` that
+   the evaluator covers (`tools/spec_cases.py`), and `br_table` and the
+   `extend*_s` operators at the same time. Done when they hold as theorems
+   in `wasm/spec_test.mbt`.
+
+2. **An adequacy theorem.** State what a triple means using runs alone:
+   from a state satisfying p, every run (`reduce_trans`) reaches either
+   values satisfying q or a configuration that can step again, so it never
+   traps or gets stuck. Give one theorem for `sl_triple` and one for
+   `sl_triple_m` with no labels. A reviewer then reads these instead of
+   `safe`, `safel`, `safer`, `keep` and `specs_ok`. Prove them by induction
+   on the run, from `safe`'s definition at every n. Done when
+   `sl_triple_adequate` and `sl_triple_m_adequate` are in `theory.md`.
+
+3. **Closed theorems for the examples.** For each example with memory or
+   calls, a corollary about a store whose functions are the example's
+   bodies and whose memory holds xs's bytes at p: every run of the call
+   that ends, ends with the bytes at p being those of some ys that is
+   sorted and a permutation of xs, with the other bytes unchanged. No
+   assertion, heap or triple appears in the statement. Start with
+   `example_fact`, the smallest example with calls, then do quicksort.
+   Done when `fact_closed` and `quicksort_closed` are in `theory.md`.
+
+4. **Named programs, readable statements.** Define each example's code as
+   a constant (`qs_code`, `partition_code`, ...), so that statements name
+   the program instead of writing it out; sym_prove then unfolds the name
+   first. Print each code definition in the listing as WebAssembly text, so
+   it can be compared with the pseudocode in the file's header. In the
+   printer, abbreviate the type of a spec set as the other types are, and
+   break long statements over several lines. Done when the examples'
+   statements name their code and none is longer than 20 lines.
+
+5. **A review document.** Generate `review.md` beside `theory.md`. For
+   each closed theorem it shows the statement, then every definition the
+   statement depends on (relations by their rules). The dependencies are
+   found by following the statement's constants to their definitions,
+   through `logic` and into `wasm`, stopping at hol_light's libraries. A
+   line says that every other theorem is checked by the kernel and needs
+   no reading. A snapshot test keeps the document current, as it does
+   `theory.md`. Done when `review.md` covers every closed theorem.
+
+6. **Non-vacuity checks.** A triple whose precondition nothing satisfies
+   proves nothing, and several conjuncts could make one unsatisfiable
+   without anyone noticing (`globs_ok`, `smem_ind` being `SOME`, `n_zeros`
+   of the locals, the body's type). For each closed theorem, a test
+   applies it to a concrete store built with `@wasm.store` and a small
+   array, proves its hypotheses by computation, and checks that the
+   evaluator's run (`@wasm.outcome`) gives a result the conclusion allows.
+   Done when each closed theorem has such a test.
+
+### Features
 
 1. **`call_indirect`.** The target comes from a table in the store, which
    the triples do not fix (code without calls may write tables). Plan:
@@ -240,9 +315,6 @@ Not planned yet, with what they need:
   assuming more about the host.
 - A library of list lemmas (sorted, perm, EL and list_update through
   APPEND) instead of the ones each example proves for itself.
-
-Separately, at any time: more spec coverage (block, loop, `br_table`, the
-`extend*_s` operators), since this checks the one thing the proofs rest on.
 
 ## Working on it
 
