@@ -65,6 +65,8 @@ pub fn load() -> Unit {
     prove_sym_rules()
     section("Calls: call-free code and module triples (calls.mbt)")
     prove_calls()
+    section("Adequacy: what a triple says about runs (adequacy.mbt)")
+    prove_adequacy()
     section("Frames (frames.mbt)")
     prove_frame_steps()
     prove_return_stuck()

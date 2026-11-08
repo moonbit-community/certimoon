@@ -1994,6 +1994,44 @@ lemma `sl_conseq_m`
 ∀ fs : List[Cl], ∀ inst : Inst, ∀ p : SAssn, ∀ p2 : SAssn, ∀ bs : List[B_e], ∀ q : SAssn, ∀ q2 : SAssn, ∀ ls : List[SAssn], (∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, p2(vs, lc, gs, ms, h) → p(vs, lc, gs, ms, h)) && sl_triple_m(fs, inst, p, bs, q, ls) && (∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, q(vs, lc, gs, ms, h) → q2(vs, lc, gs, ms, h)) → sl_triple_m(fs, inst, p2, bs, q2, ls)
 ```
 
+## Adequacy: what a triple says about runs (adequacy.mbt)
+
+lemma `safe_step`
+
+```
+∀ n : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ es : List[Einstr], ∀ q : Assn, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], safe(SUC(n), s, f, es, q) && reduce(s, f, es, s2, f2, es2) → safe(n, s2, f2, es2, q)
+```
+
+lemma `safe_run`
+
+```
+∀ c : (Wstore, Wframe, List[Einstr]), ∀ c2 : (Wstore, Wframe, List[Einstr]), reduce_trans(c, c2) → (∀ q : Assn, (∀ n : Num, safe(n, FST(c), FST(SND(c)), SND(SND(c)), q)) → (∀ n : Num, safe(n, FST(c2), FST(SND(c2)), SND(SND(c2)), q)))
+```
+
+lemma `safe_progress`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ es : List[Einstr], ∀ q : Assn, safe(SUC(0), s, f, es, q) → (∃ vs : List[Value], es == MAP(v_to_e, vs) && q(s, f, vs)) || (∃ s2 : Wstore, ∃ f2 : Wframe, ∃ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2))
+```
+
+lemma `safe_adequate`
+
+```
+∀ s : Wstore, ∀ f : Wframe, ∀ es : List[Einstr], ∀ q : Assn, ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], (∀ n : Num, safe(n, s, f, es, q)) && reduce_trans((s, f, es), (s2, f2, es2)) → (∃ vs : List[Value], es2 == MAP(v_to_e, vs) && q(s2, f2, vs)) || (∃ s3 : Wstore, ∃ f3 : Wframe, ∃ es3 : List[Einstr], reduce(s2, f2, es2, s3, f3, es3))
+```
+
+lemma `sl_triple_adequate`
+
+```
+∀ p : SAssn, ∀ bs : List[B_e], ∀ q : SAssn, ∀ r : HProp, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], sl_triple(p, bs, q) && lift(p, r, s, f, vs) && reduce_trans((s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs))), (s2, f2, es2)) → (∃ vs2 : List[Value], es2 == MAP(v_to_e, vs2) && lift(q, r, s2, f2, vs2)) || (∃ s3 : Wstore, ∃ f3 : Wframe, ∃ es3 : List[Einstr], reduce(s2, f2, es2, s3, f3, es3))
+```
+
+lemma `sl_triple_m_adequate`
+
+```
+∀ fs : List[Cl], ∀ inst : Inst, ∀ p : SAssn, ∀ bs : List[B_e], ∀ q : SAssn, ∀ r : HProp, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], sl_triple_m(fs, inst, p, bs, q, NIL) && s_funcs(s) == fs && f_inst(f) == inst && lift(p, r, s, f, vs) && reduce_trans((s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs))), (s2, f2, es2)) → (∃ vs2 : List[Value], es2 == MAP(v_to_e, vs2) && s_funcs(s2) == fs && f_inst(f2) == inst && lift(q, r, s2, f2, vs2)) || (∃ s3 : Wstore, ∃ f3 : Wframe, ∃ es3 : List[Einstr], reduce(s2, f2, es2, s3, f3, es3))
+```
+
 ## Frames (frames.mbt)
 
 lemma `no_trap_frame`

@@ -98,6 +98,7 @@ good order to read it in:
 | state.mbt, arrays.mbt | exact states `st` and the `st_` rules; `arr` and the array rules |
 | sym.mbt | `sym_prove` and its rules (`prove_sym_derived`) |
 | calls.mbt | call-free code (`has_call`, `call_free_step`), module triples (`sl_triple_m`, `keep`) |
+| adequacy.mbt | what triples say about runs (`reduce_trans`): `sl_triple_adequate`, `sl_triple_m_adequate` |
 | frames.mbt, call_rule.mbt | frame steps and safety, `return_stuck`; call and invoke steps, `sl_call` |
 | returns.mbt | `safer`: safety with returns; its seq, label and frame lemmas |
 | specs.mbt | function specs, `sl_triple_g` and its rules, `sl_call_g`, `sl_funs_g`, and sym's rules for it |
@@ -121,6 +122,7 @@ eval.mbt and builder.mbt (the evaluator), and the tests.
 | Control: br, br_if, if, block and loop (no parameters), return | done |
 | Calls of the module's functions, by specs, recursion included | done |
 | Symbolic execution (`sym_prove`), for code without and with calls | done |
+| Adequacy: `sl_triple` and `sl_triple_m` (no labels) stated with `reduce_trans` alone | done |
 | A public API for proofs in other packages | done |
 | Examples: store/load, sum, fill, array sum, insertion sort, call, factorial, quicksort | done |
 | `call_indirect`, functions of other modules or the host | not started |
@@ -198,28 +200,33 @@ About the automation (sym.mbt):
 ## Next steps
 
 Done so far, in this order: more instructions, the automation, sorting,
-calls (returns, recursion, calls in sym_prove), quicksort, and the public
-API. Next, each mergeable on its own ("done when" means the named theorems
-appear in `theory.md`, with the tests passing). Reviewability comes before
-features, since every feature adds to what a reviewer must read.
+calls (returns, recursion, calls in sym_prove), quicksort, the public API
+and the adequacy theorems. Next, each mergeable on its own ("done when"
+means the named theorems appear in `theory.md`, with the tests passing).
+Reviewability comes before features, since every feature adds to what a
+reviewer must read.
 
 ### Making the results reviewable
 
 A proof trusts the kernel, the definition of `reduce` and the statement
 proved, and nothing else, but the listings do not show which parts those
-are. To trust `example_quicksort` today, a reviewer must read:
+are. To trust `example_quicksort` by its definitions, a reviewer reads:
 
 - the `wasm` definitions it rests on (the listing has 219 definitions and
   relations);
 - the definitions behind `sl_triple_m`: `triple_l`, `safel`, `keep`,
   `lift`, `globs_ok`, `gvals`, `star`, `arr`, `words_bytes`, `pts`,
-  `heap_of` and `mem_length`, spread among 442 lemmas that need no reading;
+  `heap_of` and `mem_length`, spread among 448 lemmas that need no reading;
 - a statement of 4,390 characters on one line, with both functions'
   bodies written out.
 
-These steps shrink that to `reduce`, the programs and a short statement
-about memory. The proofs are not part of a review, because the kernel
-checks them, and the review document should say so.
+The adequacy theorems (`sl_triple_adequate`, `sl_triple_m_adequate`)
+already state a triple's meaning with `reduce_trans` alone, so `safe`,
+`safel`, `triple_l` and `keep` need no reading; `lift` and the heap
+definitions still do. These steps shrink the rest to `reduce`, the
+programs and a short statement about memory. The proofs are not part of
+a review, because the kernel checks them, and the review document should
+say so.
 
 1. **Spec coverage of control flow.** Every example rests on the reduction
    rules for `block`, `loop`, `br`, `br_if`, `call` and `return`, and the
@@ -230,16 +237,7 @@ checks them, and the review document should say so.
    `extend*_s` operators at the same time. Done when they hold as theorems
    in `wasm/spec_test.mbt`.
 
-2. **An adequacy theorem.** State what a triple means using runs alone:
-   from a state satisfying p, every run (`reduce_trans`) reaches either
-   values satisfying q or a configuration that can step again, so it never
-   traps or gets stuck. Give one theorem for `sl_triple` and one for
-   `sl_triple_m` with no labels. A reviewer then reads these instead of
-   `safe`, `safel`, `safer`, `keep` and `specs_ok`. Prove them by induction
-   on the run, from `safe`'s definition at every n. Done when
-   `sl_triple_adequate` and `sl_triple_m_adequate` are in `theory.md`.
-
-3. **Closed theorems for the examples.** For each example with memory or
+2. **Closed theorems for the examples.** For each example with memory or
    calls, a corollary about a store whose functions are the example's
    bodies and whose memory holds xs's bytes at p: every run of the call
    that ends, ends with the bytes at p being those of some ys that is
@@ -248,7 +246,7 @@ checks them, and the review document should say so.
    `example_fact`, the smallest example with calls, then do quicksort.
    Done when `fact_closed` and `quicksort_closed` are in `theory.md`.
 
-4. **Named programs, readable statements.** Define each example's code as
+3. **Named programs, readable statements.** Define each example's code as
    a constant (`qs_code`, `partition_code`, ...), so that statements name
    the program instead of writing it out; sym_prove then unfolds the name
    first. Print each code definition in the listing as WebAssembly text, so
@@ -257,7 +255,7 @@ checks them, and the review document should say so.
    break long statements over several lines. Done when the examples'
    statements name their code and none is longer than 20 lines.
 
-5. **A review document.** Generate `review.md` beside `theory.md`. For
+4. **A review document.** Generate `review.md` beside `theory.md`. For
    each closed theorem it shows the statement, then every definition the
    statement depends on (relations by their rules). The dependencies are
    found by following the statement's constants to their definitions,
@@ -266,7 +264,7 @@ checks them, and the review document should say so.
    no reading. A snapshot test keeps the document current, as it does
    `theory.md`. Done when `review.md` covers every closed theorem.
 
-6. **Non-vacuity checks.** A triple whose precondition nothing satisfies
+5. **Non-vacuity checks.** A triple whose precondition nothing satisfies
    proves nothing, and several conjuncts could make one unsatisfiable
    without anyone noticing (`globs_ok`, `smem_ind` being `SOME`, `n_zeros`
    of the locals, the body's type). For each closed theorem, a test

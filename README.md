@@ -110,7 +110,11 @@ p, and whatever `fp` says about the rest of memory and the globals.
 | `sl_triple_g(G, fs, inst, rp, p, code, q, ls)` | code with calls and returns: `G` is a set of function specs the code may assume, `rp` the assertion a `return` must meet |
 
 The theorem you want at the end is usually `sl_triple` (call-free code)
-or `sl_triple_m` (a call into the module).
+or `sl_triple_m` (a call into the module). What they claim is stated
+with runs alone in `sl_triple_adequate` and `sl_triple_m_adequate`: from
+a state with the precondition, every run (`reduce_trans`) reaches values
+with the postcondition or a configuration that can step again, so no run
+traps or gets stuck.
 
 ### A first proof
 
@@ -290,6 +294,12 @@ with `arr_split` and `arr_focus` (one element out of `ys ++ [x] ++ zs`).
   inst)`: calling each is safe for n steps or fewer), which is what lets a
   body assume its own spec (`logic/specs.mbt`). `sl_triple_g_of` brings in
   any triple of call-free code, `sl_triple_m_of_g` drops G.
+- Adequacy (`logic/adequacy.mbt`): `safe_adequate` says what safety for
+  every n means for a run (`reduce_trans`): its end is values with q, or
+  can step. `sl_triple_adequate` and `sl_triple_m_adequate` (no labels)
+  say it of a triple's code from a state with the precondition, lifted
+  with a frame r, so they can be read instead of `safe`, `safel`,
+  `triple_l` and `keep`.
 
 ### Instruction rules
 
