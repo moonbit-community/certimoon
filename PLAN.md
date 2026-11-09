@@ -107,7 +107,8 @@ good order to read it in:
 
 Package `wasm`: ast.mbt, numeric.mbt, store.mbt, typing.mbt, reduction.mbt
 (the port; the header comments say where it differs from Isabelle),
-defs.mbt (its plumbing), props.mbt (facts about `reduce`, `step_cases`),
+defs.mbt (its plumbing), listing.mbt and layout.mbt (the theory listing and
+how it lays statements out), props.mbt (facts about `reduce`, `step_cases`),
 eval.mbt and builder.mbt (the evaluator), and the tests.
 
 ## Status
@@ -218,8 +219,8 @@ are. To trust `example_quicksort` by its definitions, a reviewer reads:
 - the definitions behind `sl_triple_m`: `triple_l`, `safel`, `keep`,
   `lift`, `globs_ok`, `gvals`, `star`, `arr`, `words_bytes`, `pts`,
   `heap_of` and `mem_length`, spread among 448 lemmas that need no reading;
-- a statement of 4,390 characters on one line, with both functions'
-  bodies written out.
+- a statement with lines of 2,136 and 498 characters (the two functions'
+  bodies, written out as hypotheses) and a conclusion of 487.
 
 The adequacy theorems (`sl_triple_adequate`, `sl_triple_m_adequate`)
 already state a triple's meaning with `reduce_trans` alone, so `safe`,
@@ -262,9 +263,10 @@ say so.
    the program instead of writing it out; sym_prove then unfolds the name
    first. Print each code definition in the listing as WebAssembly text, so
    it can be compared with the pseudocode in the file's header. In the
-   printer, abbreviate the type of a spec set as the other types are, and
-   break long statements over several lines. Done when the examples'
-   statements name their code and none is longer than 20 lines.
+   printer, abbreviate the type of a spec set as the other types are.
+   (Statements are already laid out as variables, numbered hypotheses and
+   a conclusion: wasm/layout.mbt.) Done when the examples' statements name
+   their code and none is longer than 20 lines.
 
 4. **A review document.** Generate `review.md` beside `theory.md`. For
    each closed theorem it shows the statement, then every definition the

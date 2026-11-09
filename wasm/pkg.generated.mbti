@@ -12,6 +12,10 @@ pub fn computes_stmt(@kernel.Term, Array[Value]) -> @kernel.Term raise
 
 pub fn config(Array[Instr], locals? : Array[Value], store? : @kernel.Term, inst? : @kernel.Term) -> @kernel.Term raise
 
+pub let layout_note : String
+
+pub fn layout_statement(@kernel.Term, abbreviate? : (String) -> String) -> String
+
 pub fn listing() -> String raise
 
 pub fn load() -> Unit
