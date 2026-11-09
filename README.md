@@ -253,6 +253,7 @@ All in [logic/](logic), proved when the logic loads:
 | `example_insertion_sort` | example_sort.mbt | insertion sort: the words end sorted (unsigned) and a permutation |
 | `example_call` | example_call.mbt | a call of a doubling function |
 | `example_fact` | example_fact.mbt | recursive factorial, with an early `return` |
+| `fact_closed` | example_fact.mbt | the same about runs (`reduce_trans`), with no assertion: every run of the call ends with the factorial or can step, and the locals, globals and memory are kept |
 | `example_quicksort` | example_qsort.mbt | recursive quicksort with a partition function: sorted, a permutation |
 
 ## Reference: the program logic
@@ -299,7 +300,9 @@ with `arr_split` and `arr_focus` (one element out of `ys ++ [x] ++ zs`).
   can step. `sl_triple_adequate` and `sl_triple_m_adequate` (no labels)
   say it of a triple's code from a state with the precondition, lifted
   with a frame r, so they can be read instead of `safe`, `safel`,
-  `triple_l` and `keep`.
+  `triple_l` and `keep`. `sl_triple_m_adequate_whole` has no frame (r is
+  `emp`, `star_emp_r`): the precondition holds of the instance's whole
+  memory j, and no heap assertion is left; `fact_closed` comes from it.
 
 ### Instruction rules
 

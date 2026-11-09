@@ -123,6 +123,7 @@ eval.mbt and builder.mbt (the evaluator), and the tests.
 | Calls of the module's functions, by specs, recursion included | done |
 | Symbolic execution (`sym_prove`), for code without and with calls | done |
 | Adequacy: `sl_triple` and `sl_triple_m` (no labels) stated with `reduce_trans` alone | done |
+| Closed theorems: `fact_closed` (from `call 0` in a frame of the instance) | done; quicksort next |
 | A public API for proofs in other packages | done |
 | Examples: store/load, sum, fill, array sum, insertion sort, call, factorial, quicksort | done |
 | `call_indirect`, functions of other modules or the host | not started |
@@ -242,9 +243,19 @@ say so.
    bodies and whose memory holds xs's bytes at p: every run of the call
    that ends, ends with the bytes at p being those of some ys that is
    sorted and a permutation of xs, with the other bytes unchanged. No
-   assertion, heap or triple appears in the statement. Start with
-   `example_fact`, the smallest example with calls, then do quicksort.
-   Done when `fact_closed` and `quicksort_closed` are in `theory.md`.
+   assertion, heap or triple appears in the statement. `fact_closed` is
+   done: `sl_triple_m_adequate_whole` (no frame, the whole memory j) with
+   example_fact's R saying the globals and the memory are exactly the
+   starting ones. Quicksort needs that R as `star(arr(val(p), xs),
+   fp(gs, ms), h)`: fp the rest of the bytes, exactly, and a lemma that
+   the bytes at p are `words_bytes(ys)` when the heap is. Done when
+   `quicksort_closed` is in `theory.md`.
+
+   These runs start from the code in a frame of the instance (`call 0`
+   with a stack), not from a host's `Invoke` in `invoke_config`, whose
+   frame is `empty_frame`. Covering that needs a lemma that an `Invoke`
+   does not depend on the caller's frame (it pushes a frame of its own),
+   since every triple here assumes `f_inst(f) == inst`.
 
 3. **Named programs, readable statements.** Define each example's code as
    a constant (`qs_code`, `partition_code`, ...), so that statements name

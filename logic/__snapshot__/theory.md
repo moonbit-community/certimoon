@@ -2032,6 +2032,30 @@ lemma `sl_triple_m_adequate`
 ∀ fs : List[Cl], ∀ inst : Inst, ∀ p : SAssn, ∀ bs : List[B_e], ∀ q : SAssn, ∀ r : HProp, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], sl_triple_m(fs, inst, p, bs, q, NIL) && s_funcs(s) == fs && f_inst(f) == inst && lift(p, r, s, f, vs) && reduce_trans((s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs))), (s2, f2, es2)) → (∃ vs2 : List[Value], es2 == MAP(v_to_e, vs2) && s_funcs(s2) == fs && f_inst(f2) == inst && lift(q, r, s2, f2, vs2)) || (∃ s3 : Wstore, ∃ f3 : Wframe, ∃ es3 : List[Einstr], reduce(s2, f2, es2, s3, f3, es3))
 ```
 
+lemma `hunion_emp`
+
+```
+∀ h1 : Heap, ∀ h2 : Heap, (∀ x : Num, h2(x) == NONE) → hunion(h1, h2) == h1
+```
+
+lemma `star_emp_r`
+
+```
+∀ p : HProp, ∀ h : Heap, star(p, emp, h) == p(h)
+```
+
+lemma `lift_emp`
+
+```
+∀ p : SAssn, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], lift(p, emp, s, f, vs) == (∃ j : Num, smem_ind(f_inst(f)) == SOME(j) && j < LENGTH(s_mems(s)) && globs_ok(s, f) && p(vs, f_locs(f), gvals(s, f), mem_length(EL(j, s_mems(s))), heap_of(EL(j, s_mems(s)))))
+```
+
+lemma `sl_triple_m_adequate_whole`
+
+```
+∀ fs : List[Cl], ∀ inst : Inst, ∀ p : SAssn, ∀ bs : List[B_e], ∀ q : SAssn, ∀ j : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], sl_triple_m(fs, inst, p, bs, q, NIL) && s_funcs(s) == fs && f_inst(f) == inst && smem_ind(inst) == SOME(j) && j < LENGTH(s_mems(s)) && globs_ok(s, f) && p(vs, f_locs(f), gvals(s, f), mem_length(EL(j, s_mems(s))), heap_of(EL(j, s_mems(s)))) && reduce_trans((s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs))), (s2, f2, es2)) → (∃ vs2 : List[Value], es2 == MAP(v_to_e, vs2) && s_funcs(s2) == fs && f_inst(f2) == inst && j < LENGTH(s_mems(s2)) && globs_ok(s2, f2) && q(vs2, f_locs(f2), gvals(s2, f2), mem_length(EL(j, s_mems(s2))), heap_of(EL(j, s_mems(s2))))) || (∃ s3 : Wstore, ∃ f3 : Wframe, ∃ es3 : List[Einstr], reduce(s2, f2, es2, s3, f3, es3))
+```
+
 ## Frames (frames.mbt)
 
 lemma `no_trap_frame`
@@ -2850,6 +2874,12 @@ example `example_fact`
 
 ```
 ∀ fs : List[Cl], ∀ inst : Inst, ∀ x : W32, ∀ R : GProp, ∀ vs0 : List[Value], ∀ lc0 : List[Value], EL(sfunc_ind(inst, 0), fs) == Func_native(inst, Tf([T_num(T_i32)], [T_num(T_i32)]), NIL, [Local_get(0), Testop(T_i32, Eqz), If(Tbv(NONE), [EConstNum(ConstInt32(word(1))), Return], NIL), Local_get(0), Local_get(0), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), Call(0), Binop(T_i32, Binop_i(Mul))]) → sl_triple_m(fs, inst, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == APPEND(vs0, [V_num(ConstInt32(x))]) && lc == lc0 && R(gs, ms, h), [Call(0)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == APPEND(vs0, [V_num(ConstInt32(fact_w(val(x))))]) && lc == lc0 && R(gs, ms, h), NIL)
+```
+
+example `fact_closed`
+
+```
+∀ fs : List[Cl], ∀ inst : Inst, ∀ s : Wstore, ∀ f : Wframe, ∀ j : Num, ∀ x : W32, ∀ vs0 : List[Value], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], EL(sfunc_ind(inst, 0), fs) == Func_native(inst, Tf([T_num(T_i32)], [T_num(T_i32)]), NIL, [Local_get(0), Testop(T_i32, Eqz), If(Tbv(NONE), [EConstNum(ConstInt32(word(1))), Return], NIL), Local_get(0), Local_get(0), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), Call(0), Binop(T_i32, Binop_i(Mul))]) && s_funcs(s) == fs && f_inst(f) == inst && smem_ind(inst) == SOME(j) && j < LENGTH(s_mems(s)) && globs_ok(s, f) && reduce_trans((s, f, APPEND(MAP(v_to_e, APPEND(vs0, [V_num(ConstInt32(x))])), [Basic(Call(0))])), (s2, f2, es2)) → es2 == MAP(v_to_e, APPEND(vs0, [V_num(ConstInt32(fact_w(val(x))))])) && s_funcs(s2) == fs && f_inst(f2) == inst && f_locs(f2) == f_locs(f) && gvals(s2, f2) == gvals(s, f) && heap_of(EL(j, s_mems(s2))) == heap_of(EL(j, s_mems(s))) || (∃ s3 : Wstore, ∃ f3 : Wframe, ∃ es3 : List[Einstr], reduce(s2, f2, es2, s3, f3, es3))
 ```
 
 definition `rot`

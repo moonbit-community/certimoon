@@ -18,6 +18,11 @@
 //   sl_triple_m's is for triples with no labels, as the examples' are,
 //   and states keep's conditions (the store's functions, the frame's
 //   instance) written out.
+// - sl_triple_m_adequate_whole: the same with no frame (r is emp): the
+//   precondition holds of the whole memory j of the instance, and so does
+//   the postcondition at the end. No heap assertion is left in it, only
+//   the precondition and postcondition applied to the state's parts.
+//   star_emp_r and lift_emp are its lemmas.
 
 ///|
 fn prove_adequacy() -> Unit raise {
@@ -118,6 +123,74 @@ fn prove_adequacy() -> Unit raise {
       @tactics.mp_tac(adequate_at("keep((fs : List[Cl]), (inst : Inst), lift((q : \{sassn}), (r : \{hprop})))")),
       @simp.rewrite_tac(ths([thm("keep")])),
       @meson.asm_meson_tac(ths([])),
+    ]),
+  )
+  let opt = [@ind_types.option_distinct(), @equal.gsym(@ind_types.option_distinct()), @ind_types.option_inj()]
+  let hunion_emp = lemma(
+    "hunion_emp",
+    "∀ h1 : \{heap}, ∀ h2 : \{heap}, (∀ x : Num, h2(x) == NONE) → hunion(h1, h2) == h1",
+    seq([
+      @simp.rewrite_tac(ths([thm("hunion"), @class.fun_eq_thm()])),
+      @tactics.repeat_tac(@tactics.strip_tac),
+      @simp.asm_rewrite_tac(ths(opt)),
+      @tactics.try_tac(@tactics.then_tac(@class.cond_cases_tac, @simp.asm_rewrite_tac(ths(opt)))),
+    ]),
+  )
+  let star_emp_r = lemma(
+    "star_emp_r",
+    "∀ p : \{hprop}, ∀ h : \{heap}, star(p, emp, h) == p(h)",
+    seq([
+      @simp.rewrite_tac(ths([thm("star"), thm("emp")])),
+      @tactics.repeat_tac(@tactics.gen_tac),
+      @tactics.thenl(
+        @tactics.eq_tac,
+        @list.List([
+          seq([
+            @tactics.repeat_tac(@tactics.strip_tac),
+            have(
+              "hunion((h1 : \{heap}), (h2 : \{heap})) == h1",
+              seq([@tactics.match_mp_tac(hunion_emp), @simp.asm_rewrite_tac(ths([]))]),
+            ),
+            @meson.asm_meson_tac(ths([])),
+          ]),
+          seq([
+            @tactics.strip_tac,
+            @tactics.exists_tac(tm("(h : \{heap})")),
+            @tactics.exists_tac(tm("(((x : Num) => NONE) : \{heap})")),
+            have(
+              "hunion((h : \{heap}), (((x : Num) => NONE) : \{heap})) == h",
+              seq([@tactics.match_mp_tac(hunion_emp), beta_goal(), @simp.rewrite_tac(ths([]))]),
+            ),
+            @simp.asm_rewrite_tac(ths([thm("hdisj")])),
+          ]),
+        ]),
+      ),
+    ]),
+  )
+  let lift_emp = lemma(
+    "lift_emp",
+    "∀ p : \{sassn}, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], lift(p, emp, s, f, vs) == (∃ j : Num, smem_ind(f_inst(f)) == SOME(j) && j < LENGTH(s_mems(s)) && globs_ok(s, f) && p(vs, f_locs(f), gvals(s, f), mem_length(EL(j, s_mems(s))), heap_of(EL(j, s_mems(s)))))",
+    @simp.rewrite_tac(ths([thm("lift"), star_emp_r])),
+  )
+  let _ = lemma(
+    "sl_triple_m_adequate_whole",
+    "∀ fs : List[Cl], ∀ inst : Inst, ∀ p : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ j : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], sl_triple_m(fs, inst, p, bs, q, NIL) && s_funcs(s) == fs && f_inst(f) == inst && smem_ind(inst) == SOME(j) && j < LENGTH(s_mems(s)) && globs_ok(s, f) && p(vs, f_locs(f), gvals(s, f), mem_length(EL(j, s_mems(s))), heap_of(EL(j, s_mems(s)))) && reduce_trans((s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs))), (s2, f2, es2)) → (∃ vs2 : List[Value], es2 == MAP(v_to_e, vs2) && s_funcs(s2) == fs && f_inst(f2) == inst && j < LENGTH(s_mems(s2)) && globs_ok(s2, f2) && q(vs2, f_locs(f2), gvals(s2, f2), mem_length(EL(j, s_mems(s2))), heap_of(EL(j, s_mems(s2))))) || (∃ s3 : Wstore, ∃ f3 : Wframe, ∃ es3 : List[Einstr], reduce(s2, f2, es2, s3, f3, es3))",
+    seq([
+      @tactics.repeat_tac(@tactics.strip_tac),
+      @tactics.mp_tac(
+        @bool.ispecl(
+          @list.List(
+            [
+              "(fs : List[Cl])", "(inst : Inst)", "(p : \{sassn})", "(bs : List[B_e])", "(q : \{sassn})",
+              "emp", "(s : Wstore)", "(f : Wframe)", "(vs : List[Value])", "(s2 : Wstore)", "(f2 : Wframe)",
+              "(es2 : List[Einstr])",
+            ].map(tm),
+          ),
+          thm("sl_triple_m_adequate"),
+        ),
+      ),
+      @simp.asm_rewrite_tac(ths([lift_emp] + opt)),
+      @meson.asm_meson_tac(ths(opt)),
     ]),
   )
 }

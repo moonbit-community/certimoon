@@ -212,4 +212,66 @@ fn prove_example_fact() -> Unit raise {
     ]),
   )
   record("example_fact", th, kind="example")
+  prove_fact_closed(th, native)
+}
+
+///|
+/// fact_closed: example_fact about runs, with no assertion left. In a
+/// store whose function 0 is factorial, a frame of the instance with a
+/// memory j, every run of `call 0` with x on the stack either can step
+/// again or has ended with fact_w(val(x)) on the stack, the store's
+/// functions, the frame's instance and locals, the globals and the
+/// memory's bytes as they were. From sl_triple_m_adequate_whole, with
+/// example_fact's R saying the globals and the memory are exactly the
+/// starting ones.
+fn prove_fact_closed(example : @kernel.Thm, native : String) -> Unit raise {
+  let w = w32
+  let i = (x : String) => "V_num(ConstInt32(\{x}))"
+  let exact = "(gs : List[Value]) => (ms : Num) => (h : \{heap}) => gs == gvals((s : Wstore), (f : Wframe)) && ms == mem_length(EL((j : Num), s_mems(s))) && h == heap_of(EL(j, s_mems(s)))"
+  let triple = @bool.ispecl(
+    @list.List(
+      ["(fs : List[Cl])", "(inst : Inst)", "(x : \{w})", exact, "(vs0 : List[Value])", "f_locs((f : Wframe))"].map(tm),
+    ),
+    example,
+  )
+  // with R applied, so that the assumption and the goal agree
+  let triple = @equal.conv_rule(@equal.try_conv(@equal.redepth_conv(@equal.beta_conv)), triple)
+  // the triple's precondition and postcondition, as instantiated
+  let args = @basics.strip_comb(@basics.dest_imp(@kernel.concl(triple)).1).1.to_array()
+  let adequate = @bool.ispecl(
+    @list.List(
+      [
+        tm("(fs : List[Cl])"),
+        tm("(inst : Inst)"),
+        args[2],
+        tm("[Call(0)]"),
+        args[4],
+        tm("(j : Num)"),
+        tm("(s : Wstore)"),
+        tm("(f : Wframe)"),
+        tm("APPEND((vs0 : List[Value]), [\{i("(x : \{w})")}])"),
+        tm("(s2 : Wstore)"),
+        tm("(f2 : Wframe)"),
+        tm("(es2 : List[Einstr])"),
+      ],
+    ),
+    thm("sl_triple_m_adequate_whole"),
+  )
+  let th = @tactics.prove(
+    tm(
+      "∀ fs : List[Cl], ∀ inst : Inst, ∀ s : Wstore, ∀ f : Wframe, ∀ j : Num, ∀ x : \{w}, ∀ vs0 : List[Value], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], \{native} && s_funcs(s) == fs && f_inst(f) == inst && smem_ind(inst) == SOME(j) && j < LENGTH(s_mems(s)) && globs_ok(s, f) && reduce_trans((s, f, APPEND(MAP(v_to_e, APPEND(vs0, [\{i("x")}])), [Basic(Call(0))])), (s2, f2, es2)) → (es2 == MAP(v_to_e, APPEND(vs0, [\{i("fact_w(val(x))")}])) && s_funcs(s2) == fs && f_inst(f2) == inst && f_locs(f2) == f_locs(f) && gvals(s2, f2) == gvals(s, f) && heap_of(EL(j, s_mems(s2))) == heap_of(EL(j, s_mems(s)))) || (∃ s3 : Wstore, ∃ f3 : Wframe, ∃ es3 : List[Einstr], reduce(s2, f2, es2, s3, f3, es3))",
+    ),
+    seq([
+      @tactics.repeat_tac(@tactics.strip_tac),
+      @tactics.mp_tac(triple),
+      @tactics.thenl(
+        @tactics.ants_tac,
+        @list.List([@simp.asm_rewrite_tac(ths([])), @tactics.disch_tac]),
+      ),
+      @tactics.mp_tac(adequate),
+      @simp.asm_rewrite_tac(ths([@lists.map()])),
+      @meson.meson_tac(ths([])),
+    ]),
+  )
+  record("fact_closed", th, kind="example")
 }
