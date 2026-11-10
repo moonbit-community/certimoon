@@ -4815,7 +4815,7 @@ then
   sl_triple_m(fs, inst, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == APPEND(vs0, [V_num(ConstInt32(x))]) && lc == lc0 && R(gs, ms, h), [Call(0)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == APPEND(vs0, [V_num(ConstInt32(fact_w(val(x))))]) && lc == lc0 && R(gs, ms, h), NIL)
 ```
 
-example `fact_closed`
+theorem `fact_closed`
 
 ```
 ∀ (fs : List[Cl]) (inst : Inst) (s s2 : Wstore) (f f2 : Wframe) (j : Num)

@@ -15,7 +15,9 @@ pub fn config(Array[Instr], locals? : Array[Value], store? : @kernel.Term, inst?
 
 pub fn defined_constants(String, @kernel.Thm) -> Array[String]
 
-pub fn export_entry(String, String, String, Array[String], Array[String], String) -> @json.Json
+pub fn definitions() -> Array[(String, Array[String], Array[String])] raise
+
+pub fn export_entry(String, String, String, Array[String], Array[String], String, depends? : Array[String], outside? : Array[String]) -> @json.Json
 
 pub let layout_note : String
 

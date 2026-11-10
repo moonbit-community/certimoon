@@ -138,3 +138,21 @@ pub fn listing_json() -> String raise {
     }),
   )
 }
+
+///|
+/// The entries that define constants, in order: (name, the constants it
+/// defines, the constants its statement uses). Package logic follows a
+/// statement's constants through them to say what it depends on.
+pub fn definitions() -> Array[(String, Array[String], Array[String])] raise {
+  load()
+  props()
+  entries
+  .filter(e => !e.defines.is_empty())
+  .map(e => {
+    let uses = match e.th {
+      Some(th) => term_constants(@kernel.concl(th))
+      None => []
+    }
+    (e.name, e.defines, uses)
+  })
+}

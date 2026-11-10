@@ -24,7 +24,9 @@ pub fn names() -> Array[String] {
 ///|
 /// Records `th` as `name`, for `thm` (a name can be recorded once). The
 /// theorems load() records are the theory listing (kind: "lemma",
-/// "definition" or "example"); others are not listed.
+/// "definition", "example", a triple of a verified program, or "theorem",
+/// a closed theorem: about the program's runs, with no assertion or
+/// triple); others are not listed.
 #callsite(autofill(loc))
 pub fn record(
   name : String,

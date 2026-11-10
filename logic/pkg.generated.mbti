@@ -30,6 +30,10 @@ pub fn call_pre(String, String, String) -> String
 #callsite(autofill(loc))
 pub fn def(String, String, loc~ : SourceLoc) -> Unit raise
 
+pub fn dependencies() -> String raise
+
+pub fn depends_on(Array[String]) -> (Array[(String, String)], Array[String]) raise
+
 pub fn eq_of(@kernel.Term, String) -> Bool
 
 pub fn forward2(@kernel.Thm) -> ((@list.List[(String, @kernel.Thm)], @kernel.Term)) -> ((@list.List[@kernel.Term], (@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)])), @list.List[(@list.List[(String, @kernel.Thm)], @kernel.Term)], ((@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)]), @list.List[@kernel.Thm]) -> @kernel.Thm raise) raise
@@ -47,7 +51,7 @@ pub fn lemma(String, String, ((@list.List[(String, @kernel.Thm)], @kernel.Term))
 
 pub fn listing() -> String
 
-pub fn listing_json() -> String
+pub fn listing_json() -> String raise
 
 pub fn load() -> Unit
 

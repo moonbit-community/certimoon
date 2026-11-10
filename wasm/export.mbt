@@ -77,7 +77,9 @@ pub fn defined_constants(kind : String, th : @kernel.Thm) -> Array[String] {
 /// One entry as JSON: `kind` ("section" for a heading, whose `name` is the
 /// title), `name`, `statement` (as the listing shows it), the constants it
 /// `uses` and `defines`, and the `file` and `line` where it is made (from
-/// a SourceLoc, `file:line:column-line:column@module`).
+/// a SourceLoc, `file:line:column-line:column@module`). For a theorem or
+/// example, `depends` are the definitions it depends on (`package/name`)
+/// and `outside` the constants left, which no entry defines.
 pub fn export_entry(
   kind : String,
   name : String,
@@ -85,6 +87,8 @@ pub fn export_entry(
   uses : Array[String],
   defines : Array[String],
   loc : String,
+  depends? : Array[String] = [],
+  outside? : Array[String] = [],
 ) -> Json {
   let (file, line) = match loc.split(":").collect() {
     [file, line, ..] => {
@@ -98,17 +102,20 @@ pub fn export_entry(
     _ => ("", 0)
   }
   let strings = (xs : Array[String]) => Json::array(xs.map(Json::string))
-  Json::object(
-    Map([
-      ("kind", Json::string(kind)),
-      ("name", Json::string(name)),
-      ("statement", Json::string(statement)),
-      ("uses", strings(uses)),
-      ("defines", strings(defines)),
-      ("file", Json::string(file)),
-      ("line", Json::number(line.to_double())),
-    ]),
-  )
+  let fields : Map[String, Json] = Map([
+    ("kind", Json::string(kind)),
+    ("name", Json::string(name)),
+    ("statement", Json::string(statement)),
+    ("uses", strings(uses)),
+    ("defines", strings(defines)),
+    ("file", Json::string(file)),
+    ("line", Json::number(line.to_double())),
+  ])
+  if !depends.is_empty() || !outside.is_empty() {
+    fields["depends"] = strings(depends)
+    fields["outside"] = strings(outside)
+  }
+  Json::object(fields)
 }
 
 ///|

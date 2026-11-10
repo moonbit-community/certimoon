@@ -121,6 +121,13 @@ test "the theory as data" (t : @test.Test) {
 }
 
 ///|
+/// What each theorem depends on: __snapshot__/dependencies.md.
+test "what each theorem depends on" (t : @test.Test) {
+  t.write(@logic.dependencies())
+  t.snapshot(filename="dependencies.md")
+}
+
+///|
 test "a program proved through the public API" {
   @logic.load()
   let w = @logic.w32

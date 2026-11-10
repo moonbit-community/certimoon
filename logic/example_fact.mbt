@@ -273,5 +273,5 @@ fn prove_fact_closed(example : @kernel.Thm, native : String) -> Unit raise {
       @meson.meson_tac(ths([])),
     ]),
   )
-  record("fact_closed", th, kind="example")
+  record("fact_closed", th, kind="theorem")
 }

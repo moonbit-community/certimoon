@@ -77,16 +77,24 @@ of the source that makes it. `tools/review_site.py` turns the two
 python3 tools/review_site.py --out _site
 ```
 
-It has a page per source file (`wasm/reduction.html`, `logic/heap.html`,
-...) with each entry's statement, its constants linked to the entries
-that define them, what uses it, and a link to its source; lemmas are
-folded, since the kernel checks them. For each example, a page
+Its front page shows the closed theorems (kind `theorem`: about a
+program's runs, with no assertion or triple; `fact_closed` so far) and
+what each depends on. It has a page per source file
+(`wasm/reduction.html`, `logic/heap.html`, ...) with each entry's
+statement, its constants linked to the entries that define them, what
+uses it, and a link to its source; lemmas are folded, since the kernel
+checks them. For each closed theorem and example, a page
 (`review/fact_closed.html`, ...) shows its statement and then every
-definition it depends on, found by following the constants of the
-statement through `logic` and into `wasm` until only hol_light's are
-left: what a reviewer must read to trust it. Open `_site/index.html`
-through a local server (`python3 -m http.server -d _site`), since the
-pages load a stylesheet and a search index.
+definition it depends on: what a reviewer must read to trust it. Open
+`_site/index.html` through a local server (`python3 -m http.server -d
+_site`), since the pages load a stylesheet and a search index.
+
+What a theorem depends on is computed by `@logic.depends_on`: the
+entries defining the constants of its statement, and those defining the
+constants of theirs, through `logic` and into `wasm`, until only
+hol_light's constants are left. `logic/__snapshot__/dependencies.md`
+keeps the list for each closed theorem and the count for each example,
+so a change to what a theorem trusts shows in a diff.
 
 ## Proving a program
 

@@ -5,13 +5,16 @@ logic/__snapshot__/theory.json, kept by the packages' tests):
 
     python3 tools/review_site.py [--out _site] [--source-url URL]
 
-- index.html: what a proof trusts, the examples, and the source files;
+- index.html: the closed theorems in full, with what each depends on,
+  then the examples and the source files;
 - <package>/<file>.html for each source file: its entries in order under
   the listing's headings, definitions in full and lemmas folded;
-- review/<example>.html for each example: its statement, then every
-  definition it depends on (following the constants of the statement to
-  the entries that define them, through logic and into wasm, until only
-  hol_light's constants are left).
+- review/<name>.html for each closed theorem and example: its statement,
+  then every definition it depends on. Package logic computes that list
+  (`depends` in its theory.json, also kept in
+  logic/__snapshot__/dependencies.md): the entries defining the constants
+  of the statement, and those defining the constants of theirs, through
+  logic and into wasm, until only hol_light's constants are left.
 
 Every statement is the listing's text, as the kernel's statement printed
 by the packages; this script only links its constants to the entries that
@@ -84,7 +87,7 @@ h2.section { font-size: 18px; margin: 32px 0 8px; padding-bottom: 4px;
 .k-specification { color: var(--def); }
 .k-relation { color: var(--rel); }
 .k-lemma { color: var(--lem); }
-.k-example { color: var(--ex); }
+.k-example, .k-theorem { color: var(--ex); }
 .name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-weight: 600; }
 .src { font-size: 12px; color: var(--muted); }
@@ -156,6 +159,7 @@ class Site:
         self.source_url = source_url.rstrip("/") + "/"
         self.entries = []      # all entries but sections, in order
         self.by_name = {}
+        self.by_key = {}       # "package/name" -> entry
         self.definer = {}      # constant -> entry
         for pkg in PACKAGES:
             path = os.path.join(root, pkg, "__snapshot__", "theory.json")
@@ -172,6 +176,7 @@ class Site:
                 e["page"] = page_of(e["file"])
                 self.entries.append(e)
                 self.by_name.setdefault(e["name"], e)
+                self.by_key[pkg + "/" + e["name"]] = e
                 for c in e["defines"]:
                     self.definer.setdefault(c, e)
         # used by: entries whose statements use a constant this one defines
@@ -187,7 +192,11 @@ class Site:
             if e["page"] not in seen:
                 seen.add(e["page"])
                 self.pages.append((e["package"], e["file"], e["page"]))
+        # closed theorems (about runs, with no assertion) first, then the
+        # examples (triples): each has a review page
+        self.theorems = [e for e in self.entries if e["kind"] == "theorem"]
         self.examples = [e for e in self.entries if e["kind"] == "example"]
+        self.reviewed = self.theorems + self.examples
 
     def href(self, e, depth):
         return "../" * depth + e["page"] + "#" + anchor(e["name"])
@@ -227,8 +236,8 @@ class Site:
             more = f" and {len(users) - 60} more" if len(users) > 60 else ""
             body += (f'<details class="usedby"><summary>used by {len(users)}</summary>'
                      f'{links}{more}</details>')
-        # (the review page shows its example unfolded, and is that page)
-        if e["kind"] == "example" and fold_lemmas:
+        # (the review page shows its theorem unfolded, and is that page)
+        if e["kind"] in ("theorem", "example") and fold_lemmas:
             body += (f'<div class="usedby"><a href="{"../" * depth}review/{esc(e["name"])}.html">'
                      f'what this depends on</a></div>')
         aid = anchor(e["name"])
@@ -242,9 +251,11 @@ class Site:
         parts = ['<nav>', f'<div><a href="{up}index.html"><b>WasmCert review</b></a></div>',
                  '<h2>Search</h2><input id="search" placeholder="a name…" autocomplete="off">',
                  '<ul id="results"></ul>']
-        if self.examples:
-            parts.append('<h2>Examples</h2><ul>')
-            for e in self.examples:
+        for title, es in [("Theorems", self.theorems), ("Examples", self.examples)]:
+            if not es:
+                continue
+            parts.append(f'<h2>{title}</h2><ul>')
+            for e in es:
                 p = f"review/{e['name']}.html"
                 cls = ' class="here"' if p == here else ""
                 parts.append(f'<li><a{cls} href="{up}{esc(p)}">{esc(e["name"])}</a></li>')
@@ -296,35 +307,28 @@ class Site:
 
     def closure(self, e):
         """The defining entries `e`'s statement depends on, in listing order,
-        and the constants left that no entry defines (hol_light's)."""
-        need, todo, outside = set(), list(e["uses"]), set()
-        while todo:
-            c = todo.pop()
-            d = self.definer.get(c)
-            if d is None:
-                outside.add(c)
-                continue
-            if id(d) in need:
-                continue
-            need.add(id(d))
-            todo += d["uses"]
-        return [x for x in self.entries if id(x) in need], sorted(outside)
+        and the constants left that no entry defines (hol_light's), as
+        package logic computed them."""
+        return [self.by_key[k] for k in e.get("depends", [])], e.get("outside", [])
+
+    def depends_summary(self, deps):
+        by_pkg = {}
+        for d in deps:
+            by_pkg[d["package"]] = by_pkg.get(d["package"], 0) + 1
+        return (f'{len(deps)} definitions ('
+                + ", ".join(f"{n} in {p}" for p, n in by_pkg.items()) + ')')
 
     def review_page(self, e):
         depth = 1
         page = f"review/{e['name']}.html"
         deps, outside = self.closure(e)
-        by_pkg = {}
-        for d in deps:
-            by_pkg[d["package"]] = by_pkg.get(d["package"], 0) + 1
         out = [f'<h1>{esc(e["name"])}</h1>',
                '<div class="note">To trust this theorem, read its statement and every definition '
                'below: they are all it depends on, found by following the constants of the '
                'statement to the entries that define them. The proofs need no reading: the '
                'kernel checks them, and no axioms are added.</div>',
                self.entry_html(e, depth, fold_lemmas=False),
-               f'<h2 class="section">What it depends on: {len(deps)} definitions '
-               f'({", ".join(f"{n} in {p}" for p, n in by_pkg.items())})</h2>']
+               f'<h2 class="section">What it depends on: {self.depends_summary(deps)}</h2>']
         section = None
         for d in deps:
             key = (d["package"], d["section"])
@@ -339,7 +343,7 @@ class Site:
         return self.document(e["name"], depth, page, "".join(out))
 
     def index_page(self, fragment=False):
-        n = {k: 0 for k in ["definition", "relation", "lemma", "example"]}
+        n = {k: 0 for k in ["definition", "relation", "lemma", "theorem", "example"]}
         for e in self.entries:
             if e["kind"] in DEFINING:
                 n["definition" if e["kind"] != "relation" else "relation"] += 1
@@ -352,10 +356,22 @@ class Site:
                'separation logic proved sound against it. Neither adds an axiom. The proofs are '
                'checked by the kernel when the packages load, so a review reads definitions and '
                'statements, not proofs.</div>',
-               f'<p>{n["definition"]} definitions and datatypes, {n["relation"]} relations, '
-               f'{n["lemma"]} lemmas and {n["example"]} examples.</p>',
-               '<h2 class="section">Examples</h2><p class="muted">Each with the definitions it '
-               'depends on.</p><table><tr><th>Example</th><th>Depends on</th><th>Source</th></tr>']
+               f'<p>{n["definition"]} definitions and datatypes, {count(n["relation"], "relation")}, '
+               f'{count(n["lemma"], "lemma")}, {count(n["theorem"], "closed theorem")} and '
+               f'{count(n["example"], "example")}.</p>',
+               '<h2 class="section">Closed theorems</h2><p class="muted">What the verified '
+               'programs do, stated about their runs (<code>reduce_trans</code>), with no '
+               'assertion or triple: these are the results to review.</p>']
+        for e in self.theorems:
+            deps, _ = self.closure(e)
+            out.append(self.entry_html(e, 0, fold_lemmas=False))
+            out.append(f'<p><a href="review/{esc(e["name"])}.html">What {esc(e["name"])} depends on: '
+                       f'{self.depends_summary(deps)}</a></p>')
+        out.append('<h2 class="section">Examples</h2><p class="muted">Triples of verified '
+                   'programs, stated in the program logic. A triple says what the runs do through '
+                   'the logic\'s adequacy theorems, so its review also reads the logic\'s '
+                   'definitions; a closed theorem says it directly.</p>'
+                   '<table><tr><th>Example</th><th>Depends on</th><th>Source</th></tr>')
         for e in self.examples:
             deps, _ = self.closure(e)
             out.append(f'<tr><td><a href="review/{esc(e["name"])}.html"><code>{esc(e["name"])}</code></a></td>'
@@ -369,7 +385,7 @@ class Site:
                     continue
                 es = [e for e in self.entries if e["page"] == page]
                 d = sum(1 for e in es if e["kind"] in DEFINING)
-                lm = sum(1 for e in es if e["kind"] in ("lemma", "example"))
+                lm = sum(1 for e in es if e["kind"] in ("lemma", "theorem", "example"))
                 out.append(f'<tr><td><a href="{esc(page)}">{esc(f)}</a></td><td>{d}</td><td>{lm}</td></tr>')
             out.append('</table>')
         return self.document("WasmCert review", 0, "index.html", "".join(out), fragment)
@@ -377,6 +393,11 @@ class Site:
     def search_index(self):
         items = [[e["name"], self.href(e, 0)] for e in self.entries]
         return "var SEARCH = " + json.dumps(items) + ";\n"
+
+
+def count(n, noun):
+    """`n noun`, plural unless n is 1."""
+    return f"{n} {noun}" + ("" if n == 1 else "s")
 
 
 def page_of(file):
@@ -405,9 +426,9 @@ def main():
     write(os.path.join(args.out, "index.html"), site.index_page(args.fragment_index))
     for pkg, file, page in site.pages:
         write(os.path.join(args.out, page), site.file_page(pkg, file, page))
-    for e in site.examples:
+    for e in site.reviewed:
         write(os.path.join(args.out, "review", e["name"] + ".html"), site.review_page(e))
-    print(f"wrote {len(site.pages)} file pages and {len(site.examples)} review pages to {args.out}",
+    print(f"wrote {len(site.pages)} file pages and {len(site.reviewed)} review pages to {args.out}",
           file=sys.stderr)
 
 

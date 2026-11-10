@@ -266,13 +266,13 @@ say so.
    a conclusion: wasm/layout.mbt.) Done when the examples' statements name
    their code and none is longer than 20 lines.
 
-3. **A review document.** Partly done: `tools/review_site.py` builds a
-   site from the listings' `theory.json`, with a page per source file and,
-   for each example, a page of its statement and every definition it
-   depends on (found by following its constants through `logic` and into
-   `wasm`, stopping at hol_light's). What is left: the closed theorems as
-   the site's front page, and the dependency count kept in a snapshot so
-   that a change to what a theorem trusts shows in a diff. `fact_closed`
+3. **A review document.** Done: `tools/review_site.py` builds a site
+   from the listings' `theory.json`, its front page the closed theorems
+   (kind `theorem`), with a page per source file and, for each closed
+   theorem and example, a page of its statement and every definition it
+   depends on (`@logic.depends_on`); `logic/__snapshot__/dependencies.md`
+   keeps those lists, so a change to what a theorem trusts shows in a
+   diff. Each new closed theorem joins both by its kind. `fact_closed`
    depends on 235 definitions, 231 of them in `wasm`: `reduce` reaches
    nearly all of the semantics (floats and vectors included, though left
    unspecified), so a smaller trusted base would mean stating the closed
