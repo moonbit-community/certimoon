@@ -178,23 +178,60 @@ fn prove_adequacy() -> Unit raise {
   let _ = lemma(
     "sl_triple_m_adequate_whole",
     "∀ fs : List[Cl], ∀ inst : Inst, ∀ p : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ j : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], sl_triple_m(fs, inst, p, bs, q, NIL) && s_funcs(s) == fs && f_inst(f) == inst && smem_ind(inst) == SOME(j) && j < LENGTH(s_mems(s)) && globs_ok(s, f) && p(vs, f_locs(f), gvals(s, f), mem_length(EL(j, s_mems(s))), heap_of(EL(j, s_mems(s)))) && reduce_trans((s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs))), (s2, f2, es2)) → (∃ vs2 : List[Value], es2 == MAP(v_to_e, vs2) && s_funcs(s2) == fs && f_inst(f2) == inst && j < LENGTH(s_mems(s2)) && globs_ok(s2, f2) && q(vs2, f_locs(f2), gvals(s2, f2), mem_length(EL(j, s_mems(s2))), heap_of(EL(j, s_mems(s2))))) || (∃ s3 : Wstore, ∃ f3 : Wframe, ∃ es3 : List[Einstr], reduce(s2, f2, es2, s3, f3, es3))",
-    seq([
-      @tactics.repeat_tac(@tactics.strip_tac),
-      @tactics.mp_tac(
-        @bool.ispecl(
-          @list.List(
-            [
-              "(fs : List[Cl])", "(inst : Inst)", "(p : \{sassn})", "(bs : List[B_e])", "(q : \{sassn})",
-              "emp", "(s : Wstore)", "(f : Wframe)", "(vs : List[Value])", "(s2 : Wstore)", "(f2 : Wframe)",
-              "(es2 : List[Einstr])",
-            ].map(tm),
+    // MESON finds this too, but takes minutes: the j that lift_emp
+    // introduces at the end is the statement's j, by f_inst(f2) == inst
+    // and smem_ind(inst) == SOME(j)
+    then_split(
+      seq([
+        @tactics.repeat_tac(@tactics.strip_tac),
+        @tactics.mp_tac(
+          @bool.ispecl(
+            @list.List(
+              [
+                "(fs : List[Cl])", "(inst : Inst)", "(p : \{sassn})", "(bs : List[B_e])", "(q : \{sassn})",
+                "emp", "(s : Wstore)", "(f : Wframe)", "(vs : List[Value])", "(s2 : Wstore)", "(f2 : Wframe)",
+                "(es2 : List[Einstr])",
+              ].map(tm),
+            ),
+            thm("sl_triple_m_adequate"),
           ),
-          thm("sl_triple_m_adequate"),
         ),
-      ),
-      @simp.asm_rewrite_tac(ths([lift_emp] + opt)),
-      @meson.asm_meson_tac(ths(opt)),
-    ]),
+        @simp.rewrite_tac(ths([lift_emp])),
+      ]),
+      @tactics.ants_tac,
+      [
+        // the precondition, at the statement's j
+        seq([
+          @simp.asm_rewrite_tac(ths(opt)),
+          @tactics.conv_tac(@equal.top_depth_conv(@ind_types.unwind_conv)),
+          @simp.asm_rewrite_tac(ths([])),
+        ]),
+        then_split(@tactics.all_tac, @tactics.strip_tac, [
+          // values at the end: lift_emp's j' is j
+          seq([
+            have(
+              "(j : Num) == j'",
+              seq([
+                @tactics.undisch_tac(tm("smem_ind(f_inst((f2 : Wframe))) == SOME((j' : Num))")),
+                @simp.asm_rewrite_tac(ths(opt)),
+              ]),
+            ),
+            subst_vars(),
+            @tactics.disj1_tac,
+            @tactics.exists_tac(tm("(vs2 : List[Value])")),
+            @simp.asm_rewrite_tac(ths([])),
+          ]),
+          // a step
+          seq([
+            @tactics.disj2_tac,
+            @tactics.exists_tac(tm("(s3 : Wstore)")),
+            @tactics.exists_tac(tm("(f3 : Wframe)")),
+            @tactics.exists_tac(tm("(es3 : List[Einstr])")),
+            @tactics.first_assum(th => @tactics.accept_tac(th)),
+          ]),
+        ]),
+      ],
+    ),
   )
   // A closed theorem states a memory as its list of bytes
   let heap_of_pts_heap = lemma(

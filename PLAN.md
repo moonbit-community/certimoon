@@ -399,6 +399,10 @@ Proof search:
   over many goals runs it to failure on each goal it does not fit:
   `reduce_imp_decomp` took 106 s that way and 0.6 s with one tactic per
   case (`thenl`), and `length_drop` 39 s until arithmetic was tried first.
+  `asm_meson_tac` that has to chain equations among many assumptions is as
+  slow: closing `sl_triple_m_adequate_whole` took 162 s, three quarters of
+  a load, until its one hard step (that lift_emp's j is the statement's j)
+  was written out; it now takes milliseconds.
 - MESON does not reassociate appends: `vs0 ++ [x, y]` does not unify with
   `xs ++ [y]` ("solve_goal: Too deep"). `entails` and `then_rule` rewrite
   stacks to `vs0 ++ [x, y]` by default; pass `reassoc=false` when the target
@@ -514,12 +518,15 @@ reformats that repository too, and the current version crashed halfway
 
 Costs: loading `logic` re-proves everything; there is no theorem cache.
 On wasm-gc, the module's preferred target, `moon test -p
-moonbit-community/wasmcert/logic` takes about a minute (November 2026),
-and rebuilding after a change a few seconds. Of a load: HOL Light's core
-and its words library about 20 s, the WasmCert definitions and facts 15 s,
-the logic 20 s, most of that in `step_cases` (expanding `reduce_base`'s
-40 cases for each way of splitting the operands; giving it the
-instruction's arity would avoid the split). The `wasm` and `native`
+moonbit-community/wasmcert/logic` takes about a minute (70 s, November
+2026), and rebuilding after a change a few seconds; with `--update` twice
+that, as moon runs the tests again after updating a snapshot. Of a 50 s
+load: HOL Light's core and its words library 6 s, the WasmCert definitions
+and facts 13 s, the logic 30 s, most of that in the instruction rules
+(13 s, 5 s of it `prefix_select`) and `step_cases` (expanding
+`reduce_base`'s 40 cases for each way of splitting the operands; giving it
+the instruction's arity would avoid the split). A release build saves
+little (6 %). The `wasm` and `native`
 targets are three to five times slower; `native --release` halves
 native's time but rebuilds the whole program, two minutes, after any
 change. Each test file is its own process and loads the logic again, so
