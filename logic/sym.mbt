@@ -847,7 +847,8 @@ fn structure_of(code : @kernel.Term) -> (Array[@kernel.Term], Array[@kernel.Term
 ///
 /// `stmt` is `∀ xs. hyps → sl_triple(p, code, q)` (code without calls),
 /// or `∀ xs. hyps → sl_triple_g(G, fs, inst, rp, p, code, q, ls)` (a
-/// function's body, or any code with calls and returns).
+/// function's body, or any code with calls and returns). The code may be
+/// a program's name (`program`): its definition is unfolded first.
 ///
 /// - `invs`: the invariants of code's loops, in order (outermost and first
 ///   first), each `λ lc gs ms h. ...` (for the locals, globals, memory
@@ -888,6 +889,11 @@ pub fn sym_prove(
     (_, Some(args)) => (args[5], true)
     _ => raise Failure("wasmcert/logic: sym_prove: not a triple: " + show(triple))
   }
+  // a program's name: run its code
+  let (code, unfold) = match program_def(code) {
+    Some(d) => (@kernel.dest_eq(@kernel.concl(@simp.pure_rewrite_conv(ths([d]))(code))).1, [d])
+    None => (code, [])
+  }
   let (loops, after) = structure_of(code)
   if loops.length() != invs.length() || after.length() != afters.length() {
     raise Failure(
@@ -913,6 +919,7 @@ pub fn sym_prove(
     },
     @tactics.repeat_tac(@tactics.gen_tac),
     @tactics.try_tac(@tactics.disch_then(th => @tactics.strip_assume_tac(th))),
+    @simp.pure_rewrite_tac(ths(unfold)),
     if g { beta_goal() } else { @tactics.match_mp_tac(thm("sl_triple_of_l")) },
     sym_tac(sym),
   ])

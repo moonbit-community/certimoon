@@ -65,7 +65,7 @@ fn prove_example_sort() -> Unit raise {
   let le = "Relop(T_i32, Relop_i(Le(U)))"
   let inner = "[Local_get(3), Testop(T_i32, Eqz), Br_if(1), \{aj1}, \{load}, Local_get(4), \{le}, Br_if(1), \{aj}, \{aj1}, \{load}, \{store}, Local_get(3), \{c("1")}, \{sub}, Local_set(3), Br(0)]"
   let outer = "[\{ai}, \{load}, Local_set(4), Local_get(2), Local_set(3), Block(Tbv(NONE), [Loop(Tbv(NONE), \{inner})]), \{aj}, Local_get(4), \{store}, Local_get(2), \{c("1")}, \{add}, Local_set(2), Local_get(2), Local_get(1), \{lt}, Br_if(0)]"
-  let code = "[\{c("1")}, Local_set(2), Local_get(2), Local_get(1), \{lt}, If(Tbv(NONE), [Loop(Tbv(NONE), \{outer})], NIL)]"
+  let code = program("insertion_sort_code", "[\{c("1")}, Local_set(2), Local_get(2), Local_get(1), \{lt}, If(Tbv(NONE), [Loop(Tbv(NONE), \{outer})], NIL)]")
   let p = "(p : \{w})"
   let n = "(n : \{w})"
   let xs = "(xs : List[\{w}])"

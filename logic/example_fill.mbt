@@ -145,7 +145,7 @@ fn prove_example_fill() -> Unit raise {
   let i = (x : String) => "V_num(ConstInt32(\{x}))"
   let array = (xs : String) => "(gs : List[Value]) => (ms : Num) => star(arr(val(p0), \{xs}), fp(gs, ms))"
   let body = "[Local_get(0), EConstNum(ConstInt32(x)), Store(T_i32, NONE, 2, 0), Local_get(0), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Add)), Local_set(0), Local_get(1), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), Local_set(1), Local_get(1), Br_if(0)]"
-  let code = "[Local_get(1), If(Tbv(NONE), [Loop(Tbv(NONE), \{body})], NIL)]"
+  let code = program("fill_code", "[Local_get(1), If(Tbv(NONE), [Loop(Tbv(NONE), \{body})], NIL)]", params=["(x : \{w})"])
   let inv = "(lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => ∃ p : \{w}, ∃ c : \{w}, ∃ y : \{w}, ∃ zs : List[\{w}], lc == [\{i("p")}, \{i("c")}] && !(c == word(0)) && val(p) == val((p0 : \{w})) + 4 * (val((m : \{w})) - val(c)) && val(c) <= val(m) && SUC(LENGTH(zs)) == val(c) && star(arr(val(p0), APPEND(REPLICATE(val(m) - val(c), (x : \{w})), CONS(y, zs))), (fp : \{rty})(gs, ms), h)"
   let args = ["(p0 : \{w})", "(m : \{w})", "(p : \{w})", "(c : \{w})", "(x : \{w})", "(zs : List[\{w}])"]
   let _ = sym_prove(

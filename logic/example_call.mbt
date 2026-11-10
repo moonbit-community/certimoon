@@ -14,7 +14,7 @@ fn prove_example_call() -> Unit raise {
   let w = w32
   let i = (x : String) => "V_num(ConstInt32(\{x}))"
   let sa = sassn
-  let body = "[Local_get(0), Local_get(0), Binop(T_i32, Binop_i(Add))]"
+  let body = program("double_code", "[Local_get(0), Local_get(0), Binop(T_i32, Binop_i(Add))]")
   let x = "(x : \{w})"
   let r = "(R : \{rty})"
   let sum = i("word_add(\{x}, \{x})")
@@ -46,6 +46,7 @@ fn prove_example_call() -> Unit raise {
   let call_free_body = @tactics.prove(
     tm("call_free_b(\{body})"),
     seq([
+      @simp.pure_rewrite_tac(ths(programs)),
       @simp.rewrite_tac(ths([thm("call_free_b"), @lists.all()])),
       @tactics.conv_tac(@equal.top_depth_conv(has_call_conv())),
       @simp.rewrite_tac(ths([])),

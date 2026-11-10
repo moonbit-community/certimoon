@@ -147,7 +147,7 @@ fn prove_example_array_sum() -> Unit raise {
   let array = (l : String) => "(gs : List[Value]) => (ms : Num) => star(arr(val(p), \{l}), fp(gs, ms))"
   let lt = "Relop_i(Lt(U))"
   let body = "[Local_get(3), Local_get(0), Local_get(2), EConstNum(ConstInt32(word(4))), Binop(T_i32, Binop_i(Mul)), Binop(T_i32, Binop_i(Add)), Load(T_i32, NONE, 2, 0), Binop(T_i32, Binop_i(Add)), Local_set(3), Local_get(2), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Add)), Local_set(2), Local_get(2), Local_get(1), Relop(T_i32, \{lt}), Br_if(0)]"
-  let code = "[Local_get(2), Local_get(1), Relop(T_i32, \{lt}), If(Tbv(NONE), [Loop(Tbv(NONE), \{body})], NIL)]"
+  let code = program("array_sum_code", "[Local_get(2), Local_get(1), Relop(T_i32, \{lt}), If(Tbv(NONE), [Loop(Tbv(NONE), \{body})], NIL)]")
   let inv = "(lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => ∃ i : \{w}, ∃ ys : List[\{w}], ∃ y : \{w}, ∃ zs : List[\{w}], lc == [\{i_("(p : \{w})")}, \{i_("(n : \{w})")}, \{i_("i")}, \{i_("wsum(ys)")}] && (xs : List[\{w}]) == APPEND(ys, CONS(y, zs)) && LENGTH(ys) == val(i) && star(arr(val(p), APPEND(ys, CONS(y, zs))), (fp : \{rty})(gs, ms), h)"
   let args = ["p", "n", "i", "xs", "ys", "y", "zs"].map(v => "(\{v} : \{if v.has_suffix("s") { "List[\{w}]" } else { w }})")
   let _ = sym_prove(

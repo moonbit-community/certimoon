@@ -21,7 +21,7 @@ fn prove_example_sum() -> Unit raise {
   let i = (x : String) => "V_num(ConstInt32(\{x}))"
   let answer = "word_add(acc0, word(sum_to(val(n0))))"
   let body = "[Local_get(1), Local_get(0), Binop(T_i32, Binop_i(Add)), Local_set(1), Local_get(0), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), Local_set(0), Local_get(0), Br_if(0)]"
-  let code = "[Local_get(0), If(Tbv(NONE), [Loop(Tbv(NONE), \{body})], NIL)]"
+  let code = program("sum_code", "[Local_get(0), If(Tbv(NONE), [Loop(Tbv(NONE), \{body})], NIL)]")
   let inv = "(lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => ∃ n : \{w}, ∃ acc : \{w}, lc == [\{i("n")}, \{i("acc")}] && !(n == word(0)) && word_add(acc, word(sum_to(val(n)))) == word_add((acc0 : \{w}), word(sum_to(val((n0 : \{w}))))) && (R : \{rty})(gs, ms, h)"
   let step_inv = lemma(
     "sum_inv_step",

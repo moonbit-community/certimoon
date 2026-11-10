@@ -261,12 +261,13 @@ all) and `@logic.listing()`:
 |---|---|
 | `sym_prove(name, stmt, invs, vcs, afters~, rules~, rws~, specs~, calls~)` | proves a triple by running its code |
 | `lemma(name, stmt, tac)`, `def(name, eqs)`, `record(name, th)` | prove, define, record under a name for `thm` |
+| `program(name, code)` | defines the constant `name` as `code` (a `List[B_e]`), and returns `name`, for statements to name the code; sym_prove and `call_free_tac` unfold it, and the listing shows it as WebAssembly text |
 | `tm(s)`, `show(t)`, `ths(xs)` | parse and print terms, lists of theorems |
 | `seq`, `solve`, `have(stmt, tac)`, `by_lemma(th, args)`, `forward2(th)` | putting tactics together |
 | `subst_vars`, `subst_only(name)`, `split_conjs`, `use_eqs(pick)` | working on assumptions |
 | `arith(stmt)` | a linear arithmetic fact |
 | `args_of(t, name, n)`, `eq_of(t, prefix)`, `beta_goal()` | reading terms (for `use_eqs`), beta-reducing the goal |
-| `call_free_tac` | proves `call_free_b(code)` for written-out code |
+| `call_free_tac` | proves `call_free_b(code)` for written-out code or a program's name |
 | `w8`, `w32`, `w64`, `heap`, `hprop`, `assn`, `sassn`, `rty`, `fprop`, `specs_ty`, `sa_false` | the types and the false assertion, as term-syntax strings |
 | `call_pre`, `call_post`, `body_pre`, `body_post` | the assertions of a call and of a function body, from a spec's P and Q |
 
@@ -275,7 +276,11 @@ to the package's theory listing.
 
 ## The examples
 
-All in [logic/](logic), proved when the logic loads:
+All in [logic/](logic), proved when the logic loads. Each names its code
+with `program` (`sum_code`, `quicksort_code`, `partition_code`, ...), so
+statements say which program they are about without writing it out; the
+listing shows each program as WebAssembly text, printed from its
+definition and read back to check it (`wasm/wat.mbt`).
 
 | Example | File | Proves |
 |---|---|---|

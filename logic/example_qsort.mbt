@@ -242,7 +242,7 @@ fn prove_partition() -> Unit raise {
   let hm1 = "Local_get(2), \{c("1")}, \{sub}"
   let swap = "[\{addr("Local_get(3)")}, \{load}, Local_set(6), \{addr("Local_get(3)")}, \{addr("Local_get(4)")}, \{load}, \{store}, \{addr("Local_get(4)")}, Local_get(6), \{store}, Local_get(3), \{c("1")}, \{add}, Local_set(3)]"
   let body = "[Local_get(4), \{hm1}, \{eq}, Br_if(1), \{addr("Local_get(4)")}, \{load}, Local_get(5), \{lt}, If(Tbv(NONE), \{swap}, NIL), Local_get(4), \{c("1")}, \{add}, Local_set(4), Br(0)]"
-  let code = "[\{addr(hm1)}, \{load}, Local_set(5), Local_get(1), Local_set(3), Local_get(1), Local_set(4), Block(Tbv(NONE), [Loop(Tbv(NONE), \{body})]), \{addr("Local_get(3)")}, \{load}, Local_set(6), \{addr("Local_get(3)")}, Local_get(5), \{store}, \{addr(hm1)}, Local_get(6), \{store}, Local_get(3)]"
+  let code = program("partition_code", "[\{addr(hm1)}, \{load}, Local_set(5), Local_get(1), Local_set(3), Local_get(1), Local_set(4), Block(Tbv(NONE), [Loop(Tbv(NONE), \{body})]), \{addr("Local_get(3)")}, \{load}, Local_set(6), \{addr("Local_get(3)")}, Local_get(5), \{store}, \{addr(hm1)}, Local_get(6), \{store}, Local_get(3)]")
   let lw = "List[\{w}]"
   let locals = (i : String, j : String, t : String) => "[\{i_("(p : \{w})")}, \{i_("(lo : \{w})")}, \{i_("(hi : \{w})")}, \{i_(i)}, \{i_(j)}, \{i_("(pv : \{w})")}, \{i_(t)}]"
   let below = "ALL((x : \{w}) => val(x) < val(pv), L)"
@@ -452,7 +452,7 @@ fn prove_quicksort() -> Unit raise {
   let add = "Binop(T_i32, Binop_i(Add))"
   let sub = "Binop(T_i32, Binop_i(Sub))"
   let lt = "Relop(T_i32, Relop_i(Lt(U)))"
-  let code = "[Local_get(2), Local_get(1), \{sub}, \{c("2")}, \{lt}, If(Tbv(NONE), [Return], NIL), Local_get(0), Local_get(1), Local_get(2), Call(1), Local_set(3), Local_get(0), Local_get(1), Local_get(3), Call(0), Local_get(0), Local_get(3), \{c("1")}, \{add}, Local_get(2), Call(0)]"
+  let code = program("quicksort_code", "[Local_get(2), Local_get(1), \{sub}, \{c("2")}, \{lt}, If(Tbv(NONE), [Return], NIL), Local_get(0), Local_get(1), Local_get(2), Call(1), Local_set(3), Local_get(0), Local_get(1), Local_get(3), Call(0), Local_get(0), Local_get(3), \{c("1")}, \{add}, Local_get(2), Call(0)]")
   let qb = body_post("(\{qs_q})")
   let pb = body_pre("(\{qs_p})", "args", "[V_num(ConstInt32(word(0)))]")
   let i_ = (x : String) => "V_num(ConstInt32(\{x}))"

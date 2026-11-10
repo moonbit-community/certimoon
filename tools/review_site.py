@@ -32,7 +32,7 @@ import sys
 
 PACKAGES = ["wasm", "logic"]
 DEFINING = {"definition", "relation", "datatype", "record", "constant",
-            "type definition", "specification"}
+            "type definition", "specification", "program"}
 IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_']*")
 
 CSS = """
@@ -85,6 +85,7 @@ h2.section { font-size: 18px; margin: 32px 0 8px; padding-bottom: 4px;
   letter-spacing: .04em; }
 .k-definition, .k-datatype, .k-record, .k-constant, .k-type-definition,
 .k-specification { color: var(--def); }
+.k-program { color: var(--ex); }
 .k-relation { color: var(--rel); }
 .k-lemma { color: var(--lem); }
 .k-example, .k-theorem { color: var(--ex); }
@@ -343,9 +344,11 @@ class Site:
         return self.document(e["name"], depth, page, "".join(out))
 
     def index_page(self, fragment=False):
-        n = {k: 0 for k in ["definition", "relation", "lemma", "theorem", "example"]}
+        n = {k: 0 for k in ["definition", "relation", "program", "lemma", "theorem", "example"]}
         for e in self.entries:
-            if e["kind"] in DEFINING:
+            if e["kind"] == "program":
+                n["program"] += 1
+            elif e["kind"] in DEFINING:
                 n["definition" if e["kind"] != "relation" else "relation"] += 1
             elif e["kind"] in n:
                 n[e["kind"]] += 1
@@ -357,7 +360,7 @@ class Site:
                'checked by the kernel when the packages load, so a review reads definitions and '
                'statements, not proofs.</div>',
                f'<p>{n["definition"]} definitions and datatypes, {count(n["relation"], "relation")}, '
-               f'{count(n["lemma"], "lemma")}, {count(n["theorem"], "closed theorem")} and '
+               f'{count(n["program"], "program")}, {count(n["lemma"], "lemma")}, {count(n["theorem"], "closed theorem")} and '
                f'{count(n["example"], "example")}.</p>',
                '<h2 class="section">Closed theorems</h2><p class="muted">What the verified '
                'programs do, stated about their runs (<code>reduce_trans</code>), with no '

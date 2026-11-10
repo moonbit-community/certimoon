@@ -107,9 +107,9 @@ good order to read it in:
 
 Package `wasm`: ast.mbt, numeric.mbt, store.mbt, typing.mbt, reduction.mbt
 (the port; the header comments say where it differs from Isabelle),
-defs.mbt (its plumbing), listing.mbt, layout.mbt and export.mbt (the theory
-listing, how it lays statements out, and the listing as data for
-tools/review_site.py), props.mbt (facts about `reduce`, `step_cases`),
+defs.mbt (its plumbing), listing.mbt, layout.mbt, wat.mbt and export.mbt
+(the theory listing, how it lays statements out, programs as WebAssembly
+text, and the listing as data for tools/review_site.py), props.mbt (facts about `reduce`, `step_cases`),
 eval.mbt and builder.mbt (the evaluator), and the tests.
 
 ## Status
@@ -227,7 +227,8 @@ are. To trust `example_quicksort` by its definitions, a reviewer reads:
   `lift`, `globs_ok`, `gvals`, `star`, `arr`, `words_bytes`, `pts`,
   `heap_of` and `mem_length`, spread among 448 lemmas that need no reading;
 - a statement with lines of 2,136 and 498 characters (the two functions'
-  bodies, written out as hypotheses) and a conclusion of 487.
+  bodies, written out as hypotheses; since step 2 they are named,
+  `quicksort_code` and `partition_code`) and a conclusion of 487.
 
 The adequacy theorems (`sl_triple_adequate`, `sl_triple_m_adequate`)
 already state a triple's meaning with `reduce_trans` alone, so `safe`,
@@ -259,15 +260,19 @@ say so.
    does not depend on the caller's frame (it pushes a frame of its own),
    since every triple here assumes `f_inst(f) == inst`.
 
-2. **Named programs, readable statements.** Define each example's code as
-   a constant (`qs_code`, `partition_code`, ...), so that statements name
-   the program instead of writing it out; sym_prove then unfolds the name
-   first. Print each code definition in the listing as WebAssembly text, so
-   it can be compared with the pseudocode in the file's header. In the
-   printer, abbreviate the type of a spec set as the other types are.
-   (Statements are already laid out as variables, numbered hypotheses and
-   a conclusion: wasm/layout.mbt.) Done when the examples' statements name
-   their code and none is longer than 20 lines.
+2. **Named programs, readable statements.** Done: `program(name, code)`
+   defines each example's code as a constant (`sum_code`, `fact_code`,
+   `quicksort_code`, `partition_code`, ...), statements name it, and
+   sym_prove and `call_free_tac` unfold it. The listings show a program
+   in WebAssembly's text format, one instruction per line
+   (`wasm/wat.mbt`: printed from the definition and read back, so a
+   misprint fails the load rather than misleading a reader). The
+   function-spec types print as `FProp` and `Specs`. No statement writes
+   code out any more: the closed theorems' lines are at most 190
+   characters (`quicksort_closed` is 28 lines, its twelve hypotheses one
+   per line). The examples' triples still have long lines, up to 2,238
+   characters in `partition_fn`: their assertions are lambdas, which the
+   layout prints on one line.
 
 3. **A review document.** Done: `tools/review_site.py` builds a site
    from the listings' `theory.json`, its front page the closed theorems
@@ -276,11 +281,11 @@ say so.
    depends on (`@logic.depends_on`); `logic/__snapshot__/dependencies.md`
    keeps those lists, so a change to what a theorem trusts shows in a
    diff. Each new closed theorem joins both by its kind. `fact_closed`
-   depends on 238 definitions, 234 of them in `wasm`, and
-   `quicksort_closed` on 239, the same 234 in `wasm`: `reduce` reaches
-   nearly all of the semantics (floats and vectors included, though left
-   unspecified), so a smaller trusted base would mean stating the closed
-   theorems over a fragment of `reduce`.
+   depends on 239 definitions (its program, `fact_code`, among them), 234
+   of them in `wasm`, and `quicksort_closed` on 241, the same 234 in
+   `wasm`: `reduce` reaches nearly all of the semantics (floats and
+   vectors included, though left unspecified), so a smaller trusted base
+   would mean stating the closed theorems over a fragment of `reduce`.
 
 4. **Non-vacuity checks.** A triple whose precondition nothing satisfies
    proves nothing, and several conjuncts could make one unsatisfiable

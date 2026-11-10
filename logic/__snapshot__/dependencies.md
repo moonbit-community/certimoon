@@ -4,15 +4,16 @@ To trust a theorem, a reviewer reads its statement and the definitions it depend
 
 ## Theorem `fact_closed`
 
-238 definitions: 234 in wasm, 4 in logic.
+239 definitions: 234 in wasm, 5 in logic.
 
-### From logic (4)
+### From logic (5)
 
 ```
 heap_of
 gvals
 globs_ok
 fact_w
+fact_code
 ```
 
 ### From wasm (234)
@@ -335,9 +336,9 @@ _UNGUARDED_PATTERN
 
 ## Theorem `quicksort_closed`
 
-239 definitions: 234 in wasm, 5 in logic.
+241 definitions: 234 in wasm, 7 in logic.
 
-### From logic (5)
+### From logic (7)
 
 ```
 gvals
@@ -345,6 +346,8 @@ globs_ok
 words_bytes
 sorted
 perm
+partition_code
+quicksort_code
 ```
 
 ### From wasm (234)
@@ -674,10 +677,10 @@ Triples of verified programs, with what their statements depend on.
 | Example | Definitions | In wasm | In logic |
 |---|---|---|---|
 | `example_store_load` | 245 | 233 | 12 |
-| `example_sum` | 245 | 233 | 12 |
-| `example_fill` | 248 | 233 | 15 |
-| `example_array_sum` | 249 | 233 | 16 |
-| `example_insertion_sort` | 250 | 233 | 17 |
-| `example_call` | 246 | 235 | 11 |
-| `example_fact` | 247 | 235 | 12 |
-| `example_quicksort` | 252 | 235 | 17 |
+| `example_sum` | 246 | 233 | 13 |
+| `example_fill` | 249 | 233 | 16 |
+| `example_array_sum` | 250 | 233 | 17 |
+| `example_insertion_sort` | 251 | 233 | 18 |
+| `example_call` | 247 | 235 | 12 |
+| `example_fact` | 248 | 235 | 13 |
+| `example_quicksort` | 254 | 235 | 19 |

@@ -24,7 +24,7 @@ pub fn names() -> Array[String] {
 ///|
 /// Records `th` as `name`, for `thm` (a name can be recorded once). The
 /// theorems load() records are the theory listing (kind: "lemma",
-/// "definition", "example", a triple of a verified program, or "theorem",
+/// "definition", "program" (a definition of code, `program`), "example", a triple of a verified program, or "theorem",
 /// a closed theorem: about the program's runs, with no assertion or
 /// triple); others are not listed.
 #callsite(autofill(loc))
@@ -60,6 +60,55 @@ pub fn def(name : String, s : String, loc~ : SourceLoc) -> Unit raise {
     e => raise Failure("wasmcert/logic: defining " + name + ": " + e.to_string())
   }
   record(name, th, kind="definition", loc~)
+}
+
+///|
+/// The programs' definitions (`program`), for unfolding their names.
+let programs : Array[@kernel.Thm] = []
+
+///|
+/// A program: the constant `name` defined as `code`, a list of basic
+/// instructions (`List[B_e]`), recorded as `name` and listed in
+/// WebAssembly's text format. Code with free variables (a constant `x` to
+/// store, say) takes them as `params`, each with its type (`"(x : W)"`),
+/// and defines `name(x, ...)`. Returns `name` (or `name(x, ...)`), so that
+/// statements name the code; `sym_prove` and `call_free_tac` unfold it
+/// (`program_defs`).
+#callsite(autofill(loc))
+pub fn program(
+  name : String,
+  code : String,
+  params? : Array[String] = [],
+  loc~ : SourceLoc,
+) -> String raise {
+  let lhs = if params.is_empty() { name } else { name + "(" + params.join(", ") + ")" }
+  let th = @define.define_(tm(lhs + " == (" + code + " : List[B_e])")) catch {
+    e => raise Failure("wasmcert/logic: defining " + name + ": " + e.to_string())
+  }
+  programs.push(th)
+  record(name, th, kind="program", loc~)
+  lhs
+}
+
+///|
+/// The definition of the program `code` names (`name` or `name(x, ...)`),
+/// if it names one.
+fn program_def(code : @kernel.Term) -> @kernel.Thm? raise {
+  let head = @basics.strip_comb(code).0
+  guard @kernel.is_const(head) else { return None }
+  for d in programs {
+    let lhs = @kernel.dest_eq(@basics.strip_forall(@kernel.concl(d)).1).0
+    if @basics.aconv(@basics.strip_comb(lhs).0, head) {
+      return Some(d)
+    }
+  }
+  None
+}
+
+///|
+/// The definitions of the programs made so far (`program`).
+pub fn program_defs() -> Array[@kernel.Thm] {
+  programs.copy()
 }
 
 ///|

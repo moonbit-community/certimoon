@@ -38,7 +38,8 @@ fn head_constant(t : @kernel.Term) -> String? {
 }
 
 ///|
-/// The constants a definition, relation or type definition `th` defines:
+/// The constants a definition (or program), relation or type definition
+/// `th` defines:
 /// the head of each equation's left side or of each rule's conclusion, or
 /// the abstraction and representation functions of a type. Lemmas and
 /// examples define none.
@@ -50,7 +51,7 @@ pub fn defined_constants(kind : String, th : @kernel.Thm) -> Array[String] {
   for c in @basics.conjuncts(@kernel.concl(th)) {
     let body = @basics.strip_forall(c).1
     match kind {
-      "definition" | "relation" => {
+      "definition" | "relation" | "program" => {
         // an equation's left side, or a rule's conclusion
         let head = if @basics.is_eq(body) {
           @kernel.dest_eq(body).0 catch { _ => body }

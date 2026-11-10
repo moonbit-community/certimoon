@@ -9,6 +9,8 @@ import {
 // Values
 pub fn abbreviate_types(String) -> String
 
+pub fn code_of_wat(String) -> @kernel.Term raise
+
 pub fn computes_stmt(@kernel.Term, Array[Value]) -> @kernel.Term raise
 
 pub fn config(Array[Instr], locals? : Array[Value], store? : @kernel.Term, inst? : @kernel.Term) -> @kernel.Term raise
@@ -50,6 +52,8 @@ pub fn term_constants(@kernel.Term) -> Array[String]
 pub fn thm(String) -> @kernel.Thm
 
 pub fn traps_stmt(@kernel.Term) -> @kernel.Term raise
+
+pub fn wat_of_code(@kernel.Term, indent? : String) -> String raise
 
 // Errors
 

@@ -90,6 +90,8 @@ fn define_specs() -> Unit raise {
 pub fn call_free_tac() -> @tactics.Tactic raise {
   let rws = ths([thm("call_free_b"), @lists.all(), @lists.ex()])
   seq([
+    // a program's name is its code
+    @simp.pure_rewrite_tac(ths(programs)),
     @simp.rewrite_tac(rws),
     // blocks, loops and ifs: their bodies, until no has_call_b is left
     @tactics.repeat_tac(

@@ -79,7 +79,7 @@ fn prove_example_fact() -> Unit raise {
       @simp.rewrite_tac(ths([])),
     ]),
   )
-  let body = "[Local_get(0), Testop(T_i32, Eqz), If(Tbv(NONE), [EConstNum(ConstInt32(word(1))), Return], NIL), Local_get(0), Local_get(0), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), Call(0), Binop(T_i32, Binop_i(Mul))]"
+  let body = program("fact_code", "[Local_get(0), Testop(T_i32, Eqz), If(Tbv(NONE), [EConstNum(ConstInt32(word(1))), Return], NIL), Local_get(0), Local_get(0), EConstNum(ConstInt32(word(1))), Binop(T_i32, Binop_i(Sub)), Call(0), Binop(T_i32, Binop_i(Mul))]")
   let qb = body_post("(\{ql})")
   let pb = body_pre("(\{pl})", "args", "NIL")
   let after_if = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => vs == NIL && lc == [\{i("x")}] && !(x == word(0)) && R(gs, ms, h)"

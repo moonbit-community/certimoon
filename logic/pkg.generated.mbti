@@ -49,13 +49,18 @@ pub let hprop : String
 #callsite(autofill(loc))
 pub fn lemma(String, String, ((@list.List[(String, @kernel.Thm)], @kernel.Term)) -> ((@list.List[@kernel.Term], (@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)])), @list.List[(@list.List[(String, @kernel.Thm)], @kernel.Term)], ((@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)]), @list.List[@kernel.Thm]) -> @kernel.Thm raise) raise, loc~ : SourceLoc) -> @kernel.Thm raise
 
-pub fn listing() -> String
+pub fn listing() -> String raise
 
 pub fn listing_json() -> String raise
 
 pub fn load() -> Unit
 
 pub fn names() -> Array[String]
+
+#callsite(autofill(loc))
+pub fn program(String, String, params? : Array[String], loc~ : SourceLoc) -> String raise
+
+pub fn program_defs() -> Array[@kernel.Thm]
 
 #callsite(autofill(loc))
 pub fn record(String, @kernel.Thm, kind? : String, loc~ : SourceLoc) -> Unit
