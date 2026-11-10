@@ -14,7 +14,7 @@ pub fn load() -> Unit {
   }
   loaded.val = true
   @words.load()
-  @parser.begin_theory("WasmCert")
+  @theory.begin_theory("WasmCert")
   (fn() raise {
     section("List and option helpers")
     define_helpers()
@@ -63,5 +63,5 @@ pub fn load() -> Unit {
   })() catch {
     e => abort("WasmCert: loading failed: " + e.to_string())
   }
-  @parser.end_theory()
+  @theory.end_theory()
 }

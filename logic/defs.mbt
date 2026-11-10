@@ -167,15 +167,15 @@ pub fn ths(xs : Array[@kernel.Thm]) -> @list.List[@kernel.Thm] {
 
 ///|
 /// The type of bytes, as the term syntax writes it (as in package wasm).
-pub let w8 : String = "Word[Tybit0[Tybit0[Tybit0[Unit]]]]"
+pub let w8 : String = "Word[8]"
 
 ///|
 /// The type of 32-bit words, as the term syntax writes it.
-pub let w32 : String = "Word[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Unit]]]]]]"
+pub let w32 : String = "Word[32]"
 
 ///|
 /// The type of 64-bit words, as the term syntax writes it.
-pub let w64 : String = "Word[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Unit]]]]]]]"
+pub let w64 : String = "Word[64]"
 
 ///|
 /// A heap: what each address holds, NONE outside it.

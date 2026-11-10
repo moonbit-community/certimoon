@@ -995,7 +995,7 @@ mem_size((m : (Limit_t, List[Byte]))) == DIV(mem_length(m), Ki64)
 definition `mem_grow`
 
 ```
-mem_grow((m : (Limit_t, List[Byte])), (n : Num)) == (if mem_size(m) + n <= 65536 && pred_option((max' : Num) => mem_size(m) + n <= max', mem_max(m)) { SOME(mem_append(m, n * Ki64, zero_byte)) } else { NONE })
+mem_grow((m : (Limit_t, List[Byte])), (n : Num)) == (if mem_size(m) + n <= 65536 && pred_option((max : Num) => mem_size(m) + n <= max, mem_max(m)) { SOME(mem_append(m, n * Ki64, zero_byte)) } else { NONE })
 ```
 
 definition `load`
@@ -1056,7 +1056,7 @@ store_tabs1((tables : List[(Tab_t, List[V_ref])]), (ti : Num), (n : Num), (vr : 
 definition `grow_tab`
 
 ```
-grow_tab((t : (Tab_t, List[V_ref])), (n : Num), (vr : V_ref)) == (if tab_size(t) + n < EXP(2, 32) && pred_option((max' : Num) => tab_size(t) + n <= max', tab_max(t)) { SOME((T_tab(l_min_update(tab_size(t) + n, tab_t_lim(FST(t))), tab_t_reftype(FST(t))), APPEND(SND(t), REPLICATE(n, vr)))) } else { NONE })
+grow_tab((t : (Tab_t, List[V_ref])), (n : Num), (vr : V_ref)) == (if tab_size(t) + n < EXP(2, 32) && pred_option((max : Num) => tab_size(t) + n <= max, tab_max(t)) { SOME((T_tab(l_min_update(tab_size(t) + n, tab_t_lim(FST(t))), tab_t_reftype(FST(t))), APPEND(SND(t), REPLICATE(n, vr)))) } else { NONE })
 ```
 
 constant `host_func_apply`
@@ -2539,7 +2539,7 @@ glob_agree((s : Wstore), (glob : Global)) == (∃ t : Valtype, v_typing(s, g_val
 definition `tab_agree`
 
 ```
-tab_agree((s : Wstore), (T_tab((lims : Limit_t), (tr : T_ref)), (tab_elems : List[V_ref]))) == (l_min(lims) == tab_size((T_tab(lims, tr), tab_elems)) && pred_option((max' : Num) => tab_size((T_tab(lims, tr), tab_elems)) <= max', tab_max((T_tab(lims, tr), tab_elems))) && ALL((vr : V_ref) => ref_typing(s, vr, tr), tab_elems))
+tab_agree((s : Wstore), (T_tab((lims : Limit_t), (tr : T_ref)), (tab_elems : List[V_ref]))) == (l_min(lims) == tab_size((T_tab(lims, tr), tab_elems)) && pred_option((max : Num) => tab_size((T_tab(lims, tr), tab_elems)) <= max, tab_max((T_tab(lims, tr), tab_elems))) && ALL((vr : V_ref) => ref_typing(s, vr, tr), tab_elems))
 ```
 
 definition `elem_agree`
@@ -2557,7 +2557,7 @@ data_agree((s : Wstore), (di : List[Byte])) == true
 definition `mem_agree`
 
 ```
-mem_agree((m : (Limit_t, List[Byte]))) == (l_min(FST(m)) * Ki64 == mem_length(m) && pred_option((max' : Num) => mem_size(m) <= max', mem_max(m)))
+mem_agree((m : (Limit_t, List[Byte]))) == (l_min(FST(m)) * Ki64 == mem_length(m) && pred_option((max : Num) => mem_size(m) <= max, mem_max(m)))
 ```
 
 relation `store_typing`

@@ -47,12 +47,12 @@ fn list_text(
 
 ///|
 /// The word types, as the term syntax prints them, and short names for
-/// them (longest first, so a longer type is replaced before its parts).
+/// them.
 let type_names : Array[(String, String)] = [
-  ("Word[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Unit]]]]]]]]", "W128"),
-  ("Word[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Unit]]]]]]]", "W64"),
-  ("Word[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Unit]]]]]]", "W32"),
-  ("Word[Tybit0[Tybit0[Tybit0[Unit]]]]", "Byte"),
+  ("Word[128]", "W128"),
+  ("Word[64]", "W64"),
+  ("Word[32]", "W32"),
+  ("Word[8]", "Byte"),
 ]
 
 ///|

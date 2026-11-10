@@ -31,10 +31,16 @@ This module (`moonbit-community/wasmcert`) needs hol_light's current
 sources: it uses the term syntax, which the published `bobzhang/hol_light`
 does not have yet. Its workspace (`moon.work`) resolves
 `bobzhang/hol_light` to a hol-light.mbt checkout next to this one, so
-clone the two side by side:
+clone the two side by side. The checkout is the `perf` branch of
+[Yu-zh/hol-light.mbt](https://github.com/Yu-zh/hol-light.mbt/tree/perf):
+upstream's `main` with the fixes this module needs that are not merged
+yet, kept rebased on `main`. Without them the wasm and wasm-gc tests
+overflow the stack while loading
+([bobzhang/hol-light.mbt#1158](https://github.com/bobzhang/hol-light.mbt/pull/1158)).
+This module was last tested with its commit `da8dc488`.
 
 ```bash
-git clone https://github.com/bobzhang/hol-light.mbt
+git clone -b perf https://github.com/Yu-zh/hol-light.mbt
 git clone https://github.com/moonbit-community/wasmcert
 cd wasmcert
 ```

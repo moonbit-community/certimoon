@@ -496,6 +496,13 @@ Syntax and names:
   need not be the order you expect.
 - `fn(g) { ... }` that raises is deprecated. Use `g => { ... }`.
 
+`../hol-light.mbt` is the `perf` branch of Yu-zh/hol-light.mbt (README):
+upstream's `main` plus commits not merged upstream yet, one per fix, so a
+rebase drops each one once upstream has it. On other hol-light versions the
+wasm-gc tests overflow the stack before any test runs ("failed to
+instantiate ... Maximum call stack size exceeded"); `moon test` does not
+pass moonrun a stack size, and `ulimit` does not raise V8's.
+
 Do not run `moon fmt`: moon.work makes `../hol-light.mbt` a member, so it
 reformats that repository too, and the current version crashed halfway
 (November 2026), leaving both reformatted and hol-light.mbt not compiling.

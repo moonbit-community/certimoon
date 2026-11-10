@@ -43,7 +43,7 @@ test "code is printed as WebAssembly text, and reads back" {
 ///|
 test "an instruction with no WebAssembly name here is kept in the term syntax" {
   load()
-  let code = @term_syntax.parse_term("[Local_get(0), EConstNum(ConstInt32((x : Word[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Unit]]]]]]))), Binop(T_f32, Binop_f(Addf)), Br_table([0, 1], 2)]")
+  let code = @term_syntax.parse_term("[Local_get(0), EConstNum(ConstInt32((x : Word[32]))), Binop(T_f32, Binop_f(Addf)), Br_table([0, 1], 2)]")
   inspect(
     wat_of_code(code, indent="  "),
     content=(

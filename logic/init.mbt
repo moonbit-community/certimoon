@@ -20,7 +20,7 @@ pub fn load() -> Unit {
   @wasm.props() catch {
     e => abort("wasmcert/logic: " + e.to_string())
   }
-  @parser.begin_theory("WasmLogic")
+  @theory.begin_theory("WasmLogic")
   in_load.val = true
   (fn() raise {
     section("Heaps and separating conjunction (heap.mbt)")
@@ -104,5 +104,5 @@ pub fn load() -> Unit {
     }
   }
   in_load.val = false
-  @parser.end_theory()
+  @theory.end_theory()
 }

@@ -5,18 +5,17 @@
 let thms : Map[String, @kernel.Thm] = Map([])
 
 ///|
-/// Word types in the term syntax (numeral types are written in binary:
-/// `Tybit0[Unit]` is 2).
-let w8 : String = "Word[Tybit0[Tybit0[Tybit0[Unit]]]]"
+/// Word types in the term syntax, which writes their sizes as numerals.
+let w8 : String = "Word[8]"
 
 ///|
-let w32 : String = "Word[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Unit]]]]]]"
+let w32 : String = "Word[32]"
 
 ///|
-let w64 : String = "Word[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Unit]]]]]]]"
+let w64 : String = "Word[64]"
 
 ///|
-let w128 : String = "Word[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Unit]]]]]]]]"
+let w128 : String = "Word[128]"
 
 ///|
 /// Isabelle's `bytes`.
@@ -152,16 +151,13 @@ fn datatype(
   let fail = (msg : String) => Failure(
     "wasmcert/wasm: datatype " + name + ": " + msg,
   )
-  // An unknown type name reads as a type variable: the only one allowed is
-  // the type itself, which HOL's specification syntax writes as `name`.
+  // define_type reads the type as an enum in the term syntax, named
+  // with a capital (enum B_e defines b_e)
   let self = name.to_array()[0].to_string().to_upper() +
     String::from_array(name.to_array()[1:])
-  let rename = @list.List([
-    (@kernel.mk_vartype(name), @kernel.mk_vartype(self)),
-  ])
-  let alts = []
+  // An unknown type name reads as a type variable, and define_type would
+  // take it as a parameter: the only one allowed is the type itself.
   for c in ctors {
-    let mut alt = c.0
     for s in c.1 {
       let t = ty(s) catch { e => raise fail(c.0 + ": " + e.to_string()) }
       for v in @kernel.tyvars(t) {
@@ -169,12 +165,10 @@ fn datatype(
           raise fail(c.0 + ": unknown type in " + s)
         }
       }
-      alt += " (" + @printer.string_of_type(@kernel.type_subst(rename, t)) + ")"
     }
-    alts.push(alt)
   }
-  // HOL's define_type reads a specification in its own syntax
-  let spec = name + " = " + alts.join(" | ")
+  let alts = ctors.map(c => if c.1.is_empty() { c.0 } else { c.0 + "(" + c.1.join(", ") + ")" })
+  let spec = "enum " + self + " { " + alts.join("; ") + " }"
   let (induct, recursion) = @ind_types.define_type(spec) catch {
     e => raise fail(e.to_string())
   }

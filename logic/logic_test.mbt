@@ -60,7 +60,9 @@ test "load_pts states the load rule" {
   let show = (name : String) => @term_syntax.print_term(@kernel.concl(@logic.thm(name)))
   inspect(
     show("load_pts"),
-    content="∀ m : (Limit_t, List[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]), ∀ n : Num, ∀ off : Num, ∀ bs : List[Word[Tybit0[Tybit0[Tybit0[Unit]]]]], ∀ r : ((Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) -> Bool, star(pts(n + off, bs), r, heap_of(m)) && !(bs == NIL) → load(m, n, off, LENGTH(bs)) == SOME(bs)",
+    content=(
+      #|∀ m : (Limit_t, List[Word[8]]), ∀ n : Num, ∀ off : Num, ∀ bs : List[Word[8]], ∀ r : ((Num) -> Option[Word[8]]) -> Bool, star(pts(n + off, bs), r, heap_of(m)) && !(bs == NIL) → load(m, n, off, LENGTH(bs)) == SOME(bs)
+    ),
   )
 }
 
@@ -70,7 +72,8 @@ test "sl_store_i32 states the store rule" {
   inspect(
     @term_syntax.print_term(@kernel.concl(@logic.thm("sl_store_i32"))),
     content=(
-      #|∀ p : (List[Value], List[Value], List[Value], Num, (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) -> Bool, ∀ k : Word[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Unit]]]]]], ∀ a : Num, ∀ off : Num, ∀ v : Word[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Unit]]]]]], ∀ bs : List[Word[Tybit0[Tybit0[Tybit0[Unit]]]]], LENGTH(bs) == 4 → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(ConstInt32(v))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h), [Store(T_i32, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) => ∃ vs0 : List[Value], vs == vs0 && star(pts(val(k) + off, serialise_i32(v)), p(vs0, ls, gs, ms), h))
+      #|∀ p : (List[Value], List[Value], List[Value], Num, (Num) -> Option[Word[8]]) -> Bool, ∀ k : Word[32], ∀ a : Num, ∀ off : Num, ∀ v : Word[32], ∀ bs : List[Word[8]], LENGTH(bs) == 4 → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : (Num) -> Option[Word[8]]) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(ConstInt32(v))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h), [Store(T_i32, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : (Num) -> Option[Word[8]]) => ∃ vs0 : List[Value], vs == vs0 && star(pts(val(k) + off, serialise_i32(v)), p(vs0, ls, gs, ms), h))
+
 
 
     ),
@@ -83,7 +86,8 @@ test "example_store_load states the program's result" {
   inspect(
     @term_syntax.print_term(@kernel.concl(@logic.thm("example_store_load"))),
     content=(
-      #|∀ bs : List[Word[Tybit0[Tybit0[Tybit0[Unit]]]]], ∀ a : Num, ∀ k : Word[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Unit]]]]]], ∀ off : Num, ∀ v : Word[Tybit0[Tybit0[Tybit0[Tybit0[Tybit0[Unit]]]]]], ∀ p : (List[Value], List[Value], List[Value], Num, (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) -> Bool, LENGTH(bs) == 4 → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) => star(pts(val(k) + off, bs), p(vs, ls, gs, ms), h), [EConstNum(ConstInt32(k)), EConstNum(ConstInt32(v)), Store(T_i32, NONE, a, off), EConstNum(ConstInt32(k)), Load(T_i32, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(v))]) && star(pts(val(k) + off, serialise_i32(v)), p(vs0, ls, gs, ms), h))
+      #|∀ bs : List[Word[8]], ∀ a : Num, ∀ k : Word[32], ∀ off : Num, ∀ v : Word[32], ∀ p : (List[Value], List[Value], List[Value], Num, (Num) -> Option[Word[8]]) -> Bool, LENGTH(bs) == 4 → sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : (Num) -> Option[Word[8]]) => star(pts(val(k) + off, bs), p(vs, ls, gs, ms), h), [EConstNum(ConstInt32(k)), EConstNum(ConstInt32(v)), Store(T_i32, NONE, a, off), EConstNum(ConstInt32(k)), Load(T_i32, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : (Num) -> Option[Word[8]]) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(v))]) && star(pts(val(k) + off, serialise_i32(v)), p(vs0, ls, gs, ms), h))
+
 
 
     ),
@@ -96,7 +100,8 @@ test "sl_loop states the loop rule" {
   inspect(
     @term_syntax.print_term(@kernel.concl(@logic.thm("sl_loop"))),
     content=(
-      #|∀ ot : Option[Valtype], ∀ bs : List[B_e], ∀ linv : (List[Value], List[Value], Num, (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) -> Bool, ∀ qb : (List[Value], List[Value], List[Value], Num, (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) -> Bool, ∀ ls : List[(List[Value], List[Value], List[Value], Num, (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) -> Bool], ∀ vs0 : List[Value], sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) => vs == NIL && linv(lc, gs, ms, h), bs, qb, CONS((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) => vs == NIL && linv(lc, gs, ms, h), ls)) → sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) => vs == vs0 && linv(lc, gs, ms, h), [Loop(Tbv(ot), bs)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : (Num) -> Option[Word[Tybit0[Tybit0[Tybit0[Unit]]]]]) => ∃ r : List[Value], vs == APPEND(vs0, r) && qb(r, lc, gs, ms, h), ls)
+      #|∀ ot : Option[Valtype], ∀ bs : List[B_e], ∀ linv : (List[Value], List[Value], Num, (Num) -> Option[Word[8]]) -> Bool, ∀ qb : (List[Value], List[Value], List[Value], Num, (Num) -> Option[Word[8]]) -> Bool, ∀ ls : List[(List[Value], List[Value], List[Value], Num, (Num) -> Option[Word[8]]) -> Bool], ∀ vs0 : List[Value], sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : (Num) -> Option[Word[8]]) => vs == NIL && linv(lc, gs, ms, h), bs, qb, CONS((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : (Num) -> Option[Word[8]]) => vs == NIL && linv(lc, gs, ms, h), ls)) → sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : (Num) -> Option[Word[8]]) => vs == vs0 && linv(lc, gs, ms, h), [Loop(Tbv(ot), bs)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : (Num) -> Option[Word[8]]) => ∃ r : List[Value], vs == APPEND(vs0, r) && qb(r, lc, gs, ms, h), ls)
+
 
 
     ),
