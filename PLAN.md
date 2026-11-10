@@ -117,7 +117,7 @@ eval.mbt and builder.mbt (the evaluator), and the tests.
 |---|---|
 | Semantics, typing relations (ported from WasmCert-Isabelle) | done |
 | Evaluator: integers, control, locals, globals, calls, memory | done |
-| Spec checks: `i32.wast`, `i64.wast`, loads of `address.wast` at address 0 | done |
+| Spec checks: `i32.wast`, `i64.wast`, loads of `address.wast` at address 0; the integer assertions of `block`, `loop`, `br`, `br_if`, `br_table`, `call` and `return.wast` | done |
 | Memory model: heaps, points-to, arrays | done |
 | Instruction rules: consts, unop, binop, testop, relop, cvtop, nop, drop, select, loads and stores (i32, i64, packed), memory.size and grow, globals, locals | done |
 | Control: br, br_if, if, block and loop (no parameters), return | done |
@@ -144,8 +144,12 @@ Known limits of what exists:
   are untested in sym_prove (`sl_loop_st_g` is proved; no example uses it).
 - The evaluator computes on memory byte by byte, so it suits small memories.
   The spec cases that test the end of a 64 KiB page are not covered.
-- The builder lacks `extend8_s`, `extend16_s` and `extend32_s`, so their spec
-  cases are left out.
+- The control-flow spec cases leave out what the builder cannot write
+  (floats, references, `call_indirect`, and `memory.size` and `grow`, since
+  a module's memory is a few bytes, not a page), `assert_exhaustion`, a
+  `br_table` of 16148 labels, and deep recursion (`fac 25`, `even 100`, ...,
+  `SLOW` in `tools/spec_cases.py`): the evaluator rebuilds each step's proof
+  through every frame around it, so a run of depth d costs about d^2.
 - WasmCert's soundness proofs (`Wasm_Properties`, `Wasm_Soundness`) are not
   ported. Nothing here depends on them.
 
@@ -202,8 +206,8 @@ About the automation (sym.mbt):
 ## Next steps
 
 Done so far, in this order: more instructions, the automation, sorting,
-calls (returns, recursion, calls in sym_prove), quicksort, the public API
-and the adequacy theorems. Next, each mergeable on its own ("done when"
+calls (returns, recursion, calls in sym_prove), quicksort, the public API,
+the adequacy theorems and the spec tests of control flow. Next, each mergeable on its own ("done when"
 means the named theorems appear in `theory.md`, with the tests passing).
 Reviewability comes before features, since every feature adds to what a
 reviewer must read.
@@ -230,16 +234,7 @@ programs and a short statement about memory. The proofs are not part of
 a review, because the kernel checks them, and the review document should
 say so.
 
-1. **Spec coverage of control flow.** Every example rests on the reduction
-   rules for `block`, `loop`, `br`, `br_if`, `call` and `return`, and the
-   spec tests check none of them (they cover `i32.wast`, `i64.wast` and
-   loads from `address.wast`). Add the integer cases of `block.wast`,
-   `loop.wast`, `br.wast`, `br_if.wast`, `call.wast` and `return.wast` that
-   the evaluator covers (`tools/spec_cases.py`), and `br_table` and the
-   `extend*_s` operators at the same time. Done when they hold as theorems
-   in `wasm/spec_test.mbt`.
-
-2. **Closed theorems for the examples.** For each example with memory or
+1. **Closed theorems for the examples.** For each example with memory or
    calls, a corollary about a store whose functions are the example's
    bodies and whose memory holds xs's bytes at p: every run of the call
    that ends, ends with the bytes at p being those of some ys that is
@@ -258,7 +253,7 @@ say so.
    does not depend on the caller's frame (it pushes a frame of its own),
    since every triple here assumes `f_inst(f) == inst`.
 
-3. **Named programs, readable statements.** Define each example's code as
+2. **Named programs, readable statements.** Define each example's code as
    a constant (`qs_code`, `partition_code`, ...), so that statements name
    the program instead of writing it out; sym_prove then unfolds the name
    first. Print each code definition in the listing as WebAssembly text, so
@@ -268,7 +263,7 @@ say so.
    a conclusion: wasm/layout.mbt.) Done when the examples' statements name
    their code and none is longer than 20 lines.
 
-4. **A review document.** Generate `review.md` beside `theory.md`. For
+3. **A review document.** Generate `review.md` beside `theory.md`. For
    each closed theorem it shows the statement, then every definition the
    statement depends on (relations by their rules). The dependencies are
    found by following the statement's constants to their definitions,
@@ -277,7 +272,7 @@ say so.
    no reading. A snapshot test keeps the document current, as it does
    `theory.md`. Done when `review.md` covers every closed theorem.
 
-5. **Non-vacuity checks.** A triple whose precondition nothing satisfies
+4. **Non-vacuity checks.** A triple whose precondition nothing satisfies
    proves nothing, and several conjuncts could make one unsatisfiable
    without anyone noticing (`globs_ok`, `smem_ind` being `SOME`, `n_zeros`
    of the locals, the body's type). For each closed theorem, a test

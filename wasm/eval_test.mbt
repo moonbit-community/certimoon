@@ -53,6 +53,7 @@ test "the builder writes the terms of the term syntax" {
     (Relop(I32, GreaterEq(Signed)), "Relop(T_i32, Relop_i(Ge(S)))"),
     (I32WrapI64, "Cvtop(T_i32, Convert, T_i64, NONE)"),
     (I64ExtendI32(Unsigned), "Cvtop(T_i64, Convert, T_i32, SOME((Nonsat, U)))"),
+    (ExtendS(I64, P32), "Unop(T_i64, Extend_s(Tp_i32))"),
     (RefNull(ExternRef), "Ref_null(T_ext_ref)"),
     (Select, "Select(NONE)"),
     (Block(Result(I32), [Nop]), "Block(Tbv(SOME(T_num(T_i32))), [Nop])"),

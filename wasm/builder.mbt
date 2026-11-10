@@ -87,6 +87,8 @@ pub(all) enum Instr {
   Relop(NumType, IntRelop)
   I32WrapI64
   I64ExtendI32(Signedness)
+  // i32.extend8_s, i64.extend32_s, ...: sign-extend the low bits
+  ExtendS(NumType, PackedType)
   RefNull(RefType)
   RefIsNull
   Unreachable
@@ -307,6 +309,7 @@ pub fn Instr::to_term(self : Instr) -> @kernel.Term raise {
         con("T_i32"),
         some_term(@pair.mk_pair((con("Nonsat"), sx.term()))),
       ])
+    ExtendS(t, tp) => call("Unop", [t.term(), call("Extend_s", [tp.term()])])
     RefNull(t) => call("Ref_null", [t.term()])
     RefIsNull => con("Ref_is_null")
     Unreachable => con("Unreachable")
@@ -378,12 +381,14 @@ fn indices_term(n : Int) -> @kernel.Term raise {
 ///|
 /// A store and its one instance `(s, i)`, written out: the functions
 /// `funcs` (function j is index j, and its type is type j of the
-/// instance), a memory with the bytes `memory` (if given; at most
-/// `max_pages` pages after growing) and mutable globals with the values
-/// `globals`. The memory is not rounded to pages: the evaluator computes
-/// on its bytes one by one, so keep it small.
+/// instance; `types` are the instance's types after those, for blocks:
+/// `TypeIndex(funcs.length() + k)` is `types[k]`), a memory with the
+/// bytes `memory` (if given; at most `max_pages` pages after growing) and
+/// mutable globals with the values `globals`. The memory is not rounded to
+/// pages: the evaluator computes on its bytes one by one, so keep it small.
 pub fn store(
   funcs? : Array[Func] = [],
+  types? : Array[(Array[NumType], Array[NumType])] = [],
   memory? : Array[Byte],
   max_pages? : Int,
   globals? : Array[Value] = [],
@@ -393,12 +398,15 @@ pub fn store(
   let tfs = funcs.map(fn(fu) raise {
     call("Tf", [valtypes_term(fu.params), valtypes_term(fu.results)])
   })
+  let block_tfs = types.map(fn(t) raise {
+    call("Tf", [valtypes_term(t.0), valtypes_term(t.1)])
+  })
   let mems = match memory {
     Some(_) => [0]
     None => []
   }
   let inst = call("Inst", [
-    list_term(tfs, hol_type("tf")),
+    list_term(tfs + block_tfs, hol_type("tf")),
     indices_term(funcs.length()),
     list_term([], num),
     list_term(mems.map(small_num), num),

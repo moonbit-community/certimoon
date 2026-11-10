@@ -1,19 +1,41 @@
 #!/usr/bin/env python3
 """Writes wasm/spec_cases_test.mbt: the integer assertions of the WebAssembly
-spec testsuite's i32.wast and i64.wast, and the in-range integer loads of
-address.wast, as cases for wasm/spec_test.mbt.
+spec testsuite's i32.wast and i64.wast, the in-range integer loads of
+address.wast, and the integer assertions of the control-flow files, as
+cases for wasm/spec_test.mbt.
 
-    python3 tools/spec_cases.py <testsuite commit> i32.wast i64.wast address.wast > wasm/spec_cases_test.mbt
+    python3 tools/spec_cases.py <testsuite commit> i32.wast i64.wast address.wast \
+      block.wast loop.wast br.wast br_if.wast br_table.wast call.wast return.wast \
+      > wasm/spec_cases_test.mbt
 
 Each exported function of i32.wast and i64.wast applies one operator to its
-parameters; a case is (operator, operands, result), or a trap. Operators
-the builder does not have (extend8_s, extend16_s, extend32_s) are left out.
+parameters; a case is (operator, operands, result), or a trap.
 
 address.wast's integer modules load from a page whose first bytes are
 "abcdefghijklmnopqrstuvwxyz". The evaluator computes on memory byte by
 byte, so the cases run in a memory of those bytes and 14 zeros (as far as
 any of the loads reach), and only the assertions at address 0 are kept:
 the others test the end of the 64 KiB page.
+
+The control-flow files (any other file named) are read as modules: each
+module's functions are translated to the builder's instructions (`Func`),
+and a case calls an exported function with constant arguments in a store
+of the module's functions, globals and memory. A module's assertions run
+in order, each in the store the one before left, as the file runs them.
+
+What the builder cannot write is left out, and the comment before each
+file's cases counts it (why each assertion is left out goes to stderr):
+a function that uses floats, tables, indirect calls, references, or
+memory.size and memory.grow (a module's memory is a few zero bytes,
+MEMORY or MEMORY_OF, not a page), or a br_table of more than 1000 labels
+(br_table.wast has one of 16148: too long a list to write out as a term),
+is replaced by `unreachable`, and an assertion is kept only if its
+function and every function it can call were translated and its
+arguments and results are integers. An assertion left out does not run,
+so the next one sees the store without its changes. `assert_exhaustion`
+is left out (the evaluator stops after a number of steps, not at a stack
+depth), and so are the assertions in SLOW, which take too long to prove
+one step at a time.
 """
 
 import re
@@ -46,8 +68,13 @@ def bits(ty, text):
     return n % (1 << (32 if ty == "i32" else 64))
 
 
+EXTENDS = {"extend8_s": "P8", "extend16_s": "P16", "extend32_s": "P32"}
+
+
 def instr(ty, op):
     t = ty.upper()
+    if op in EXTENDS:
+        return f"ExtendS({t}, {EXTENDS[op]})"
     if op in BINOPS:
         return f"Binop({t}, {BINOPS[op]})"
     if op in UNOPS:
@@ -121,12 +148,495 @@ def load_cases(path):
     return out
 
 
+# The control-flow files: a reader for the text format's s-expressions and
+# a translation of the modules' functions to the builder's instructions.
+
+# the bytes of memory a module gets (zeros), if it has a memory: as far as
+# its loads and stores reach
+MEMORY = 64
+MEMORY_OF = {"call.wast": 320}  # it loads and stores at 0x132
+
+# assertions whose runs take too many steps to prove one by one:
+# (file, function, its first argument). A step's proof is rebuilt through
+# every frame around it, so a run of recursion depth d costs about d^2:
+# fac 25 takes a minute, even 100 over half an hour. The same functions'
+# small cases are kept.
+SLOW = {
+    ("call.wast", "fac", "25"), ("call.wast", "fac-acc", "25"),
+    ("call.wast", "fib", "20"),
+    ("call.wast", "even", "100"), ("call.wast", "even", "77"),
+    ("call.wast", "odd", "200"), ("call.wast", "odd", "77"),
+}
+
+
+class Unsupported(Exception):
+    pass
+
+
+def sexprs(text):
+    """The top-level s-expressions of `text`: a list is a Python list, an
+    atom a string (a string literal keeps its quotes)."""
+    text = re.sub(r"\(;.*?;\)", " ", text, flags=re.S)
+    tokens = re.findall(r'"(?:[^"\\]|\\.)*"|;;[^\n]*|[()]|[^\s()";]+', text)
+    stack = [[]]
+    for tok in tokens:
+        if tok.startswith(";;"):
+            continue
+        if tok == "(":
+            stack.append([])
+        elif tok == ")":
+            done = stack.pop()
+            stack[-1].append(done)
+        else:
+            stack[-1].append(tok)
+    return stack[0]
+
+
+def is_list(x, head=None):
+    return isinstance(x, list) and (head is None or (x and x[0] == head))
+
+
+NUMTYPES = {"i32": "I32", "i64": "I64"}
+
+
+def numtype(t):
+    if not isinstance(t, str) or t not in NUMTYPES:
+        raise Unsupported(t)
+    return NUMTYPES[t]
+
+
+def type_list(items, head):
+    """The types of the `(head ...)` lists among `items` (params, results,
+    locals), with their names: [(name or None, type)]."""
+    out = []
+    for x in items:
+        if is_list(x, head):
+            rest = x[1:]
+            if rest and isinstance(rest[0], str) and rest[0].startswith("$"):
+                out.append((rest[0], rest[1]))
+            else:
+                out.extend((None, t) for t in rest)
+    return out
+
+
+def literal(ty, text):
+    if ty not in ("i32", "i64"):
+        raise Unsupported(ty + ".const")
+    return bits(ty, text)
+
+
+SIMPLE = {
+    "nop": "Nop", "unreachable": "Unreachable", "drop": "Drop",
+    "select": "Select", "return": "Return",
+    "i32.wrap_i64": "I32WrapI64",
+    "i64.extend_i32_s": "I64ExtendI32(Signed)",
+    "i64.extend_i32_u": "I64ExtendI32(Unsigned)",
+}
+LOADS = {
+    "i32.load": "Load(I32, {})", "i64.load": "Load(I64, {})",
+    "i32.load8_s": "LoadPacked(I32, P8, Signed, {})",
+    "i32.load8_u": "LoadPacked(I32, P8, Unsigned, {})",
+    "i32.load16_s": "LoadPacked(I32, P16, Signed, {})",
+    "i32.load16_u": "LoadPacked(I32, P16, Unsigned, {})",
+    "i64.load8_s": "LoadPacked(I64, P8, Signed, {})",
+    "i64.load8_u": "LoadPacked(I64, P8, Unsigned, {})",
+    "i64.load16_s": "LoadPacked(I64, P16, Signed, {})",
+    "i64.load16_u": "LoadPacked(I64, P16, Unsigned, {})",
+    "i64.load32_s": "LoadPacked(I64, P32, Signed, {})",
+    "i64.load32_u": "LoadPacked(I64, P32, Unsigned, {})",
+    "i32.store": "Store(I32, {})", "i64.store": "Store(I64, {})",
+    "i32.store8": "StorePacked(I32, P8, {})",
+    "i32.store16": "StorePacked(I32, P16, {})",
+    "i64.store8": "StorePacked(I64, P8, {})",
+    "i64.store16": "StorePacked(I64, P16, {})",
+    "i64.store32": "StorePacked(I64, P32, {})",
+}
+
+
+def is_index(a):
+    return isinstance(a, str) and (a.startswith("$") or a.isdigit())
+
+
+class Module:
+    def __init__(self, items):
+        self.types = {}      # type name or index -> (params, results)
+        self.funcs = []      # (name, params, results, locals, body items)
+        self.exports = {}    # export name -> function index
+        self.globals = []    # (name, type, value)
+        self.memory = False
+        self.block_types = []
+        ntypes = 0
+        for x in items:
+            if is_list(x, "type"):
+                rest = x[1:]
+                name = rest[0] if isinstance(rest[0], str) else None
+                f = rest[-1]
+                sig = ([t for _, t in type_list(f[1:], "param")],
+                       [t for _, t in type_list(f[1:], "result")])
+                self.types[str(ntypes)] = sig
+                if name:
+                    self.types[name] = sig
+                ntypes += 1
+            elif is_list(x, "import"):
+                raise Unsupported("import")
+            elif is_list(x, "memory"):
+                if any(is_list(y, "data") for y in x):
+                    raise Unsupported("data")
+                self.memory = True
+            elif is_list(x, "data"):
+                raise Unsupported("data")
+            elif is_list(x, "global"):
+                rest = x[1:]
+                name = rest[0] if isinstance(rest[0], str) and rest[0].startswith("$") else None
+                if name:
+                    rest = rest[1:]
+                ty = rest[0]
+                if is_list(ty, "mut"):
+                    ty = ty[1]
+                init = rest[1]
+                if is_list(ty) or not is_list(init) or init[0] != ty + ".const":
+                    self.globals.append((name, None, None))
+                else:
+                    self.globals.append((name, ty, literal(ty, init[1])))
+            elif is_list(x, "func"):
+                self.add_func(x[1:])
+            elif is_list(x, "export"):
+                if is_list(x[2], "func"):
+                    self.exports[x[1][1:-1]] = self.func_index(x[2][1])
+
+    def add_func(self, rest):
+        name = None
+        if rest and isinstance(rest[0], str) and rest[0].startswith("$"):
+            name, rest = rest[0], rest[1:]
+        index = len(self.funcs)
+        while rest and is_list(rest[0], "export"):
+            self.exports[rest[0][1][1:-1]] = index
+            rest = rest[1:]
+        if rest and is_list(rest[0], "import"):
+            raise Unsupported("import")
+        params = type_list(rest, "param")
+        results = [t for _, t in type_list(rest, "result")]
+        if rest and is_list(rest[0], "type") and not params and not results:
+            ps, results = self.types[rest[0][1]]
+            params = [(None, t) for t in ps]
+        locals_ = type_list(rest, "local")
+        body = [x for x in rest
+                if not (is_list(x, "type") or is_list(x, "param")
+                        or is_list(x, "result") or is_list(x, "local"))]
+        self.funcs.append((name, params, results, locals_, body))
+
+    def func_index(self, ref):
+        if ref.isdigit():
+            return int(ref)
+        for i, f in enumerate(self.funcs):
+            if f[0] == ref:
+                return i
+        raise Unsupported("function " + ref)
+
+    def global_index(self, ref):
+        if ref.isdigit():
+            i = int(ref)
+        else:
+            i = [g[0] for g in self.globals].index(ref)
+        if self.globals[i][1] is None:
+            raise Unsupported("global")
+        return i
+
+    def block_type(self, items):
+        """The block type at the head of `items` (a label already taken),
+        and the rest of `items`."""
+        ref, params, results = None, [], []
+        while items and (is_list(items[0], "type") or is_list(items[0], "param")
+                         or is_list(items[0], "result")):
+            x = items[0]
+            if x[0] == "type":
+                ref = x[1]
+            elif x[0] == "param":
+                params += [t for _, t in type_list([x], "param")]
+            else:
+                results += x[1:]
+            items = items[1:]
+        if ref is not None and not params and not results:
+            params, results = self.types[ref]
+        for t in params + results:
+            numtype(t)
+        if not params and len(results) <= 1:
+            return ("NoResult" if not results else f"Result({numtype(results[0])})"), items
+        sig = (tuple(params), tuple(results))
+        if sig not in self.block_types:
+            self.block_types.append(sig)
+        k = self.block_types.index(sig)
+        return f"TypeIndex({len(self.funcs) + k})", items
+
+    def translate(self, index):
+        name, params, results, locals_, body = self.funcs[index]
+        self.locals = [n for n, _ in params + locals_]
+        for _, t in params + locals_:
+            numtype(t)
+        for t in results:
+            numtype(t)
+        self.calls = set()
+        code, rest = self.seq(body, 0, [], ())
+        assert not rest, rest
+        return code
+
+    def local(self, ref):
+        if ref.isdigit():
+            return int(ref)
+        if ref not in self.locals:
+            raise Unsupported("local " + ref)
+        return self.locals.index(ref)
+
+    def label(self, ref, labels):
+        if ref.isdigit():
+            return int(ref)
+        return len(labels) - 1 - labels.index(ref)
+
+    def seq(self, items, i, labels, stops):
+        """Instructions from items[i:], flat or folded, up to a word in
+        `stops` (`end`, `else`): (code, the rest of items)."""
+        code = []
+        items = items[i:]
+        while items:
+            x = items[0]
+            if isinstance(x, str) and x in stops:
+                return code, items
+            if is_list(x):
+                code += self.folded(x, labels)
+                items = items[1:]
+            else:
+                c, items = self.flat(items, labels)
+                code += c
+        return code, items
+
+    def take_label(self, items):
+        if items and isinstance(items[0], str) and items[0].startswith("$"):
+            return items[0], items[1:]
+        return None, items
+
+    def flat(self, items, labels):
+        op, items = items[0], items[1:]
+        if op in ("block", "loop", "if"):
+            lab, items = self.take_label(items)
+            bt, items = self.block_type(items)
+            inner = labels + [lab]
+            body, items = self.seq(items, 0, inner, ("end", "else"))
+            else_ = []
+            if items and items[0] == "else":
+                items = items[1:]
+                if items and items[0] == lab:
+                    items = items[1:]
+                else_, items = self.seq(items, 0, inner, ("end",))
+            if op != "if" and else_:
+                raise Unsupported("else")
+            items = items[1:]  # end
+            if items and lab is not None and items[0] == lab:
+                items = items[1:]
+            return [self.block(op, bt, body, else_)], items
+        imms = []
+        while items and isinstance(items[0], str) and (
+            is_index(items[0]) or items[0].startswith("offset=")
+            or items[0].startswith("align=") or re.match(r"^[-+0-9]", items[0])
+        ):
+            imms.append(items[0])
+            items = items[1:]
+            if op not in ("br_table",) and not op.endswith(("load", "store")) and \
+                    not re.search(r"load|store", op):
+                break
+        if op == "select" and items and is_list(items[0], "result"):
+            items = items[1:]
+        return [self.plain(op, imms, labels)], items
+
+    def block(self, op, bt, body, else_):
+        b = "[" + ", ".join(body) + "]"
+        if op == "block":
+            return f"Block({bt}, {b})"
+        if op == "loop":
+            return f"Loop({bt}, {b})"
+        return f"If({bt}, {b}, [" + ", ".join(else_) + "])"
+
+    def folded(self, x, labels):
+        op, rest = x[0], x[1:]
+        if op == "call_indirect":
+            raise Unsupported(op)
+        if op in ("block", "loop"):
+            lab, rest = self.take_label(rest)
+            bt, rest = self.block_type(rest)
+            body, left = self.seq(rest, 0, labels + [lab], ())
+            return [self.block(op, bt, body, [])]
+        if op == "if":
+            lab, rest = self.take_label(rest)
+            bt, rest = self.block_type(rest)
+            cond = []
+            while rest and not (is_list(rest[0], "then") or is_list(rest[0], "else")):
+                cond += self.folded(rest[0], labels)
+                rest = rest[1:]
+            inner = labels + [lab]
+            then_, else_ = [], []
+            for y in rest:
+                if is_list(y, "then"):
+                    then_, _ = self.seq(y[1:], 0, inner, ())
+                elif is_list(y, "else"):
+                    else_, _ = self.seq(y[1:], 0, inner, ())
+            return cond + [self.block("if", bt, then_, else_)]
+        imms = []
+        while rest and isinstance(rest[0], str):
+            imms.append(rest[0])
+            rest = rest[1:]
+        if op == "select" and rest and is_list(rest[0], "result"):
+            rest = rest[1:]
+        code = []
+        for y in rest:
+            code += self.folded(y, labels)
+        return code + [self.plain(op, imms, labels)]
+
+    def plain(self, op, imms, labels):
+        if op in SIMPLE:
+            return SIMPLE[op]
+        if op in ("i32.const", "i64.const"):
+            ty = op[:3]
+            return const(ty, literal(ty, imms[0]))
+        if op in ("local.get", "local.set", "local.tee"):
+            k = {"local.get": "LocalGet", "local.set": "LocalSet", "local.tee": "LocalTee"}[op]
+            return f"{k}({self.local(imms[0])})"
+        if op in ("global.get", "global.set"):
+            k = "GlobalGet" if op == "global.get" else "GlobalSet"
+            return f"{k}({self.global_index(imms[0])})"
+        if op == "br":
+            return f"Br({self.label(imms[0], labels)})"
+        if op == "br_if":
+            return f"BrIf({self.label(imms[0], labels)})"
+        if op == "br_table":
+            if len(imms) > 1000:
+                # too long a list to write out as a term
+                raise Unsupported(f"a br_table of {len(imms)} labels")
+            ls = [self.label(a, labels) for a in imms]
+            return f"BrTable([{', '.join(map(str, ls[:-1]))}], {ls[-1]})"
+        if op == "call":
+            j = self.func_index(imms[0])
+            self.calls.add(j)
+            return f"Call({j})"
+        if op in LOADS:
+            if not self.memory:
+                raise Unsupported("memory")
+            off = 0
+            for a in imms:
+                if a.startswith("offset="):
+                    off = int(a[len("offset="):], 0)
+            return LOADS[op].format(off)
+        if op in ("memory.fill", "memory.copy"):
+            return {"memory.fill": "MemoryFill", "memory.copy": "MemoryCopy"}[op]
+        m = re.match(r"^(i32|i64)\.([a-z0-9_]+)$", op)
+        if m:
+            ins = instr(m.group(1), m.group(2))
+            if ins is not None:
+                return ins
+        raise Unsupported(op)
+
+
+def value_of(x):
+    if not is_list(x) or x[0] not in ("i32.const", "i64.const") or len(x) != 2:
+        raise Unsupported("value")
+    ty = x[0][:3]
+    return value(ty, literal(ty, x[1]))
+
+
+def control_cases(path):
+    """The modules of `path` and the assertions on them: (modules, cases,
+    counts of what was left out)."""
+    file = path.split("/")[-1]
+    modules, cases = [], []
+    left = {"functions": 0, "assertions": 0, "slow": 0}
+    current = None
+    for top in sexprs(open(path).read()):
+        if not is_list(top):
+            continue
+        if top[0] == "module":
+            current = None
+            if len(top) > 1 and top[1] in ("binary", "quote"):
+                continue
+            try:
+                mod = Module(top[1:])
+            except Unsupported:
+                continue
+            funcs, ok, deps, why = [], [], [], {}
+            for j, f in enumerate(mod.funcs):
+                try:
+                    code = mod.translate(j)
+                    ps = [numtype(t) for _, t in f[1]]
+                    rs = [numtype(t) for t in f[2]]
+                    ls = [numtype(t) for _, t in f[3]]
+                    funcs.append(f"{{ params: [{', '.join(ps)}], results: [{', '.join(rs)}], "
+                                 f"locals: [{', '.join(ls)}], body: [{', '.join(code)}] }}")
+                    ok.append(True)
+                    deps.append(set(mod.calls))
+                except Unsupported as e:
+                    why[j] = str(e)
+                    funcs.append("{ params: [], results: [], locals: [], body: [Unreachable] }")
+                    ok.append(False)
+                    deps.append(set())
+                    left["functions"] += 1
+            # a function can run if it and every function it can call were translated
+            runs = []
+            for j in range(len(mod.funcs)):
+                seen, todo, bad = set(), [j], []
+                while todo:
+                    k = todo.pop()
+                    if k in seen:
+                        continue
+                    seen.add(k)
+                    if not ok[k]:
+                        bad.append(why[k])
+                    todo += list(deps[k])
+                runs.append(bad)
+            # a global the builder cannot write keeps its index, as a 0 that
+            # nothing reads (global_index refuses it)
+            globs = [value(t, v) if t is not None else "I32Val(0)" for _, t, v in mod.globals]
+            types = [f"([{', '.join(numtype(t) for t in ps)}], [{', '.join(numtype(t) for t in rs)}])"
+                     for ps, rs in mod.block_types]
+            current = (len(modules), mod, runs, why)
+            mem = f"Some({MEMORY_OF.get(file, MEMORY)})" if mod.memory else "None"
+            modules.append(
+                f'  {{ funcs: [  // {file}\n    ' + ",\n    ".join(funcs) +
+                f'\n  ], types: [{", ".join(types)}], globals: [{", ".join(globs)}], memory: {mem} }},')
+            continue
+        if top[0] not in ("assert_return", "assert_trap"):
+            continue
+        action = top[1]
+        if not is_list(action, "invoke") or current is None:
+            continue
+        index, mod, runs, why = current
+        name = action[1][1:-1]
+        try:
+            j = mod.exports[name]
+            args = [value_of(a) for a in action[2:]]
+            if top[0] == "assert_return":
+                expected = "Some([" + ", ".join(value_of(r) for r in top[2:]) + "])"
+            else:
+                expected = "None"
+            if runs[j]:
+                raise Unsupported("uses " + ", ".join(sorted(set(runs[j]))))
+        except (Unsupported, KeyError) as e:
+            left["assertions"] += 1
+            print(f"{file}: left out {name}: {e}", file=sys.stderr)
+            continue
+        first = action[2][1] if len(action) > 2 and is_list(action[2]) else None
+        if (file, name, first) in SLOW:
+            left["slow"] += 1
+            continue
+        cases.append(f'  ({index}, "{file} {name}", {j}, [{", ".join(args)}], {expected}),')
+    return modules, cases, left
+
+
 def main():
     commit, paths = sys.argv[1], sys.argv[2:]
+    named = paths
     loads = [p for p in paths if "address" in p]
-    paths = [p for p in paths if p not in loads]
+    numeric = [p for p in paths if re.search(r"(^|/)i(32|64)\.wast$", p)]
+    control = [p for p in paths if p not in loads and p not in numeric]
+    paths = numeric
     print("// Generated by tools/spec_cases.py from the WebAssembly spec testsuite")
-    print(f"// (github.com/WebAssembly/testsuite @ {commit}): {', '.join(paths + loads)}.")
+    print(f"// (github.com/WebAssembly/testsuite @ {commit}): {', '.join(p.split('/')[-1] for p in named)}.")
     print("// Do not edit; rerun the script.")
     print()
     print("///|")
@@ -144,6 +654,33 @@ def main():
     for p in loads:
         for line in load_cases(p):
             print(line)
+    print("]")
+    modules, calls = [], []
+    for p in control:
+        ms, cs, left = control_cases(p)
+        base = len(modules)
+        modules += ms
+        calls.append(f"  // {p.split('/')[-1]}: {len(cs)} assertions; left out: "
+                     f"{left['assertions']} (functions the builder cannot write, "
+                     f"or arguments or results that are not integers), "
+                     f"{left['slow']} slow")
+        for c in cs:
+            # module indices count from the first file's
+            k = int(c.split(",")[0].strip()[1:])
+            calls.append(f"  ({base + k}," + c.split(",", 1)[1])
+    print()
+    print("///|")
+    print("/// The control-flow files' modules, written out")
+    print("let spec_modules : Array[SpecModule] = [")
+    for m in modules:
+        print(m)
+    print("]")
+    print()
+    print("///|")
+    print("/// (module, assertion, function, arguments, results or None for a trap)")
+    print("let spec_call_cases : Array[(Int, String, Int, Array[@wasm.Value], Array[@wasm.Value]?)] = [")
+    for c in calls:
+        print(c)
     print("]")
 
 

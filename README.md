@@ -398,7 +398,8 @@ for all of them. `computes_stmt` and `traps_stmt` state an expected
 result to compare with.
 
 The evaluator covers integer instructions (const, unary, binary, `eqz`,
-comparisons, `i32.wrap_i64`, `i64.extend_i32_s/u`), `ref.null`,
+comparisons, `i32.wrap_i64`, `i64.extend_i32_s/u`, `extend8_s` and the
+other sign extensions), `ref.null`,
 `ref.is_null`, `unreachable`, `nop`, `drop`, `select`, `block`, `loop`,
 `if`, `br`, `br_if`, `br_table`, `local.get/set/tee`, `global.get/set`,
 `call` (of native functions) and `return`, loads and stores (packed
@@ -414,7 +415,9 @@ trapping run, and `memory.grow` may fail in any state (the evaluator takes
 the step that grows when it can). `wasm/eval_test.mbt` has examples.
 
 `store` writes out a store and its instance: functions (`Func`: parameter,
-result and local types, and a body), a memory and mutable globals.
+result and local types, and a body), the types of blocks with several
+results or with parameters (`types~`, for `TypeIndex`), a memory and
+mutable globals.
 
 ```moonbit
 let st = @wasm.store(memory=[b'\x01', b'\x02', b'\x03', b'\x04'])
@@ -426,12 +429,23 @@ Memory is a byte list and loads and stores compute on it byte by byte, so
 the evaluator suits small memories; `store` does not round them to pages.
 
 `wasm/spec_test.mbt` checks the evaluator against the WebAssembly spec
-testsuite: the 720 integer assertions of `i32.wast` and `i64.wast` (all
-but the `extend*_s` operators, which the builder lacks), and the 60
+testsuite: the 758 integer assertions of `i32.wast` and `i64.wast`, the 60
 integer loads of `address.wast` at address 0 (in a memory of its data and
-zeros: the other addresses test the end of a 64 KiB page). Each holds as a
-theorem. `tools/spec_cases.py` writes `wasm/spec_cases_test.mbt` from the
-testsuite files; the header of that file names the testsuite commit.
+zeros: the other addresses test the end of a 64 KiB page), and 451
+integer assertions of `block.wast`, `loop.wast`, `br.wast`, `br_if.wast`,
+`br_table.wast`, `call.wast` and `return.wast`, which test the reduction
+rules of control flow, labels, frames and calls. Each holds as a theorem.
+
+For the control-flow files, `tools/spec_cases.py` translates each module's
+functions to `Func`s, and a case calls an exported function in a store of
+them; a module's assertions run in order, each in the memory and globals
+the one before left. What the builder cannot write (floats, references,
+`call_indirect`, `memory.size` and `grow`) is left out, and so are
+`assert_exhaustion` and a few deep recursions, which the evaluator proves
+too slowly (`SLOW`); the generated file counts what each file leaves out.
+`tools/spec_cases.py` writes `wasm/spec_cases_test.mbt` from the
+testsuite files; the header of that file names the testsuite commit and
+the command.
 
 ### Facts about reduction
 
