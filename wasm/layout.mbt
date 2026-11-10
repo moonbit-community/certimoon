@@ -13,8 +13,9 @@
 //   or
 //     ...
 //
-// A statement with no hypotheses is `∀ (x y : T), body`, and one with no
-// variables or hypotheses is printed as it was.
+// A statement with no hypotheses is `∀ (x y : T), body`; a conjunction
+// with neither (a definition's equations) has a conjunct per line, `&&`
+// before each but the first; any other is printed as it was.
 //
 // Each hypothesis and each conjunct is printed by `print_term` (under the
 // variables it uses, which are then cut off, so that their types are not
@@ -276,7 +277,7 @@ fn layout_sequent(
     }
   }
   if vars.length() == 0 && hyps.length() == 0 {
-    return None
+    return layout_conjuncts(t, abbr)
   }
   let printed_hyps = hyps.map(h => print_in(h, vars, abbr))
   let conclusion = if hyps.length() == 0 {
@@ -326,6 +327,25 @@ fn layout_sequent(
   } else {
     None
   }
+}
+
+///|
+/// A conjunction (a definition's equations) with a conjunct per line,
+/// `&&` before each but the first, if it reads back as `t`.
+fn layout_conjuncts(
+  t : @kernel.Term,
+  abbr : (String) -> String,
+) -> String? raise {
+  let parts = conj_parts(t)
+  if parts.length() < 2 {
+    return None
+  }
+  let printed = parts.map(p => print_in(p, [], abbr))
+  let back = @term_syntax.parse_term(rejoin(printed.map(p => p.syntax), "&&"))
+  guard @term_syntax.same_term(back, t) else { return None }
+  Some(
+    printed.mapi((i, p) => (if i == 0 { "" } else { "&& " }) + p.shown).join("\n"),
+  )
 }
 
 ///|

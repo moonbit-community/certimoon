@@ -213,11 +213,13 @@ fn arity_conv(t : @kernel.Term) -> @kernel.Thm raise {
 /// (a reduce_simple or reduce_base step) with the relation's cases, decide
 /// which rules can apply, and count the operands; `lemmas` close the cases
 /// that remain (the reduce_simple steps inside reduce_base, the trap).
+#callsite(autofill(loc))
 fn prove_arity(
   name : String,
   rel : String,
   stmt : String,
   lemmas : Array[@kernel.Thm],
+  loc~ : SourceLoc,
 ) -> @kernel.Thm raise {
   let cases = @wasm.thm(rel + "_cases")
   let premise = (c : @equal.Conv) => @equal.rator_conv(
@@ -237,17 +239,20 @@ fn prove_arity(
       @tactics.try_tac(@int.arith_tac),
       @tactics.try_tac(@meson.asm_meson_tac(ths(lemmas))),
     ]),
+    loc~,
   )
 }
 
 ///|
 /// The arity lemmas for instruction `x` (its variables declared in it)
 /// with `n` operands: arity_simple_<name> and arity_<name>.
+#callsite(autofill(loc))
 fn prove_arities(
   name : String,
   x : String,
   n : Int,
   trap? : Array[@kernel.Thm] = [],
+  loc~ : SourceLoc,
 ) -> @kernel.Thm raise {
   // x's variables are free in the statements: generalize them
   let trap = if trap.is_empty() { [thm("no_trap")] } else { trap }
@@ -256,6 +261,7 @@ fn prove_arities(
     "reduce_simple",
     "∀ suf : List[Einstr], ∀ e2 : List[Einstr], reduce_simple(APPEND(suf, [\{x}]), e2) && ALL(is_val, suf) → LENGTH(suf) == \{n}",
     trap,
+    loc~,
   )
   let simple = @bool.gen_all(simple)
   prove_arity(
@@ -263,17 +269,20 @@ fn prove_arities(
     "reduce_base",
     "∀ s : Wstore, ∀ f : Wframe, ∀ suf : List[Einstr], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ e2 : List[Einstr], reduce_base(s, f, APPEND(suf, [\{x}]), s2, f2, e2) && ALL(is_val, suf) → LENGTH(suf) == \{n}",
     [simple],
+    loc~,
   )
 }
 
 ///|
 /// prefix_<name>: a step of the value stack vs0, then the operands `ops`
 /// and the instruction `x`, is a step of ops and x with vs0 left alone.
+#callsite(autofill(loc))
 fn prove_prefix(
   name : String,
   ops : Array[String],
   x : String,
   arity : @kernel.Thm,
+  loc~ : SourceLoc,
 ) -> @kernel.Thm raise {
   let code = "[" + (ops + [x]).join(", ") + "]"
   let ops_t = if ops.is_empty() { "(NIL : List[Einstr])" } else { "[" + ops.join(", ") + "]" }
@@ -346,6 +355,7 @@ fn prove_prefix(
       @tactics.rule_assum_tac(@simp.rewrite_rule(ths([@lists.append()]))),
       @simp.asm_rewrite_tac(ths([])),
     ]),
+    loc~,
   )
 }
 
@@ -367,6 +377,7 @@ fn lift_facts() -> Array[@kernel.Thm] {
 /// `result` is the value term. `facts` adds what the precondition implies
 /// (before the cases on n), and `unfold` rewrites the assumptions and the
 /// cases with the definitions step_cases computed with.
+#callsite(autofill(loc))
 fn prove_value_rule(
   name : String,
   stmt : String,
@@ -380,6 +391,7 @@ fn prove_value_rule(
   unfold? : Array[@kernel.Thm] = [],
   step? : String = "",
   again? : Bool = false,
+  loc~ : SourceLoc,
 ) -> @kernel.Thm raise {
   let code = "[" + (ops + [x]).join(", ") + "]"
   let step = if step == "" { "[Basic(EConstNum(\{result}))]" } else { step }
@@ -471,6 +483,7 @@ fn prove_value_rule(
         ]),
       ),
     ]),
+    loc~,
   )
 }
 
@@ -479,11 +492,13 @@ fn prove_value_rule(
 /// kind written v_to_e((v : Value)) (or other written-out values): split
 /// each such v into V_num, V_vec and V_ref, and close each case by
 /// step_cases on its written-out values.
+#callsite(autofill(loc))
 fn value_cases(
   name : String,
   stmt : String,
   ops : Array[String],
   xs : Array[String],
+  loc~ : SourceLoc,
 ) -> @kernel.Thm raise {
   let s = tm("(s : Wstore)")
   let f = tm("(f : Wframe)")
@@ -532,6 +547,7 @@ fn value_cases(
       subst_vars(),
       @simp.asm_rewrite_tac(ths([@wasm.thm("v_to_e")])),
     ]),
+    loc~,
   )
 }
 

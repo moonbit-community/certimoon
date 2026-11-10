@@ -113,6 +113,14 @@ test "the theory listing" (t : @test.Test) {
 }
 
 ///|
+/// The same as data, for the review site (tools/review_site.py):
+/// __snapshot__/theory.json.
+test "the theory as data" (t : @test.Test) {
+  t.write(@logic.listing_json())
+  t.snapshot(filename="theory.json")
+}
+
+///|
 test "a program proved through the public API" {
   @logic.load()
   let w = @logic.w32

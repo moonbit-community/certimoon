@@ -25,14 +25,21 @@ pub fn names() -> Array[String] {
 /// Records `th` as `name`, for `thm` (a name can be recorded once). The
 /// theorems load() records are the theory listing (kind: "lemma",
 /// "definition" or "example"); others are not listed.
-pub fn record(name : String, th : @kernel.Thm, kind? : String = "lemma") -> Unit {
+#callsite(autofill(loc))
+pub fn record(
+  name : String,
+  th : @kernel.Thm,
+  kind? : String = "lemma",
+  loc~ : SourceLoc,
+) -> Unit {
   if thms.contains(name) {
     abort("wasmcert/logic: " + name + " recorded twice")
   }
   thms[name] = th
   // what load() proves is the theory listing; a user's theorems are not
   if in_load.val {
-    entries.push((kind, name, Some(th)))
+    let defines = @wasm.defined_constants(kind, th)
+    entries.push({ kind, name, th: Some(th), defines, loc: loc.to_string() })
   }
 }
 
@@ -45,11 +52,12 @@ pub fn tm(s : String) -> @kernel.Term raise {
 
 ///|
 /// A definition by equations, recorded as `name`.
-pub fn def(name : String, s : String) -> Unit raise {
+#callsite(autofill(loc))
+pub fn def(name : String, s : String, loc~ : SourceLoc) -> Unit raise {
   let th = @define.define_(tm(s)) catch {
     e => raise Failure("wasmcert/logic: defining " + name + ": " + e.to_string())
   }
-  record(name, th, kind="definition")
+  record(name, th, kind="definition", loc~)
 }
 
 ///|
@@ -65,7 +73,13 @@ pub fn set_trace(on : Bool) -> Unit {
 
 ///|
 /// A lemma proved by `tac`, recorded as `name`.
-pub fn lemma(name : String, stmt : String, tac : @tactics.Tactic) -> @kernel.Thm raise {
+#callsite(autofill(loc))
+pub fn lemma(
+  name : String,
+  stmt : String,
+  tac : @tactics.Tactic,
+  loc~ : SourceLoc,
+) -> @kernel.Thm raise {
   let tac = if trace.val {
     println("proving " + name)
     @tactics.then_tac(tac, show_goal("left over"))
@@ -75,7 +89,7 @@ pub fn lemma(name : String, stmt : String, tac : @tactics.Tactic) -> @kernel.Thm
   let th = @tactics.prove(tm(stmt), tac) catch {
     e => raise Failure("wasmcert/logic: proving " + name + ": " + e.to_string())
   }
-  record(name, th)
+  record(name, th, loc~)
   th
 }
 

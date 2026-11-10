@@ -4,7 +4,7 @@ What package `logic` defines and proves, in order, with the kernel's statement o
 
 Types are abbreviated: `Byte`, `W32`, `W64` are words of 8, 32, 64 bits; `Heap` is `(Num) -> Option[Byte]` (what each address holds); `HProp` is a heap assertion `(Heap) -> Bool`; `Mem` is a WasmCert memory `(Limit_t, List[Byte])`; `Assn` is `(Wstore, Wframe, List[Value]) -> Bool` (an assertion on store, frame and value stack); `SAssn` is `(List[Value], List[Value], List[Value], Num, Heap) -> Bool` (on the value stack, the locals, the globals, the memory's length in bytes and the memory as a heap); `GProp` is `(List[Value], Num, Heap) -> Bool` (on the globals, the memory's length and the heap, the `R` of an exact state `st(v, l, R)`).
 
-A statement is laid out as `∀ (x y : T) (z : U)`, its variables grouped by type; then, if it has hypotheses, `if` and the numbered hypotheses H1, ..., Hn and `then` and the conclusion C, with `or` between alternatives and `&&` before each further conjunct. It stands for `∀ x y z, H1 && ... && Hn → C`. Each layout is printed from the kernel's statement and checked to read back as it (wasm/layout.mbt).
+A statement is laid out as `∀ (x y : T) (z : U)`, its variables grouped by type; then, if it has hypotheses, `if` and the numbered hypotheses H1, ..., Hn and `then` and the conclusion C, with `or` between alternatives and `&&` before each further conjunct (as between a definition's equations). It stands for `∀ x y z, H1 && ... && Hn → C`. Each layout is printed from the kernel's statement and checked to read back as it (wasm/layout.mbt).
 
 ## Heaps and separating conjunction (heap.mbt)
 
@@ -302,7 +302,8 @@ lemma `pts_split`
 definition `safe`
 
 ```
-safe(0, (s : Wstore), (f : Wframe), (es : List[Einstr]), (q : Assn)) == true && safe(SUC((n : Num)), s, f, es, q) == ((∃ vs : List[Value], es == MAP(v_to_e, vs) && q(s, f, vs)) || (∃ s2 : Wstore, ∃ f2 : Wframe, ∃ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2)) && (∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2) → safe(n, s2, f2, es2, q)))
+safe(0, (s : Wstore), (f : Wframe), (es : List[Einstr]), (q : Assn)) == true
+&& safe(SUC((n : Num)), (s : Wstore), (f : Wframe), (es : List[Einstr]), (q : Assn)) == ((∃ vs : List[Value], es == MAP(v_to_e, vs) && q(s, f, vs)) || (∃ s2 : Wstore, ∃ f2 : Wframe, ∃ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2)) && (∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2) → safe(n, s2, f2, es2, q)))
 ```
 
 definition `triple`
@@ -576,7 +577,8 @@ then
 definition `safel`
 
 ```
-safel(0, (s : Wstore), (f : Wframe), (es : List[Einstr]), (q : Assn), (l : List[Assn])) == true && safel(SUC((n : Num)), s, f, es, q, l) == ((∃ vs : List[Value], es == MAP(v_to_e, vs) && q(s, f, vs)) || (∃ i : Num, ∃ vs : List[Value], ∃ lh : Lholed, i < LENGTH(l) && es == lfill(lh, APPEND(MAP(v_to_e, vs), [Basic(Br(i + lh_depth(lh)))])) && EL(i, l, s, f, vs) && (∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2) → safel(n, s2, f2, es2, q, l))) || (∃ s2 : Wstore, ∃ f2 : Wframe, ∃ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2)) && (∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2) → safel(n, s2, f2, es2, q, l)))
+safel(0, (s : Wstore), (f : Wframe), (es : List[Einstr]), (q : Assn), (l : List[Assn])) == true
+&& safel(SUC((n : Num)), (s : Wstore), (f : Wframe), (es : List[Einstr]), (q : Assn), (l : List[Assn])) == ((∃ vs : List[Value], es == MAP(v_to_e, vs) && q(s, f, vs)) || (∃ i : Num, ∃ vs : List[Value], ∃ lh : Lholed, i < LENGTH(l) && es == lfill(lh, APPEND(MAP(v_to_e, vs), [Basic(Br(i + lh_depth(lh)))])) && EL(i, l, s, f, vs) && (∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2) → safel(n, s2, f2, es2, q, l))) || (∃ s2 : Wstore, ∃ f2 : Wframe, ∃ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2)) && (∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2) → safel(n, s2, f2, es2, q, l)))
 ```
 
 definition `triple_l`
@@ -992,7 +994,8 @@ then
 definition `tbv_results`
 
 ```
-tbv_results(NONE) == NIL && tbv_results(SOME((t : Valtype))) == [t]
+tbv_results(NONE) == NIL
+&& tbv_results(SOME((t : Valtype))) == [t]
 ```
 
 lemma `tb_tf_tbv`
@@ -2618,7 +2621,8 @@ then
 definition `sum_to`
 
 ```
-sum_to(0) == 0 && sum_to(SUC((n : Num))) == SUC(n) + sum_to(n)
+sum_to(0) == 0
+&& sum_to(SUC((n : Num))) == SUC(n) + sum_to(n)
 ```
 
 lemma `sum_to_suc_word`
@@ -2667,7 +2671,8 @@ lemma `deserialise_serialise_i32`
 definition `words_bytes`
 
 ```
-words_bytes(NIL) == NIL && words_bytes(CONS((x : W32), (xs : List[W32]))) == APPEND(serialise_i32(x), words_bytes(xs))
+words_bytes(NIL) == NIL
+&& words_bytes(CONS((x : W32), (xs : List[W32]))) == APPEND(serialise_i32(x), words_bytes(xs))
 ```
 
 definition `arr`
@@ -2891,7 +2896,12 @@ lemma `wasm_bool_zero`
 definition `has_call_b_rules`
 
 ```
-(∀ j : Num, has_call_b(Call(j))) && (∀ t : Num, ∀ j : Num, has_call_b(Call_indirect(t, j))) && (∀ b : B_e, ∀ tb : Tb, ∀ bs : List[B_e], MEM(b, bs) && has_call_b(b) → has_call_b(Block(tb, bs))) && (∀ b : B_e, ∀ tb : Tb, ∀ bs : List[B_e], MEM(b, bs) && has_call_b(b) → has_call_b(Loop(tb, bs))) && (∀ b : B_e, ∀ tb : Tb, ∀ bs1 : List[B_e], ∀ bs2 : List[B_e], MEM(b, bs1) && has_call_b(b) → has_call_b(If(tb, bs1, bs2))) && (∀ b : B_e, ∀ tb : Tb, ∀ bs1 : List[B_e], ∀ bs2 : List[B_e], MEM(b, bs2) && has_call_b(b) → has_call_b(If(tb, bs1, bs2)))
+∀ j : Num, has_call_b(Call(j))
+&& ∀ t : Num, ∀ j : Num, has_call_b(Call_indirect(t, j))
+&& ∀ b : B_e, ∀ tb : Tb, ∀ bs : List[B_e], MEM(b, bs) && has_call_b(b) → has_call_b(Block(tb, bs))
+&& ∀ b : B_e, ∀ tb : Tb, ∀ bs : List[B_e], MEM(b, bs) && has_call_b(b) → has_call_b(Loop(tb, bs))
+&& ∀ b : B_e, ∀ tb : Tb, ∀ bs1 : List[B_e], ∀ bs2 : List[B_e], MEM(b, bs1) && has_call_b(b) → has_call_b(If(tb, bs1, bs2))
+&& ∀ b : B_e, ∀ tb : Tb, ∀ bs1 : List[B_e], ∀ bs2 : List[B_e], MEM(b, bs2) && has_call_b(b) → has_call_b(If(tb, bs1, bs2))
 ```
 
 lemma `has_call_b_induct`
@@ -2920,7 +2930,11 @@ lemma `has_call_b_cases`
 definition `has_call_rules`
 
 ```
-(∀ b : B_e, has_call_b(b) → has_call(Basic(b))) && (∀ a : Num, has_call(Invoke(a))) && (∀ n : Num, ∀ f : Wframe, ∀ es : List[Einstr], has_call(Frame(n, f, es))) && (∀ e : Einstr, ∀ n : Num, ∀ es : List[Einstr], ∀ les : List[Einstr], MEM(e, es) && has_call(e) → has_call(Label(n, es, les))) && (∀ e : Einstr, ∀ n : Num, ∀ es : List[Einstr], ∀ les : List[Einstr], MEM(e, les) && has_call(e) → has_call(Label(n, es, les)))
+∀ b : B_e, has_call_b(b) → has_call(Basic(b))
+&& ∀ a : Num, has_call(Invoke(a))
+&& ∀ n : Num, ∀ f : Wframe, ∀ es : List[Einstr], has_call(Frame(n, f, es))
+&& ∀ e : Einstr, ∀ n : Num, ∀ es : List[Einstr], ∀ les : List[Einstr], MEM(e, es) && has_call(e) → has_call(Label(n, es, les))
+&& ∀ e : Einstr, ∀ n : Num, ∀ es : List[Einstr], ∀ les : List[Einstr], MEM(e, les) && has_call(e) → has_call(Label(n, es, les))
 ```
 
 lemma `has_call_induct`
@@ -3012,7 +3026,11 @@ lemma `no_call_v_to_e`
 lemma `s_funcs_updates`
 
 ```
-s_funcs(s_tabs_update((v1 : List[(Tab_t, List[V_ref])]), (s : Wstore))) == s_funcs(s) && s_funcs(s_mems_update((v2 : List[Mem]), s)) == s_funcs(s) && s_funcs(s_globs_update((v3 : List[Global]), s)) == s_funcs(s) && s_funcs(s_elems_update((v4 : List[(T_ref, List[V_ref])]), s)) == s_funcs(s) && s_funcs(s_datas_update((v5 : List[List[Byte]]), s)) == s_funcs(s)
+s_funcs(s_tabs_update((v1 : List[(Tab_t, List[V_ref])]), (s : Wstore))) == s_funcs(s)
+&& s_funcs(s_mems_update((v2 : List[Mem]), (s : Wstore))) == s_funcs(s)
+&& s_funcs(s_globs_update((v3 : List[Global]), (s : Wstore))) == s_funcs(s)
+&& s_funcs(s_elems_update((v4 : List[(T_ref, List[V_ref])]), (s : Wstore))) == s_funcs(s)
+&& s_funcs(s_datas_update((v5 : List[List[Byte]]), (s : Wstore))) == s_funcs(s)
 ```
 
 lemma `simple_call_free`
@@ -3654,7 +3672,8 @@ then
 definition `safer`
 
 ```
-safer(0, (s : Wstore), (f : Wframe), (es : List[Einstr]), (q : Assn), (l : List[Assn]), (rq : Assn)) == true && safer(SUC((n : Num)), s, f, es, q, l, rq) == ((∃ vs : List[Value], es == MAP(v_to_e, vs) && q(s, f, vs)) || (∃ i : Num, ∃ vs : List[Value], ∃ lh : Lholed, i < LENGTH(l) && es == lfill(lh, APPEND(MAP(v_to_e, vs), [Basic(Br(i + lh_depth(lh)))])) && EL(i, l, s, f, vs) && (∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2) → safer(n, s2, f2, es2, q, l, rq))) || (∃ vs : List[Value], ∃ lh : Lholed, es == lfill(lh, APPEND(MAP(v_to_e, vs), [Basic(Return)])) && rq(s, f, vs)) || (∃ s2 : Wstore, ∃ f2 : Wframe, ∃ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2)) && (∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2) → safer(n, s2, f2, es2, q, l, rq)))
+safer(0, (s : Wstore), (f : Wframe), (es : List[Einstr]), (q : Assn), (l : List[Assn]), (rq : Assn)) == true
+&& safer(SUC((n : Num)), (s : Wstore), (f : Wframe), (es : List[Einstr]), (q : Assn), (l : List[Assn]), (rq : Assn)) == ((∃ vs : List[Value], es == MAP(v_to_e, vs) && q(s, f, vs)) || (∃ i : Num, ∃ vs : List[Value], ∃ lh : Lholed, i < LENGTH(l) && es == lfill(lh, APPEND(MAP(v_to_e, vs), [Basic(Br(i + lh_depth(lh)))])) && EL(i, l, s, f, vs) && (∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2) → safer(n, s2, f2, es2, q, l, rq))) || (∃ vs : List[Value], ∃ lh : Lholed, es == lfill(lh, APPEND(MAP(v_to_e, vs), [Basic(Return)])) && rq(s, f, vs)) || (∃ s2 : Wstore, ∃ f2 : Wframe, ∃ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2)) && (∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2) → safer(n, s2, f2, es2, q, l, rq)))
 ```
 
 lemma `safer_vals`
@@ -4397,7 +4416,8 @@ then
 definition `wsum`
 
 ```
-wsum(NIL) == word(0) && wsum(CONS((x : W32), (xs : List[W32]))) == word_add(x, wsum(xs))
+wsum(NIL) == word(0)
+&& wsum(CONS((x : W32), (xs : List[W32]))) == word_add(x, wsum(xs))
 ```
 
 lemma `wsum_snoc`
@@ -4731,7 +4751,8 @@ then
 definition `fact_w`
 
 ```
-fact_w(0) == word(1) && fact_w(SUC((n : Num))) == word_mul(word(SUC(n)), fact_w(n))
+fact_w(0) == word(1)
+&& fact_w(SUC((n : Num))) == word_mul(word(SUC(n)), fact_w(n))
 ```
 
 lemma `fact_w_suc`
@@ -4821,7 +4842,8 @@ or
 definition `rot`
 
 ```
-rot(NIL) == NIL && rot(CONS((g : W32), (t : List[W32]))) == APPEND(t, [g])
+rot(NIL) == NIL
+&& rot(CONS((g : W32), (t : List[W32]))) == APPEND(t, [g])
 ```
 
 lemma `val_pred`

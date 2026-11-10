@@ -24,6 +24,7 @@ import {
   "bobzhang/hol_light/define",
   "bobzhang/hol_light/library/words",
   "moonbitlang/core/list",
+  "moonbitlang/core/json",
   "moonbit-community/wasmcert/wasm",
 }
 

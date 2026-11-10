@@ -79,14 +79,20 @@ fn ty(s : String) -> @kernel.HolType raise {
 
 ///|
 /// A definition by equations (`define`), recorded as `name`.
-fn def(name : String, s : String, listed~ : Bool = true) -> Unit raise {
+#callsite(autofill(loc))
+fn def(
+  name : String,
+  s : String,
+  listed~ : Bool = true,
+  loc~ : SourceLoc,
+) -> Unit raise {
   let th = @define.define_(tm(s)) catch {
     e => raise Failure("wasmcert/wasm: defining " + name + ": " + e.to_string())
   }
   record(name, th)
   def_thms.push(th)
   if listed {
-    list_entry("definition", name, th)
+    list_entry("definition", name, th, loc~)
   }
 }
 
@@ -101,10 +107,12 @@ let def_thms : Array[@kernel.Thm] = []
 /// As in Isabelle, each rule is quantified over its own free variables
 /// (HOL would read a variable free in the rules as a fixed parameter), and
 /// a name may have different types in different rules.
+#callsite(autofill(loc))
 fn inductive(
   name : String,
   rels : Array[(String, String)],
   rules : Array[String],
+  loc~ : SourceLoc,
 ) -> Unit raise {
   let binders = rels.map(r => "(\{r.0} : \{r.1}) => ").join("")
   let clauses = []
@@ -126,7 +134,7 @@ fn inductive(
   record(name + "_rules", rules)
   record(name + "_induct", induct)
   record(name + "_cases", cases)
-  list_entry("relation", name, rules)
+  list_entry("relation", name, rules, loc~)
 }
 
 ///|
@@ -134,10 +142,12 @@ fn inductive(
 /// the types in the term syntax. The type refers to itself by its
 /// capitalised name (`List[B_e]` in `b_e`). Recorded as `name_induct` and
 /// `name_recursion`.
+#callsite(autofill(loc))
 fn datatype(
   name : String,
   ctors : Array[(String, Array[String])],
   listed~ : Bool = true,
+  loc~ : SourceLoc,
 ) -> Unit raise {
   let fail = (msg : String) => Failure(
     "wasmcert/wasm: datatype " + name + ": " + msg,
@@ -172,22 +182,24 @@ fn datatype(
   record(name + "_recursion", recursion)
   if listed {
     let shown = ctors.map(c => if c.1.is_empty() { c.0 } else { c.0 + "(" + c.1.join(", ") + ")" })
-    list_text("datatype", name, abbreviate_types(shown.join(" | ")))
+    list_text("datatype", name, abbreviate_types(shown.join(" | ")), ctors.map(c => c.0), loc~)
   }
 }
 
 ///|
 /// A datatype whose constructors take no arguments.
-fn enum_type(name : String, ctors : Array[String]) -> Unit raise {
-  datatype(name, ctors.map(c => (c, [])))
+#callsite(autofill(loc))
+fn enum_type(name : String, ctors : Array[String], loc~ : SourceLoc) -> Unit raise {
+  datatype(name, ctors.map(c => (c, [])), loc~)
 }
 
 ///|
 /// An uninterpreted constant (Isabelle's `consts` / class parameters),
 /// with its type in the term syntax.
-fn constant(name : String, t : String) -> Unit raise {
+#callsite(autofill(loc))
+fn constant(name : String, t : String, loc~ : SourceLoc) -> Unit raise {
   @kernel.new_constant(name, ty(t))
-  list_text("constant", name, abbreviate_types(name + " : " + t))
+  list_text("constant", name, abbreviate_types(name + " : " + t), [name], loc~)
 }
 
 ///|
@@ -195,16 +207,29 @@ fn constant(name : String, t : String) -> Unit raise {
 /// fields (with types in the term syntax) in order; each field gets an
 /// accessor `field(r)` and an update
 /// `field_update(x, r)` (Isabelle's `r⦇field := x⦈`).
+#callsite(autofill(loc))
 fn record_type(
   name : String,
   ctor : String,
   fields : Array[(String, String)],
+  loc~ : SourceLoc,
 ) -> Unit raise {
-  datatype(name, [(ctor, fields.map(f => f.1))], listed=false)
+  datatype(name, [(ctor, fields.map(f => f.1))], listed=false, loc~)
   // the record, with its fields (their accessors and updates are not
-  // listed one by one)
+  // listed one by one, but the record defines them)
   let shown = fields.map(f => f.0 + " : " + f.1)
-  list_text("record", name, abbreviate_types(ctor + "(" + shown.join(", ") + ")"))
+  let defines = [ctor]
+  for f in fields {
+    defines.push(f.0)
+    defines.push(f.0 + "_update")
+  }
+  list_text(
+    "record",
+    name,
+    abbreviate_types(ctor + "(" + shown.join(", ") + ")"),
+    defines,
+    loc~,
+  )
   let vars = Array::makei(fields.length(), i => "x" + (i + 1).to_string())
   let whole = ctor + "(" + vars.join(", ") + ")"
   for i, f in fields {

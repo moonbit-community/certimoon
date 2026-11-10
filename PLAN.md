@@ -107,8 +107,9 @@ good order to read it in:
 
 Package `wasm`: ast.mbt, numeric.mbt, store.mbt, typing.mbt, reduction.mbt
 (the port; the header comments say where it differs from Isabelle),
-defs.mbt (its plumbing), listing.mbt and layout.mbt (the theory listing and
-how it lays statements out), props.mbt (facts about `reduce`, `step_cases`),
+defs.mbt (its plumbing), listing.mbt, layout.mbt and export.mbt (the theory
+listing, how it lays statements out, and the listing as data for
+tools/review_site.py), props.mbt (facts about `reduce`, `step_cases`),
 eval.mbt and builder.mbt (the evaluator), and the tests.
 
 ## Status
@@ -265,14 +266,17 @@ say so.
    a conclusion: wasm/layout.mbt.) Done when the examples' statements name
    their code and none is longer than 20 lines.
 
-3. **A review document.** Generate `review.md` beside `theory.md`. For
-   each closed theorem it shows the statement, then every definition the
-   statement depends on (relations by their rules). The dependencies are
-   found by following the statement's constants to their definitions,
-   through `logic` and into `wasm`, stopping at hol_light's libraries. A
-   line says that every other theorem is checked by the kernel and needs
-   no reading. A snapshot test keeps the document current, as it does
-   `theory.md`. Done when `review.md` covers every closed theorem.
+3. **A review document.** Partly done: `tools/review_site.py` builds a
+   site from the listings' `theory.json`, with a page per source file and,
+   for each example, a page of its statement and every definition it
+   depends on (found by following its constants through `logic` and into
+   `wasm`, stopping at hol_light's). What is left: the closed theorems as
+   the site's front page, and the dependency count kept in a snapshot so
+   that a change to what a theorem trusts shows in a diff. `fact_closed`
+   depends on 235 definitions, 231 of them in `wasm`: `reduce` reaches
+   nearly all of the semantics (floats and vectors included, though left
+   unspecified), so a smaller trusted base would mean stating the closed
+   theorems over a fragment of `reduce`.
 
 4. **Non-vacuity checks.** A triple whose precondition nothing satisfies
    proves nothing, and several conjuncts could make one unsatisfiable

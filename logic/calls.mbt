@@ -18,7 +18,8 @@
 /// An inductive relation `name` (as package wasm's `inductive`): its
 /// rules, induction and cases theorems are recorded as name_rules,
 /// name_induct and name_cases.
-fn inductive_def(name : String, rels : Array[(String, String)], rules : Array[String]) -> Unit raise {
+#callsite(autofill(loc))
+fn inductive_def(name : String, rels : Array[(String, String)], rules : Array[String], loc~ : SourceLoc) -> Unit raise {
   let binders = rels.map(r => "(\{r.0} : \{r.1}) => ").join("")
   let clauses = []
   for r in rules {
@@ -31,9 +32,9 @@ fn inductive_def(name : String, rels : Array[(String, String)], rules : Array[St
   let (rules, induct, cases) = @ind_defs.new_inductive_definition(spec) catch {
     e => raise Failure("wasmcert/logic: defining " + name + ": " + e.to_string())
   }
-  record(name + "_rules", rules, kind="definition")
-  record(name + "_induct", induct)
-  record(name + "_cases", cases)
+  record(name + "_rules", rules, kind="definition", loc~)
+  record(name + "_induct", induct, loc~)
+  record(name + "_cases", cases, loc~)
 }
 
 ///|

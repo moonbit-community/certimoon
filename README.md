@@ -65,6 +65,29 @@ ulimit -s 65520 && moon test -p moonbit-community/wasmcert/logic
 Loading the logic proves all of it again (there is no theorem cache):
 about a minute, most of the logic's test time.
 
+## Reviewing what is proved
+
+Each package's tests keep its theory in two snapshots: `theory.md`, the
+listing to read and diff, and `theory.json`, the same entries as data,
+each with its statement, the constants it uses and defines, and the line
+of the source that makes it. `tools/review_site.py` turns the two
+`theory.json` files into a static site:
+
+```bash
+python3 tools/review_site.py --out _site
+```
+
+It has a page per source file (`wasm/reduction.html`, `logic/heap.html`,
+...) with each entry's statement, its constants linked to the entries
+that define them, what uses it, and a link to its source; lemmas are
+folded, since the kernel checks them. For each example, a page
+(`review/fact_closed.html`, ...) shows its statement and then every
+definition it depends on, found by following the constants of the
+statement through `logic` and into `wasm` until only hol_light's are
+left: what a reviewer must read to trust it. Open `_site/index.html`
+through a local server (`python3 -m http.server -d _site`), since the
+pages load a stylesheet and a search index.
+
 ## Proving a program
 
 ### The pieces

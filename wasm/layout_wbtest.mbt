@@ -50,3 +50,16 @@ test "a statement with no hypotheses" {
   )
   inspect(layout_statement(@term_syntax.parse_term("1 < 2")), content="1 < 2")
 }
+
+///|
+test "a definition's equations, a line each" {
+  load()
+  inspect(
+    layout_statement(@term_syntax.parse_term("1 < 2 && 2 < 3 && (∀ x : Num, x == x)")),
+    content=(
+      #|1 < 2
+      #|&& 2 < 3
+      #|&& ∀ x : Num, x == x
+    ),
+  )
+}

@@ -866,6 +866,7 @@ fn structure_of(code : @kernel.Term) -> (Array[@kernel.Term], Array[@kernel.Term
 ///   `specs`) and the terms for its ∀s: the call then leaves "P of its
 ///   arguments" to prove, and the code after it starts from Q;
 /// - `kind`: how load()'s listing shows it ("example" or "lemma").
+#callsite(autofill(loc))
 pub fn sym_prove(
   name : String,
   stmt : String,
@@ -877,6 +878,7 @@ pub fn sym_prove(
   specs? : Array[@kernel.Thm] = [],
   calls? : Array[(Int, Array[String])] = [],
   kind? : String = "example",
+  loc~ : SourceLoc,
 ) -> @kernel.Thm raise {
   let goal = tm(stmt)
   let (_, body) = @basics.strip_forall(goal)
@@ -949,6 +951,6 @@ pub fn sym_prove(
       raise Failure(msg.to_string())
     }
   }
-  record(name, th, kind~)
+  record(name, th, kind~, loc~)
   th
 }

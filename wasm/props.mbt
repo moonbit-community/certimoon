@@ -44,7 +44,13 @@ pub fn props() -> Unit raise {
 // Proof helpers.
 
 ///|
-fn lemma(name : String, stmt : String, tac : @tactics.Tactic) -> @kernel.Thm raise {
+#callsite(autofill(loc))
+fn lemma(
+  name : String,
+  stmt : String,
+  tac : @tactics.Tactic,
+  loc~ : SourceLoc,
+) -> @kernel.Thm raise {
   if trace_props.val {
     println("proving " + name)
   }
@@ -58,7 +64,7 @@ fn lemma(name : String, stmt : String, tac : @tactics.Tactic) -> @kernel.Thm rai
     e => raise Failure("wasmcert/wasm: proving " + name + ": " + e.to_string())
   }
   record(name, th)
-  list_entry("lemma", name, th)
+  list_entry("lemma", name, th, loc~)
   th
 }
 

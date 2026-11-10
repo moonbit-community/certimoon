@@ -4,62 +4,75 @@ What package `wasm` defines and proves, in order: each definition, datatype, rel
 
 Word types are abbreviated: `Byte`, `W32`, `W64` and `W128` are `Word[...]` of 8, 32, 64 and 128 bits.
 
-A statement is laid out as `∀ (x y : T) (z : U)`, its variables grouped by type; then, if it has hypotheses, `if` and the numbered hypotheses H1, ..., Hn and `then` and the conclusion C, with `or` between alternatives and `&&` before each further conjunct. It stands for `∀ x y z, H1 && ... && Hn → C`. Each layout is printed from the kernel's statement and checked to read back as it (wasm/layout.mbt).
+A statement is laid out as `∀ (x y : T) (z : U)`, its variables grouped by type; then, if it has hypotheses, `if` and the numbered hypotheses H1, ..., Hn and `then` and the conclusion C, with `or` between alternatives and `&&` before each further conjunct (as between a definition's equations). It stands for `∀ x y z, H1 && ... && Hn → C`. Each layout is printed from the kernel's statement and checked to read back as it (wasm/layout.mbt).
 
 ## List and option helpers
 
 definition `take`
 
 ```
-(take : (Num, List[A]) -> List[A])(0, (l : List[A])) == (NIL : List[A]) && (take : (Num, List[A]) -> List[A])(SUC((n : Num)), (NIL : List[A])) == (NIL : List[A]) && (take : (Num, List[A]) -> List[A])(SUC(n), (CONS : (A, List[A]) -> List[A])((h : A), (t : List[A]))) == (CONS : (A, List[A]) -> List[A])(h, (take : (Num, List[A]) -> List[A])(n, t))
+take(0, (l : List[A])) == NIL
+&& (take : (Num, List[A]) -> List[A])(SUC((n : Num)), (NIL : List[A])) == (NIL : List[A])
+&& take(SUC((n : Num)), CONS((h : A), (t : List[A]))) == CONS(h, take(n, t))
 ```
 
 definition `drop`
 
 ```
-(drop : (Num, List[A]) -> List[A])(0, (l : List[A])) == l && (drop : (Num, List[A]) -> List[A])(SUC((n : Num)), (NIL : List[A])) == (NIL : List[A]) && (drop : (Num, List[A]) -> List[A])(SUC(n), (CONS : (A, List[A]) -> List[A])((h : A), (t : List[A]))) == (drop : (Num, List[A]) -> List[A])(n, t)
+drop(0, (l : List[A])) == l
+&& (drop : (Num, List[A]) -> List[A])(SUC((n : Num)), (NIL : List[A])) == (NIL : List[A])
+&& drop(SUC((n : Num)), CONS((h : A), (t : List[A]))) == drop(n, t)
 ```
 
 definition `takefill`
 
 ```
-takefill((a : A), 0, (l : List[A])) == NIL && takefill(a, SUC((n : Num)), NIL) == CONS(a, takefill(a, n, NIL)) && takefill(a, SUC(n), CONS((h : A), (t : List[A]))) == CONS(h, takefill(a, n, t))
+takefill((a : A), 0, (l : List[A])) == NIL
+&& takefill((a : A), SUC((n : Num)), NIL) == CONS(a, takefill(a, n, NIL))
+&& takefill((a : A), SUC((n : Num)), CONS((h : A), (t : List[A]))) == CONS(h, takefill(a, n, t))
 ```
 
 definition `list_update`
 
 ```
-list_update(NIL, (i : Num), (x : A)) == NIL && list_update(CONS((h : A), (t : List[A])), 0, x) == CONS(x, t) && list_update(CONS(h, t), SUC((n : Num)), x) == CONS(h, list_update(t, n, x))
+list_update(NIL, (i : Num), (x : A)) == NIL
+&& list_update(CONS((h : A), (t : List[A])), 0, (x : A)) == CONS(x, t)
+&& list_update(CONS((h : A), (t : List[A])), SUC((n : Num)), (x : A)) == CONS(h, list_update(t, n, x))
 ```
 
 definition `upt`
 
 ```
-upt((i : Num), 0) == NIL && upt(i, SUC((j : Num))) == (if i <= j { APPEND(upt(i, j), [j]) } else { NIL })
+upt((i : Num), 0) == NIL
+&& upt((i : Num), SUC((j : Num))) == (if i <= j { APPEND(upt(i, j), [j]) } else { NIL })
 ```
 
 definition `concat`
 
 ```
-(concat : (List[List[A]]) -> List[A])((NIL : List[List[A]])) == (NIL : List[A]) && (concat : (List[List[A]]) -> List[A])((CONS : (List[A], List[List[A]]) -> List[List[A]])((l : List[A]), (ls : List[List[A]]))) == (APPEND : (List[A], List[A]) -> List[A])(l, (concat : (List[List[A]]) -> List[A])(ls))
+(concat : (List[List[A]]) -> List[A])((NIL : List[List[A]])) == (NIL : List[A])
+&& concat(CONS((l : List[A]), (ls : List[List[A]]))) == APPEND(l, concat(ls))
 ```
 
 definition `map_option`
 
 ```
-map_option((f : (A) -> B), NONE) == NONE && map_option(f, SOME((x : A))) == SOME(f(x))
+map_option((f : (A) -> B), NONE) == NONE
+&& map_option((f : (A) -> B), SOME((x : A))) == SOME(f(x))
 ```
 
 definition `pred_option`
 
 ```
-pred_option((p : (A) -> Bool), NONE) == true && pred_option(p, SOME((x : A))) == p(x)
+pred_option((p : (A) -> Bool), NONE) == true
+&& pred_option((p : (A) -> Bool), SOME((x : A))) == p(x)
 ```
 
 definition `those`
 
 ```
-(those : (List[Option[A]]) -> Option[List[A]])((NIL : List[Option[A]])) == (SOME : (List[A]) -> Option[List[A]])((NIL : List[A])) && (those : (List[Option[A]]) -> Option[List[A]])((CONS : (Option[A], List[Option[A]]) -> List[Option[A]])((x : Option[A]), (xs : List[Option[A]]))) == match x { (NONE : Option[A]) => (NONE : Option[List[A]]); (SOME : (A) -> Option[A])((y : A)) => (map_option : ((List[A]) -> List[A], Option[List[A]]) -> Option[List[A]])((CONS : (A, List[A]) -> List[A])(y), (those : (List[Option[A]]) -> Option[List[A]])(xs)) }
+(those : (List[Option[A]]) -> Option[List[A]])((NIL : List[Option[A]])) == (SOME : (List[A]) -> Option[List[A]])((NIL : List[A]))
+&& those(CONS((x : Option[A]), (xs : List[Option[A]]))) == match x { NONE => NONE; SOME(y) => map_option(CONS(y), those(xs)) }
 ```
 
 ## Abstract syntax (Wasm_Ast)
@@ -67,19 +80,22 @@ definition `those`
 type definition `f32`
 
 ```
-(∀ a : F32, mk_f32(dest_f32(a)) == a) && (∀ r : W32, UNIV(r) == (dest_f32(mk_f32(r)) == r))
+∀ a : F32, mk_f32(dest_f32(a)) == a
+&& ∀ r : W32, UNIV(r) == (dest_f32(mk_f32(r)) == r)
 ```
 
 type definition `f64`
 
 ```
-(∀ a : F64, mk_f64(dest_f64(a)) == a) && (∀ r : W64, UNIV(r) == (dest_f64(mk_f64(r)) == r))
+∀ a : F64, mk_f64(dest_f64(a)) == a
+&& ∀ r : W64, UNIV(r) == (dest_f64(mk_f64(r)) == r)
 ```
 
 type definition `v128`
 
 ```
-(∀ a : V128, mk_v128(dest_v128(a)) == a) && (∀ r : W128, UNIV(r) == (dest_v128(mk_v128(r)) == r))
+∀ a : V128, mk_v128(dest_v128(a)) == a
+&& ∀ r : W128, UNIV(r) == (dest_v128(mk_v128(r)) == r)
 ```
 
 record `limit_t`
@@ -921,13 +937,15 @@ wasm_extend_s((c : W32)) == word_sx(c)
 definition `le_bytes`
 
 ```
-le_bytes(0, (n : Num)) == NIL && le_bytes(SUC((k : Num)), n) == CONS(word(n), le_bytes(k, DIV(n, 256)))
+le_bytes(0, (n : Num)) == NIL
+&& le_bytes(SUC((k : Num)), (n : Num)) == CONS(word(n), le_bytes(k, DIV(n, 256)))
 ```
 
 definition `num_of_bytes`
 
 ```
-num_of_bytes(NIL) == 0 && num_of_bytes(CONS((b : Byte), (bs : List[Byte]))) == val(b) + 256 * num_of_bytes(bs)
+num_of_bytes(NIL) == 0
+&& num_of_bytes(CONS((b : Byte), (bs : List[Byte]))) == val(b) + 256 * num_of_bytes(bs)
 ```
 
 definition `serialise_i32`
@@ -989,7 +1007,8 @@ load((m : (Limit_t, List[Byte])), (n : Num), (off : Num), (l : Num)) == (if n + 
 definition `sign_extend`
 
 ```
-sign_extend(U, (l : Num), (bs : List[Byte])) == bytes_takefill(zero_byte, l, bs) && sign_extend(S, l, bs) == bytes_takefill(if msb_byte(msbyte(bs)) { negone_byte } else { zero_byte }, l, bs)
+sign_extend(U, (l : Num), (bs : List[Byte])) == bytes_takefill(zero_byte, l, bs)
+&& sign_extend(S, (l : Num), (bs : List[Byte])) == bytes_takefill(if msb_byte(msbyte(bs)) { negone_byte } else { zero_byte }, l, bs)
 ```
 
 definition `load_packed`
@@ -1051,19 +1070,26 @@ host_func_apply : (Wstore, Tf, Host_func, List[Value], Host_state, Option[(Wstor
 definition `wasm_deserialise_num`
 
 ```
-wasm_deserialise_num((bs : List[Byte]), T_i32) == ConstInt32(deserialise_i32(bs)) && wasm_deserialise_num(bs, T_i64) == ConstInt64(deserialise_i64(bs)) && wasm_deserialise_num(bs, T_f32) == ConstFloat32(deserialise_f32(bs)) && wasm_deserialise_num(bs, T_f64) == ConstFloat64(deserialise_f64(bs))
+wasm_deserialise_num((bs : List[Byte]), T_i32) == ConstInt32(deserialise_i32(bs))
+&& wasm_deserialise_num((bs : List[Byte]), T_i64) == ConstInt64(deserialise_i64(bs))
+&& wasm_deserialise_num((bs : List[Byte]), T_f32) == ConstFloat32(deserialise_f32(bs))
+&& wasm_deserialise_num((bs : List[Byte]), T_f64) == ConstFloat64(deserialise_f64(bs))
 ```
 
 definition `wasm_deserialise`
 
 ```
-wasm_deserialise((bs : List[Byte]), T_num((tn : T_num))) == V_num(wasm_deserialise_num(bs, tn)) && wasm_deserialise(bs, T_vec((tv : T_vec))) == V_vec(ConstVec128(deserialise_v128(bs)))
+wasm_deserialise((bs : List[Byte]), T_num((tn : T_num))) == V_num(wasm_deserialise_num(bs, tn))
+&& wasm_deserialise((bs : List[Byte]), T_vec((tv : T_vec))) == V_vec(ConstVec128(deserialise_v128(bs)))
 ```
 
 definition `bits_num`
 
 ```
-bits_num(ConstInt32((c1 : W32))) == serialise_i32(c1) && bits_num(ConstInt64((c2 : W64))) == serialise_i64(c2) && bits_num(ConstFloat32((c3 : F32))) == serialise_f32(c3) && bits_num(ConstFloat64((c4 : F64))) == serialise_f64(c4)
+bits_num(ConstInt32((c1 : W32))) == serialise_i32(c1)
+&& bits_num(ConstInt64((c2 : W64))) == serialise_i64(c2)
+&& bits_num(ConstFloat32((c3 : F32))) == serialise_f32(c3)
+&& bits_num(ConstFloat64((c4 : F64))) == serialise_f64(c4)
 ```
 
 definition `bits_vec`
@@ -1075,13 +1101,17 @@ bits_vec(ConstVec128((c : V128))) == serialise_v128(c)
 definition `bits`
 
 ```
-bits(V_num((vn : V_num))) == bits_num(vn) && bits(V_vec((vv : V_vec))) == bits_vec(vv)
+bits(V_num((vn : V_num))) == bits_num(vn)
+&& bits(V_vec((vv : V_vec))) == bits_vec(vv)
 ```
 
 definition `bitzero_num`
 
 ```
-bitzero_num(T_i32) == ConstInt32(word(0)) && bitzero_num(T_i64) == ConstInt64(word(0)) && bitzero_num(T_f32) == ConstFloat32(zero_f32) && bitzero_num(T_f64) == ConstFloat64(zero_f64)
+bitzero_num(T_i32) == ConstInt32(word(0))
+&& bitzero_num(T_i64) == ConstInt64(word(0))
+&& bitzero_num(T_f32) == ConstFloat32(zero_f32)
+&& bitzero_num(T_f64) == ConstFloat64(zero_f64)
 ```
 
 definition `bitzero_vec`
@@ -1093,13 +1123,17 @@ bitzero_vec(T_v128) == ConstVec128(zero_v128)
 definition `bitzero_ref`
 
 ```
-bitzero_ref(T_func_ref) == ConstNull(T_func_ref) && bitzero_ref(T_ext_ref) == ConstNull(T_ext_ref)
+bitzero_ref(T_func_ref) == ConstNull(T_func_ref)
+&& bitzero_ref(T_ext_ref) == ConstNull(T_ext_ref)
 ```
 
 definition `bitzero`
 
 ```
-bitzero(T_num((tn : T_num))) == SOME(V_num(bitzero_num(tn))) && bitzero(T_vec((tv : T_vec))) == SOME(V_vec(bitzero_vec(tv))) && bitzero(T_ref((tr : T_ref))) == SOME(V_ref(bitzero_ref(tr))) && bitzero(T_bot) == NONE
+bitzero(T_num((tn : T_num))) == SOME(V_num(bitzero_num(tn)))
+&& bitzero(T_vec((tv : T_vec))) == SOME(V_vec(bitzero_vec(tv)))
+&& bitzero(T_ref((tr : T_ref))) == SOME(V_ref(bitzero_ref(tr)))
+&& bitzero(T_bot) == NONE
 ```
 
 definition `n_zeros`
@@ -1111,7 +1145,10 @@ n_zeros((ts : List[Valtype])) == those(MAP(bitzero, ts))
 definition `typeof_num`
 
 ```
-typeof_num(ConstInt32((c1 : W32))) == T_i32 && typeof_num(ConstInt64((c2 : W64))) == T_i64 && typeof_num(ConstFloat32((c3 : F32))) == T_f32 && typeof_num(ConstFloat64((c4 : F64))) == T_f64
+typeof_num(ConstInt32((c1 : W32))) == T_i32
+&& typeof_num(ConstInt64((c2 : W64))) == T_i64
+&& typeof_num(ConstFloat32((c3 : F32))) == T_f32
+&& typeof_num(ConstFloat64((c4 : F64))) == T_f64
 ```
 
 definition `typeof_vec`
@@ -1123,79 +1160,109 @@ typeof_vec(ConstVec128((c : V128))) == T_v128
 definition `typeof_ref`
 
 ```
-typeof_ref(ConstRefFunc((i : Num))) == T_func_ref && typeof_ref(ConstRefExtern((h : Host))) == T_ext_ref && typeof_ref(ConstNull((t : T_ref))) == t
+typeof_ref(ConstRefFunc((i : Num))) == T_func_ref
+&& typeof_ref(ConstRefExtern((h : Host))) == T_ext_ref
+&& typeof_ref(ConstNull((t : T_ref))) == t
 ```
 
 definition `is_null_ref`
 
 ```
-is_null_ref(ConstNull((t : T_ref))) == true && is_null_ref(ConstRefFunc((i : Num))) == false && is_null_ref(ConstRefExtern((h : Host))) == false
+is_null_ref(ConstNull((t : T_ref))) == true
+&& is_null_ref(ConstRefFunc((i : Num))) == false
+&& is_null_ref(ConstRefExtern((h : Host))) == false
 ```
 
 definition `typeof_v`
 
 ```
-typeof_v(V_num((vn : V_num))) == T_num(typeof_num(vn)) && typeof_v(V_vec((vv : V_vec))) == T_vec(typeof_vec(vv)) && typeof_v(V_ref((vr : V_ref))) == T_ref(typeof_ref(vr))
+typeof_v(V_num((vn : V_num))) == T_num(typeof_num(vn))
+&& typeof_v(V_vec((vv : V_vec))) == T_vec(typeof_vec(vv))
+&& typeof_v(V_ref((vr : V_ref))) == T_ref(typeof_ref(vr))
 ```
 
 definition `is_num_type`
 
 ```
-is_num_type(T_num((tn : T_num))) == true && is_num_type(T_vec((tv : T_vec))) == false && is_num_type(T_ref((tr : T_ref))) == false && is_num_type(T_bot) == false
+is_num_type(T_num((tn : T_num))) == true
+&& is_num_type(T_vec((tv : T_vec))) == false
+&& is_num_type(T_ref((tr : T_ref))) == false
+&& is_num_type(T_bot) == false
 ```
 
 definition `is_vec_type`
 
 ```
-is_vec_type(T_num((tn : T_num))) == false && is_vec_type(T_vec((tv : T_vec))) == true && is_vec_type(T_ref((tr : T_ref))) == false && is_vec_type(T_bot) == false
+is_vec_type(T_num((tn : T_num))) == false
+&& is_vec_type(T_vec((tv : T_vec))) == true
+&& is_vec_type(T_ref((tr : T_ref))) == false
+&& is_vec_type(T_bot) == false
 ```
 
 definition `is_ref_type`
 
 ```
-is_ref_type(T_num((tn : T_num))) == false && is_ref_type(T_vec((tv : T_vec))) == false && is_ref_type(T_ref((tr : T_ref))) == true && is_ref_type(T_bot) == false
+is_ref_type(T_num((tn : T_num))) == false
+&& is_ref_type(T_vec((tv : T_vec))) == false
+&& is_ref_type(T_ref((tr : T_ref))) == true
+&& is_ref_type(T_bot) == false
 ```
 
 definition `vec_lane_t`
 
 ```
-vec_lane_t(Svi(I8_16)) == T_i32 && vec_lane_t(Svi(I16_8)) == T_i32 && vec_lane_t(Svi(I32_4)) == T_i32 && vec_lane_t(Svi(I64_2)) == T_i64 && vec_lane_t(Svf(F32_4)) == T_f32 && vec_lane_t(Svf(F64_2)) == T_f64
+vec_lane_t(Svi(I8_16)) == T_i32
+&& vec_lane_t(Svi(I16_8)) == T_i32
+&& vec_lane_t(Svi(I32_4)) == T_i32
+&& vec_lane_t(Svi(I64_2)) == T_i64
+&& vec_lane_t(Svf(F32_4)) == T_f32
+&& vec_lane_t(Svf(F64_2)) == T_f64
 ```
 
 definition `vec_i_length`
 
 ```
-vec_i_length(I8_16) == 1 && vec_i_length(I16_8) == 2 && vec_i_length(I32_4) == 4 && vec_i_length(I64_2) == 8
+vec_i_length(I8_16) == 1
+&& vec_i_length(I16_8) == 2
+&& vec_i_length(I32_4) == 4
+&& vec_i_length(I64_2) == 8
 ```
 
 definition `vec_f_length`
 
 ```
-vec_f_length(F32_4) == 4 && vec_f_length(F64_2) == 8
+vec_f_length(F32_4) == 4
+&& vec_f_length(F64_2) == 8
 ```
 
 definition `vec_length`
 
 ```
-vec_length(Svi((svi : Shape_vec_i))) == vec_i_length(svi) && vec_length(Svf((svf : Shape_vec_f))) == vec_f_length(svf)
+vec_length(Svi((svi : Shape_vec_i))) == vec_i_length(svi)
+&& vec_length(Svf((svf : Shape_vec_f))) == vec_f_length(svf)
 ```
 
 definition `vec_i_num`
 
 ```
-vec_i_num(I8_16) == 16 && vec_i_num(I16_8) == 8 && vec_i_num(I32_4) == 4 && vec_i_num(I64_2) == 2
+vec_i_num(I8_16) == 16
+&& vec_i_num(I16_8) == 8
+&& vec_i_num(I32_4) == 4
+&& vec_i_num(I64_2) == 2
 ```
 
 definition `vec_f_num`
 
 ```
-vec_f_num(F32_4) == 4 && vec_f_num(F64_2) == 2
+vec_f_num(F32_4) == 4
+&& vec_f_num(F64_2) == 2
 ```
 
 definition `vec_num`
 
 ```
-vec_num(Svi((svi : Shape_vec_i))) == vec_i_num(svi) && vec_num(Svf((svf : Shape_vec_f))) == vec_f_num(svf)
+vec_num(Svi((svi : Shape_vec_i))) == vec_i_num(svi)
+&& vec_num(Svf((svf : Shape_vec_f))) == vec_f_num(svf)
 ```
 
 definition `option_projl`
@@ -1213,7 +1280,10 @@ option_projr((x : Option[(A, B)])) == map_option(SND, x)
 definition `t_num_length`
 
 ```
-t_num_length(T_i32) == 4 && t_num_length(T_i64) == 8 && t_num_length(T_f32) == 4 && t_num_length(T_f64) == 8
+t_num_length(T_i32) == 4
+&& t_num_length(T_i64) == 8
+&& t_num_length(T_f32) == 4
+&& t_num_length(T_f64) == 8
 ```
 
 definition `t_vec_length`
@@ -1225,37 +1295,50 @@ t_vec_length(T_v128) == 16
 definition `t_length`
 
 ```
-t_length(T_num((tn : T_num))) == t_num_length(tn) && t_length(T_vec((tv : T_vec))) == t_vec_length(tv)
+t_length(T_num((tn : T_num))) == t_num_length(tn)
+&& t_length(T_vec((tv : T_vec))) == t_vec_length(tv)
 ```
 
 definition `tp_num_length`
 
 ```
-tp_num_length(Tp_i8) == 1 && tp_num_length(Tp_i16) == 2 && tp_num_length(Tp_i32) == 4
+tp_num_length(Tp_i8) == 1
+&& tp_num_length(Tp_i16) == 2
+&& tp_num_length(Tp_i32) == 4
 ```
 
 definition `tp_vec_length`
 
 ```
-tp_vec_length(Tp_v8_8) == 1 && tp_vec_length(Tp_v16_4) == 2 && tp_vec_length(Tp_v32_2) == 4
+tp_vec_length(Tp_v8_8) == 1
+&& tp_vec_length(Tp_v16_4) == 2
+&& tp_vec_length(Tp_v32_2) == 4
 ```
 
 definition `tp_vec_num`
 
 ```
-tp_vec_num(Tp_v8_8) == 8 && tp_vec_num(Tp_v16_4) == 4 && tp_vec_num(Tp_v32_2) == 2
+tp_vec_num(Tp_v8_8) == 8
+&& tp_vec_num(Tp_v16_4) == 4
+&& tp_vec_num(Tp_v32_2) == 2
 ```
 
 definition `is_int_t_num`
 
 ```
-is_int_t_num(T_i32) == true && is_int_t_num(T_i64) == true && is_int_t_num(T_f32) == false && is_int_t_num(T_f64) == false
+is_int_t_num(T_i32) == true
+&& is_int_t_num(T_i64) == true
+&& is_int_t_num(T_f32) == false
+&& is_int_t_num(T_f64) == false
 ```
 
 definition `is_float_t_num`
 
 ```
-is_float_t_num(T_i32) == false && is_float_t_num(T_i64) == false && is_float_t_num(T_f32) == true && is_float_t_num(T_f64) == true
+is_float_t_num(T_i32) == false
+&& is_float_t_num(T_i64) == false
+&& is_float_t_num(T_f32) == true
+&& is_float_t_num(T_f64) == true
 ```
 
 definition `is_mut`
@@ -1267,19 +1350,23 @@ is_mut((tg : Tg)) == (tg_mut(tg) == T_mut)
 definition `unop_t_num_agree`
 
 ```
-unop_t_num_agree(Unop_i((iop : Unop_i)), (t : T_num)) == is_int_t_num(t) && unop_t_num_agree(Unop_f((fop : Unop_f)), t) == is_float_t_num(t) && unop_t_num_agree(Extend_s((tp : Tp_num)), t) == (is_int_t_num(t) && t_num_length(t) > tp_num_length(tp))
+unop_t_num_agree(Unop_i((iop : Unop_i)), (t : T_num)) == is_int_t_num(t)
+&& unop_t_num_agree(Unop_f((fop : Unop_f)), (t : T_num)) == is_float_t_num(t)
+&& unop_t_num_agree(Extend_s((tp : Tp_num)), (t : T_num)) == (is_int_t_num(t) && t_num_length(t) > tp_num_length(tp))
 ```
 
 definition `binop_t_num_agree`
 
 ```
-binop_t_num_agree(Binop_i((iop : Binop_i)), (t : T_num)) == is_int_t_num(t) && binop_t_num_agree(Binop_f((fop : Binop_f)), t) == is_float_t_num(t)
+binop_t_num_agree(Binop_i((iop : Binop_i)), (t : T_num)) == is_int_t_num(t)
+&& binop_t_num_agree(Binop_f((fop : Binop_f)), (t : T_num)) == is_float_t_num(t)
 ```
 
 definition `relop_t_num_agree`
 
 ```
-relop_t_num_agree(Relop_i((iop : Relop_i)), (t : T_num)) == is_int_t_num(t) && relop_t_num_agree(Relop_f((fop : Relop_f)), t) == is_float_t_num(t)
+relop_t_num_agree(Relop_i((iop : Relop_i)), (t : T_num)) == is_int_t_num(t)
+&& relop_t_num_agree(Relop_f((fop : Relop_f)), (t : T_num)) == is_float_t_num(t)
 ```
 
 ## Applying operators
@@ -1287,25 +1374,39 @@ relop_t_num_agree(Relop_i((iop : Relop_i)), (t : T_num)) == is_int_t_num(t) && r
 definition `app_unop_i`
 
 ```
-app_unop_i(Ctz, (c : Word[N])) == int_ctz(c) && app_unop_i(Clz, c) == int_clz(c) && app_unop_i(Popcnt, c) == int_popcnt(c)
+app_unop_i(Ctz, (c : Word[N])) == int_ctz(c)
+&& app_unop_i(Clz, (c : Word[N])) == int_clz(c)
+&& app_unop_i(Popcnt, (c : Word[N])) == int_popcnt(c)
 ```
 
 definition `app_unop_i_v`
 
 ```
-app_unop_i_v((iop : Unop_i), ConstInt32((c1 : W32))) == ConstInt32(app_unop_i(iop, c1)) && app_unop_i_v(iop, ConstInt64((c2 : W64))) == ConstInt64(app_unop_i(iop, c2)) && app_unop_i_v(iop, ConstFloat32((c3 : F32))) == ConstFloat32(c3) && app_unop_i_v(iop, ConstFloat64((c4 : F64))) == ConstFloat64(c4)
+app_unop_i_v((iop : Unop_i), ConstInt32((c1 : W32))) == ConstInt32(app_unop_i(iop, c1))
+&& app_unop_i_v((iop : Unop_i), ConstInt64((c2 : W64))) == ConstInt64(app_unop_i(iop, c2))
+&& app_unop_i_v((iop : Unop_i), ConstFloat32((c3 : F32))) == ConstFloat32(c3)
+&& app_unop_i_v((iop : Unop_i), ConstFloat64((c4 : F64))) == ConstFloat64(c4)
 ```
 
 definition `app_unop_f`
 
 ```
-app_unop_f(Neg, (c : A)) == float_neg(c) && app_unop_f(Abs, c) == float_abs(c) && app_unop_f(Ceil, c) == float_ceil(c) && app_unop_f(Floor, c) == float_floor(c) && app_unop_f(Trunc, c) == float_trunc(c) && app_unop_f(Nearest, c) == float_nearest(c) && app_unop_f(Sqrt, c) == float_sqrt(c)
+app_unop_f(Neg, (c : A)) == float_neg(c)
+&& app_unop_f(Abs, (c : A)) == float_abs(c)
+&& app_unop_f(Ceil, (c : A)) == float_ceil(c)
+&& app_unop_f(Floor, (c : A)) == float_floor(c)
+&& app_unop_f(Trunc, (c : A)) == float_trunc(c)
+&& app_unop_f(Nearest, (c : A)) == float_nearest(c)
+&& app_unop_f(Sqrt, (c : A)) == float_sqrt(c)
 ```
 
 definition `app_unop_f_v`
 
 ```
-app_unop_f_v((fop : Unop_f), ConstFloat32((c3 : F32))) == ConstFloat32(app_unop_f(fop, c3)) && app_unop_f_v(fop, ConstFloat64((c4 : F64))) == ConstFloat64(app_unop_f(fop, c4)) && app_unop_f_v(fop, ConstInt32((c1 : W32))) == ConstInt32(c1) && app_unop_f_v(fop, ConstInt64((c2 : W64))) == ConstInt64(c2)
+app_unop_f_v((fop : Unop_f), ConstFloat32((c3 : F32))) == ConstFloat32(app_unop_f(fop, c3))
+&& app_unop_f_v((fop : Unop_f), ConstFloat64((c4 : F64))) == ConstFloat64(app_unop_f(fop, c4))
+&& app_unop_f_v((fop : Unop_f), ConstInt32((c1 : W32))) == ConstInt32(c1)
+&& app_unop_f_v((fop : Unop_f), ConstInt64((c2 : W64))) == ConstInt64(c2)
 ```
 
 definition `app_extend_s`
@@ -1317,13 +1418,29 @@ app_extend_s((tp : Tp_num), (v : V_num)) == wasm_deserialise_num(sign_extend(S, 
 definition `app_unop`
 
 ```
-app_unop(Unop_i((iop : Unop_i)), (v : V_num)) == app_unop_i_v(iop, v) && app_unop(Unop_f((fop : Unop_f)), v) == app_unop_f_v(fop, v) && app_unop(Extend_s((tp : Tp_num)), v) == app_extend_s(tp, v)
+app_unop(Unop_i((iop : Unop_i)), (v : V_num)) == app_unop_i_v(iop, v)
+&& app_unop(Unop_f((fop : Unop_f)), (v : V_num)) == app_unop_f_v(fop, v)
+&& app_unop(Extend_s((tp : Tp_num)), (v : V_num)) == app_extend_s(tp, v)
 ```
 
 definition `app_binop_i`
 
 ```
-app_binop_i(Add, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_add(c1, c2)) && app_binop_i(Sub, c1, c2) == SOME(word_sub(c1, c2)) && app_binop_i(Mul, c1, c2) == SOME(word_mul(c1, c2)) && app_binop_i(Div(U), c1, c2) == int_div_u(c1, c2) && app_binop_i(Div(S), c1, c2) == int_div_s(c1, c2) && app_binop_i(Rem(U), c1, c2) == int_rem_u(c1, c2) && app_binop_i(Rem(S), c1, c2) == int_rem_s(c1, c2) && app_binop_i(And, c1, c2) == SOME(word_and(c1, c2)) && app_binop_i(Or, c1, c2) == SOME(word_or(c1, c2)) && app_binop_i(Xor, c1, c2) == SOME(word_xor(c1, c2)) && app_binop_i(Shl, c1, c2) == SOME(word_jshl(c1, c2)) && app_binop_i(Shr(U), c1, c2) == SOME(word_jushr(c1, c2)) && app_binop_i(Shr(S), c1, c2) == SOME(word_jshr(c1, c2)) && app_binop_i(Rotl, c1, c2) == SOME(word_jrol(c1, c2)) && app_binop_i(Rotr, c1, c2) == SOME(word_jror(c1, c2))
+app_binop_i(Add, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_add(c1, c2))
+&& app_binop_i(Sub, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_sub(c1, c2))
+&& app_binop_i(Mul, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_mul(c1, c2))
+&& app_binop_i(Div(U), (c1 : Word[N]), (c2 : Word[N])) == int_div_u(c1, c2)
+&& app_binop_i(Div(S), (c1 : Word[N]), (c2 : Word[N])) == int_div_s(c1, c2)
+&& app_binop_i(Rem(U), (c1 : Word[N]), (c2 : Word[N])) == int_rem_u(c1, c2)
+&& app_binop_i(Rem(S), (c1 : Word[N]), (c2 : Word[N])) == int_rem_s(c1, c2)
+&& app_binop_i(And, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_and(c1, c2))
+&& app_binop_i(Or, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_or(c1, c2))
+&& app_binop_i(Xor, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_xor(c1, c2))
+&& app_binop_i(Shl, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_jshl(c1, c2))
+&& app_binop_i(Shr(U), (c1 : Word[N]), (c2 : Word[N])) == SOME(word_jushr(c1, c2))
+&& app_binop_i(Shr(S), (c1 : Word[N]), (c2 : Word[N])) == SOME(word_jshr(c1, c2))
+&& app_binop_i(Rotl, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_jrol(c1, c2))
+&& app_binop_i(Rotr, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_jror(c1, c2))
 ```
 
 definition `app_binop_i_v`
@@ -1335,7 +1452,13 @@ app_binop_i_v((iop : Binop_i), (v1 : V_num), (v2 : V_num)) == match (v1, v2) { (
 definition `app_binop_f`
 
 ```
-app_binop_f(Addf, (c1 : A), (c2 : A)) == SOME(float_add(c1, c2)) && app_binop_f(Subf, c1, c2) == SOME(float_sub(c1, c2)) && app_binop_f(Mulf, c1, c2) == SOME(float_mul(c1, c2)) && app_binop_f(Divf, c1, c2) == SOME(float_div(c1, c2)) && app_binop_f(Min, c1, c2) == SOME(float_min(c1, c2)) && app_binop_f(Max, c1, c2) == SOME(float_max(c1, c2)) && app_binop_f(Copysign, c1, c2) == SOME(float_copysign(c1, c2))
+app_binop_f(Addf, (c1 : A), (c2 : A)) == SOME(float_add(c1, c2))
+&& app_binop_f(Subf, (c1 : A), (c2 : A)) == SOME(float_sub(c1, c2))
+&& app_binop_f(Mulf, (c1 : A), (c2 : A)) == SOME(float_mul(c1, c2))
+&& app_binop_f(Divf, (c1 : A), (c2 : A)) == SOME(float_div(c1, c2))
+&& app_binop_f(Min, (c1 : A), (c2 : A)) == SOME(float_min(c1, c2))
+&& app_binop_f(Max, (c1 : A), (c2 : A)) == SOME(float_max(c1, c2))
+&& app_binop_f(Copysign, (c1 : A), (c2 : A)) == SOME(float_copysign(c1, c2))
 ```
 
 definition `app_binop_f_v`
@@ -1347,7 +1470,8 @@ app_binop_f_v((fop : Binop_f), (v1 : V_num), (v2 : V_num)) == match (v1, v2) { (
 definition `app_binop`
 
 ```
-app_binop(Binop_i((iop : Binop_i)), (v1 : V_num), (v2 : V_num)) == app_binop_i_v(iop, v1, v2) && app_binop(Binop_f((fop : Binop_f)), v1, v2) == app_binop_f_v(fop, v1, v2)
+app_binop(Binop_i((iop : Binop_i)), (v1 : V_num), (v2 : V_num)) == app_binop_i_v(iop, v1, v2)
+&& app_binop(Binop_f((fop : Binop_f)), (v1 : V_num), (v2 : V_num)) == app_binop_f_v(fop, v1, v2)
 ```
 
 definition `app_testop_i`
@@ -1359,13 +1483,25 @@ app_testop_i(Eqz, (c : Word[N])) == int_eqz(c)
 definition `app_testop`
 
 ```
-app_testop((op : Testop), ConstInt32((c1 : W32))) == ConstInt32(wasm_bool(app_testop_i(op, c1))) && app_testop(op, ConstInt64((c2 : W64))) == ConstInt32(wasm_bool(app_testop_i(op, c2))) && app_testop(op, ConstFloat32((c3 : F32))) == ConstInt32(word(0)) && app_testop(op, ConstFloat64((c4 : F64))) == ConstInt32(word(0))
+app_testop((op : Testop), ConstInt32((c1 : W32))) == ConstInt32(wasm_bool(app_testop_i(op, c1)))
+&& app_testop((op : Testop), ConstInt64((c2 : W64))) == ConstInt32(wasm_bool(app_testop_i(op, c2)))
+&& app_testop((op : Testop), ConstFloat32((c3 : F32))) == ConstInt32(word(0))
+&& app_testop((op : Testop), ConstFloat64((c4 : F64))) == ConstInt32(word(0))
 ```
 
 definition `app_relop_i`
 
 ```
-app_relop_i(Eq, (c1 : Word[N]), (c2 : Word[N])) == (c1 == c2) && app_relop_i(Ne, c1, c2) == !(c1 == c2) && app_relop_i(Lt(U), c1, c2) == word_ult(c1, c2) && app_relop_i(Lt(S), c1, c2) == word_ilt(c1, c2) && app_relop_i(Gt(U), c1, c2) == word_ugt(c1, c2) && app_relop_i(Gt(S), c1, c2) == word_igt(c1, c2) && app_relop_i(Le(U), c1, c2) == word_ule(c1, c2) && app_relop_i(Le(S), c1, c2) == word_ile(c1, c2) && app_relop_i(Ge(U), c1, c2) == word_uge(c1, c2) && app_relop_i(Ge(S), c1, c2) == word_ige(c1, c2)
+app_relop_i(Eq, (c1 : Word[N]), (c2 : Word[N])) == (c1 == c2)
+&& app_relop_i(Ne, (c1 : Word[N]), (c2 : Word[N])) == !(c1 == c2)
+&& app_relop_i(Lt(U), (c1 : Word[N]), (c2 : Word[N])) == word_ult(c1, c2)
+&& app_relop_i(Lt(S), (c1 : Word[N]), (c2 : Word[N])) == word_ilt(c1, c2)
+&& app_relop_i(Gt(U), (c1 : Word[N]), (c2 : Word[N])) == word_ugt(c1, c2)
+&& app_relop_i(Gt(S), (c1 : Word[N]), (c2 : Word[N])) == word_igt(c1, c2)
+&& app_relop_i(Le(U), (c1 : Word[N]), (c2 : Word[N])) == word_ule(c1, c2)
+&& app_relop_i(Le(S), (c1 : Word[N]), (c2 : Word[N])) == word_ile(c1, c2)
+&& app_relop_i(Ge(U), (c1 : Word[N]), (c2 : Word[N])) == word_uge(c1, c2)
+&& app_relop_i(Ge(S), (c1 : Word[N]), (c2 : Word[N])) == word_ige(c1, c2)
 ```
 
 definition `app_relop_i_v`
@@ -1377,7 +1513,12 @@ app_relop_i_v((iop : Relop_i), (v1 : V_num), (v2 : V_num)) == match (v1, v2) { (
 definition `app_relop_f`
 
 ```
-app_relop_f(Eqf, (c1 : A), (c2 : A)) == float_eq(c1, c2) && app_relop_f(Nef, c1, c2) == !float_eq(c1, c2) && app_relop_f(Ltf, c1, c2) == float_lt(c1, c2) && app_relop_f(Gtf, c1, c2) == float_gt(c1, c2) && app_relop_f(Lef, c1, c2) == float_le(c1, c2) && app_relop_f(Gef, c1, c2) == float_ge(c1, c2)
+app_relop_f(Eqf, (c1 : A), (c2 : A)) == float_eq(c1, c2)
+&& app_relop_f(Nef, (c1 : A), (c2 : A)) == !float_eq(c1, c2)
+&& app_relop_f(Ltf, (c1 : A), (c2 : A)) == float_lt(c1, c2)
+&& app_relop_f(Gtf, (c1 : A), (c2 : A)) == float_gt(c1, c2)
+&& app_relop_f(Lef, (c1 : A), (c2 : A)) == float_le(c1, c2)
+&& app_relop_f(Gef, (c1 : A), (c2 : A)) == float_ge(c1, c2)
 ```
 
 definition `app_relop_f_v`
@@ -1389,7 +1530,8 @@ app_relop_f_v((fop : Relop_f), (v1 : V_num), (v2 : V_num)) == match (v1, v2) { (
 definition `app_relop`
 
 ```
-app_relop(Relop_i((iop : Relop_i)), (v1 : V_num), (v2 : V_num)) == app_relop_i_v(iop, v1, v2) && app_relop(Relop_f((fop : Relop_f)), v1, v2) == app_relop_f_v(fop, v1, v2)
+app_relop(Relop_i((iop : Relop_i)), (v1 : V_num), (v2 : V_num)) == app_relop_i_v(iop, v1, v2)
+&& app_relop(Relop_f((fop : Relop_f)), (v1 : V_num), (v2 : V_num)) == app_relop_f_v(fop, v1, v2)
 ```
 
 ## Vector operators
@@ -1451,7 +1593,12 @@ lane_bytes((sv : Shape_vec), (i : Num), (vv : V_vec)) == take(vec_length(sv), dr
 definition `app_extract_vec`
 
 ```
-app_extract_vec(Svi(I8_16), (sx : Sx), (i : Num), (vv : V_vec)) == ConstInt32(deserialise_i32(sign_extend(sx, 4, lane_bytes(Svi(I8_16), i, vv)))) && app_extract_vec(Svi(I16_8), sx, i, vv) == ConstInt32(deserialise_i32(sign_extend(sx, 4, lane_bytes(Svi(I16_8), i, vv)))) && app_extract_vec(Svi(I32_4), sx, i, vv) == ConstInt32(deserialise_i32(lane_bytes(Svi(I32_4), i, vv))) && app_extract_vec(Svi(I64_2), sx, i, vv) == ConstInt64(deserialise_i64(lane_bytes(Svi(I64_2), i, vv))) && app_extract_vec(Svf(F32_4), sx, i, vv) == ConstFloat32(deserialise_f32(lane_bytes(Svf(F32_4), i, vv))) && app_extract_vec(Svf(F64_2), sx, i, vv) == ConstFloat64(deserialise_f64(lane_bytes(Svf(F64_2), i, vv)))
+app_extract_vec(Svi(I8_16), (sx : Sx), (i : Num), (vv : V_vec)) == ConstInt32(deserialise_i32(sign_extend(sx, 4, lane_bytes(Svi(I8_16), i, vv))))
+&& app_extract_vec(Svi(I16_8), (sx : Sx), (i : Num), (vv : V_vec)) == ConstInt32(deserialise_i32(sign_extend(sx, 4, lane_bytes(Svi(I16_8), i, vv))))
+&& app_extract_vec(Svi(I32_4), (sx : Sx), (i : Num), (vv : V_vec)) == ConstInt32(deserialise_i32(lane_bytes(Svi(I32_4), i, vv)))
+&& app_extract_vec(Svi(I64_2), (sx : Sx), (i : Num), (vv : V_vec)) == ConstInt64(deserialise_i64(lane_bytes(Svi(I64_2), i, vv)))
+&& app_extract_vec(Svf(F32_4), (sx : Sx), (i : Num), (vv : V_vec)) == ConstFloat32(deserialise_f32(lane_bytes(Svf(F32_4), i, vv)))
+&& app_extract_vec(Svf(F64_2), (sx : Sx), (i : Num), (vv : V_vec)) == ConstFloat64(deserialise_f64(lane_bytes(Svf(F64_2), i, vv)))
 ```
 
 definition `app_replace_vec`
@@ -1463,7 +1610,8 @@ app_replace_vec((sv : Shape_vec), (i : Num), (vv : V_vec), (vn : V_num)) == Cons
 definition `read_bytes_vec`
 
 ```
-read_bytes_vec(0, (len : Num), (sx : Sx), (m : (Limit_t, List[Byte])), (ind : Num)) == NIL && read_bytes_vec(SUC((n : Num)), len, sx, m, ind) == APPEND(sign_extend(sx, len * 2, read_bytes(m, ind, len)), read_bytes_vec(n, len, sx, m, ind + len))
+read_bytes_vec(0, (len : Num), (sx : Sx), (m : (Limit_t, List[Byte])), (ind : Num)) == NIL
+&& read_bytes_vec(SUC((n : Num)), (len : Num), (sx : Sx), (m : (Limit_t, List[Byte])), (ind : Num)) == APPEND(sign_extend(sx, len * 2, read_bytes(m, ind, len)), read_bytes_vec(n, len, sx, m, ind + len))
 ```
 
 definition `load_packed_vec`
@@ -1475,7 +1623,11 @@ load_packed_vec((tp : Tp_vec), (sx : Sx), (m : (Limit_t, List[Byte])), (n : Num)
 definition `load_vec`
 
 ```
-load_vec(Load_128, (m : (Limit_t, List[Byte])), (n : Num), (off : Num)) == load(m, n, off, t_vec_length(T_v128)) && load_vec(Load_packed_vec((tp : Tp_vec), (sx : Sx)), m, n, off) == load_packed_vec(tp, sx, m, n, off) && load_vec(Load_32_zero, m, n, off) == map_option((bs : List[Byte]) => bytes_takefill(zero_byte, t_vec_length(T_v128), bs), load(m, n, off, 4)) && load_vec(Load_64_zero, m, n, off) == map_option((bs : List[Byte]) => bytes_takefill(zero_byte, t_vec_length(T_v128), bs), load(m, n, off, 8)) && load_vec(Load_splat((svi : Shape_vec_i)), m, n, off) == map_option((bs : List[Byte]) => concat(REPLICATE(vec_i_num(svi), bs)), load(m, n, off, vec_i_length(svi)))
+load_vec(Load_128, (m : (Limit_t, List[Byte])), (n : Num), (off : Num)) == load(m, n, off, t_vec_length(T_v128))
+&& load_vec(Load_packed_vec((tp : Tp_vec), (sx : Sx)), (m : (Limit_t, List[Byte])), (n : Num), (off : Num)) == load_packed_vec(tp, sx, m, n, off)
+&& load_vec(Load_32_zero, (m : (Limit_t, List[Byte])), (n : Num), (off : Num)) == map_option((bs : List[Byte]) => bytes_takefill(zero_byte, t_vec_length(T_v128), bs), load(m, n, off, 4))
+&& load_vec(Load_64_zero, (m : (Limit_t, List[Byte])), (n : Num), (off : Num)) == map_option((bs : List[Byte]) => bytes_takefill(zero_byte, t_vec_length(T_v128), bs), load(m, n, off, 8))
+&& load_vec(Load_splat((svi : Shape_vec_i)), (m : (Limit_t, List[Byte])), (n : Num), (off : Num)) == map_option((bs : List[Byte]) => concat(REPLICATE(vec_i_num(svi), bs)), load(m, n, off, vec_i_length(svi)))
 ```
 
 definition `insert_lane_vec`
@@ -1487,7 +1639,8 @@ insert_lane_vec((svi : Shape_vec_i), (i : Num), (bs : List[Byte]), (v : V128)) =
 definition `store_serialise_vec`
 
 ```
-store_serialise_vec(Store_128, (v : V128)) == serialise_v128(v) && store_serialise_vec(Store_lane((svi : Shape_vec_i), (i : Num)), v) == take(vec_i_length(svi), drop(i * vec_i_length(svi), serialise_v128(v)))
+store_serialise_vec(Store_128, (v : V128)) == serialise_v128(v)
+&& store_serialise_vec(Store_lane((svi : Shape_vec_i), (i : Num)), (v : V128)) == take(vec_i_length(svi), drop(i * vec_i_length(svi), serialise_v128(v)))
 ```
 
 ## Numeric conversions
@@ -1495,31 +1648,46 @@ store_serialise_vec(Store_128, (v : V128)) == serialise_v128(v) && store_seriali
 definition `cvt_i32`
 
 ```
-cvt_i32((sat_sx : Option[(Sat, Sx)]), ConstInt32((c1 : W32))) == NONE && cvt_i32(sat_sx, ConstInt64((c2 : W64))) == SOME(wasm_wrap(c2)) && cvt_i32(sat_sx, ConstFloat32((c3 : F32))) == match sat_sx { SOME((Nonsat, U)) => ui32_trunc_f32(c3); SOME((Nonsat, S)) => si32_trunc_f32(c3); SOME((Sat, U)) => SOME(ui32_trunc_sat_f32(c3)); SOME((Sat, S)) => SOME(si32_trunc_sat_f32(c3)); NONE => NONE } && cvt_i32(sat_sx, ConstFloat64((c4 : F64))) == match sat_sx { SOME((Nonsat, U)) => ui32_trunc_f64(c4); SOME((Nonsat, S)) => si32_trunc_f64(c4); SOME((Sat, U)) => SOME(ui32_trunc_sat_f64(c4)); SOME((Sat, S)) => SOME(si32_trunc_sat_f64(c4)); NONE => NONE }
+cvt_i32((sat_sx : Option[(Sat, Sx)]), ConstInt32((c1 : W32))) == NONE
+&& cvt_i32((sat_sx : Option[(Sat, Sx)]), ConstInt64((c2 : W64))) == SOME(wasm_wrap(c2))
+&& cvt_i32((sat_sx : Option[(Sat, Sx)]), ConstFloat32((c3 : F32))) == match sat_sx { SOME((Nonsat, U)) => ui32_trunc_f32(c3); SOME((Nonsat, S)) => si32_trunc_f32(c3); SOME((Sat, U)) => SOME(ui32_trunc_sat_f32(c3)); SOME((Sat, S)) => SOME(si32_trunc_sat_f32(c3)); NONE => NONE }
+&& cvt_i32((sat_sx : Option[(Sat, Sx)]), ConstFloat64((c4 : F64))) == match sat_sx { SOME((Nonsat, U)) => ui32_trunc_f64(c4); SOME((Nonsat, S)) => si32_trunc_f64(c4); SOME((Sat, U)) => SOME(ui32_trunc_sat_f64(c4)); SOME((Sat, S)) => SOME(si32_trunc_sat_f64(c4)); NONE => NONE }
 ```
 
 definition `cvt_i64`
 
 ```
-cvt_i64((sat_sx : Option[(Sat, Sx)]), ConstInt32((c1 : W32))) == match sat_sx { SOME((x1, U)) => SOME(wasm_extend_u(c1)); SOME((x2, S)) => SOME(wasm_extend_s(c1)); NONE => NONE } && cvt_i64(sat_sx, ConstInt64((c2 : W64))) == NONE && cvt_i64(sat_sx, ConstFloat32((c3 : F32))) == match sat_sx { SOME((Nonsat, U)) => ui64_trunc_f32(c3); SOME((Nonsat, S)) => si64_trunc_f32(c3); SOME((Sat, U)) => SOME(ui64_trunc_sat_f32(c3)); SOME((Sat, S)) => SOME(si64_trunc_sat_f32(c3)); NONE => NONE } && cvt_i64(sat_sx, ConstFloat64((c4 : F64))) == match sat_sx { SOME((Nonsat, U)) => ui64_trunc_f64(c4); SOME((Nonsat, S)) => si64_trunc_f64(c4); SOME((Sat, U)) => SOME(ui64_trunc_sat_f64(c4)); SOME((Sat, S)) => SOME(si64_trunc_sat_f64(c4)); NONE => NONE }
+cvt_i64((sat_sx : Option[(Sat, Sx)]), ConstInt32((c1 : W32))) == match sat_sx { SOME((x1, U)) => SOME(wasm_extend_u(c1)); SOME((x2, S)) => SOME(wasm_extend_s(c1)); NONE => NONE }
+&& cvt_i64((sat_sx : Option[(Sat, Sx)]), ConstInt64((c2 : W64))) == NONE
+&& cvt_i64((sat_sx : Option[(Sat, Sx)]), ConstFloat32((c3 : F32))) == match sat_sx { SOME((Nonsat, U)) => ui64_trunc_f32(c3); SOME((Nonsat, S)) => si64_trunc_f32(c3); SOME((Sat, U)) => SOME(ui64_trunc_sat_f32(c3)); SOME((Sat, S)) => SOME(si64_trunc_sat_f32(c3)); NONE => NONE }
+&& cvt_i64((sat_sx : Option[(Sat, Sx)]), ConstFloat64((c4 : F64))) == match sat_sx { SOME((Nonsat, U)) => ui64_trunc_f64(c4); SOME((Nonsat, S)) => si64_trunc_f64(c4); SOME((Sat, U)) => SOME(ui64_trunc_sat_f64(c4)); SOME((Sat, S)) => SOME(si64_trunc_sat_f64(c4)); NONE => NONE }
 ```
 
 definition `cvt_f32`
 
 ```
-cvt_f32((sat_sx : Option[(_, Sx)]), ConstInt32((c1 : W32))) == match sat_sx { SOME((x1, U)) => SOME(f32_convert_ui32(c1)); SOME((x2, S)) => SOME(f32_convert_si32(c1)); NONE => NONE } && cvt_f32(sat_sx, ConstInt64((c2 : W64))) == match sat_sx { SOME((x1, U)) => SOME(f32_convert_ui64(c2)); SOME((x2, S)) => SOME(f32_convert_si64(c2)); NONE => NONE } && cvt_f32(sat_sx, ConstFloat32((c3 : F32))) == NONE && cvt_f32(sat_sx, ConstFloat64((c4 : F64))) == SOME(wasm_demote(c4))
+cvt_f32((sat_sx : Option[(_, Sx)]), ConstInt32((c1 : W32))) == match sat_sx { SOME((x1, U)) => SOME(f32_convert_ui32(c1)); SOME((x2, S)) => SOME(f32_convert_si32(c1)); NONE => NONE }
+&& cvt_f32((sat_sx : Option[(_, Sx)]), ConstInt64((c2 : W64))) == match sat_sx { SOME((x1, U)) => SOME(f32_convert_ui64(c2)); SOME((x2, S)) => SOME(f32_convert_si64(c2)); NONE => NONE }
+&& cvt_f32((sat_sx : Option[(_, Sx)]), ConstFloat32((c3 : F32))) == NONE
+&& cvt_f32((sat_sx : Option[(_, Sx)]), ConstFloat64((c4 : F64))) == SOME(wasm_demote(c4))
 ```
 
 definition `cvt_f64`
 
 ```
-cvt_f64((sat_sx : Option[(_, Sx)]), ConstInt32((c1 : W32))) == match sat_sx { SOME((x1, U)) => SOME(f64_convert_ui32(c1)); SOME((x2, S)) => SOME(f64_convert_si32(c1)); NONE => NONE } && cvt_f64(sat_sx, ConstInt64((c2 : W64))) == match sat_sx { SOME((x1, U)) => SOME(f64_convert_ui64(c2)); SOME((x2, S)) => SOME(f64_convert_si64(c2)); NONE => NONE } && cvt_f64(sat_sx, ConstFloat32((c3 : F32))) == SOME(wasm_promote(c3)) && cvt_f64(sat_sx, ConstFloat64((c4 : F64))) == NONE
+cvt_f64((sat_sx : Option[(_, Sx)]), ConstInt32((c1 : W32))) == match sat_sx { SOME((x1, U)) => SOME(f64_convert_ui32(c1)); SOME((x2, S)) => SOME(f64_convert_si32(c1)); NONE => NONE }
+&& cvt_f64((sat_sx : Option[(_, Sx)]), ConstInt64((c2 : W64))) == match sat_sx { SOME((x1, U)) => SOME(f64_convert_ui64(c2)); SOME((x2, S)) => SOME(f64_convert_si64(c2)); NONE => NONE }
+&& cvt_f64((sat_sx : Option[(_, Sx)]), ConstFloat32((c3 : F32))) == SOME(wasm_promote(c3))
+&& cvt_f64((sat_sx : Option[(_, Sx)]), ConstFloat64((c4 : F64))) == NONE
 ```
 
 definition `cvt`
 
 ```
-cvt(T_i32, (sat_sx : Option[(Sat, Sx)]), (v : V_num)) == match cvt_i32(sat_sx, v) { SOME(c1) => SOME(ConstInt32(c1)); NONE => NONE } && cvt(T_i64, sat_sx, v) == match cvt_i64(sat_sx, v) { SOME(c2) => SOME(ConstInt64(c2)); NONE => NONE } && cvt(T_f32, sat_sx, v) == match cvt_f32(sat_sx, v) { SOME(c3) => SOME(ConstFloat32(c3)); NONE => NONE } && cvt(T_f64, sat_sx, v) == match cvt_f64(sat_sx, v) { SOME(c4) => SOME(ConstFloat64(c4)); NONE => NONE }
+cvt(T_i32, (sat_sx : Option[(Sat, Sx)]), (v : V_num)) == match cvt_i32(sat_sx, v) { SOME(c1) => SOME(ConstInt32(c1)); NONE => NONE }
+&& cvt(T_i64, (sat_sx : Option[(Sat, Sx)]), (v : V_num)) == match cvt_i64(sat_sx, v) { SOME(c2) => SOME(ConstInt64(c2)); NONE => NONE }
+&& cvt(T_f32, (sat_sx : Option[(Sat, Sx)]), (v : V_num)) == match cvt_f32(sat_sx, v) { SOME(c3) => SOME(ConstFloat32(c3)); NONE => NONE }
+&& cvt(T_f64, (sat_sx : Option[(Sat, Sx)]), (v : V_num)) == match cvt_f64(sat_sx, v) { SOME(c4) => SOME(ConstFloat64(c4)); NONE => NONE }
 ```
 
 definition `wasm_reinterpret`
@@ -1571,19 +1739,24 @@ tab_subtyping(T_tab((lims1 : Limit_t), (tr1 : T_ref)), T_tab((lims2 : Limit_t), 
 definition `cl_type`
 
 ```
-cl_type(Func_native((i : Inst), (tf1 : Tf), (ts : List[Valtype]), (es : List[B_e]))) == tf1 && cl_type(Func_host((tf2 : Tf), (h : Host))) == tf2
+cl_type(Func_native((i : Inst), (tf1 : Tf), (ts : List[Valtype]), (es : List[B_e]))) == tf1
+&& cl_type(Func_host((tf2 : Tf), (h : Host))) == tf2
 ```
 
 definition `tb_tf`
 
 ```
-tb_tf((inst : Inst), Tbf((i : Num))) == EL(i, inst_types(inst)) && tb_tf(inst, Tbv(SOME((t : Valtype)))) == Tf(NIL, [t]) && tb_tf(inst, Tbv(NONE)) == Tf(NIL, NIL)
+tb_tf((inst : Inst), Tbf((i : Num))) == EL(i, inst_types(inst))
+&& tb_tf((inst : Inst), Tbv(SOME((t : Valtype)))) == Tf(NIL, [t])
+&& tb_tf((inst : Inst), Tbv(NONE)) == Tf(NIL, NIL)
 ```
 
 definition `tb_tf_t`
 
 ```
-tb_tf_t((C : T_context), Tbf((i : Num))) == (if i < LENGTH(ctx_types(C)) { SOME(EL(i, ctx_types(C))) } else { NONE }) && tb_tf_t(C, Tbv(SOME((t : Valtype)))) == SOME(Tf(NIL, [t])) && tb_tf_t(C, Tbv(NONE)) == SOME(Tf(NIL, NIL))
+tb_tf_t((C : T_context), Tbf((i : Num))) == (if i < LENGTH(ctx_types(C)) { SOME(EL(i, ctx_types(C))) } else { NONE })
+&& tb_tf_t((C : T_context), Tbv(SOME((t : Valtype)))) == SOME(Tf(NIL, [t]))
+&& tb_tf_t((C : T_context), Tbv(NONE)) == SOME(Tf(NIL, NIL))
 ```
 
 definition `rglob_is_mut`
@@ -1742,7 +1915,9 @@ then
 definition `v_to_e`
 
 ```
-v_to_e(V_num((x : V_num))) == Basic(EConstNum(x)) && v_to_e(V_vec((y : V_vec))) == Basic(EConstVec(y)) && v_to_e(V_ref((r : V_ref))) == Ref(r)
+v_to_e(V_num((x : V_num))) == Basic(EConstNum(x))
+&& v_to_e(V_vec((y : V_vec))) == Basic(EConstVec(y))
+&& v_to_e(V_ref((r : V_ref))) == Ref(r)
 ```
 
 relation `Lfilled`
@@ -1786,19 +1961,25 @@ then
 definition `load_store_t_bounds`
 
 ```
-load_store_t_bounds((a : Num), NONE, (t : T_num)) == (EXP(2, a) <= t_num_length(t)) && load_store_t_bounds(a, SOME((tp : Tp_num)), t) == (EXP(2, a) <= tp_num_length(tp) && tp_num_length(tp) < t_num_length(t) && is_int_t_num(t))
+load_store_t_bounds((a : Num), NONE, (t : T_num)) == (EXP(2, a) <= t_num_length(t))
+&& load_store_t_bounds((a : Num), SOME((tp : Tp_num)), (t : T_num)) == (EXP(2, a) <= tp_num_length(tp) && tp_num_length(tp) < t_num_length(t) && is_int_t_num(t))
 ```
 
 definition `load_vec_t_bounds`
 
 ```
-load_vec_t_bounds(Load_packed_vec((tp : Tp_vec), (sx : Sx)), (a : Num)) == (EXP(2, a) <= tp_vec_length(tp) * tp_vec_num(tp)) && load_vec_t_bounds(Load_splat((svi : Shape_vec_i)), a) == (EXP(2, a) <= vec_i_length(svi)) && load_vec_t_bounds(Load_128, a) == (EXP(2, a) <= t_vec_length(T_v128)) && load_vec_t_bounds(Load_32_zero, a) == (EXP(2, a) <= t_vec_length(T_v128)) && load_vec_t_bounds(Load_64_zero, a) == (EXP(2, a) <= t_vec_length(T_v128))
+load_vec_t_bounds(Load_packed_vec((tp : Tp_vec), (sx : Sx)), (a : Num)) == (EXP(2, a) <= tp_vec_length(tp) * tp_vec_num(tp))
+&& load_vec_t_bounds(Load_splat((svi : Shape_vec_i)), (a : Num)) == (EXP(2, a) <= vec_i_length(svi))
+&& load_vec_t_bounds(Load_128, (a : Num)) == (EXP(2, a) <= t_vec_length(T_v128))
+&& load_vec_t_bounds(Load_32_zero, (a : Num)) == (EXP(2, a) <= t_vec_length(T_v128))
+&& load_vec_t_bounds(Load_64_zero, (a : Num)) == (EXP(2, a) <= t_vec_length(T_v128))
 ```
 
 definition `store_vec_t_bounds`
 
 ```
-store_vec_t_bounds(Store_lane((svi : Shape_vec_i), (i : Num)), (a : Num)) == (i < vec_i_num(svi) && EXP(2, a) <= vec_i_length(svi)) && store_vec_t_bounds(Store_128, a) == (EXP(2, a) <= t_vec_length(T_v128))
+store_vec_t_bounds(Store_lane((svi : Shape_vec_i), (i : Num)), (a : Num)) == (i < vec_i_num(svi) && EXP(2, a) <= vec_i_length(svi))
+&& store_vec_t_bounds(Store_128, (a : Num)) == (EXP(2, a) <= t_vec_length(T_v128))
 ```
 
 ## Typing of basic instructions
@@ -3301,25 +3482,29 @@ is_val((e : Einstr)) == (∃ v : Value, e == v_to_e(v))
 definition `lfill`
 
 ```
-lfill(LBase((vs : List[Value]), (rest : List[Einstr])), (es : List[Einstr])) == APPEND(MAP(v_to_e, vs), APPEND(es, rest)) && lfill(LRec(vs, (n : Num), (e0 : List[Einstr]), (l : Lholed), rest), es) == APPEND(MAP(v_to_e, vs), CONS(Label(n, e0, lfill(l, es)), rest))
+lfill(LBase((vs : List[Value]), (rest : List[Einstr])), (es : List[Einstr])) == APPEND(MAP(v_to_e, vs), APPEND(es, rest))
+&& lfill(LRec((vs : List[Value]), (n : Num), (e0 : List[Einstr]), (l : Lholed), (rest : List[Einstr])), (es : List[Einstr])) == APPEND(MAP(v_to_e, vs), CONS(Label(n, e0, lfill(l, es)), rest))
 ```
 
 definition `lh_depth`
 
 ```
-lh_depth(LBase((vs : List[Value]), (rest : List[Einstr]))) == 0 && lh_depth(LRec(vs, (n : Num), (e0 : List[Einstr]), (l : Lholed), rest)) == lh_depth(l) + 1
+lh_depth(LBase((vs : List[Value]), (rest : List[Einstr]))) == 0
+&& lh_depth(LRec((vs : List[Value]), (n : Num), (e0 : List[Einstr]), (l : Lholed), (rest : List[Einstr]))) == lh_depth(l) + 1
 ```
 
 definition `lh_wrap`
 
 ```
-lh_wrap((vs : List[Value]), (rest : List[Einstr]), LBase((vs2 : List[Value]), (r2 : List[Einstr]))) == LBase(APPEND(vs, vs2), APPEND(r2, rest)) && lh_wrap(vs, rest, LRec(vs2, (n : Num), (e0 : List[Einstr]), (l : Lholed), r2)) == LRec(APPEND(vs, vs2), n, e0, l, APPEND(r2, rest))
+lh_wrap((vs : List[Value]), (rest : List[Einstr]), LBase((vs2 : List[Value]), (r2 : List[Einstr]))) == LBase(APPEND(vs, vs2), APPEND(r2, rest))
+&& lh_wrap((vs : List[Value]), (rest : List[Einstr]), LRec((vs2 : List[Value]), (n : Num), (e0 : List[Einstr]), (l : Lholed), (r2 : List[Einstr]))) == LRec(APPEND(vs, vs2), n, e0, l, APPEND(r2, rest))
 ```
 
 definition `lh_compose`
 
 ```
-lh_compose(LBase((vs : List[Value]), (rest : List[Einstr])), (l2 : Lholed)) == lh_wrap(vs, rest, l2) && lh_compose(LRec(vs, (n : Num), (e0 : List[Einstr]), (l : Lholed), rest), l2) == LRec(vs, n, e0, lh_compose(l, l2), rest)
+lh_compose(LBase((vs : List[Value]), (rest : List[Einstr])), (l2 : Lholed)) == lh_wrap(vs, rest, l2)
+&& lh_compose(LRec((vs : List[Value]), (n : Num), (e0 : List[Einstr]), (l : Lholed), (rest : List[Einstr])), (l2 : Lholed)) == LRec(vs, n, e0, lh_compose(l, l2), rest)
 ```
 
 definition `last_redex`
@@ -3978,7 +4163,14 @@ lemma `is_val_basic`
 lemma `is_val_clauses`
 
 ```
-(∀ x : V_num, is_val(Basic(EConstNum(x)))) && (∀ y : V_vec, is_val(Basic(EConstVec(y)))) && (∀ r : V_ref, is_val(Ref(r))) && !is_val(Trap) && (∀ i : Num, !is_val(Invoke(i))) && (∀ n : Num, ∀ es : List[Einstr], ∀ les : List[Einstr], !is_val(Label(n, es, les))) && (∀ n : Num, ∀ f : Wframe, ∀ es : List[Einstr], !is_val(Frame(n, f, es))) && (∀ v : Value, is_val(v_to_e(v)))
+∀ x : V_num, is_val(Basic(EConstNum(x)))
+&& ∀ y : V_vec, is_val(Basic(EConstVec(y)))
+&& ∀ r : V_ref, is_val(Ref(r))
+&& !is_val(Trap)
+&& ∀ i : Num, !is_val(Invoke(i))
+&& ∀ n : Num, ∀ es : List[Einstr], ∀ les : List[Einstr], !is_val(Label(n, es, les))
+&& ∀ n : Num, ∀ f : Wframe, ∀ es : List[Einstr], !is_val(Frame(n, f, es))
+&& ∀ v : Value, is_val(v_to_e(v))
 ```
 
 lemma `append_eq_sing`

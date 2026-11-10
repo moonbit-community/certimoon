@@ -52,6 +52,7 @@ import {
   "bobzhang/hol_light/library/bdd",
   "bobzhang/hol_light/library/words",
   "moonbitlang/core/list",
+  "moonbitlang/core/json",
 }
 
 import {

@@ -27,7 +27,8 @@ pub fn call_post(String, String, String) -> String
 
 pub fn call_pre(String, String, String) -> String
 
-pub fn def(String, String) -> Unit raise
+#callsite(autofill(loc))
+pub fn def(String, String, loc~ : SourceLoc) -> Unit raise
 
 pub fn eq_of(@kernel.Term, String) -> Bool
 
@@ -41,15 +42,19 @@ pub let heap : String
 
 pub let hprop : String
 
-pub fn lemma(String, String, ((@list.List[(String, @kernel.Thm)], @kernel.Term)) -> ((@list.List[@kernel.Term], (@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)])), @list.List[(@list.List[(String, @kernel.Thm)], @kernel.Term)], ((@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)]), @list.List[@kernel.Thm]) -> @kernel.Thm raise) raise) -> @kernel.Thm raise
+#callsite(autofill(loc))
+pub fn lemma(String, String, ((@list.List[(String, @kernel.Thm)], @kernel.Term)) -> ((@list.List[@kernel.Term], (@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)])), @list.List[(@list.List[(String, @kernel.Thm)], @kernel.Term)], ((@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)]), @list.List[@kernel.Thm]) -> @kernel.Thm raise) raise, loc~ : SourceLoc) -> @kernel.Thm raise
 
 pub fn listing() -> String
+
+pub fn listing_json() -> String
 
 pub fn load() -> Unit
 
 pub fn names() -> Array[String]
 
-pub fn record(String, @kernel.Thm, kind? : String) -> Unit
+#callsite(autofill(loc))
+pub fn record(String, @kernel.Thm, kind? : String, loc~ : SourceLoc) -> Unit
 
 pub let rty : String
 
@@ -77,7 +82,8 @@ pub fn subst_only(String) -> ((@list.List[(String, @kernel.Thm)], @kernel.Term))
 
 pub fn subst_vars() -> ((@list.List[(String, @kernel.Thm)], @kernel.Term)) -> ((@list.List[@kernel.Term], (@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)])), @list.List[(@list.List[(String, @kernel.Thm)], @kernel.Term)], ((@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)]), @list.List[@kernel.Thm]) -> @kernel.Thm raise) raise
 
-pub fn sym_prove(String, String, Array[String], Array[((@list.List[(String, @kernel.Thm)], @kernel.Term)) -> ((@list.List[@kernel.Term], (@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)])), @list.List[(@list.List[(String, @kernel.Thm)], @kernel.Term)], ((@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)]), @list.List[@kernel.Thm]) -> @kernel.Thm raise) raise], afters? : Array[String], rules? : Array[String], rws? : Array[@kernel.Thm], specs? : Array[@kernel.Thm], calls? : Array[(Int32, Array[String])], kind? : String) -> @kernel.Thm raise
+#callsite(autofill(loc))
+pub fn sym_prove(String, String, Array[String], Array[((@list.List[(String, @kernel.Thm)], @kernel.Term)) -> ((@list.List[@kernel.Term], (@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)])), @list.List[(@list.List[(String, @kernel.Thm)], @kernel.Term)], ((@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)]), @list.List[@kernel.Thm]) -> @kernel.Thm raise) raise], afters? : Array[String], rules? : Array[String], rws? : Array[@kernel.Thm], specs? : Array[@kernel.Thm], calls? : Array[(Int32, Array[String])], kind? : String, loc~ : SourceLoc) -> @kernel.Thm raise
 
 pub fn thm(String) -> @kernel.Thm
 
