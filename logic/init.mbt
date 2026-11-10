@@ -23,6 +23,9 @@ pub fn load() -> Unit {
   @theory.begin_theory("WasmLogic")
   in_load.val = true
   (fn() raise {
+    section("Lists and words (facts.mbt)")
+    prove_list_facts()
+    prove_word_facts()
     section("Heaps and separating conjunction (heap.mbt)")
     define_heap()
     prove_heap()

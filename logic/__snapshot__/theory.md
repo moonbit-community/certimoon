@@ -8,6 +8,151 @@ A program (`program`) is a constant defined as a list of instructions; its entry
 
 A statement is laid out as `∀ (x y : T) (z : U)`, its variables grouped by type; then, if it has hypotheses, `if` and the numbered hypotheses H1, ..., Hn and `then` and the conclusion C, with `or` between alternatives and `&&` before each further conjunct (as between a definition's equations). It stands for `∀ x y z, H1 && ... && Hn → C`. Each layout is printed from the kernel's statement and checked to read back as it (wasm/layout.mbt).
 
+## Lists and words (facts.mbt)
+
+lemma `split_at`
+
+```
+∀ (l : List[A]) (k : Num)
+if
+  1. k < LENGTH(l)
+then
+  ∃ (vi vs : List[A]),
+    LENGTH(vi) == k
+    && l == APPEND(vi, CONS(EL(k, l), vs))
+```
+
+lemma `el_split`
+
+```
+∀ (vi vs : List[A]) (v : A), EL(LENGTH(vi), APPEND(vi, CONS(v, vs))) == v
+```
+
+lemma `list_update_split`
+
+```
+∀ (vi vs : List[A]) (v x : A),
+  list_update(APPEND(vi, CONS(v, vs)), LENGTH(vi), x) == APPEND(vi, CONS(x, vs))
+```
+
+lemma `el_at`
+
+```
+∀ (l vi vs : List[A]) (v : A) (k : Num)
+if
+  1. l == APPEND(vi, CONS(v, vs))
+  2. LENGTH(vi) == k
+then
+  EL(k, l) == v
+```
+
+lemma `update_at`
+
+```
+∀ (l vi vs : List[A]) (v x : A) (k : Num)
+if
+  1. l == APPEND(vi, CONS(v, vs))
+  2. LENGTH(vi) == k
+then
+  list_update(l, k, x) == APPEND(vi, CONS(x, vs))
+```
+
+lemma `nonempty_cons`
+
+```
+∀ (l0 : List[A])
+if
+  1. !(LENGTH(l0) == 0)
+then
+  ∃ (u : A) (U2 : List[A]), l0 == CONS(u, U2)
+```
+
+lemma `snoc_eq`
+
+```
+∀ (suf l : List[A]) (x : A),
+  (APPEND(suf, [x]) == l) == (!(l == NIL) && LAST(l) == x && suf == BUTLAST(l))
+```
+
+lemma `snoc_eq_sym`
+
+```
+∀ (suf l : List[A]) (x : A),
+  (l == APPEND(suf, [x])) == (!(l == NIL) && LAST(l) == x && suf == BUTLAST(l))
+```
+
+lemma `nil_eq_sym`
+
+```
+∀ (l : List[A]), (NIL == l) == (l == NIL)
+```
+
+lemma `snoc_cases`
+
+```
+∀ (l : List[A]), l == NIL || (∃ l2 : List[A], ∃ e : A, l == APPEND(l2, [e]))
+```
+
+lemma `append_len_eq`
+
+```
+∀ (a b c d : List[A])
+if
+  1. APPEND(a, b) == APPEND(c, d)
+  2. LENGTH(b) == LENGTH(d)
+then
+  a == c
+  && b == d
+```
+
+lemma `all_suffix`
+
+```
+∀ (p : (A) -> Bool) (a b c d : List[A])
+if
+  1. APPEND(a, b) == APPEND(c, d)
+  2. ALL(p, APPEND(a, b))
+then
+  ALL(p, d)
+```
+
+lemma `replicate_shift`
+
+```
+∀ (k : Num) (x : A) (l : List[A]),
+  APPEND(REPLICATE(k, x), CONS(x, l)) == APPEND(REPLICATE(SUC(k), x), l)
+```
+
+lemma `val_add_small`
+
+```
+∀ (x : W32) (k : Num)
+if
+  1. val(x) + k < 4294967296
+then
+  val(word_add(x, word(k))) == val(x) + k
+```
+
+lemma `val_add_one`
+
+```
+∀ (i n : W32)
+if
+  1. val(i) < val(n)
+then
+  val(word_add(i, word(1))) == val(i) + 1
+```
+
+lemma `val_sub_one`
+
+```
+∀ (c : W32)
+if
+  1. !(c == word(0))
+then
+  val(word_sub(c, word(1))) == val(c) - 1
+```
+
 ## Heaps and separating conjunction (heap.mbt)
 
 definition `hdisj`
@@ -495,26 +640,6 @@ lemma `is_val_v_to_e`
 ∀ (v : Value), is_val(v_to_e(v))
 ```
 
-lemma `snoc_eq`
-
-```
-∀ (suf l : List[A]) (x : A),
-  (APPEND(suf, [x]) == l) == (!(l == NIL) && LAST(l) == x && suf == BUTLAST(l))
-```
-
-lemma `nil_eq_sym`
-
-```
-∀ (l : List[A]), (NIL == l) == (l == NIL)
-```
-
-lemma `snoc_eq_sym`
-
-```
-∀ (suf l : List[A]) (x : A),
-  (l == APPEND(suf, [x])) == (!(l == NIL) && LAST(l) == x && suf == BUTLAST(l))
-```
-
 lemma `no_trap`
 
 ```
@@ -538,18 +663,6 @@ then
   false
 ```
 
-lemma `append_len_eq`
-
-```
-∀ (a b c d : List[A])
-if
-  1. APPEND(a, b) == APPEND(c, d)
-  2. LENGTH(b) == LENGTH(d)
-then
-  a == c
-  && b == d
-```
-
 lemma `star_pure`
 
 ```
@@ -561,17 +674,6 @@ lemma `star_ex`
 ```
 ∀ (q : (A, Heap) -> Bool) (r : HProp) (h : Heap),
   star((h1 : Heap) => ∃ vs0 : A, q(vs0, h1), r, h) == (∃ vs0 : A, star(q(vs0), r, h))
-```
-
-lemma `all_suffix`
-
-```
-∀ (p : (A) -> Bool) (a b c d : List[A])
-if
-  1. APPEND(a, b) == APPEND(c, d)
-  2. ALL(p, APPEND(a, b))
-then
-  ALL(p, d)
 ```
 
 ## Triples with labels, br (labels.mbt)
@@ -2254,31 +2356,6 @@ lemma `sl_memory_grow`
 ```
 
 ## Locals (locals.mbt)
-
-lemma `split_at`
-
-```
-∀ (l : List[A]) (k : Num)
-if
-  1. k < LENGTH(l)
-then
-  ∃ (vi vs : List[A]),
-    LENGTH(vi) == k
-    && l == APPEND(vi, CONS(EL(k, l), vs))
-```
-
-lemma `el_split`
-
-```
-∀ (vi vs : List[A]) (v : A), EL(LENGTH(vi), APPEND(vi, CONS(v, vs))) == v
-```
-
-lemma `list_update_split`
-
-```
-∀ (vi vs : List[A]) (v x : A),
-  list_update(APPEND(vi, CONS(v, vs)), LENGTH(vi), x) == APPEND(vi, CONS(x, vs))
-```
 
 lemma `f_locs_update_get`
 
@@ -4328,33 +4405,6 @@ example `example_sum`
   sl_triple(st(vs0, [V_num(ConstInt32(n0)), V_num(ConstInt32(acc0))], R), sum_code, st(vs0, [V_num(ConstInt32(word(0))), V_num(ConstInt32(word_add(acc0, word(sum_to(val(n0))))))], R))
 ```
 
-lemma `val_sub_one`
-
-```
-∀ (c : W32)
-if
-  1. !(c == word(0))
-then
-  val(word_sub(c, word(1))) == val(c) - 1
-```
-
-lemma `val_add_four`
-
-```
-∀ (p : W32)
-if
-  1. val(p) + 4 < 4294967296
-then
-  val(word_add(p, word(4))) == val(p) + 4
-```
-
-lemma `replicate_shift`
-
-```
-∀ (k : Num) (x : A) (l : List[A]),
-  APPEND(REPLICATE(k, x), CONS(x, l)) == APPEND(REPLICATE(SUC(k), x), l)
-```
-
 lemma `word_add_val`
 
 ```
@@ -4458,16 +4508,6 @@ lemma `wsum_snoc`
 
 ```
 ∀ (ys : List[W32]) (y : W32), wsum(APPEND(ys, [y])) == word_add(wsum(ys), y)
-```
-
-lemma `val_add_one`
-
-```
-∀ (i n : W32)
-if
-  1. val(i) < val(n)
-then
-  val(word_add(i, word(1))) == val(i) + 1
 ```
 
 lemma `asum_addr`
@@ -4625,12 +4665,6 @@ if
   2. val(e) <= val(x)
 then
   ALL((y : W32) => val(y) <= val(x), APPEND(L, [e]))
-```
-
-lemma `snoc_cases`
-
-```
-∀ (l : List[A]), l == NIL || (∃ l2 : List[A], ∃ e : A, l == APPEND(l2, [e]))
 ```
 
 lemma `list_update_snoc`
@@ -5011,58 +5045,6 @@ definition `rot`
 ```
 rot(NIL) == NIL
 && rot(CONS((g : W32), (t : List[W32]))) == APPEND(t, [g])
-```
-
-lemma `val_pred`
-
-```
-∀ (x : W32)
-if
-  1. 0 < val(x)
-then
-  val(word_sub(x, word(1))) == val(x) - 1
-```
-
-lemma `val_succ`
-
-```
-∀ (x : W32)
-if
-  1. val(x) + 1 < 4294967296
-then
-  val(word_add(x, word(1))) == val(x) + 1
-```
-
-lemma `nonempty_cons`
-
-```
-∀ (l0 : List[A])
-if
-  1. !(LENGTH(l0) == 0)
-then
-  ∃ (u : A) (U2 : List[A]), l0 == CONS(u, U2)
-```
-
-lemma `el_at`
-
-```
-∀ (l vi vs : List[A]) (v : A) (k : Num)
-if
-  1. l == APPEND(vi, CONS(v, vs))
-  2. LENGTH(vi) == k
-then
-  EL(k, l) == v
-```
-
-lemma `update_at`
-
-```
-∀ (l vi vs : List[A]) (v x : A) (k : Num)
-if
-  1. l == APPEND(vi, CONS(v, vs))
-  2. LENGTH(vi) == k
-then
-  list_update(l, k, x) == APPEND(vi, CONS(x, vs))
 ```
 
 lemma `el_mid`

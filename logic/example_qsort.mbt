@@ -62,49 +62,8 @@ fn prove_qsort_lemmas() -> Unit raise {
   let rot = thm("rot")
   let assoc = @lists.append_assoc()
   let lists = [@lists.append(), @lists.append_nil(), @lists.length(), @lists.length_append()]
-  let _ = lemma(
-    "val_pred",
-    "∀ x : \{w}, 0 < val(x) → val(word_sub(x, word(1))) == val(x) - 1",
-    seq([
-      @tactics.gen_tac,
-      @simp.rewrite_tac(ths([@words.val_word_sub_cases(), @words.val_word_1()])),
-      @tactics.disch_tac,
-      have("1 <= val((x : \{w}))", @int.asm_arith_tac),
-      @simp.asm_rewrite_tac(ths([])),
-    ]),
-  )
-  let _ = lemma(
-    "val_succ",
-    "∀ x : \{w}, val(x) + 1 < 4294967296 → val(word_add(x, word(1))) == val(x) + 1",
-    seq([
-      @tactics.gen_tac,
-      @tactics.disch_tac,
-      @simp.rewrite_tac(ths([@words.val_word_add(), @words.val_word(), @words.dimindex_32()])),
-      @tactics.conv_tac(@calc_num.num_reduce_conv),
-      @simp.asm_simp_tac(ths([@arith.mod_lt()])),
-    ]),
-  )
-  let _ = lemma(
-    "nonempty_cons",
-    "∀ l0 : List[A], !(LENGTH(l0) == 0) → (∃ u : A, ∃ U2 : List[A], l0 == CONS(u, U2))",
-    seq([
-      @tactics.gen_tac,
-      @tactics.struct_cases_tac(@bool.ispec(tm("(l0 : List[A])"), @lists.list_cases())),
-      @simp.rewrite_tac(ths([@lists.length(), @lists.cons_11()])),
-      @meson.meson_tac(ths([])),
-    ]),
-  )
-  // EL and list_update at a place written as an APPEND
-  let el_at = lemma(
-    "el_at",
-    "∀ l : List[A], ∀ vi : List[A], ∀ v : A, ∀ vs : List[A], ∀ k : Num, l == APPEND(vi, CONS(v, vs)) && LENGTH(vi) == k → EL(k, l) == v",
-    seq([@tactics.repeat_tac(@tactics.strip_tac), subst_vars(), @tactics.match_accept_tac(thm("el_split"))]),
-  )
-  let upd_at = lemma(
-    "update_at",
-    "∀ l : List[A], ∀ vi : List[A], ∀ v : A, ∀ vs : List[A], ∀ k : Num, ∀ x : A, l == APPEND(vi, CONS(v, vs)) && LENGTH(vi) == k → list_update(l, k, x) == APPEND(vi, CONS(x, vs))",
-    seq([@tactics.repeat_tac(@tactics.strip_tac), subst_vars(), @tactics.match_accept_tac(thm("list_update_split"))]),
-  )
+  let el_at = thm("el_at")
+  let upd_at = thm("update_at")
   // the same list, appended differently
   let same_list = seq([@simp.rewrite_tac(ths([@equal.gsym(assoc)] + lists)), @tactics.try_tac(@int.arith_tac)])
   let by_at = (th : @kernel.Thm, args : Array[String]) => seq([
@@ -282,14 +241,19 @@ let partition_parts : Ref[(String, String, String, @kernel.Thm)?] = Ref::{ val: 
 /// numbers, and equations between words as equations of their values.
 fn qs_words() -> @tactics.Tactic raise {
   let w = w32
+  // val_sub_one's condition !(hi == word(0)) is one about val(hi)
+  let val_eq_0 = @equal.gsym(@words.val_eq_0())
   let fact = (stmt : String, th : String) => @tactics.try_tac(
-    have(stmt, seq([@tactics.match_mp_tac(thm(th)), @int.asm_arith_tac])),
+    have(
+      stmt,
+      seq([@tactics.match_mp_tac(thm(th)), @simp.rewrite_tac(ths([val_eq_0])), @int.asm_arith_tac]),
+    ),
   )
   seq([
-    fact("val(word_sub((hi : \{w}), word(1))) == val(hi) - 1", "val_pred"),
-    fact("val(word_add((i : \{w}), word(1))) == val(i) + 1", "val_succ"),
-    fact("val(word_add((i' : \{w}), word(1))) == val(i') + 1", "val_succ"),
-    fact("val(word_add((j : \{w}), word(1))) == val(j) + 1", "val_succ"),
+    fact("val(word_sub((hi : \{w}), word(1))) == val(hi) - 1", "val_sub_one"),
+    fact("val(word_add((i : \{w}), word(1))) == val(i) + 1", "val_add_small"),
+    fact("val(word_add((i' : \{w}), word(1))) == val(i') + 1", "val_add_small"),
+    fact("val(word_add((j : \{w}), word(1))) == val(j) + 1", "val_add_small"),
     @tactics.rule_assum_tac(@simp.rewrite_rule(ths([@equal.gsym(@words.val_eq()), @words.word_ult_v1(), @arith.not_lt()]))),
     use_eqs(t => eq_of(t, "val(word_")),
   ])
@@ -894,7 +858,7 @@ fn quicksort_vcs() -> Array[@tactics.Tactic] raise {
     // the right part starts after the pivot
     seq([
       split_b,
-      have("val(word_add((i : \{w}), word(1))) == val(i) + 1", seq([@tactics.match_mp_tac(thm("val_succ")), lengths])),
+      have("val(word_add((i : \{w}), word(1))) == val(i) + 1", seq([@tactics.match_mp_tac(thm("val_add_small")), lengths])),
       @simp.asm_rewrite_tac(ths([])),
       lengths,
     ]),

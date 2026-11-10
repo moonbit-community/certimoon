@@ -22,36 +22,6 @@ fn prove_fill_lemmas() -> Unit raise {
   let w = w32
   let val_eq_0 = @equal.gsym(@words.val_eq_0())
   let _ = lemma(
-    "val_sub_one",
-    "∀ c : \{w}, !(c == word(0)) → val(word_sub(c, word(1))) == val(c) - 1",
-    seq([
-      @tactics.gen_tac,
-      @simp.rewrite_tac(ths([val_eq_0, @words.val_word_sub_cases(), @words.val_word_1()])),
-      @tactics.disch_tac,
-      have("1 <= val((c : \{w}))", @int.asm_arith_tac),
-      @simp.asm_rewrite_tac(ths([])),
-    ]),
-  )
-  let _ = lemma(
-    "val_add_four",
-    "∀ p : \{w}, val(p) + 4 < 4294967296 → val(word_add(p, word(4))) == val(p) + 4",
-    seq([
-      @tactics.gen_tac,
-      @tactics.disch_tac,
-      @simp.rewrite_tac(ths([@words.val_word_add(), @words.val_word(), @words.dimindex_32()])),
-      @tactics.conv_tac(@calc_num.num_reduce_conv),
-      @simp.asm_simp_tac(ths([@arith.mod_lt()])),
-    ]),
-  )
-  let _ = lemma(
-    "replicate_shift",
-    "∀ k : Num, ∀ x : A, ∀ l : List[A], APPEND(REPLICATE(k, x), CONS(x, l)) == APPEND(REPLICATE(SUC(k), x), l)",
-    seq([
-      @nums.induct_tac,
-      @simp.asm_rewrite_tac(ths([@lists.replicate(), @lists.append()])),
-    ]),
-  )
-  let _ = lemma(
     "word_add_val",
     "∀ a : \{w}, ∀ b : \{w}, ∀ k : Num, val(a) + 4 == val(b) + k → word_add(a, word(4)) == word_add(b, word(k))",
     seq([
@@ -96,7 +66,7 @@ fn prove_fill_lemmas() -> Unit raise {
           have(
             "val(word_add((p : \{w}), word(4))) == val(p) + 4",
             seq([
-              @tactics.match_mp_tac(thm("val_add_four")),
+              @tactics.match_mp_tac(thm("val_add_small")),
               @int.asm_arith_tac,
             ]),
           ),

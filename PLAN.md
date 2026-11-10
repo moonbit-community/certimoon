@@ -90,6 +90,7 @@ good order to read it in:
 | File | What it has |
 |---|---|
 | defs.mbt, tactics.mbt, listing.mbt | the theorem table (`thm`, `lemma`, `def`, `record`), tactic helpers, the theory listing |
+| facts.mbt | lists and words: EL and list_update at a split (`split_at`, `el_split`, `el_at`), lists ending in x (`snoc_eq`), a word plus or minus a small number (`val_add_small`, `val_sub_one`) |
 | heap.mbt, memory.mbt | heaps, `star`, `pts`; loads and stores against points-to |
 | triple.mbt, seq.mbt | `safe`, `triple`, `sl_triple`, `lift`; consequence, frame, sequencing |
 | rules.mbt | the instruction rules and their pattern (`prove_arities`, `prove_prefix`, `prove_value_rule`) |
@@ -334,8 +335,12 @@ Not planned yet, with what they need:
   trap in any state (`reduce` has a rule from any host invoke to
   `[Trap]`), so no triple of a host call holds. Covering them would mean
   assuming more about the host.
-- A library of list lemmas (sorted, perm, EL and list_update through
-  APPEND) instead of the ones each example proves for itself.
+- More of the examples' list lemmas in facts.mbt: `sorted` and `perm`
+  (defined in example_sort.mbt, with more lemmas in example_qsort.mbt,
+  for lists of words), and `el_mid`-style
+  instances of `el_at`, which a conversion re-associating the APPENDs
+  would make unnecessary. A fact that is not about one program goes in
+  facts.mbt, after checking hol_light's `lists` and `words` for it.
 
 ## Working on it
 

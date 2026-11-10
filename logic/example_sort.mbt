@@ -135,11 +135,6 @@ fn prove_sort_lemmas() -> Unit raise {
     ]),
   )
   let _ = lemma(
-    "snoc_cases",
-    "∀ l : List[A], l == NIL || (∃ l2 : List[A], ∃ e : A, l == APPEND(l2, [e]))",
-    @meson.meson_tac(ths([@lists.append_butlast_last()])),
-  )
-  let _ = lemma(
     "list_update_snoc",
     "∀ l2 : List[A], ∀ e : A, ∀ d : A, ∀ r : List[A], ∀ x : A, list_update(APPEND(l2, CONS(e, CONS(d, r))), SUC(LENGTH(l2)), x) == APPEND(l2, CONS(e, CONS(x, r)))",
     seq([@lists.list_induct_tac, @simp.asm_rewrite_tac(ths([@wasm.thm("list_update"), @lists.append(), @lists.length()]))]),

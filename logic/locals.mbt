@@ -2,65 +2,18 @@
 //
 // Assertions see the locals as f_locs(f), a list of values by index. The
 // reduction rules for local.get and local.set take the locals split at the
-// index, vi ++ [v] ++ vs with LENGTH(vi) = k (split_at); local_get_cases
-// and local_set_cases restate their steps for any frame. local.tee steps
-// to [c, c, local.set k], so its rule comes from sl_const and
-// sl_local_set.
+// index, vi ++ [v] ++ vs with LENGTH(vi) = k (split_at, in facts.mbt);
+// local_get_cases and local_set_cases restate their steps for any frame.
+// local.tee steps to [c, c, local.set k], so its rule comes from sl_const
+// and sl_local_set.
 
 ///|
 fn prove_local_rules() -> Unit raise {
   let s = tm("(s : Wstore)")
   let f = tm("(f : Wframe)")
-  let list = [
-    @lists.length(),
-    @lists.append(),
-    @lists.el(),
-    @lists.hd(),
-    @lists.tl(),
-    @wasm.thm("list_update"),
-    arith("∀ n : Num, !(n < 0)"),
-    arith("∀ n : Num, 0 < SUC(n)"),
-    arith("∀ m : Num, ∀ n : Num, (SUC(m) < SUC(n)) == (m < n)"),
-    arith("∀ m : Num, ∀ n : Num, (SUC(m) == SUC(n)) == (m == n)"),
-  ]
-  let split_at = lemma(
-    "split_at",
-    "∀ l : List[A], ∀ k : Num, k < LENGTH(l) → (∃ vi : List[A], ∃ vs : List[A], LENGTH(vi) == k && l == APPEND(vi, CONS(EL(k, l), vs)))",
-    seq([
-      @lists.list_induct_tac,
-      @tactics.gen_tac,
-      @tactics.struct_cases_tac(@bool.spec(tm("(k : Num)"), @nums.num_cases())),
-      @simp.rewrite_tac(ths(list)),
-      @tactics.first(@list.List([
-        // the first element: vi is empty
-        solve(seq([
-          @tactics.exists_tac(tm("(NIL : List[A])")),
-          @tactics.exists_tac(tm("(t : List[A])")),
-          @simp.rewrite_tac(ths(list)),
-        ])),
-        // a later one: split the tail, and put the head on vi
-        solve(seq([
-          @tactics.disch_tac,
-          @tactics.first_x_assum(ih => @tactics.first_assum(lt => @tactics.mp_tac(@drule.match_mp(ih)(lt)))),
-          @tactics.repeat_tac(@tactics.strip_tac),
-          @tactics.exists_tac(tm("CONS((h : A), (vi : List[A]))")),
-          @tactics.exists_tac(tm("(vs : List[A])")),
-          @simp.rewrite_tac(ths(list + [@lists.cons_11()])),
-          @meson.asm_meson_tac(ths([])),
-        ])),
-      ])),
-    ]),
-  )
-  let el_split = lemma(
-    "el_split",
-    "∀ vi : List[A], ∀ v : A, ∀ vs : List[A], EL(LENGTH(vi), APPEND(vi, CONS(v, vs))) == v",
-    seq([@lists.list_induct_tac, @simp.asm_rewrite_tac(ths(list))]),
-  )
-  let update_split = lemma(
-    "list_update_split",
-    "∀ vi : List[A], ∀ v : A, ∀ vs : List[A], ∀ x : A, list_update(APPEND(vi, CONS(v, vs)), LENGTH(vi), x) == APPEND(vi, CONS(x, vs))",
-    seq([@lists.list_induct_tac, @simp.asm_rewrite_tac(ths(list))]),
-  )
+  let split_at = thm("split_at")
+  let el_split = thm("el_split")
+  let update_split = thm("list_update_split")
   let frame = [@wasm.thm("f_locs"), @wasm.thm("f_inst"), @wasm.thm("f_locs_update")]
   let locs_update = lemma(
     "f_locs_update_get",

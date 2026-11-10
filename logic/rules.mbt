@@ -28,42 +28,6 @@ fn prove_rule_lemmas() -> Unit raise {
     seq([@simp.rewrite_tac(ths([@wasm.thm("is_val")])), @meson.meson_tac(ths([]))]),
   )
   let _ = lemma(
-    "snoc_eq",
-    "∀ suf : List[A], ∀ x : A, ∀ l : List[A], APPEND(suf, [x]) == l == (!(l == NIL) && LAST(l) == x && suf == BUTLAST(l))",
-    then_split(@tactics.repeat_tac(@tactics.gen_tac), @tactics.eq_tac, [
-      seq([
-        @tactics.disch_then(th => @tactics.subst1_tac(@equal.gsym(th))),
-        @simp.rewrite_tac(
-          ths([
-            @lists.last_append(),
-            @lists.butlast_append(),
-            @lists.append_eq_nil(),
-            @lists.not_cons_nil(),
-            @lists.last(),
-            @lists.butlast(),
-            @lists.append_nil(),
-          ]),
-        ),
-      ]),
-      seq([
-        @tactics.repeat_tac(@tactics.strip_tac),
-        subst_vars(),
-        @tactics.match_mp_tac(@lists.append_butlast_last()),
-        @simp.asm_rewrite_tac(ths([])),
-      ]),
-    ]),
-  )
-  let _ = lemma(
-    "nil_eq_sym",
-    "∀ l : List[A], (NIL == l) == (l == NIL)",
-    @meson.meson_tac(ths([])),
-  )
-  let _ = lemma(
-    "snoc_eq_sym",
-    "∀ suf : List[A], ∀ x : A, ∀ l : List[A], l == APPEND(suf, [x]) == (!(l == NIL) && LAST(l) == x && suf == BUTLAST(l))",
-    @meson.meson_tac(ths([thm("snoc_eq")])),
-  )
-  let _ = lemma(
     "no_trap",
     "∀ suf : List[Einstr], ∀ b : B_e, ∀ lh : Lholed, Lfilled(0, lh, [Trap], APPEND(suf, [Basic(b)])) && ALL(is_val, suf) → false",
     seq([
@@ -106,27 +70,6 @@ fn prove_rule_lemmas() -> Unit raise {
       @meson.asm_meson_tac(ths([])),
     ]),
   )
-  let _ = lemma(
-    "append_len_eq",
-    "∀ a : List[A], ∀ b : List[A], ∀ c : List[A], ∀ d : List[A], APPEND(a, b) == APPEND(c, d) && LENGTH(b) == LENGTH(d) → a == c && b == d",
-    seq([
-      @simp.rewrite_tac(ths([@wasm.thm("append_split")])),
-      @tactics.repeat_tac(@tactics.strip_tac),
-      subst_vars(),
-      @tactics.rule_assum_tac(
-        @simp.rewrite_rule(
-          ths([
-            @lists.length_append(),
-            arith("∀ x : Num, ∀ y : Num, (x == y + x) == (y == 0)"),
-            arith("∀ x : Num, ∀ y : Num, (y + x == x) == (y == 0)"),
-            @lists.length_eq_nil(),
-          ]),
-        ),
-      ),
-      subst_vars(),
-      @simp.rewrite_tac(ths([@lists.append(), @lists.append_nil()])),
-    ]),
-  )
   let star = thm("star")
   let _ = lemma(
     "star_pure",
@@ -137,19 +80,6 @@ fn prove_rule_lemmas() -> Unit raise {
     "star_ex",
     "∀ q : (A) -> \{hprop}, ∀ r : \{hprop}, ∀ h : \{heap}, star((h1 : \{heap}) => ∃ vs0 : A, q(vs0, h1), r, h) == (∃ vs0 : A, star(q(vs0), r, h))",
     seq([@simp.rewrite_tac(ths([star])), @meson.meson_tac(ths([]))]),
-  )
-  let _ = lemma(
-    "all_suffix",
-    "∀ p : (A) -> Bool, ∀ a : List[A], ∀ b : List[A], ∀ c : List[A], ∀ d : List[A], APPEND(a, b) == APPEND(c, d) && ALL(p, APPEND(a, b)) → ALL(p, d)",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @tactics.disch_then(th => @tactics.then_tac(
-        @tactics.mp_tac(@bool.conjunct2(th)),
-        @tactics.subst1_tac(@bool.conjunct1(th)),
-      )),
-      @simp.rewrite_tac(ths([@lists.all_append()])),
-      @tactics.disch_then(th => @tactics.accept_tac(@bool.conjunct2(th))),
-    ]),
   )
 }
 

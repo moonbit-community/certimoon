@@ -35,20 +35,6 @@ fn prove_array_sum_lemmas() -> Unit raise {
     ]),
   )
   let val_lemmas = [@words.val_word_add(), @words.val_word_mul(), @words.val_word(), @words.dimindex_32()]
-  let _ = lemma(
-    "val_add_one",
-    "∀ i : \{w}, ∀ n : \{w}, val(i) < val(n) → val(word_add(i, word(1))) == val(i) + 1",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @tactics.disch_tac,
-      @tactics.mp_tac(@bool.ispec(tm("(n : \{w})"), @words.val_bound())),
-      @simp.rewrite_tac(ths(val_lemmas)),
-      @tactics.conv_tac(@calc_num.num_reduce_conv),
-      @tactics.disch_tac,
-      have("val((i : \{w})) + 1 < 4294967296", @int.asm_arith_tac),
-      @simp.asm_simp_tac(ths([@arith.mod_lt()])),
-    ]),
-  )
   let shape = "LENGTH((xs : List[\{w}])) == val((n : \{w})) && xs == APPEND((ys : List[\{w}]), CONS((y : \{w}), (zs : List[\{w}]))) && LENGTH(ys) == val((i : \{w}))"
   let vars = "∀ p : \{w}, ∀ n : \{w}, ∀ i : \{w}, ∀ xs : List[\{w}], ∀ ys : List[\{w}], ∀ y : \{w}, ∀ zs : List[\{w}]"
   // the facts the shape gives: i < n, written with the lengths
