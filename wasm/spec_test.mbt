@@ -115,16 +115,23 @@ fn renumber(
 }
 
 ///|
-test "the spec testsuite's control-flow assertions hold" {
-  // A module's assertions run in order, each in the memory and globals the
-  // one before left (as the file runs them). Each runs in a store of only
-  // the functions its call can reach, renumbered from 0 (calls and block
-  // types to match): the evaluator's steps cost more with each function of
-  // the store, used or not.
+/// Runs the control-flow cases, the slow ones too if `slow`, and fails
+/// with the ones whose theorem is not the expected one. A module's
+/// assertions run in order, each in the memory and globals the one before
+/// left (as the file runs them). Each runs in a store of only the
+/// functions its call can reach, renumbered from 0 (calls and block types
+/// to match): the evaluator's steps cost more with each function of the
+/// store, used or not.
+fn check_call_cases(slow~ : Bool) -> Unit raise {
   let state : Map[Int, (@kernel.Term, @kernel.Term)] = Map([])
   let failures = []
+  let mut ran = 0
   for c in spec_call_cases {
-    let (k, name, j, args, expected) = c
+    let (k, name, j, args, expected, is_slow) = c
+    if is_slow && !slow {
+      continue
+    }
+    ran += 1
     let m = spec_modules[k]
     let used = reachable(m, j)
     let n = m.funcs.length()
@@ -148,7 +155,9 @@ test "the spec testsuite's control-flow assertions hold" {
     })
     body.push(Call(0))
     let cfg = @wasm.config(body, store=s, inst~)
-    let got = @wasm.outcome(cfg) catch {
+    // fib 20 takes about half a million steps
+    let max_steps = if is_slow { 10_000_000 } else { 10_000 }
+    let got = @wasm.outcome(cfg, max_steps~) catch {
       e => {
         failures.push(name + ": " + e.to_string())
         continue
@@ -180,6 +189,18 @@ test "the spec testsuite's control-flow assertions hold" {
     }
   }
   if !failures.is_empty() {
-    fail("\{failures.length()} of \{spec_call_cases.length()} cases fail:\n" + failures.join("\n"))
+    fail("\{failures.length()} of \{ran} cases fail:\n" + failures.join("\n"))
   }
+}
+
+///|
+test "the spec testsuite's control-flow assertions hold" {
+  check_call_cases(slow=false)
+}
+
+///|
+/// With the deep recursions too (SLOW in tools/spec_cases.py): hours.
+#skip("hours: the deep recursions of call.wast")
+test "the spec testsuite's control-flow assertions hold, the slow ones too" {
+  check_call_cases(slow=true)
 }

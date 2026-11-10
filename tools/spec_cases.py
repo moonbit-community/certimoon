@@ -34,8 +34,9 @@ function and every function it can call were translated and its
 arguments and results are integers. An assertion left out does not run,
 so the next one sees the store without its changes. `assert_exhaustion`
 is left out (the evaluator stops after a number of steps, not at a stack
-depth), and so are the assertions in SLOW, which take too long to prove
-one step at a time.
+depth). The assertions in SLOW take too long to prove one step at a time;
+they are marked slow, and only the skipped test runs them (`moon test
+--include-skipped`).
 """
 
 import re
@@ -156,11 +157,12 @@ def load_cases(path):
 MEMORY = 64
 MEMORY_OF = {"call.wast": 320}  # it loads and stores at 0x132
 
-# assertions whose runs take too many steps to prove one by one:
-# (file, function, its first argument). A step's proof is rebuilt through
-# every frame around it, so a run of recursion depth d costs about d^2:
-# fac 25 takes a minute, even 100 over half an hour. The same functions'
-# small cases are kept.
+# assertions whose runs take too many steps to prove one by one, run only
+# by the skipped test: (file, function, its first argument). A step's
+# proof is rebuilt through every frame around it, so a run of recursion
+# depth d costs about d^2: fac 25 takes a minute, even 100 over half an
+# hour, and fib 20 (about 22000 calls) far longer. The same functions'
+# small cases run in the usual test.
 SLOW = {
     ("call.wast", "fac", "25"), ("call.wast", "fac-acc", "25"),
     ("call.wast", "fib", "20"),
@@ -621,10 +623,11 @@ def control_cases(path):
             print(f"{file}: left out {name}: {e}", file=sys.stderr)
             continue
         first = action[2][1] if len(action) > 2 and is_list(action[2]) else None
-        if (file, name, first) in SLOW:
+        slow = (file, name, first) in SLOW
+        if slow:
             left["slow"] += 1
-            continue
-        cases.append(f'  ({index}, "{file} {name}", {j}, [{", ".join(args)}], {expected}),')
+        cases.append(f'  ({index}, "{file} {name}", {j}, [{", ".join(args)}], {expected}, '
+                     f'{"true" if slow else "false"}),')
     return modules, cases, left
 
 
@@ -660,10 +663,9 @@ def main():
         ms, cs, left = control_cases(p)
         base = len(modules)
         modules += ms
-        calls.append(f"  // {p.split('/')[-1]}: {len(cs)} assertions; left out: "
-                     f"{left['assertions']} (functions the builder cannot write, "
-                     f"or arguments or results that are not integers), "
-                     f"{left['slow']} slow")
+        calls.append(f"  // {p.split('/')[-1]}: {len(cs)} assertions, {left['slow']} of them slow; "
+                     f"left out: {left['assertions']} (functions the builder cannot write, "
+                     f"or arguments or results that are not integers)")
         for c in cs:
             # module indices count from the first file's
             k = int(c.split(",")[0].strip()[1:])
@@ -677,8 +679,9 @@ def main():
     print("]")
     print()
     print("///|")
-    print("/// (module, assertion, function, arguments, results or None for a trap)")
-    print("let spec_call_cases : Array[(Int, String, Int, Array[@wasm.Value], Array[@wasm.Value]?)] = [")
+    print("/// (module, assertion, function, arguments, results or None for a trap,")
+    print("/// whether only the skipped test runs it)")
+    print("let spec_call_cases : Array[(Int, String, Int, Array[@wasm.Value], Array[@wasm.Value]?, Bool)] = [")
     for c in calls:
         print(c)
     print("]")

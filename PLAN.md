@@ -146,10 +146,12 @@ Known limits of what exists:
   The spec cases that test the end of a 64 KiB page are not covered.
 - The control-flow spec cases leave out what the builder cannot write
   (floats, references, `call_indirect`, and `memory.size` and `grow`, since
-  a module's memory is a few bytes, not a page), `assert_exhaustion`, a
-  `br_table` of 16148 labels, and deep recursion (`fac 25`, `even 100`, ...,
-  `SLOW` in `tools/spec_cases.py`): the evaluator rebuilds each step's proof
-  through every frame around it, so a run of depth d costs about d^2.
+  a module's memory is a few bytes, not a page), `assert_exhaustion` and a
+  `br_table` of 16148 labels. Deep recursions (`fac 25`, `even 100`, ...,
+  `SLOW` in `tools/spec_cases.py`) run only in a skipped test: the
+  evaluator rebuilds each step's proof through every frame around it, so
+  a run of depth d costs about d^2 (`fac 25` a minute, `even 100` over
+  half an hour).
 - WasmCert's soundness proofs (`Wasm_Properties`, `Wasm_Soundness`) are not
   ported. Nothing here depends on them.
 

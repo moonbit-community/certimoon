@@ -440,9 +440,15 @@ For the control-flow files, `tools/spec_cases.py` translates each module's
 functions to `Func`s, and a case calls an exported function in a store of
 them; a module's assertions run in order, each in the memory and globals
 the one before left. What the builder cannot write (floats, references,
-`call_indirect`, `memory.size` and `grow`) is left out, and so are
-`assert_exhaustion` and a few deep recursions, which the evaluator proves
-too slowly (`SLOW`); the generated file counts what each file leaves out.
+`call_indirect`, `memory.size` and `grow`) is left out, and so is
+`assert_exhaustion`; the generated file counts what each file leaves out.
+Seven deep recursions of `call.wast` (`fac 25`, `fib 20`, `even 100`, ...:
+`SLOW` in the script) take minutes to hours to prove step by step, so only
+a skipped test runs them:
+
+```bash
+ulimit -s 65520 && moon test -p moonbit-community/wasmcert/wasm --target wasm-gc --release --include-skipped -f '*slow ones too*'
+```
 `tools/spec_cases.py` writes `wasm/spec_cases_test.mbt` from the
 testsuite files; the header of that file names the testsuite commit and
 the command.
