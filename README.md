@@ -71,7 +71,9 @@ Each package's tests keep its theory in two snapshots: `theory.md`, the
 listing to read and diff, and `theory.json`, the same entries as data,
 each with its statement, the constants it uses and defines, and the line
 of the source that makes it. `tools/review_site.py` turns the two
-`theory.json` files into a static site:
+`theory.json` files into a static site, published from `main` at
+<https://moonbit-community.github.io/wasmcert/> by
+`.github/workflows/review-site.yml`. To build it locally:
 
 ```bash
 python3 tools/review_site.py --out _site

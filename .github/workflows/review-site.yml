@@ -1,0 +1,45 @@
+# Builds the review site from the committed listings
+# (wasm/__snapshot__/theory.json, logic/__snapshot__/theory.json)
+# and publishes it to GitHub Pages. Nothing is proved here: the
+# listings are kept up to date by the packages' tests.
+name: Review site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # source links point at the commit the site was built from
+      - run: >
+          python3 tools/review_site.py --out _site
+          --source-url "https://github.com/${{ github.repository }}/blob/${{ github.sha }}/"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
