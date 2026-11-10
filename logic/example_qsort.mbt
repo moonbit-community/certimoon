@@ -606,7 +606,7 @@ fn prove_quicksort_specs(qs_code : String, qs_th : @kernel.Thm, qs_call : @kerne
   // the caller: the whole array of n words at p
   let i_ = (x : String) => "V_num(ConstInt32(\{x}))"
   let pre = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => vs == APPEND(vs0, [\{i_("p")}, \{i_("word(0)")}, \{i_("n")}]) && lc == lc0 && star(arr(val(p), xs), fp(gs, ms), h)"
-  let post = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ ys : \{lw}, vs == vs0 && lc == lc0 && sorted(ys) && perm(ys, xs) && star(arr(val(p), ys), fp(gs, ms), h))"
+  let post = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ ys : \{lw}, vs == vs0 && lc == lc0 && sorted(ys) && perm(ys, xs) && LENGTH(ys) == LENGTH(xs) && star(arr(val(p), ys), fp(gs, ms), h))"
   let call = @equal.beta_rule(
     @bool.ispecl(
       @list.List(["(inst : Inst)", "(p : \{w})", "(word(0) : \{w})", "(n : \{w})", "(NIL : \{lw})", "(xs : \{lw})", "(NIL : \{lw})", "(fp : \{rty})"].map(tm)),
@@ -654,6 +654,95 @@ fn prove_quicksort_specs(qs_code : String, qs_th : @kernel.Thm, qs_call : @kerne
     ]),
   )
   record("example_quicksort", th, kind="example")
+  prove_quicksort_closed(th, natives)
+}
+
+///|
+/// quicksort_closed: example_quicksort about runs, with no assertion left.
+/// In a store whose functions 0 and 1 are quicksort and partition, a frame
+/// of the instance with a memory j whose bytes are `before`, the words xs
+/// (from address p = LENGTH(before)) and `after`, every run of `call 0`
+/// with p, 0 and n on the stack either can step again or has ended with
+/// the stack as it was below them, the store's functions, the frame's
+/// instance and locals and the globals as they were, and the memory's
+/// bytes `before`, the words of some ys that is sorted and a permutation
+/// of xs, and `after`. From sl_triple_m_adequate_whole, with
+/// example_quicksort's fp saying the globals and the memory's length are
+/// the starting ones and the bytes outside the array are `before` and
+/// `after` (arr_in_mem).
+fn prove_quicksort_closed(example : @kernel.Thm, natives : String) -> Unit raise {
+  let w = w32
+  let lw = "List[\{w}]"
+  let bytes = "List[\{w8}]"
+  let i_ = (x : String) => "V_num(ConstInt32(\{x}))"
+  let m0 = "EL((j : Num), s_mems((s : Wstore)))"
+  let rest = "star(pts(0, (before : \{bytes})), pts(val((p : \{w})) + 4 * val((n : \{w})), (after : \{bytes})))"
+  let fp = "(gs : List[Value]) => (ms : Num) => (h : \{heap}) => gs == gvals(s, (f : Wframe)) && ms == mem_length(\{m0}) && star(pts(0, (before : \{bytes})), pts(val((p : \{w})) + 4 * val((n : \{w})), (after : \{bytes})), h)"
+  let triple = @bool.ispecl(
+    @list.List(
+      ["(fs : List[Cl])", "(inst : Inst)", "(p : \{w})", "(n : \{w})", "(xs : \{lw})", fp, "(vs0 : List[Value])", "f_locs((f : Wframe))"].map(tm),
+    ),
+    example,
+  )
+  let triple = @equal.conv_rule(@equal.try_conv(@equal.redepth_conv(@equal.beta_conv)), triple)
+  // the triple's precondition and postcondition, as instantiated
+  let args = @basics.strip_comb(@basics.dest_imp(@kernel.concl(triple)).1).1.to_array()
+  let stack = "APPEND((vs0 : List[Value]), [\{i_("(p : \{w})")}, \{i_("(word(0) : \{w})")}, \{i_("(n : \{w})")}])"
+  let adequate = @bool.ispecl(
+    @list.List(
+      [
+        tm("(fs : List[Cl])"),
+        tm("(inst : Inst)"),
+        args[2],
+        tm("[Call(0)]"),
+        args[4],
+        tm("(j : Num)"),
+        tm("(s : Wstore)"),
+        tm("(f : Wframe)"),
+        tm(stack),
+        tm("(s2 : Wstore)"),
+        tm("(f2 : Wframe)"),
+        tm("(es2 : List[Einstr])"),
+      ],
+    ),
+    thm("sl_triple_m_adequate_whole"),
+  )
+  let arr_in_mem = (ys : String, m : String) => @bool.ispecl(
+    @list.List(["val((p : \{w}))", "val((n : \{w}))", "(before : \{bytes})", ys, "(after : \{bytes})", m].map(tm)),
+    thm("arr_in_mem"),
+  )
+  let layout = "APPEND(before, APPEND(words_bytes"
+  let th = @tactics.prove(
+    tm(
+      "∀ fs : List[Cl], ∀ inst : Inst, ∀ s : Wstore, ∀ f : Wframe, ∀ j : Num, ∀ p : \{w}, ∀ n : \{w}, ∀ xs : \{lw}, ∀ before : \{bytes}, ∀ after : \{bytes}, ∀ vs0 : List[Value], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], \{natives} && s_funcs(s) == fs && f_inst(f) == inst && smem_ind(inst) == SOME(j) && j < LENGTH(s_mems(s)) && globs_ok(s, f) && LENGTH(xs) == val(n) && val(p) + 4 * val(n) < 4294967296 && SND(EL(j, s_mems(s))) == \{layout}(xs), after)) && LENGTH(before) == val(p) && reduce_trans((s, f, APPEND(MAP(v_to_e, \{stack}), [Basic(Call(0))])), (s2, f2, es2)) → (∃ ys : \{lw}, sorted(ys) && perm(ys, xs) && es2 == MAP(v_to_e, vs0) && s_funcs(s2) == fs && f_inst(f2) == inst && f_locs(f2) == f_locs(f) && gvals(s2, f2) == gvals(s, f) && SND(EL(j, s_mems(s2))) == \{layout}(ys), after))) || (∃ s3 : Wstore, ∃ f3 : Wframe, ∃ es3 : List[Einstr], reduce(s2, f2, es2, s3, f3, es3))",
+    ),
+    seq([
+      @tactics.repeat_tac(@tactics.strip_tac),
+      // the array and the bytes around it are the memory's bytes
+      have(
+        "star(arr(val((p : \{w})), (xs : \{lw})), \{rest}, heap_of(\{m0}))",
+        seq([@tactics.mp_tac(arr_in_mem("(xs : \{lw})", m0)), @simp.asm_rewrite_tac(ths([]))]),
+      ),
+      @tactics.mp_tac(triple),
+      @tactics.thenl(
+        @tactics.ants_tac,
+        @list.List([@simp.asm_rewrite_tac(ths([])), @tactics.disch_tac]),
+      ),
+      @tactics.mp_tac(adequate),
+      @simp.asm_rewrite_tac(ths([@lists.map(), thm("star_pure_r"), @class.eta_ax()])),
+      // and back, at the end
+      have(
+        "∀ ys : \{lw}, ∀ m : \{mem_ty}, LENGTH(ys) == val((n : \{w})) && star(arr(val((p : \{w})), ys), \{rest}, heap_of(m)) → SND(m) == \{layout}(ys), after))",
+        seq([
+          @tactics.repeat_tac(@tactics.strip_tac),
+          @tactics.mp_tac(arr_in_mem("(ys : \{lw})", "(m : \{mem_ty})")),
+          @simp.asm_rewrite_tac(ths([])),
+        ]),
+      ),
+      @meson.asm_meson_tac(ths([])),
+    ]),
+  )
+  record("quicksort_closed", th, kind="theorem")
 }
 
 ///|

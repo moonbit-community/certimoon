@@ -23,6 +23,9 @@
 //   the postcondition at the end. No heap assertion is left in it, only
 //   the precondition and postcondition applied to the state's parts.
 //   star_emp_r and lift_emp are its lemmas.
+// - arr_in_mem: an array with the bytes before and after it is the
+//   memory's bytes, as a list, so a closed theorem can state memory
+//   without heaps (heap_of_pts_heap, pts_heap_eq).
 
 ///|
 fn prove_adequacy() -> Unit raise {
@@ -191,6 +194,69 @@ fn prove_adequacy() -> Unit raise {
       ),
       @simp.asm_rewrite_tac(ths([lift_emp] + opt)),
       @meson.asm_meson_tac(ths(opt)),
+    ]),
+  )
+  // A closed theorem states a memory as its list of bytes
+  let heap_of_pts_heap = lemma(
+    "heap_of_pts_heap",
+    "∀ m : \{mem_ty}, heap_of(m) == pts_heap(0, SND(m))",
+    seq([
+      @tactics.gen_tac,
+      @simp.rewrite_tac(ths([thm("heap_of"), thm("pts_heap"), @arith.le_0(), @arith.add_clauses(), @arith.sub_0()])),
+    ]),
+  )
+  let pts_heap_unfold = ths([thm("pts_heap"), @arith.le_0(), @arith.add_clauses(), @arith.sub_0(), @arith.lt_refl()])
+  let pts_heap_eq = lemma(
+    "pts_heap_eq",
+    "∀ bs : List[\{w8}], ∀ cs : List[\{w8}], (pts_heap(0, bs) == pts_heap(0, cs)) == (bs == cs)",
+    seq([
+      @tactics.repeat_tac(@tactics.gen_tac),
+      @tactics.thenl(
+        @tactics.eq_tac,
+        @list.List([
+          seq([
+            @simp.rewrite_tac(ths([@class.fun_eq_thm()])),
+            @tactics.disch_tac,
+            // the lengths agree: at the shorter list's length, one side is NONE
+            have(
+              "LENGTH((bs : List[\{w8}])) == LENGTH((cs : List[\{w8}]))",
+              seq([
+                @tactics.first_assum(th => @tactics.mp_tac(@bool.spec(tm("LENGTH((bs : List[\{w8}]))"), th))),
+                @tactics.first_assum(th => @tactics.mp_tac(@bool.spec(tm("LENGTH((cs : List[\{w8}]))"), th))),
+                @simp.rewrite_tac(pts_heap_unfold),
+                @tactics.repeat_tac(@tactics.then_tac(@class.cond_cases_tac, @simp.rewrite_tac(ths(opt)))),
+                @tactics.try_tac(@int.asm_arith_tac),
+              ]),
+            ),
+            @simp.pure_once_rewrite_tac(ths([@lists.list_eq()])),
+            @simp.asm_rewrite_tac(ths([])),
+            @tactics.x_gen_tac(tm("(i : Num)")),
+            @tactics.disch_tac,
+            @tactics.first_assum(th => @tactics.mp_tac(@bool.spec(tm("(i : Num)"), th))),
+            @simp.rewrite_tac(pts_heap_unfold),
+            @simp.asm_rewrite_tac(ths(opt)),
+          ]),
+          seq([@tactics.disch_tac, @simp.asm_rewrite_tac(ths([]))]),
+        ]),
+      ),
+    ]),
+  )
+  let _ = lemma(
+    "arr_in_mem",
+    "∀ a : Num, ∀ k : Num, ∀ before : List[\{w8}], ∀ ys : List[\{w32}], ∀ after : List[\{w8}], ∀ m : \{mem_ty}, LENGTH(before) == a && LENGTH(ys) == k → (star(arr(a, ys), star(pts(0, before), pts(a + 4 * k, after)), heap_of(m)) == (SND(m) == APPEND(before, APPEND(words_bytes(ys), after))))",
+    seq([
+      @tactics.repeat_tac(@tactics.gen_tac),
+      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+      have(
+        "star(arr((a : Num), (ys : List[\{w32}])), star(pts(0, (before : List[\{w8}])), pts(a + 4 * (k : Num), (after : List[\{w8}])))) == pts(0, APPEND(before, APPEND(words_bytes(ys), after)))",
+        seq([
+          @simp.rewrite_tac(ths([thm("arr"), thm("pts_split"), @arith.add_clauses(), thm("length_words_bytes")])),
+          @simp.asm_rewrite_tac(ths([])),
+          @tactics.match_accept_tac(thm("star_left_comm")),
+        ]),
+      ),
+      @simp.asm_rewrite_tac(ths([])),
+      @simp.rewrite_tac(ths([thm("pts"), heap_of_pts_heap, pts_heap_eq])),
     ]),
   )
 }

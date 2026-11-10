@@ -125,7 +125,7 @@ eval.mbt and builder.mbt (the evaluator), and the tests.
 | Calls of the module's functions, by specs, recursion included | done |
 | Symbolic execution (`sym_prove`), for code without and with calls | done |
 | Adequacy: `sl_triple` and `sl_triple_m` (no labels) stated with `reduce_trans` alone | done |
-| Closed theorems: `fact_closed` (from `call 0` in a frame of the instance) | done; quicksort next |
+| Closed theorems: `fact_closed`, `quicksort_closed` (from `call 0` in a frame of the instance) | done |
 | A public API for proofs in other packages | done |
 | Examples: store/load, sum, fill, array sum, insertion sort, call, factorial, quicksort | done |
 | `call_indirect`, functions of other modules or the host | not started |
@@ -245,10 +245,13 @@ say so.
    assertion, heap or triple appears in the statement. `fact_closed` is
    done: `sl_triple_m_adequate_whole` (no frame, the whole memory j) with
    example_fact's R saying the globals and the memory are exactly the
-   starting ones. Quicksort needs that R as `star(arr(val(p), xs),
-   fp(gs, ms), h)`: fp the rest of the bytes, exactly, and a lemma that
-   the bytes at p are `words_bytes(ys)` when the heap is. Done when
-   `quicksort_closed` is in `theory.md`.
+   starting ones. `quicksort_closed` is done the same way, with the
+   memory's bytes written `before ++ words_bytes(xs) ++ after` and
+   example_quicksort's fp saying the bytes outside the array are
+   `before` and `after` exactly (`arr_in_mem` turns the heap assertion
+   into that list and back). The other examples with memory (fill, array
+   sum, insertion sort) have no closed theorem yet: they would follow
+   quicksort's.
 
    These runs start from the code in a frame of the instance (`call 0`
    with a stack), not from a host's `Invoke` in `invoke_config`, whose
@@ -273,7 +276,8 @@ say so.
    depends on (`@logic.depends_on`); `logic/__snapshot__/dependencies.md`
    keeps those lists, so a change to what a theorem trusts shows in a
    diff. Each new closed theorem joins both by its kind. `fact_closed`
-   depends on 235 definitions, 231 of them in `wasm`: `reduce` reaches
+   depends on 238 definitions, 234 of them in `wasm`, and
+   `quicksort_closed` on 239, the same 234 in `wasm`: `reduce` reaches
    nearly all of the semantics (floats and vectors included, though left
    unspecified), so a smaller trusted base would mean stating the closed
    theorems over a fragment of `reduce`.

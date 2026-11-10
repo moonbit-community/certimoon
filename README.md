@@ -80,8 +80,8 @@ python3 tools/review_site.py --out _site
 ```
 
 Its front page shows the closed theorems (kind `theorem`: about a
-program's runs, with no assertion or triple; `fact_closed` so far) and
-what each depends on. It has a page per source file
+program's runs, with no assertion or triple: `fact_closed` and
+`quicksort_closed`) and what each depends on. It has a page per source file
 (`wasm/reduction.html`, `logic/heap.html`, ...) with each entry's
 statement, its constants linked to the entries that define them, what
 uses it, and a link to its source; lemmas are folded, since the kernel
@@ -288,6 +288,7 @@ All in [logic/](logic), proved when the logic loads:
 | `example_fact` | example_fact.mbt | recursive factorial, with an early `return` |
 | `fact_closed` | example_fact.mbt | the same about runs (`reduce_trans`), with no assertion: every run of the call ends with the factorial or can step, and the locals, globals and memory are kept |
 | `example_quicksort` | example_qsort.mbt | recursive quicksort with a partition function: sorted, a permutation |
+| `quicksort_closed` | example_qsort.mbt | the same about runs, with no assertion: the memory's bytes are `before ++ words_bytes(xs) ++ after`, and every run of the call ends with `before ++ words_bytes(ys) ++ after` for some sorted permutation ys of xs, or can step |
 
 ## Reference: the program logic
 
@@ -336,6 +337,9 @@ with `arr_split` and `arr_focus` (one element out of `ys ++ [x] ++ zs`).
   `triple_l` and `keep`. `sl_triple_m_adequate_whole` has no frame (r is
   `emp`, `star_emp_r`): the precondition holds of the instance's whole
   memory j, and no heap assertion is left; `fact_closed` comes from it.
+  `arr_in_mem` says an array with the bytes before and after it is the
+  memory's list of bytes, `before ++ words_bytes(ys) ++ after`, so
+  `quicksort_closed` states the memory with lists alone.
 
 ### Instruction rules
 
