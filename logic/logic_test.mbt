@@ -51,7 +51,7 @@ test "the logic's lemmas are theorems, with no new axioms" {
     "butlast_cons", "quicksort_body", "partition_fn", "quicksort_specs", "example_quicksort",
     "s_tabs_updates", "call_indirect_step", "call_indirect_can_step", "sl_call_indirect_g",
     "sl_call_indirect_st_g", "double_spec_holds", "double_body_g", "double_specs", "apply_body",
-    "example_indirect",
+    "example_indirect", "apply_closed",
   ] {
     assert_true(@kernel.hyp(@logic.thm(name)).is_empty(), msg=name)
   }
@@ -247,7 +247,7 @@ fn instantiate(
 /// `reduce_trans(cfg, (s2, f2, es2))`, by the evaluator, which also gives
 /// the final configuration s2, f2, es2. The conclusion for these values,
 /// and the final configuration.
-fn apply_closed(
+fn run_closed(
   name : String,
   vals : Map[String, @kernel.Term],
   conv : @equal.Conv,
@@ -257,8 +257,16 @@ fn apply_closed(
   let (ante, _) = @basics.dest_imp(@kernel.concl(instantiate(closed, vals)))
   let hyps = right_conjuncts(ante)
   let cfg = @kernel.rand(@kernel.rator(hyps[hyps.length() - 1]))
-  let run = @wasm.run(cfg)
+  // the program written out (a run from MAP(Basic, apply_code)), then
+  // the run restated for cfg
+  let cfg_eq = conv(cfg) catch { _ => @kernel.refl(cfg) }
+  let run = @wasm.run(@equal.rhs(@kernel.concl(cfg_eq)))
   let fin = @kernel.rand(@kernel.concl(run))
+  let rt = @kernel.rator(@kernel.rator(@kernel.concl(run)))
+  let run = @kernel.eq_mp(
+    @equal.sym(@equal.ap_thm(@equal.ap_term(rt, cfg_eq), fin)),
+    run,
+  )
   let (s2, rest) = @pair.dest_pair(fin)
   let (f2, es2) = @pair.dest_pair(rest)
   vals["s2"] = s2
@@ -363,7 +371,7 @@ test "fact_closed's hypotheses hold together: fact(5) runs to 120" {
     "x": @logic.tm("(word(5) : Word[32])"),
     "vs0": @logic.tm("(NIL : List[Value])"),
   }
-  let (concl, fin) = apply_closed("fact_closed", vals, conv)
+  let (concl, fin) = run_closed("fact_closed", vals, conv)
   inspect(@kernel.hyp(concl).is_empty(), content="true")
   inspect(
     @logic.show(@pair.dest_pair(@pair.dest_pair(fin).1).1),
@@ -403,7 +411,7 @@ test "quicksort_closed's hypotheses hold together: [3, 1, 2] is sorted in place"
     "after": @logic.tm(after),
     "vs0": @logic.tm("(NIL : List[Value])"),
   }
-  let (concl, fin) = apply_closed("quicksort_closed", vals, conv)
+  let (concl, fin) = run_closed("quicksort_closed", vals, conv)
   inspect(@kernel.hyp(concl).is_empty(), content="true")
   // the memory's bytes after the run: the array holds 1, 2, 3 (as
   // little-endian words), the bytes around it as they were
@@ -417,5 +425,42 @@ test "quicksort_closed's hypotheses hold together: [3, 1, 2] is sorted in place"
   let perm = perm_by_swaps(ys, @basics.dest_list(@logic.tm(xs)).to_array())
   let witness = @lists.mk_list(@list.List(ys), @kernel.type_of(ys[0]))
   let alt = first_alternative(concl, Some(witness), [perm], conv)
+  inspect(@kernel.hyp(alt).is_empty(), content="true")
+}
+
+///|
+test "apply_closed's hypotheses hold together: apply(21, 0) calls double, to 42" {
+  @logic.load()
+  let conv = @wasm.compute_conv(closed_defs())
+  let value = (t : String) => @equal.rhs(@kernel.concl(conv(@logic.tm(t))))
+  let tf = "Tf([T_num(T_i32)], [T_num(T_i32)])"
+  // the instance: type 0 is double's, function 0, table 0 and memory 0
+  let inst = value("Inst([\{tf}], [0], [0], [0], NIL, NIL, NIL)")
+  let i = @logic.show(inst)
+  // a store with double_code as function 0, a table holding it at 0, and
+  // a memory (empty)
+  let s = value(
+    "Wstore([Func_native(\{i}, \{tf}, NIL, double_code)], [(T_tab(Limit_t(1, NONE), T_func_ref), [ConstRefFunc(0)])], [(Limit_t(0, NONE), NIL)], NIL, NIL, NIL)",
+  )
+  let vals : Map[String, @kernel.Term] = {
+    "fs": value("s_funcs(\{@logic.show(s)})"),
+    "inst": inst,
+    "a": @logic.tm("0"),
+    "s": s,
+    "f": value(
+      "Wframe([V_num(ConstInt32(word(21))), V_num(ConstInt32(word(0)))], \{i})",
+    ),
+    "j": @logic.tm("0"),
+    "x": @logic.tm("(word(21) : Word[32])"),
+    "k": @logic.tm("(word(0) : Word[32])"),
+  }
+  let (concl, fin) = run_closed("apply_closed", vals, conv)
+  inspect(@kernel.hyp(concl).is_empty(), content="true")
+  inspect(
+    @logic.show(@pair.dest_pair(@pair.dest_pair(fin).1).1),
+    content="[Basic(EConstNum(ConstInt32(word(42))))]",
+  )
+  // the run ended normally, with x + x on the stack
+  let alt = first_alternative(concl, None, [], conv)
   inspect(@kernel.hyp(alt).is_empty(), content="true")
 }

@@ -106,6 +106,8 @@ pub(all) enum Instr {
   LocalTee(Int)
   Return
   Call(Int)
+  // call_indirect: the table, then the type
+  CallIndirect(Int, Int)
   GlobalGet(Int)
   GlobalSet(Int)
   // loads and stores take their offset; the alignment hint is 0
@@ -329,6 +331,7 @@ pub fn Instr::to_term(self : Instr) -> @kernel.Term raise {
     LocalTee(i) => call("Local_tee", [small_num(i)])
     Return => con("Return")
     Call(i) => call("Call", [small_num(i)])
+    CallIndirect(t, j) => call("Call_indirect", [small_num(t), small_num(j)])
     GlobalGet(i) => call("Global_get", [small_num(i)])
     GlobalSet(i) => call("Global_set", [small_num(i)])
     Load(t, off) =>
@@ -383,12 +386,15 @@ fn indices_term(n : Int) -> @kernel.Term raise {
 /// `funcs` (function j is index j, and its type is type j of the
 /// instance; `types` are the instance's types after those, for blocks:
 /// `TypeIndex(funcs.length() + k)` is `types[k]`), a memory with the
-/// bytes `memory` (if given; at most `max_pages` pages after growing) and
-/// mutable globals with the values `globals`. The memory is not rounded to
-/// pages: the evaluator computes on its bytes one by one, so keep it small.
+/// bytes `memory` (if given; at most `max_pages` pages after growing),
+/// mutable globals with the values `globals` and, if `table` is given, a
+/// table of function references (an entry is a function's index, or None
+/// for a null reference). The memory is not rounded to pages: the
+/// evaluator computes on its bytes one by one, so keep it small.
 pub fn store(
   funcs? : Array[Func] = [],
   types? : Array[(Array[NumType], Array[NumType])] = [],
+  table? : Array[Int?],
   memory? : Array[Byte],
   max_pages? : Int,
   globals? : Array[Value] = [],
@@ -405,10 +411,14 @@ pub fn store(
     Some(_) => [0]
     None => []
   }
+  let tabs = match table {
+    Some(_) => [0]
+    None => []
+  }
   let inst = call("Inst", [
     list_term(tfs + block_tfs, hol_type("tf")),
     indices_term(funcs.length()),
-    list_term([], num),
+    list_term(tabs.map(small_num), num),
     list_term(mems.map(small_num), num),
     indices_term(globals.length()),
     list_term([], num),
@@ -433,9 +443,23 @@ pub fn store(
     None => []
   }
   let globs = globals.map(v => call("Global", [con("T_mut"), v.to_term()]))
+  let tab_items = match table {
+    Some(entries) => {
+      let refs = entries.map(fn(e) raise {
+        match e {
+          Some(j) => call("ConstRefFunc", [small_num(j)])
+          None => call("ConstNull", [con("T_func_ref")])
+        }
+      })
+      let lim = call("Limit_t", [small_num(entries.length()), none_term(num)])
+      let tab_t = call("T_tab", [lim, con("T_func_ref")])
+      [@pair.mk_pair((tab_t, list_term(refs, hol_type("v_ref"))))]
+    }
+    None => []
+  }
   let s = call("Wstore", [
     list_term(cls, hol_type("cl")),
-    list_term([], ty(tabinst_ty)),
+    list_term(tab_items, ty(tabinst_ty)),
     list_term(mem_items, ty(mem_ty)),
     list_term(globs, hol_type("global")),
     list_term([], ty(eleminst_ty)),

@@ -14,8 +14,9 @@
 // unreachable, nop, drop, select, block, loop, if, br, br_if, br_table,
 // local.get/set/tee, global.get/set, call (of native functions), return,
 // loads and stores (packed too), memory.size, memory.grow, memory.fill,
-// memory.copy, and traps. Indirect calls, host functions, vector
-// instructions and tables are not: they raise "no rule for". memory.grow
+// memory.copy, call_indirect (through a table written out), and traps.
+// Host functions, vector instructions and the table instructions are
+// not: they raise "no rule for". memory.grow
 // may fail in any state; the evaluator takes the step that grows when it
 // can.
 //
@@ -61,6 +62,8 @@ let step_rules : Array[(String, String, Int, Array[String])] = [
   ("trap", "reduce_simple", 38, ["Lfilled(0, ", "[Trap])"]),
   ("lift", "reduce", 0, ["reduce_simple("]),
   ("call", "reduce", 1, ["Basic(Call("]),
+  ("call_indirect", "reduce", 2, ["Basic(Call_indirect(", "[Invoke(i_cl)]"]),
+  ("call_indirect_trap", "reduce", 3, ["Basic(Call_indirect(", "[Trap]"]),
   ("invoke", "reduce", 4, ["Func_native("]),
   ("local_get", "reduce", 8, ["Basic(Local_get("]),
   ("local_set", "reduce", 9, ["Basic(Local_set("]),
@@ -163,7 +166,7 @@ fn setup() -> Unit raise {
   // constructors a side condition compares
   for ty_name in [
     "einstr", "value", "v_num", "v_ref", "t_num", "t_ref", "valtype", "tp_num", "sx",
-    "mut", "cl", "tf", "limit_t", "global", "inst", "wstore", "wframe",
+    "mut", "cl", "tf", "limit_t", "tab_t", "global", "inst", "wstore", "wframe",
   ] {
     ths.push(@ind_types.distinctness(ty_name)) catch {
       _ => ()
@@ -1026,6 +1029,35 @@ fn basic_step(
     // its frame is further out
     ("Return", []) => return None
     ("Call", [j]) => (0, apply_rule("call", [("s", s), ("f", f), ("j", j)]))
+    ("Call_indirect", [ti, j]) => {
+      let c = i32(take(1)[0])
+      let i = value(call("f_inst", [f]))
+      let common = [("s", s), ("f", f), ("i", i), ("ti", ti), ("c", c), ("j", j)]
+      // the table's entry at c, and when it is a function, its type
+      let val_c = @basics.mk_icomb(con("val"), c)
+      let entry = value(call("stab", [s, i, ti, val_c]))
+      let target = match head_args(entry) {
+        ("SOME", [r]) =>
+          match head_args(r) {
+            ("ConstRefFunc", [a]) => Some(a)
+            _ => None
+          }
+        _ => None
+      }
+      match target {
+        Some(a) => {
+          let tf = value(call("stypes", [i, j]))
+          let el = @basics.mk_icomb(@basics.mk_icomb(con("EL"), a), call("s_funcs", [s]))
+          let cl = value(call("cl_type", [el]))
+          if @basics.aconv(tf, cl) {
+            (1, apply_rule("call_indirect", common + [("i_cl", a), ("tf", tf)]))
+          } else {
+            (1, apply_rule("call_indirect_trap", common + [("i_cl", a)]))
+          }
+        }
+        None => (1, apply_rule("call_indirect_trap", common + [("i_cl", small_num(0))]))
+      }
+    }
     ("Global_get", [j]) => (0, apply_rule("global_get", [("s", s), ("f", f), ("j", j)]))
     ("Global_set", [j]) => {
       let v = take(1)[0]

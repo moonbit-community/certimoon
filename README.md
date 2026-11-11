@@ -89,8 +89,8 @@ python3 tools/review_site.py --out _site
 ```
 
 Its front page shows the closed theorems (kind `theorem`: about a
-program's runs, with no assertion or triple: `fact_closed` and
-`quicksort_closed`) and what each depends on. It has a page per source file
+program's runs, with no assertion or triple: `fact_closed`,
+`apply_closed` and `quicksort_closed`) and what each depends on. It has a page per source file
 (`wasm/reduction.html`, `logic/heap.html`, ...) with each entry's
 statement, its constants linked to the entries that define them, what
 uses it, and a link to its source; lemmas are folded, since the kernel
@@ -318,6 +318,7 @@ definition and read back to check it (`wasm/wat.mbt`).
 | `example_fact` | example_fact.mbt | recursive factorial, with an early `return` |
 | `fact_closed` | example_fact.mbt | the same about runs (`reduce_trans`), with no assertion: every run of the call ends with the factorial or can step, and the locals, globals and memory are kept |
 | `example_indirect` | example_indirect.mbt | `call_indirect`: whatever function table 0 holds at k, if it is the doubling function, the call doubles x |
+| `apply_closed` | example_indirect.mbt | the same about runs, with no assertion: every run of `apply_code`, in a frame whose locals are x and k, ends with x + x or can step, and the store's functions and tables, the locals, globals and memory are kept |
 | `example_quicksort` | example_qsort.mbt | recursive quicksort with a partition function: sorted, a permutation |
 | `quicksort_closed` | example_qsort.mbt | the same about runs, with no assertion: the memory's bytes are `before ++ words_bytes(xs) ++ after`, and every run of the call ends with `before ++ words_bytes(ys) ++ after` for some sorted permutation ys of xs, or can step |
 
@@ -481,11 +482,13 @@ comparisons, `i32.wrap_i64`, `i64.extend_i32_s/u`, `extend8_s` and the
 other sign extensions), `ref.null`,
 `ref.is_null`, `unreachable`, `nop`, `drop`, `select`, `block`, `loop`,
 `if`, `br`, `br_if`, `br_table`, `local.get/set/tee`, `global.get/set`,
-`call` (of native functions) and `return`, loads and stores (packed
-too), `memory.size`, `memory.grow`, `memory.fill`, `memory.copy`, and
-traps; these are the builder's instructions. Floating point (left
-unspecified, as in Isabelle), indirect calls, host functions, vector
-instructions and tables are not covered: a term written out with them
+`call` (of native functions), `call_indirect` and `return`, loads and
+stores (packed too), `memory.size`, `memory.grow`, `memory.fill`,
+`memory.copy`, and traps; these are the builder's instructions (`store`
+takes a `table` of function indices for `call_indirect`). Floating
+point (left unspecified, as in Isabelle), host functions, vector
+instructions and the table instructions (`table.get`, `table.set`, ...)
+are not covered: a term written out with them
 raises "no rule for". `run` also takes a term built any other way, when
 its instruction list, frame and (for globals, memory and calls) store are
 written out. A `computes` theorem is about one run: the port does not
@@ -518,8 +521,8 @@ rules of control flow, labels, frames and calls. Each holds as a theorem.
 For the control-flow files, `tools/spec_cases.py` translates each module's
 functions to `Func`s, and a case calls an exported function in a store of
 them; a module's assertions run in order, each in the memory and globals
-the one before left. What the builder cannot write (floats, references,
-`call_indirect`, `memory.size` and `grow`) is left out, and so is
+the one before left. What the script does not translate (floats,
+references, tables and `call_indirect`, `memory.size` and `grow`) is left out, and so is
 `assert_exhaustion`; the generated file counts what each file leaves out.
 Seven deep recursions of `call.wast` (`fac 25`, `fib 20`, `even 100`, ...:
 `SLOW` in the script) take minutes to hours to prove step by step, so only

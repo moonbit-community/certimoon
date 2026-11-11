@@ -289,3 +289,37 @@ test "what the evaluator cannot run" {
   let add = run_error(@wasm.config([I32Const(1), Binop(I32, Add)]))
   assert_true(add.contains("Binop needs 2 values and has 1"), msg=add)
 }
+
+///|
+test "indirect calls" {
+  // function 0: x -> x + x; function 1: (x, y) -> x - y; the table holds
+  // function 0 at 0, function 1 at 1 and null at 2
+  let double : @wasm.Func = {
+    params: [I32],
+    results: [I32],
+    locals: [],
+    body: [LocalGet(0), LocalGet(0), Binop(I32, Add)],
+  }
+  let sub : @wasm.Func = {
+    params: [I32, I32],
+    results: [I32],
+    locals: [],
+    body: [LocalGet(0), LocalGet(1), Binop(I32, Sub)],
+  }
+  let st = @wasm.store(funcs=[double, sub], table=[Some(0), Some(1), None])
+  // type 0 is double's, type 1 sub's
+  computes_in(st, [I32Const(21), I32Const(0), CallIndirect(0, 0)], [I32Val(42)])
+  |> ignore
+  computes_in(st, [I32Const(7), I32Const(2), I32Const(1), CallIndirect(0, 1)], [I32Val(5)])
+  |> ignore
+  // the wrong type, a null entry, and past the table's end trap
+  let (s, i) = st
+  for c in [1U, 2, 3] {
+    let cfg = @wasm.config([I32Const(5), I32Const(c), CallIndirect(0, 0)], store=s, inst=i)
+    let th = @wasm.outcome(cfg)
+    assert_true(@kernel.hyp(th).is_empty())
+    if !@basics.aconv(@kernel.concl(th), @wasm.traps_stmt(cfg)) {
+      fail("got " + @term_syntax.print_term(@kernel.concl(th)))
+    }
+  }
+}

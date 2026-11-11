@@ -8661,3 +8661,38 @@ then
       && R(gs, ms, h),
     NIL)
 ```
+
+theorem `apply_closed`
+
+```
+∀ (fs : List[Cl]) (inst : Inst) (a j : Num) (s s2 : Wstore) (f f2 : Wframe)
+  (x k : W32) (es2 : List[Einstr])
+if
+  1. 0 < LENGTH(inst_tabs(inst))
+  2. tab_cl_ind(s_tabs(s), EL(0, inst_tabs(inst)), val(k))
+       == SOME(ConstRefFunc(a))
+  3. cl_type(EL(a, fs)) == stypes(inst, 0)
+  4. EL(a, fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       NIL,
+       double_code)
+  5. s_funcs(s) == fs
+  6. f_inst(f) == inst
+  7. f_locs(f) == [V_num(ConstInt32(x)), V_num(ConstInt32(k))]
+  8. smem_ind(inst) == SOME(j)
+  9. j < LENGTH(s_mems(s))
+  10. globs_ok(s, f)
+  11. reduce_trans((s, f, MAP(Basic, apply_code)), (s2, f2, es2))
+then
+  es2 == MAP(v_to_e, [V_num(ConstInt32(word_add(x, x)))])
+  && s_funcs(s2) == fs
+  && s_tabs(s2) == s_tabs(s)
+  && f_inst(f2) == inst
+  && f_locs(f2) == f_locs(f)
+  && gvals(s2, f2) == gvals(s, f)
+  && heap_of(EL(j, s_mems(s2))) == heap_of(EL(j, s_mems(s)))
+or
+  ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]),
+    reduce(s2, f2, es2, s3, f3, es3)
+```

@@ -119,7 +119,7 @@ eval.mbt and builder.mbt (the evaluator), and the tests.
 | Piece | State |
 |---|---|
 | Semantics, typing relations (ported from WasmCert-Isabelle) | done |
-| Evaluator: integers, control, locals, globals, calls, memory | done |
+| Evaluator: integers, control, locals, globals, calls (`call_indirect` too), memory | done |
 | Spec checks: `i32.wast`, `i64.wast`, loads of `address.wast` at address 0; the integer assertions of `block`, `loop`, `br`, `br_if`, `br_table`, `call` and `return.wast` | done |
 | Memory model: heaps, points-to, arrays | done |
 | Instruction rules: consts, unop, binop, testop, relop, cvtop, nop, drop, select, loads and stores (i32, i64, packed), memory.size and grow, globals, locals | done |
@@ -127,7 +127,7 @@ eval.mbt and builder.mbt (the evaluator), and the tests.
 | Calls of the module's functions, by specs, recursion included | done |
 | Symbolic execution (`sym_prove`), for code without and with calls | done |
 | Adequacy: `sl_triple` and `sl_triple_m` (no labels) stated with `reduce_trans` alone | done |
-| Closed theorems: `fact_closed`, `quicksort_closed` (from `call 0` in a frame of the instance) | done |
+| Closed theorems: `fact_closed`, `quicksort_closed` (from `call 0` in a frame of the instance), `apply_closed` (apply's body in a frame with its locals) | done |
 | A public API for proofs in other packages | done |
 | Examples: store/load, sum, fill, array sum, insertion sort, call, factorial, quicksort, indirect call | done |
 | `call_indirect` (tables kept by module triples) | done |
@@ -149,7 +149,7 @@ Known limits of what exists:
 - The evaluator computes on memory byte by byte, so it suits small memories.
   The spec cases that test the end of a 64 KiB page are not covered.
 - The control-flow spec cases leave out what the builder cannot write
-  (floats, references, `call_indirect`, and `memory.size` and `grow`, since
+  (floats, references, tables and `call_indirect`, and `memory.size` and `grow`, since
   a module's memory is a few bytes, not a page), `assert_exhaustion` and a
   `br_table` of 16148 labels. Deep recursions (`fac 25`, `even 100`, ...,
   `SLOW` in `tools/spec_cases.py`) run only in a skipped test: the
@@ -306,10 +306,11 @@ say so.
    alternative, the run ending normally, for the result: `fact_closed`
    with x = 5 (the stack holds 120), `quicksort_closed` with [3, 1, 2] at
    address 4 between other bytes (they become [1, 2, 3], the others
-   unchanged; `perm` by `perm_swap`s). The stores' memories are not whole
+   unchanged; `perm` by `perm_swap`s), `apply_closed` with x = 21 and a
+   table holding double_code at k = 0 (the stack holds 42). The stores' memories are not whole
    pages, which the hypotheses do not ask for, to keep the evaluator
    fast; the package's tests still take about 75 s in all. A new
-   closed theorem gets such a test the same way (`apply_closed`,
+   closed theorem gets such a test the same way (`run_closed`,
    `first_alternative`).
 
 ### Features
@@ -327,10 +328,14 @@ say so.
    its spec in G) and `sl_call_indirect_st_g` for sym_prove, which leaves
    the table's facts as conditions. `example_indirect` calls, through
    table 0, whatever function it holds at k, and returns x + x when that
-   is example_call's doubling function. Not yet: code that writes tables
-   (a rule for `table.set` would update tabs), and the evaluator does not
-   run `call_indirect`, so this example has no closed theorem or
-   non-vacuity check yet.
+   is example_call's doubling function. The evaluator runs
+   `call_indirect` (both its rules: the call, and the trap for a null
+   entry, an index past the table's end or the wrong type), so
+   `apply_closed` states the example about runs, from apply's body in a
+   frame whose locals are x and k, and its non-vacuity test runs it.
+   Not yet: code that writes tables (a rule for `table.set` would update
+   tabs), and the spec cases of `call_indirect.wast` (tools/spec_cases.py
+   does not translate tables).
 
 2. **Real programs.** An untrusted `.wat` or `.wasm` importer that makes
    programs through the builder, then verify a function from a compiled
