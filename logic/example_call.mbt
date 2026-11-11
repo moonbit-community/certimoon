@@ -31,6 +31,7 @@ fn prove_example_call() -> Unit raise {
   let p = "(args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => args == [\{i(x)}] && \{r}(gs, ms, h)"
   let q = "(res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => res == [\{sum}] && \{r}(gs, ms, h)"
   let fs = "(fs : List[Cl])"
+  let tabs = "(tabs : List[(Tab_t, List[V_ref])])"
   let inst = "(inst : Inst)"
   let vs0 = "(vs0 : List[Value])"
   let lc0 = "(lc0 : List[Value])"
@@ -38,7 +39,7 @@ fn prove_example_call() -> Unit raise {
   let call = @equal.beta_rule(
     @bool.ispecl(
       @list.List(
-        [fs, inst, "0", i32, i32, "(NIL : List[Valtype])", body, "(NIL : List[Value])", p, q, vs0, lc0, "(NIL : List[\{sa}])"].map(tm),
+        [fs, tabs, inst, "0", i32, i32, "(NIL : List[Valtype])", body, "(NIL : List[Value])", p, q, vs0, lc0, "(NIL : List[\{sa}])"].map(tm),
       ),
       thm("sl_call"),
     ),
@@ -63,7 +64,7 @@ fn prove_example_call() -> Unit raise {
   let native = "EL(sfunc_ind(\{inst}, 0), \{fs}) == Func_native(\{inst}, Tf(\{i32}, \{i32}), NIL, \{body})"
   let th = @tactics.prove(
     tm(
-      "∀ fs : List[Cl], ∀ inst : Inst, ∀ x : \{w}, ∀ R : \{rty}, ∀ vs0 : List[Value], ∀ lc0 : List[Value], \{native} → sl_triple_m(fs, inst, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => vs == APPEND(vs0, [\{i("x")}]) && lc == lc0 && R(gs, ms, h), [Call(0)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => vs == APPEND(vs0, [\{i("word_add(x, x)")}]) && lc == lc0 && R(gs, ms, h), NIL)",
+      "∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, ∀ x : \{w}, ∀ R : \{rty}, ∀ vs0 : List[Value], ∀ lc0 : List[Value], \{native} → sl_triple_m(fs, tabs, inst, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => vs == APPEND(vs0, [\{i("x")}]) && lc == lc0 && R(gs, ms, h), [Call(0)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => vs == APPEND(vs0, [\{i("word_add(x, x)")}]) && lc == lc0 && R(gs, ms, h), NIL)",
     ),
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
@@ -134,8 +135,8 @@ fn triple_m_parts(t : @kernel.Term) -> (@kernel.Term, @kernel.Term) raise {
   while @basics.is_imp(c) {
     c = @basics.dest_imp(c).1
   }
-  guard args_of(c, "sl_triple_m", 6) is Some(args) else {
+  guard args_of(c, "sl_triple_m", 7) is Some(args) else {
     raise Failure("certimoon/logic: not a module triple: " + show(c))
   }
-  (args[2], args[4])
+  (args[3], args[5])
 }

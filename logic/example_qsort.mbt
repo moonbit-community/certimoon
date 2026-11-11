@@ -424,7 +424,7 @@ fn prove_quicksort() -> Unit raise {
   let inst = "(inst : Inst)"
   let qs_th = sym_prove(
     "quicksort_body",
-    "∀ fs : List[Cl], ∀ inst : Inst, ∀ p : \{w}, ∀ lo : \{w}, ∀ hi : \{w}, ∀ A : \{lw}, ∀ B : \{lw}, ∀ Cs : \{lw}, ∀ fp : \{rty}, ∀ args : List[Value], sl_triple_g(qs_spec(inst), fs, inst, \{qb}, \{pb}, \{code}, \{qb}, [\{qb}])",
+    "∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, ∀ p : \{w}, ∀ lo : \{w}, ∀ hi : \{w}, ∀ A : \{lw}, ∀ B : \{lw}, ∀ Cs : \{lw}, ∀ fp : \{rty}, ∀ args : List[Value], sl_triple_g(qs_spec(inst), fs, tabs, inst, \{qb}, \{pb}, \{code}, \{qb}, [\{qb}])",
     [],
     quicksort_vcs(),
     afters=[after_if],
@@ -463,7 +463,7 @@ fn prove_partition_fn() -> @kernel.Thm raise {
     @simp.asm_rewrite_tac(ths([])),
     @tactics.try_tac(@meson.asm_meson_tac(ths([]))),
   ])
-  let stmt = "∀ fs : List[Cl], ∀ inst : Inst, ∀ p : \{w}, ∀ lo : \{w}, ∀ hi : \{w}, ∀ A : \{lw}, ∀ Bt : \{lw}, ∀ pv : \{w}, ∀ Cs : \{lw}, ∀ fp : \{rty}, ∀ args : List[Value], sl_triple_g(qs_spec(inst), fs, inst, \{qb}, \{pb}, \{code}, \{qb}, [\{qb}])"
+  let stmt = "∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, ∀ p : \{w}, ∀ lo : \{w}, ∀ hi : \{w}, ∀ A : \{lw}, ∀ Bt : \{lw}, ∀ pv : \{w}, ∀ Cs : \{lw}, ∀ fp : \{rty}, ∀ args : List[Value], sl_triple_g(qs_spec(inst), fs, tabs, inst, \{qb}, \{pb}, \{code}, \{qb}, [\{qb}])"
   lemma(
     "partition_fn",
     stmt,
@@ -533,7 +533,7 @@ fn prove_quicksort_specs(qs_code : String, qs_th : @kernel.Thm, qs_call : @kerne
       solve(@tactics.first_assum(th => @tactics.accept_tac(th))),
       solve(seq([
         @tactics.x_gen_tac(tm("(args : List[Value])")),
-        @tactics.accept_tac(@bool.ispecl(@list.List((["(fs : List[Cl])", "(inst : Inst)"] + vars + ["(args : List[Value])"]).map(tm)), body)),
+        @tactics.accept_tac(@bool.ispecl(@list.List((["(fs : List[Cl])", "(tabs : List[(Tab_t, List[V_ref])])", "(inst : Inst)"] + vars + ["(args : List[Value])"]).map(tm)), body)),
       ])),
       solve(seq([
         @simp.rewrite_tac(ths(zeros)),
@@ -551,7 +551,7 @@ fn prove_quicksort_specs(qs_code : String, qs_th : @kernel.Thm, qs_call : @kerne
   ])
   let specs = lemma(
     "quicksort_specs",
-    "∀ fs : List[Cl], ∀ inst : Inst, \{natives} → (∀ n : Num, specs_ok(n, qs_spec(inst), fs, inst))",
+    "∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, \{natives} → (∀ n : Num, specs_ok(n, qs_spec(inst), fs, tabs, inst))",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
@@ -591,7 +591,7 @@ fn prove_quicksort_specs(qs_code : String, qs_th : @kernel.Thm, qs_call : @kerne
   ])
   let th = @tactics.prove(
     tm(
-      "∀ fs : List[Cl], ∀ inst : Inst, ∀ p : \{w}, ∀ n : \{w}, ∀ xs : \{lw}, ∀ fp : \{rty}, ∀ vs0 : List[Value], ∀ lc0 : List[Value], \{natives} && LENGTH(xs) == val(n) && val(p) + 4 * val(n) < 4294967296 → sl_triple_m(fs, inst, \{pre}, [Call(0)], \{post}, NIL)",
+      "∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, ∀ p : \{w}, ∀ n : \{w}, ∀ xs : \{lw}, ∀ fp : \{rty}, ∀ vs0 : List[Value], ∀ lc0 : List[Value], \{natives} && LENGTH(xs) == val(n) && val(p) + 4 * val(n) < 4294967296 → sl_triple_m(fs, tabs, inst, \{pre}, [Call(0)], \{post}, NIL)",
     ),
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
@@ -644,7 +644,7 @@ fn prove_quicksort_closed(example : @kernel.Thm, natives : String) -> Unit raise
   let fp = "(gs : List[Value]) => (ms : Num) => (h : \{heap}) => gs == gvals(s, (f : Wframe)) && ms == mem_length(\{m0}) && star(pts(0, (before : \{bytes})), pts(val((p : \{w})) + 4 * val((n : \{w})), (after : \{bytes})), h)"
   let triple = @bool.ispecl(
     @list.List(
-      ["(fs : List[Cl])", "(inst : Inst)", "(p : \{w})", "(n : \{w})", "(xs : \{lw})", fp, "(vs0 : List[Value])", "f_locs((f : Wframe))"].map(tm),
+      ["(fs : List[Cl])", "s_tabs((s : Wstore))", "(inst : Inst)", "(p : \{w})", "(n : \{w})", "(xs : \{lw})", fp, "(vs0 : List[Value])", "f_locs((f : Wframe))"].map(tm),
     ),
     example,
   )
@@ -656,10 +656,11 @@ fn prove_quicksort_closed(example : @kernel.Thm, natives : String) -> Unit raise
     @list.List(
       [
         tm("(fs : List[Cl])"),
+        tm("s_tabs((s : Wstore))"),
         tm("(inst : Inst)"),
-        args[2],
+        args[3],
         tm("[Call(0)]"),
-        args[4],
+        args[5],
         tm("(j : Num)"),
         tm("(s : Wstore)"),
         tm("(f : Wframe)"),
@@ -678,7 +679,7 @@ fn prove_quicksort_closed(example : @kernel.Thm, natives : String) -> Unit raise
   let layout = "APPEND(before, APPEND(words_bytes"
   let th = @tactics.prove(
     tm(
-      "∀ fs : List[Cl], ∀ inst : Inst, ∀ s : Wstore, ∀ f : Wframe, ∀ j : Num, ∀ p : \{w}, ∀ n : \{w}, ∀ xs : \{lw}, ∀ before : \{bytes}, ∀ after : \{bytes}, ∀ vs0 : List[Value], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], \{natives} && s_funcs(s) == fs && f_inst(f) == inst && smem_ind(inst) == SOME(j) && j < LENGTH(s_mems(s)) && globs_ok(s, f) && LENGTH(xs) == val(n) && val(p) + 4 * val(n) < 4294967296 && SND(EL(j, s_mems(s))) == \{layout}(xs), after)) && LENGTH(before) == val(p) && reduce_trans((s, f, APPEND(MAP(v_to_e, \{stack}), [Basic(Call(0))])), (s2, f2, es2)) → (∃ ys : \{lw}, sorted(ys) && perm(ys, xs) && es2 == MAP(v_to_e, vs0) && s_funcs(s2) == fs && f_inst(f2) == inst && f_locs(f2) == f_locs(f) && gvals(s2, f2) == gvals(s, f) && SND(EL(j, s_mems(s2))) == \{layout}(ys), after))) || (∃ s3 : Wstore, ∃ f3 : Wframe, ∃ es3 : List[Einstr], reduce(s2, f2, es2, s3, f3, es3))",
+      "∀ fs : List[Cl], ∀ inst : Inst, ∀ s : Wstore, ∀ f : Wframe, ∀ j : Num, ∀ p : \{w}, ∀ n : \{w}, ∀ xs : \{lw}, ∀ before : \{bytes}, ∀ after : \{bytes}, ∀ vs0 : List[Value], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], \{natives} && s_funcs(s) == fs && f_inst(f) == inst && smem_ind(inst) == SOME(j) && j < LENGTH(s_mems(s)) && globs_ok(s, f) && LENGTH(xs) == val(n) && val(p) + 4 * val(n) < 4294967296 && SND(EL(j, s_mems(s))) == \{layout}(xs), after)) && LENGTH(before) == val(p) && reduce_trans((s, f, APPEND(MAP(v_to_e, \{stack}), [Basic(Call(0))])), (s2, f2, es2)) → (∃ ys : \{lw}, sorted(ys) && perm(ys, xs) && es2 == MAP(v_to_e, vs0) && s_funcs(s2) == fs && s_tabs(s2) == s_tabs(s) && f_inst(f2) == inst && f_locs(f2) == f_locs(f) && gvals(s2, f2) == gvals(s, f) && SND(EL(j, s_mems(s2))) == \{layout}(ys), after))) || (∃ s3 : Wstore, ∃ f3 : Wframe, ∃ es3 : List[Einstr], reduce(s2, f2, es2, s3, f3, es3))",
     ),
     seq([
       @tactics.repeat_tac(@tactics.strip_tac),

@@ -240,14 +240,14 @@ fn head_name(t : @kernel.Term) -> String {
 
 ///|
 /// The parts (p, bs, q, ls) of the term `sl_triple_l(p, bs, q, ls)`, or
-/// of `sl_triple_g(G, fs, inst, rp, p, bs, q, ls)`.
+/// of `sl_triple_g(G, fs, tabs, inst, rp, p, bs, q, ls)`.
 fn triple_l_terms(
   t : @kernel.Term,
 ) -> (@kernel.Term, @kernel.Term, @kernel.Term, @kernel.Term) raise {
   let (_, args) = @basics.strip_comb(t)
   match args.to_array() {
     [p, bs, q, ls] => (p, bs, q, ls)
-    [_, _, _, _, p, bs, q, ls] => (p, bs, q, ls)
+    [_, _, _, _, _, p, bs, q, ls] => (p, bs, q, ls)
     _ => raise Failure("certimoon/logic: not a triple with labels: " + show(t))
   }
 }

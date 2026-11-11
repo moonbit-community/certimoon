@@ -4,11 +4,11 @@
 //   address a of the store, given arguments args with P(args, gs, ms, h),
 //   returns results res with Q(res, gs, ms, h) (gs, ms and h as in an
 //   assertion, for the module's instance).
-// - inv_ok(n, fs, inst, a, P, Q): invoking a from arguments with P is
+// - inv_ok(n, fs, tabs, inst, a, P, Q): invoking a from arguments with P is
 //   safe, for n steps or fewer, and ends in results with Q; the caller's
 //   stack below the arguments and its locals are kept. specs_ok(n, G, fs,
 //   inst): so is every spec of G.
-// - sl_triple_g(G, fs, inst, rp, p, bs, q, ls): for every n, when the
+// - sl_triple_g(G, fs, tabs, inst, rp, p, bs, q, ls): for every n, when the
 //   specs of G hold for n steps, bs is safe for n steps, as a module
 //   triple (fs and inst kept), with label assertions ls and return
 //   assertion rp. A triple holds for n steps only while G's specs do, so
@@ -56,15 +56,15 @@ pub fn body_post(q : String) -> String {
 }
 
 ///|
-/// The triple sl_triple_g(G, fs, inst, rp, p, bs, q, ls).
+/// The triple sl_triple_g(G, fs, tabs, inst, rp, p, bs, q, ls).
 fn triple_g(p : String, bs : String, q : String, ls : String) -> String {
-  "sl_triple_g(G, fs, inst, rp, \{p}, \{bs}, \{q}, \{ls})"
+  "sl_triple_g(G, fs, tabs, inst, rp, \{p}, \{bs}, \{q}, \{ls})"
 }
 
 ///|
-/// The quantifiers for G, fs, inst and rp.
+/// The quantifiers for G, fs, tabs, inst and rp.
 fn env_vars() -> String {
-  "∀ G : \{specs_ty}, ∀ fs : List[Cl], ∀ inst : Inst, ∀ rp : \{sassn}, "
+  "∀ G : \{specs_ty}, ∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, ∀ rp : \{sassn}, "
 }
 
 ///|
@@ -73,15 +73,15 @@ fn define_specs() -> Unit raise {
   let sa = sassn
   def(
     "inv_ok",
-    "inv_ok((n : Num), (fs : List[Cl]), (inst : Inst), (a : Num), (P : \{fprop}), (Q : \{fprop})) == (∀ m : Num, ∀ fr : \{hprop}, ∀ s : Wstore, ∀ f : Wframe, ∀ stk : List[Value], ∀ vs0 : List[Value], ∀ lc0 : List[Value], ∀ l : List[\{a}], ∀ rq : \{a}, m <= n && keep(fs, inst, lift(\{call_pre("P", "vs0", "lc0")}, fr), s, f, stk) → safer(m, s, f, APPEND(MAP(v_to_e, stk), [Invoke(a)]), keep(fs, inst, lift(\{call_post("Q", "vs0", "lc0")}, fr)), l, rq))",
+    "inv_ok((n : Num), (fs : List[Cl]), (tabs : List[(Tab_t, List[V_ref])]), (inst : Inst), (a : Num), (P : \{fprop}), (Q : \{fprop})) == (∀ m : Num, ∀ fr : \{hprop}, ∀ s : Wstore, ∀ f : Wframe, ∀ stk : List[Value], ∀ vs0 : List[Value], ∀ lc0 : List[Value], ∀ l : List[\{a}], ∀ rq : \{a}, m <= n && keep(fs, tabs, inst, lift(\{call_pre("P", "vs0", "lc0")}, fr), s, f, stk) → safer(m, s, f, APPEND(MAP(v_to_e, stk), [Invoke(a)]), keep(fs, tabs, inst, lift(\{call_post("Q", "vs0", "lc0")}, fr)), l, rq))",
   )
   def(
     "specs_ok",
-    "specs_ok((n : Num), (G : \{specs_ty}), (fs : List[Cl]), (inst : Inst)) == (∀ a : Num, ∀ P : \{fprop}, ∀ Q : \{fprop}, G(a, P, Q) → inv_ok(n, fs, inst, a, P, Q))",
+    "specs_ok((n : Num), (G : \{specs_ty}), (fs : List[Cl]), (tabs : List[(Tab_t, List[V_ref])]), (inst : Inst)) == (∀ a : Num, ∀ P : \{fprop}, ∀ Q : \{fprop}, G(a, P, Q) → inv_ok(n, fs, tabs, inst, a, P, Q))",
   )
   def(
     "sl_triple_g",
-    "sl_triple_g((G : \{specs_ty}), (fs : List[Cl]), (inst : Inst), (rp : \{sa}), (p : \{sa}), (bs : List[B_e]), (q : \{sa}), (ls : List[\{sa}])) == (∀ n : Num, ∀ fr : \{hprop}, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], specs_ok(n, G, fs, inst) && keep(fs, inst, lift(p, fr), s, f, vs) → safer(n, s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs)), keep(fs, inst, lift(q, fr)), MAP(keep(fs, inst), MAP((x : \{sa}) => lift(x, fr), ls)), keep(fs, inst, lift(rp, fr))))",
+    "sl_triple_g((G : \{specs_ty}), (fs : List[Cl]), (tabs : List[(Tab_t, List[V_ref])]), (inst : Inst), (rp : \{sa}), (p : \{sa}), (bs : List[B_e]), (q : \{sa}), (ls : List[\{sa}])) == (∀ n : Num, ∀ fr : \{hprop}, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], specs_ok(n, G, fs, tabs, inst) && keep(fs, tabs, inst, lift(p, fr), s, f, vs) → safer(n, s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs)), keep(fs, tabs, inst, lift(q, fr)), MAP(keep(fs, tabs, inst), MAP((x : \{sa}) => lift(x, fr), ls)), keep(fs, tabs, inst, lift(rp, fr))))",
   )
 }
 
@@ -111,7 +111,7 @@ fn prove_specs_basics() -> Unit raise {
   let fr = "(fr : \{hprop})"
   let _ = lemma(
     "specs_down",
-    "∀ n : Num, ∀ m : Num, ∀ G : \{specs_ty}, ∀ fs : List[Cl], ∀ inst : Inst, m <= n && specs_ok(n, G, fs, inst) → specs_ok(m, G, fs, inst)",
+    "∀ n : Num, ∀ m : Num, ∀ G : \{specs_ty}, ∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, m <= n && specs_ok(n, G, fs, tabs, inst) → specs_ok(m, G, fs, tabs, inst)",
     seq([
       @simp.rewrite_tac(ths([thm("specs_ok"), thm("inv_ok")])),
       @meson.meson_tac(ths([@arith.le_trans()])),
@@ -119,7 +119,7 @@ fn prove_specs_basics() -> Unit raise {
   )
   let _ = lemma(
     "sl_triple_g_of_m",
-    "\{env}∀ p : \{sa}, ∀ bs : List[B_e], ∀ q : \{sa}, ∀ ls : List[\{sa}], sl_triple_m(fs, inst, p, bs, q, ls) → \{triple_g("p", "bs", "q", "ls")}",
+    "\{env}∀ p : \{sa}, ∀ bs : List[B_e], ∀ q : \{sa}, ∀ ls : List[\{sa}], sl_triple_m(fs, tabs, inst, p, bs, q, ls) → \{triple_g("p", "bs", "q", "ls")}",
     seq([
       @simp.rewrite_tac(ths([thm("sl_triple_m"), sl_triple_g, thm("triple_l")])),
       @tactics.repeat_tac(@tactics.strip_tac),
@@ -140,13 +140,13 @@ fn prove_specs_basics() -> Unit raise {
   )
   let _ = lemma(
     "sl_triple_m_of_g",
-    "∀ G : \{specs_ty}, ∀ fs : List[Cl], ∀ inst : Inst, ∀ p : \{sa}, ∀ bs : List[B_e], ∀ q : \{sa}, ∀ ls : List[\{sa}], (∀ n : Num, specs_ok(n, G, fs, inst)) && sl_triple_g(G, fs, inst, \{sa_false}, p, bs, q, ls) → sl_triple_m(fs, inst, p, bs, q, ls)",
+    "∀ G : \{specs_ty}, ∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, ∀ p : \{sa}, ∀ bs : List[B_e], ∀ q : \{sa}, ∀ ls : List[\{sa}], (∀ n : Num, specs_ok(n, G, fs, tabs, inst)) && sl_triple_g(G, fs, tabs, inst, \{sa_false}, p, bs, q, ls) → sl_triple_m(fs, tabs, inst, p, bs, q, ls)",
     seq([
       @simp.rewrite_tac(ths([thm("sl_triple_m"), sl_triple_g, thm("triple_l")])),
       @tactics.repeat_tac(@tactics.strip_tac),
       @tactics.match_mp_tac(thm("safer_safel")),
       @tactics.exists_tac(
-        tm("keep(fs, inst, lift(\{sa_false}, (r : \{hprop})))"),
+        tm("keep(fs, tabs, inst, lift(\{sa_false}, (r : \{hprop})))"),
       ),
       @tactics.thenl(
         @tactics.conj_tac,
@@ -169,7 +169,7 @@ fn prove_specs_basics() -> Unit raise {
       ),
       @tactics.repeat_tac(@tactics.strip_tac),
       @tactics.match_mp_tac(thm("safer_seq")),
-      @tactics.exists_tac(tm("keep(fs, inst, lift((q : \{sa}), \{fr}))")),
+      @tactics.exists_tac(tm("keep(fs, tabs, inst, lift((q : \{sa}), \{fr}))")),
       @tactics.thenl(
         @tactics.conj_tac,
         @list.List([
@@ -189,11 +189,11 @@ fn prove_specs_basics() -> Unit raise {
       ),
     ]),
   )
-  let lift_l = "MAP(keep(fs, inst), MAP((x : \{sa}) => lift(x, \{fr}), (ls : List[\{sa}])))"
+  let lift_l = "MAP(keep(fs, tabs, inst), MAP((x : \{sa}) => lift(x, \{fr}), (ls : List[\{sa}])))"
   let ent = (x : String, y : String) => {
     "(∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, \{x}(vs, lc, gs, ms, h) → \{y}(vs, lc, gs, ms, h))"
   }
-  // keep(fs, inst, lift(x, fr), s, f, v) from keep(fs, inst, lift(y, fr), s, f, v)
+  // keep(fs, tabs, inst, lift(x, fr), s, f, v) from keep(fs, tabs, inst, lift(y, fr), s, f, v)
   let keep_mono_at = (y : String, v : String) => {
     seq([
       @tactics.disch_tac,
@@ -221,9 +221,9 @@ fn prove_specs_basics() -> Unit raise {
       @simp.rewrite_tac(ths([sl_triple_g])),
       @tactics.repeat_tac(@tactics.strip_tac),
       @tactics.match_mp_tac(thm("safer_mono")),
-      @tactics.exists_tac(tm("keep(fs, inst, lift((q : \{sa}), \{fr}))")),
+      @tactics.exists_tac(tm("keep(fs, tabs, inst, lift((q : \{sa}), \{fr}))")),
       @tactics.exists_tac(tm(lift_l)),
-      @tactics.exists_tac(tm("keep(fs, inst, lift((rp : \{sa}), \{fr}))")),
+      @tactics.exists_tac(tm("keep(fs, tabs, inst, lift((rp : \{sa}), \{fr}))")),
       @simp.asm_rewrite_tac(ths([@lists.length_map()])),
       @tactics.repeat_tac(@tactics.conj_tac),
       @tactics.first(
@@ -275,7 +275,7 @@ fn prove_specs_basics() -> Unit raise {
                 seq([
                   @tactics.undisch_tac(
                     tm(
-                      "keep(fs, inst, lift((p2 : \{sa}), \{fr}), (s : Wstore), (f : Wframe), (vs : List[Value]))",
+                      "keep(fs, tabs, inst, lift((p2 : \{sa}), \{fr}), (s : Wstore), (f : Wframe), (vs : List[Value]))",
                     ),
                   ),
                   keep_mono_at("(p2 : \{sa})", "(vs : List[Value])"),
@@ -289,14 +289,14 @@ fn prove_specs_basics() -> Unit raise {
   )
   let _ = lemma(
     "sl_conseq_ret_g",
-    "∀ G : \{specs_ty}, ∀ fs : List[Cl], ∀ inst : Inst, ∀ rp : \{sa}, ∀ rp2 : \{sa}, ∀ p : \{sa}, ∀ bs : List[B_e], ∀ q : \{sa}, ∀ ls : List[\{sa}], \{ent("rp", "rp2")} && \{triple_g("p", "bs", "q", "ls")} → sl_triple_g(G, fs, inst, rp2, p, bs, q, ls)",
+    "∀ G : \{specs_ty}, ∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, ∀ rp : \{sa}, ∀ rp2 : \{sa}, ∀ p : \{sa}, ∀ bs : List[B_e], ∀ q : \{sa}, ∀ ls : List[\{sa}], \{ent("rp", "rp2")} && \{triple_g("p", "bs", "q", "ls")} → sl_triple_g(G, fs, tabs, inst, rp2, p, bs, q, ls)",
     seq([
       @simp.rewrite_tac(ths([sl_triple_g])),
       @tactics.repeat_tac(@tactics.strip_tac),
       @tactics.match_mp_tac(thm("safer_mono")),
-      @tactics.exists_tac(tm("keep(fs, inst, lift((q : \{sa}), \{fr}))")),
+      @tactics.exists_tac(tm("keep(fs, tabs, inst, lift((q : \{sa}), \{fr}))")),
       @tactics.exists_tac(tm(lift_l)),
-      @tactics.exists_tac(tm("keep(fs, inst, lift((rp : \{sa}), \{fr}))")),
+      @tactics.exists_tac(tm("keep(fs, tabs, inst, lift((rp : \{sa}), \{fr}))")),
       @simp.rewrite_tac(ths([])),
       @tactics.repeat_tac(@tactics.conj_tac),
       @tactics.first(
@@ -403,11 +403,11 @@ fn prove_specs_basics() -> Unit raise {
 /// inst away).
 fn define_in_mod() -> Unit raise {
   def(
-    "in_mod", "in_mod((fs : List[Cl]), (inst : Inst), (s : Wstore), (f : Wframe)) == (s_funcs(s) == fs && f_inst(f) == inst)",
+    "in_mod", "in_mod((fs : List[Cl]), (tabs : List[(Tab_t, List[V_ref])]), (inst : Inst), (s : Wstore), (f : Wframe)) == (s_funcs(s) == fs && s_tabs(s) == tabs && f_inst(f) == inst)",
   )
   let _ = lemma(
     "keep_in_mod",
-    "∀ fs : List[Cl], ∀ inst : Inst, ∀ q : \{assn}, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], keep(fs, inst, q, s, f, vs) == (in_mod(fs, inst, s, f) && q(s, f, vs))",
+    "∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, ∀ q : \{assn}, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], keep(fs, tabs, inst, q, s, f, vs) == (in_mod(fs, tabs, inst, s, f) && q(s, f, vs))",
     @simp.rewrite_tac(ths([thm("keep"), thm("in_mod"), @theorems.conj_assoc()])),
   )
 }
@@ -443,7 +443,7 @@ fn cases_n_specs() -> @tactics.Tactic raise {
 /// specs_ok(n', ...) from specs_ok(SUC(n'), ...).
 fn specs_pred(n : String) -> @tactics.Tactic raise {
   have(
-    "specs_ok((\{n} : Num), (G : \{specs_ty}), (fs : List[Cl]), (inst : Inst))",
+    "specs_ok((\{n} : Num), (G : \{specs_ty}), (fs : List[Cl]), (tabs : List[(Tab_t, List[V_ref])]), (inst : Inst))",
     seq([
       @tactics.match_mp_tac(thm("specs_down")),
       @tactics.exists_tac(tm("SUC((\{n} : Num))")),
@@ -453,7 +453,7 @@ fn specs_pred(n : String) -> @tactics.Tactic raise {
 }
 
 ///|
-/// keep(fs, inst, lift(x, fr), s2, f2, ...) from keep(fs, inst, lift(y,
+/// keep(fs, tabs, inst, lift(x, fr), s2, f2, ...) from keep(fs, tabs, inst, lift(y,
 /// fr), s2, f2, v) in the assumptions: lift_mono, with y and v.
 fn keep_lift_mono(y : String, v : String) -> @tactics.Tactic raise {
   seq([
@@ -538,7 +538,7 @@ fn prove_conditional_g(
       subst_vars(),
       // p holds of vs0, below the condition
       have(
-        "keep(fs, inst, lift((p : \{sassn}), (fr : \{hprop})), (s : Wstore), (f : Wframe), \{vs0})",
+        "keep(fs, tabs, inst, lift((p : \{sassn}), (fr : \{hprop})), (s : Wstore), (f : Wframe), \{vs0})",
         seq([
           @simp.rewrite_tac(ths([thm("keep_in_mod"), thm("lift")])),
           @simp.asm_rewrite_tac(ths([])),
@@ -669,8 +669,8 @@ fn prove_block_g() -> Unit raise {
             @tactics.repeat_tac(@tactics.strip_tac),
             subst_vars(),
             @tactics.match_mp_tac(thm("safer_label")),
-            @tactics.exists_tac(tm("keep(fs, inst, lift((qb : \{sa}), \{fr}))")),
-            @tactics.exists_tac(tm("keep(fs, inst, lift((lb : \{sa}), \{fr}))")),
+            @tactics.exists_tac(tm("keep(fs, tabs, inst, lift((qb : \{sa}), \{fr}))")),
+            @tactics.exists_tac(tm("keep(fs, tabs, inst, lift((lb : \{sa}), \{fr}))")),
             @tactics.thenl(
               @tactics.conj_tac,
               @list.List([
@@ -822,9 +822,9 @@ fn prove_loop_g() -> Unit raise {
                   @simp.rewrite_tac(ths(lists)),
                   @tactics.match_mp_tac(thm("safer_label")),
                   @tactics.exists_tac(
-                    tm("keep(fs, inst, lift((qb : \{sa}), \{fr}))"),
+                    tm("keep(fs, tabs, inst, lift((qb : \{sa}), \{fr}))"),
                   ),
-                  @tactics.exists_tac(tm("keep(fs, inst, lift(\{lb}, \{fr}))")),
+                  @tactics.exists_tac(tm("keep(fs, tabs, inst, lift(\{lb}, \{fr}))")),
                   @tactics.thenl(
                     @tactics.conj_tac,
                     @list.List([
@@ -971,11 +971,11 @@ fn prove_call_g() -> Unit raise {
   )
   let pb = body_pre("P", "args", "zs")
   let qb = body_post("Q")
-  let native = "EL(a, fs) == Func_native(inst, Tf(t1s, t2s), ts, es) && n_zeros(ts) == SOME(zs) && (∀ args : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, P(args, gs, ms, h) → LENGTH(args) == LENGTH(t1s)) && (∀ res : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, Q(res, gs, ms, h) → LENGTH(res) == LENGTH(t2s)) && (∀ args : List[Value], sl_triple_g(G, fs, inst, \{qb}, \{pb}, es, \{qb}, [\{qb}]))"
+  let native = "EL(a, fs) == Func_native(inst, Tf(t1s, t2s), ts, es) && n_zeros(ts) == SOME(zs) && (∀ args : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, P(args, gs, ms, h) → LENGTH(args) == LENGTH(t1s)) && (∀ res : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, Q(res, gs, ms, h) → LENGTH(res) == LENGTH(t2s)) && (∀ args : List[Value], sl_triple_g(G, fs, tabs, inst, \{qb}, \{pb}, es, \{qb}, [\{qb}]))"
   let fr = "(fr : \{hprop})"
   let callee = "Wframe(APPEND((args : List[Value]), (zs : List[Value])), (inst : Inst))"
   let frame_code = "APPEND(MAP(v_to_e, (vs0 : List[Value])), [Frame(LENGTH((t2s : List[Valtype])), \{callee}, [Label(LENGTH(t2s), NIL, MAP(Basic, (es : List[B_e])))])])"
-  let qin = "keep(fs, inst, lift(\{qb}, \{fr}))"
+  let qin = "keep(fs, tabs, inst, lift(\{qb}, \{fr}))"
   let frame_facts = [
     @wasm.thm("f_inst"),
     @wasm.thm("f_locs"),
@@ -1009,7 +1009,7 @@ fn prove_call_g() -> Unit raise {
   ])
   let _ = lemma(
     "sl_funs_g",
-    "∀ G : \{specs_ty}, ∀ fs : List[Cl], ∀ inst : Inst, (∀ a : Num, ∀ P : \{fprop}, ∀ Q : \{fprop}, G(a, P, Q) → (∃ t1s : List[Valtype], ∃ t2s : List[Valtype], ∃ ts : List[Valtype], ∃ es : List[B_e], ∃ zs : List[Value], \{native})) → (∀ n : Num, specs_ok(n, G, fs, inst))",
+    "∀ G : \{specs_ty}, ∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, (∀ a : Num, ∀ P : \{fprop}, ∀ Q : \{fprop}, G(a, P, Q) → (∃ t1s : List[Valtype], ∃ t2s : List[Valtype], ∃ ts : List[Valtype], ∃ es : List[B_e], ∃ zs : List[Value], \{native})) → (∀ n : Num, specs_ok(n, G, fs, tabs, inst))",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @tactics.disch_tac,
@@ -1072,7 +1072,7 @@ fn prove_call_g() -> Unit raise {
             @simp.rewrite_tac(ths([thm("safer"), @arith.le_suc()])),
             @tactics.disch_tac,
             have(
-              "specs_ok((n' : Num), (G : \{specs_ty}), (fs : List[Cl]), (inst : Inst))",
+              "specs_ok((n' : Num), (G : \{specs_ty}), (fs : List[Cl]), (tabs : List[(Tab_t, List[V_ref])]), (inst : Inst))",
               seq([
                 @tactics.match_mp_tac(thm("specs_down")),
                 @tactics.exists_tac(tm("(n : Num)")),

@@ -110,22 +110,41 @@ fn prove_adequacy() -> Unit raise {
   )
   let _ = lemma(
     "sl_triple_m_adequate",
-    "∀ fs : List[Cl], ∀ inst : Inst, ∀ p : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ r : \{hprop}, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], sl_triple_m(fs, inst, p, bs, q, NIL) && s_funcs(s) == fs && f_inst(f) == inst && lift(p, r, s, f, vs) && reduce_trans((s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs))), (s2, f2, es2)) → (∃ vs2 : List[Value], es2 == MAP(v_to_e, vs2) && s_funcs(s2) == fs && f_inst(f2) == inst && lift(q, r, s2, f2, vs2)) || (∃ s3 : Wstore, ∃ f3 : Wframe, ∃ es3 : List[Einstr], reduce(s2, f2, es2, s3, f3, es3))",
+    "∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, ∀ p : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ r : \{hprop}, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], sl_triple_m(fs, tabs, inst, p, bs, q, NIL) && s_funcs(s) == fs && s_tabs(s) == tabs && f_inst(f) == inst && lift(p, r, s, f, vs) && reduce_trans((s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs))), (s2, f2, es2)) → (∃ vs2 : List[Value], es2 == MAP(v_to_e, vs2) && s_funcs(s2) == fs && s_tabs(s2) == tabs && f_inst(f2) == inst && lift(q, r, s2, f2, vs2)) || (∃ s3 : Wstore, ∃ f3 : Wframe, ∃ es3 : List[Einstr], reduce(s2, f2, es2, s3, f3, es3))",
     seq([
       @simp.rewrite_tac(ths([thm("sl_triple_m"), thm("triple_l"), @lists.map()])),
       @tactics.repeat_tac(@tactics.strip_tac),
       have(
-        "∀ n : Num, safe(n, (s : Wstore), (f : Wframe), \{code}, keep((fs : List[Cl]), (inst : Inst), lift((q : \{sassn}), (r : \{hprop}))))",
+        "∀ n : Num, safe(n, (s : Wstore), (f : Wframe), \{code}, keep((fs : List[Cl]), (tabs : List[(Tab_t, List[V_ref])]), (inst : Inst), lift((q : \{sassn}), (r : \{hprop}))))",
         seq([
           @tactics.gen_tac,
           @tactics.match_mp_tac(thm("safel_nil")),
-          @tactics.first_x_assum(th => @tactics.match_mp_tac(th)),
-          @simp.asm_rewrite_tac(ths([thm("keep")])),
+          // the triple, for this frame r and state (keep unfolded: the
+          // assumptions)
+          @tactics.first_x_assum(th => {
+            if @basics.is_forall(@kernel.concl(th)) {
+              @tactics.mp_tac(
+                @bool.ispecl(
+                  @list.List(["(r : \{hprop})", "(s : Wstore)", "(f : Wframe)", "(vs : List[Value])", "(n : Num)"].map(tm)),
+                  th,
+                ),
+              )
+            } else {
+              @tactics.no_tac
+            }
+          }),
+          @tactics.thenl(
+            @tactics.ants_tac,
+            @list.List([@simp.asm_rewrite_tac(ths([thm("keep")])), @tactics.disch_then(th => @tactics.accept_tac(th))]),
+          ),
         ]),
       ),
-      @tactics.mp_tac(adequate_at("keep((fs : List[Cl]), (inst : Inst), lift((q : \{sassn}), (r : \{hprop})))")),
+      @tactics.mp_tac(adequate_at("keep((fs : List[Cl]), (tabs : List[(Tab_t, List[V_ref])]), (inst : Inst), lift((q : \{sassn}), (r : \{hprop})))")),
       @simp.rewrite_tac(ths([thm("keep")])),
-      @meson.asm_meson_tac(ths([])),
+      // safe_adequate's conclusion, keep unfolded, is the goal; its
+      // hypotheses are assumptions
+      @tactics.disch_then(th => @tactics.match_mp_tac(th)),
+      @simp.asm_rewrite_tac(ths([])),
     ]),
   )
   let opt = [@ind_types.option_distinct(), @equal.gsym(@ind_types.option_distinct()), @ind_types.option_inj()]
@@ -177,7 +196,7 @@ fn prove_adequacy() -> Unit raise {
   )
   let _ = lemma(
     "sl_triple_m_adequate_whole",
-    "∀ fs : List[Cl], ∀ inst : Inst, ∀ p : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ j : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], sl_triple_m(fs, inst, p, bs, q, NIL) && s_funcs(s) == fs && f_inst(f) == inst && smem_ind(inst) == SOME(j) && j < LENGTH(s_mems(s)) && globs_ok(s, f) && p(vs, f_locs(f), gvals(s, f), mem_length(EL(j, s_mems(s))), heap_of(EL(j, s_mems(s)))) && reduce_trans((s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs))), (s2, f2, es2)) → (∃ vs2 : List[Value], es2 == MAP(v_to_e, vs2) && s_funcs(s2) == fs && f_inst(f2) == inst && j < LENGTH(s_mems(s2)) && globs_ok(s2, f2) && q(vs2, f_locs(f2), gvals(s2, f2), mem_length(EL(j, s_mems(s2))), heap_of(EL(j, s_mems(s2))))) || (∃ s3 : Wstore, ∃ f3 : Wframe, ∃ es3 : List[Einstr], reduce(s2, f2, es2, s3, f3, es3))",
+    "∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, ∀ p : \{sassn}, ∀ bs : List[B_e], ∀ q : \{sassn}, ∀ j : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], sl_triple_m(fs, tabs, inst, p, bs, q, NIL) && s_funcs(s) == fs && s_tabs(s) == tabs && f_inst(f) == inst && smem_ind(inst) == SOME(j) && j < LENGTH(s_mems(s)) && globs_ok(s, f) && p(vs, f_locs(f), gvals(s, f), mem_length(EL(j, s_mems(s))), heap_of(EL(j, s_mems(s)))) && reduce_trans((s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs))), (s2, f2, es2)) → (∃ vs2 : List[Value], es2 == MAP(v_to_e, vs2) && s_funcs(s2) == fs && s_tabs(s2) == tabs && f_inst(f2) == inst && j < LENGTH(s_mems(s2)) && globs_ok(s2, f2) && q(vs2, f_locs(f2), gvals(s2, f2), mem_length(EL(j, s_mems(s2))), heap_of(EL(j, s_mems(s2))))) || (∃ s3 : Wstore, ∃ f3 : Wframe, ∃ es3 : List[Einstr], reduce(s2, f2, es2, s3, f3, es3))",
     // MESON finds this too, but takes minutes: the j that lift_emp
     // introduces at the end is the statement's j, by f_inst(f2) == inst
     // and smem_ind(inst) == SOME(j)
@@ -188,7 +207,7 @@ fn prove_adequacy() -> Unit raise {
           @bool.ispecl(
             @list.List(
               [
-                "(fs : List[Cl])", "(inst : Inst)", "(p : \{sassn})", "(bs : List[B_e])", "(q : \{sassn})",
+                "(fs : List[Cl])", "(tabs : List[(Tab_t, List[V_ref])])", "(inst : Inst)", "(p : \{sassn})", "(bs : List[B_e])", "(q : \{sassn})",
                 "emp", "(s : Wstore)", "(f : Wframe)", "(vs : List[Value])", "(s2 : Wstore)", "(f2 : Wframe)",
                 "(es2 : List[Einstr])",
               ].map(tm),

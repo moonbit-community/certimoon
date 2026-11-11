@@ -93,6 +93,9 @@ pub fn load() -> Unit {
     prove_specs_rules()
     prove_call_g()
     prove_sym_g()
+    section("Indirect calls (indirect.mbt)")
+    prove_call_indirect_steps()
+    prove_call_indirect_g()
     section("Examples (examples.mbt)")
     prove_examples()
   })() catch {

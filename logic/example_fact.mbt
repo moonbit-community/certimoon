@@ -85,7 +85,7 @@ fn prove_example_fact() -> Unit raise {
   let after_if = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => vs == NIL && lc == [\{i("x")}] && !(x == word(0)) && R(gs, ms, h)"
   let body_th = sym_prove(
     "fact_body",
-    "∀ fs : List[Cl], ∀ inst : Inst, ∀ x : \{w}, ∀ R : \{rty}, ∀ args : List[Value], sl_triple_g(fact_spec(inst), fs, inst, \{qb}, \{pb}, \{body}, \{qb}, [\{qb}])",
+    "∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, ∀ x : \{w}, ∀ R : \{rty}, ∀ args : List[Value], sl_triple_g(fact_spec(inst), fs, tabs, inst, \{qb}, \{pb}, \{body}, \{qb}, [\{qb}])",
     [],
     [
       // the return: 1 is fact_w(val(0))
@@ -108,7 +108,7 @@ fn prove_example_fact() -> Unit raise {
   let native = "EL(sfunc_ind(inst, 0), fs) == Func_native(inst, \{tf}, NIL, \{body})"
   let specs = lemma(
     "fact_specs",
-    "∀ fs : List[Cl], ∀ inst : Inst, \{native} → (∀ n : Num, specs_ok(n, fact_spec(inst), fs, inst))",
+    "∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, \{native} → (∀ n : Num, specs_ok(n, fact_spec(inst), fs, tabs, inst))",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @tactics.disch_tac,
@@ -135,6 +135,7 @@ fn prove_example_fact() -> Unit raise {
                   @list.List(
                     [
                       "(fs : List[Cl])",
+                      "(tabs : List[(Tab_t, List[V_ref])])",
                       "(inst : Inst)",
                       "(x : \{w})",
                       "(R : \{rty})",
@@ -175,7 +176,7 @@ fn prove_example_fact() -> Unit raise {
   ])
   let th = @tactics.prove(
     tm(
-      "∀ fs : List[Cl], ∀ inst : Inst, ∀ x : \{w}, ∀ R : \{rty}, ∀ vs0 : List[Value], ∀ lc0 : List[Value], \{native} → sl_triple_m(fs, inst, \{pre}, [Call(0)], \{post}, NIL)",
+      "∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, ∀ x : \{w}, ∀ R : \{rty}, ∀ vs0 : List[Value], ∀ lc0 : List[Value], \{native} → sl_triple_m(fs, tabs, inst, \{pre}, [Call(0)], \{post}, NIL)",
     ),
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
@@ -230,7 +231,7 @@ fn prove_fact_closed(example : @kernel.Thm, native : String) -> Unit raise {
   let exact = "(gs : List[Value]) => (ms : Num) => (h : \{heap}) => gs == gvals((s : Wstore), (f : Wframe)) && ms == mem_length(EL((j : Num), s_mems(s))) && h == heap_of(EL(j, s_mems(s)))"
   let triple = @bool.ispecl(
     @list.List(
-      ["(fs : List[Cl])", "(inst : Inst)", "(x : \{w})", exact, "(vs0 : List[Value])", "f_locs((f : Wframe))"].map(tm),
+      ["(fs : List[Cl])", "s_tabs((s : Wstore))", "(inst : Inst)", "(x : \{w})", exact, "(vs0 : List[Value])", "f_locs((f : Wframe))"].map(tm),
     ),
     example,
   )
@@ -242,10 +243,11 @@ fn prove_fact_closed(example : @kernel.Thm, native : String) -> Unit raise {
     @list.List(
       [
         tm("(fs : List[Cl])"),
+        tm("s_tabs((s : Wstore))"),
         tm("(inst : Inst)"),
-        args[2],
+        args[3],
         tm("[Call(0)]"),
-        args[4],
+        args[5],
         tm("(j : Num)"),
         tm("(s : Wstore)"),
         tm("(f : Wframe)"),
@@ -259,7 +261,7 @@ fn prove_fact_closed(example : @kernel.Thm, native : String) -> Unit raise {
   )
   let th = @tactics.prove(
     tm(
-      "∀ fs : List[Cl], ∀ inst : Inst, ∀ s : Wstore, ∀ f : Wframe, ∀ j : Num, ∀ x : \{w}, ∀ vs0 : List[Value], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], \{native} && s_funcs(s) == fs && f_inst(f) == inst && smem_ind(inst) == SOME(j) && j < LENGTH(s_mems(s)) && globs_ok(s, f) && reduce_trans((s, f, APPEND(MAP(v_to_e, APPEND(vs0, [\{i("x")}])), [Basic(Call(0))])), (s2, f2, es2)) → (es2 == MAP(v_to_e, APPEND(vs0, [\{i("fact_w(val(x))")}])) && s_funcs(s2) == fs && f_inst(f2) == inst && f_locs(f2) == f_locs(f) && gvals(s2, f2) == gvals(s, f) && heap_of(EL(j, s_mems(s2))) == heap_of(EL(j, s_mems(s)))) || (∃ s3 : Wstore, ∃ f3 : Wframe, ∃ es3 : List[Einstr], reduce(s2, f2, es2, s3, f3, es3))",
+      "∀ fs : List[Cl], ∀ inst : Inst, ∀ s : Wstore, ∀ f : Wframe, ∀ j : Num, ∀ x : \{w}, ∀ vs0 : List[Value], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], \{native} && s_funcs(s) == fs && f_inst(f) == inst && smem_ind(inst) == SOME(j) && j < LENGTH(s_mems(s)) && globs_ok(s, f) && reduce_trans((s, f, APPEND(MAP(v_to_e, APPEND(vs0, [\{i("x")}])), [Basic(Call(0))])), (s2, f2, es2)) → (es2 == MAP(v_to_e, APPEND(vs0, [\{i("fact_w(val(x))")}])) && s_funcs(s2) == fs && s_tabs(s2) == s_tabs(s) && f_inst(f2) == inst && f_locs(f2) == f_locs(f) && gvals(s2, f2) == gvals(s, f) && heap_of(EL(j, s_mems(s2))) == heap_of(EL(j, s_mems(s)))) || (∃ s3 : Wstore, ∃ f3 : Wframe, ∃ es3 : List[Einstr], reduce(s2, f2, es2, s3, f3, es3))",
     ),
     seq([
       @tactics.repeat_tac(@tactics.strip_tac),

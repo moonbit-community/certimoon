@@ -282,12 +282,12 @@ fn prove_sl_call() -> Unit raise {
   let post_b = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => Q(vs, gs, ms, h)"
   let pre_c = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => ∃ args : List[Value], vs == APPEND(vs0, args) && LENGTH(args) == LENGTH(t1s) && lc == lc0 && P(args, gs, ms, h)"
   let post_c = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => ∃ res : List[Value], vs == APPEND(vs0, res) && lc == lc0 && Q(res, gs, ms, h)"
-  let qin = "keep((fs : List[Cl]), (inst : Inst), lift(\{post_b}, (r : \{hprop})))"
+  let qin = "keep((fs : List[Cl]), (tabs : List[(Tab_t, List[V_ref])]), (inst : Inst), lift(\{post_b}, (r : \{hprop})))"
   let callee = "Wframe(APPEND((args : List[Value]), (zs : List[Value])), (inst : Inst))"
   let frame_facts = [@wasm.thm("f_inst"), @wasm.thm("f_locs"), thm("gvals"), thm("globs_ok")]
   let _ = lemma(
     "sl_call",
-    "∀ fs : List[Cl], ∀ inst : Inst, ∀ j : Num, ∀ t1s : List[Valtype], ∀ t2s : List[Valtype], ∀ ts : List[Valtype], ∀ es : List[B_e], ∀ zs : List[Value], ∀ P : \{fprop}, ∀ Q : \{fprop}, ∀ vs0 : List[Value], ∀ lc0 : List[Value], ∀ ls : List[\{sa}], EL(sfunc_ind(inst, j), fs) == Func_native(inst, Tf(t1s, t2s), ts, es) && n_zeros(ts) == SOME(zs) && (∀ args : List[Value], LENGTH(args) == LENGTH(t1s) → sl_triple_m(fs, inst, \{pre_b}, es, \{post_b}, [\{post_b}])) && (∀ res : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, Q(res, gs, ms, h) → LENGTH(res) == LENGTH(t2s)) → sl_triple_m(fs, inst, \{pre_c}, [Call(j)], \{post_c}, ls)",
+    "∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, ∀ j : Num, ∀ t1s : List[Valtype], ∀ t2s : List[Valtype], ∀ ts : List[Valtype], ∀ es : List[B_e], ∀ zs : List[Value], ∀ P : \{fprop}, ∀ Q : \{fprop}, ∀ vs0 : List[Value], ∀ lc0 : List[Value], ∀ ls : List[\{sa}], EL(sfunc_ind(inst, j), fs) == Func_native(inst, Tf(t1s, t2s), ts, es) && n_zeros(ts) == SOME(zs) && (∀ args : List[Value], LENGTH(args) == LENGTH(t1s) → sl_triple_m(fs, tabs, inst, \{pre_b}, es, \{post_b}, [\{post_b}])) && (∀ res : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, Q(res, gs, ms, h) → LENGTH(res) == LENGTH(t2s)) → sl_triple_m(fs, tabs, inst, \{pre_c}, [Call(j)], \{post_c}, ls)",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @tactics.disch_then(th => @tactics.strip_assume_tac(th)),

@@ -20,12 +20,12 @@ compiler: only the HOL Light kernel and WebAssembly's definition.
 
 What can be proved today: integer code, locals and globals, linear memory
 (bytes, i32 and i64 words, arrays), `block`, `loop`, `if`, `br`, `br_if`,
-`return`, and calls of the module's own functions, recursive ones too. The
-examples include a loop over an array, insertion sort, recursive factorial
-and a recursive quicksort (see [The examples](#the-examples)). Not yet:
-`call_indirect`, functions of other modules or the host, floats, SIMD,
-tables; and there is no `.wat` or `.wasm` importer, so programs are
-written as terms. [PLAN.md](PLAN.md) has the design, what is next and how
+`return`, and calls of the module's own functions, recursive ones too,
+directly or through a function table (`call_indirect`). The examples
+include a loop over an array, insertion sort, recursive factorial and a
+recursive quicksort (see [The examples](#the-examples)). Not yet:
+functions of other modules or the host, writing tables, floats, SIMD; and
+there is no `.wat` or `.wasm` importer, so programs are written as terms. [PLAN.md](PLAN.md) has the design, what is next and how
 to work on the code.
 
 ## Build and test
@@ -158,8 +158,8 @@ p, and whatever `fp` says about the rest of memory and the globals.
 |---|---|
 | `sl_triple(p, code, q)` | code without calls: for every store |
 | `sl_triple_l(p, code, q, ls)` | the same with label assertions `ls` for `br` out of the code (innermost label first) |
-| `sl_triple_m(fs, inst, p, code, q, ls)` | code in a module: stores whose function table is `fs`, run in instance `inst` |
-| `sl_triple_g(G, fs, inst, rp, p, code, q, ls)` | code with calls and returns: `G` is a set of function specs the code may assume, `rp` the assertion a `return` must meet |
+| `sl_triple_m(fs, tabs, inst, p, code, q, ls)` | code in a module: stores whose functions are `fs` and tables `tabs`, run in instance `inst` |
+| `sl_triple_g(G, fs, tabs, inst, rp, p, code, q, ls)` | code with calls and returns: `G` is a set of function specs the code may assume, `rp` the assertion a `return` must meet |
 
 The theorem you want at the end is usually `sl_triple` (call-free code)
 or `sl_triple_m` (a call into the module). What they claim is stated
@@ -239,13 +239,18 @@ A module's functions are proved together, each from a spec:
    (`(args) (gs) (ms) (h) => args == [...] && ...`) and returns results
    with Q (`(res) (gs) (ms) (h) => ...`). Prove each spec as a theorem
    `∀ xs. G(inst, sfunc_ind(inst, j), P, Q)` (`fact_call`, `qs_call`).
-2. Prove each body as `sl_triple_g(G(inst), fs, inst, post, pre, body,
+2. Prove each body as `sl_triple_g(G(inst), fs, tabs, inst, post, pre, body,
    post, [post])` with `pre = @logic.body_pre(P, "args", zeros)` and `post
    = @logic.body_post(Q)`, by sym_prove with `specs=[...]`. A call uses a
    spec whose P is `args == [...] && R(gs, ms, h)`, matched against the
    stack. When a spec's variables cannot be read off the state (the parts
    of an array), give them for each call in `calls`: the call then leaves
-   "P of its arguments" to prove. A body may call its own function.
+   "P of its arguments" to prove. A body may call its own function. A
+   `call_indirect` uses a spec the same way, for the function the table
+   holds at the index on top of the stack, and leaves the table's facts
+   to prove (`ti < LENGTH(inst_tabs(inst))`, `tab_cl_ind(tabs, EL(ti,
+   inst_tabs(inst)), val(c)) == SOME(ConstRefFunc(a))` and the function's
+   type), usually from the statement's hypotheses.
 3. `sl_funs_g` turns the bodies' triples into the specs, for a store
    whose functions are these bodies (`fact_specs`, `quicksort_specs`).
 4. A caller's triple: `sl_call_g` (the call), `sl_conseq_g`, and
@@ -253,7 +258,8 @@ A module's functions are proved together, each from a spec:
 
 [logic/example_fact.mbt](logic/example_fact.mbt) does this for factorial in
 about 200 lines; [logic/example_qsort.mbt](logic/example_qsort.mbt) for two
-functions that call each other.
+functions that call each other; [logic/example_indirect.mbt](logic/example_indirect.mbt)
+for a call through a function table.
 
 ### When a proof fails
 
@@ -311,6 +317,7 @@ definition and read back to check it (`wasm/wat.mbt`).
 | `example_call` | example_call.mbt | a call of a doubling function |
 | `example_fact` | example_fact.mbt | recursive factorial, with an early `return` |
 | `fact_closed` | example_fact.mbt | the same about runs (`reduce_trans`), with no assertion: every run of the call ends with the factorial or can step, and the locals, globals and memory are kept |
+| `example_indirect` | example_indirect.mbt | `call_indirect`: whatever function table 0 holds at k, if it is the doubling function, the call doubles x |
 | `example_quicksort` | example_qsort.mbt | recursive quicksort with a partition function: sorted, a permutation |
 | `quicksort_closed` | example_qsort.mbt | the same about runs, with no assertion: the memory's bytes are `before ++ words_bytes(xs) ++ after`, and every run of the call ends with `before ++ words_bytes(ys) ++ after` for some sorted permutation ys of xs, or can step |
 
@@ -343,14 +350,16 @@ with `arr_split` and `arr_focus` (one element out of `ys ++ [x] ++ zs`).
 - `safel` and `sl_triple_l` add label assertions: a run may stop at a `br`
   out of the code, if the label's assertion holds of its values
   (`logic/labels.mbt`). `sl_triple_l_of` carries every `sl_triple` over.
-- `sl_triple_m(fs, inst, ...)`: `sl_triple_l` for the stores whose function
-  table is fs and the frames of instance inst (`keep`); every triple of
-  call-free code is one (`sl_triple_m_of`, from `call_free_step`: a step of
-  call-free code keeps the functions and the instance). `logic/calls.mbt`.
+- `sl_triple_m(fs, tabs, inst, ...)`: `sl_triple_l` for the stores whose
+  functions are fs and tables tabs, and the frames of instance inst
+  (`keep`); every triple of call-free code is one (`sl_triple_m_of`, from
+  `call_free_step`: a step of call-free code, with no call and no table
+  write, keeps the functions, the tables and the instance).
+  `logic/calls.mbt`.
 - `safer` adds a return assertion: a run may stop at a `return` whose
-  values meet it (`logic/returns.mbt`). `sl_triple_g(G, fs, inst, rp, ...)`
-  holds for n steps whenever the function specs G do (`specs_ok(n, G, fs,
-  inst)`: calling each is safe for n steps or fewer), which is what lets a
+  values meet it (`logic/returns.mbt`). `sl_triple_g(G, fs, tabs, inst, rp,
+  ...)` holds for n steps whenever the function specs G do (`specs_ok(n, G,
+  fs, tabs, inst)`: calling each is safe for n steps or fewer), which is what lets a
   body assume its own spec (`logic/specs.mbt`). `sl_triple_g_of` brings in
   any triple of call-free code, `sl_triple_m_of_g` drops G.
 - Adequacy (`logic/adequacy.mbt`): `safe_adequate` says what safety for
@@ -409,7 +418,8 @@ block, loop or if), and leaves entailments for the ends of the code, the
 `br`s and the side conditions. Its rules are `sl_step_l`, `sl_cons_l`,
 `sl_if_st`, `sl_br_if_st`, `sl_block_st`, `sl_loop_st`, `sl_br_st`,
 `sl_nil_st`, `sl_pre_l`, and for g triples their `_g` versions with
-`sl_call_st_g`, `sl_call_spec_g` and `sl_return_st_g`.
+`sl_call_st_g`, `sl_call_spec_g`, `sl_call_indirect_st_g` and
+`sl_return_st_g`.
 
 ### Calls
 
@@ -420,7 +430,11 @@ in contexts does not step by itself (`return_stuck`); `call j` steps to
 `Frame(m, Wframe(args ++ zeros, inst), [Label(m, NIL, body)])`
 (`call_step`, `invoke_step`). `sl_call` is a call of a function given its
 body's triple (no recursion); `sl_call_g` a call by a spec of G, and
-`sl_funs_g` proves G's specs from their bodies.
+`sl_funs_g` proves G's specs from their bodies. `logic/indirect.mbt`:
+`call_indirect(ti, j)` with c on the stack, when table ti holds the
+function a at c and a has type j, steps only to `Invoke(a)`
+(`call_indirect_step`); `sl_call_indirect_g` is then a call of a by its
+spec in G.
 
 ## Reference: the semantics (package wasm)
 

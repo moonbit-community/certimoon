@@ -8,11 +8,12 @@
 // carries over to module triples for call-free code.
 //
 // - has_call_b, has_call: a basic instruction, or an instruction, holds a
-//   call (call or call_indirect, at any depth), and for instructions also
-//   an Invoke or a Frame (they only come from calls); call_free(es): no
-//   instruction of es does.
+//   call (call or call_indirect, at any depth) or a table write (table.set,
+//   table.grow, and table.init, table.copy and table.fill, which step to
+//   table.sets), and for instructions also an Invoke or a Frame (they only
+//   come from calls); call_free(es): no instruction of es does.
 // - call_free_step: a step of call-free code keeps the store's functions
-//   and the frame's instance, and leaves call-free code.
+//   and tables and the frame's instance, and leaves call-free code.
 
 ///|
 /// An inductive relation `name` (as package wasm's `inductive`): its
@@ -86,6 +87,11 @@ fn prove_call_free() -> Unit raise {
   inductive_def("has_call_b", [("has_call_b", "(B_e) -> Bool")], [
     "has_call_b(Call(j))",
     "has_call_b(Call_indirect(t, j))",
+    "has_call_b(Table_set(t))",
+    "has_call_b(Table_grow(t))",
+    "has_call_b(Table_init(t, e))",
+    "has_call_b(Table_copy(t, u))",
+    "has_call_b(Table_fill(t))",
     "MEM(b, bs) && has_call_b(b) → has_call_b(Block(tb, bs))",
     "MEM(b, bs) && has_call_b(b) → has_call_b(Loop(tb, bs))",
     "MEM(b, bs1) && has_call_b(b) → has_call_b(If(tb, bs1, bs2))",
@@ -103,11 +109,14 @@ fn prove_call_free() -> Unit raise {
   let ex_mem = @equal.gsym(@lists.ex_mem())
   let _ = lemma(
     "has_call_b_eq",
-    "∀ b : B_e, has_call_b(b) == ((∃ j : Num, b == Call(j)) || (∃ t : Num, ∃ j : Num, b == Call_indirect(t, j)) || (∃ tb : Tb, ∃ bs : List[B_e], b == Block(tb, bs) && EX(has_call_b, bs)) || (∃ tb : Tb, ∃ bs : List[B_e], b == Loop(tb, bs) && EX(has_call_b, bs)) || (∃ tb : Tb, ∃ bs1 : List[B_e], ∃ bs2 : List[B_e], b == If(tb, bs1, bs2) && (EX(has_call_b, bs1) || EX(has_call_b, bs2))))",
+    "∀ b : B_e, has_call_b(b) == ((∃ j : Num, b == Call(j)) || (∃ t : Num, ∃ j : Num, b == Call_indirect(t, j)) || (∃ t : Num, b == Table_set(t)) || (∃ t : Num, b == Table_grow(t)) || (∃ t : Num, ∃ e : Num, b == Table_init(t, e)) || (∃ t : Num, ∃ u : Num, b == Table_copy(t, u)) || (∃ t : Num, b == Table_fill(t)) || (∃ tb : Tb, ∃ bs : List[B_e], b == Block(tb, bs) && EX(has_call_b, bs)) || (∃ tb : Tb, ∃ bs : List[B_e], b == Loop(tb, bs) && EX(has_call_b, bs)) || (∃ tb : Tb, ∃ bs1 : List[B_e], ∃ bs2 : List[B_e], b == If(tb, bs1, bs2) && (EX(has_call_b, bs1) || EX(has_call_b, bs2))))",
     seq([
       @tactics.gen_tac,
       @tactics.conv_tac(@equal.rator_conv(@equal.rand_conv(@simp.rewr_conv(thm("has_call_b_cases"))))),
       @simp.rewrite_tac(ths([ex_mem])),
+      // the disjuncts for the instructions themselves are the same on both
+      // sides; MESON matches the nested ones
+      @tactics.repeat_tac(@tactics.ap_term_tac),
       @meson.meson_tac(ths([])),
     ]),
   )
@@ -124,7 +133,7 @@ fn prove_call_free() -> Unit raise {
 }
 
 ///|
-/// Steps of call-free code keep the functions and the instance.
+/// Steps of call-free code keep the functions, the tables and the instance.
 fn prove_call_free_step() -> Unit raise {
   let cf = thm("call_free")
   let not_ex = @lists.not_ex()
@@ -187,6 +196,20 @@ fn prove_call_free_step() -> Unit raise {
       @simp.rewrite_tac(ths([@wasm.thm("v_to_e")])),
       hc,
       @simp.rewrite_tac(ths([])),
+    ]),
+  )
+  let _ = lemma(
+    "s_tabs_updates",
+    "s_tabs(s_funcs_update(v0, (s : Wstore))) == s_tabs(s) && s_tabs(s_mems_update(v2, s)) == s_tabs(s) && s_tabs(s_globs_update(v3, s)) == s_tabs(s) && s_tabs(s_elems_update(v4, s)) == s_tabs(s) && s_tabs(s_datas_update(v5, s)) == s_tabs(s)",
+    seq([
+      @tactics.struct_cases_tac(@bool.ispec(tm("(s : Wstore)"), @ind_types.cases("wstore"))),
+      @simp.rewrite_tac(
+        ths(
+          ["s_tabs", "s_funcs_update", "s_mems_update", "s_globs_update", "s_elems_update", "s_datas_update"].map(
+            n => @wasm.thm(n),
+          ),
+        ),
+      ),
     ]),
   )
   let _ = lemma(
@@ -254,11 +277,11 @@ fn prove_call_free_steps() -> Unit raise {
   )
   let _ = lemma(
     "call_free_step",
-    "∀ s : Wstore, ∀ f : Wframe, ∀ es : List[Einstr], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2) → call_free(es) → s_funcs(s2) == s_funcs(s) && f_inst(f2) == f_inst(f) && call_free(es2)",
+    "∀ s : Wstore, ∀ f : Wframe, ∀ es : List[Einstr], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2) → call_free(es) → s_funcs(s2) == s_funcs(s) && s_tabs(s2) == s_tabs(s) && f_inst(f2) == f_inst(f) && call_free(es2)",
     seq([
       @tactics.match_mp_tac(@wasm.thm("reduce_induct")),
       finish(
-        [thm("s_funcs_updates"), @wasm.thm("f_inst"), @wasm.thm("supdate_glob")],
+        [thm("s_funcs_updates"), thm("s_tabs_updates"), @wasm.thm("f_inst"), @wasm.thm("supdate_glob")],
         [unfold(simple), unfold(thm("call_free_lfill"))],
       ),
     ]),
@@ -274,11 +297,11 @@ fn prove_module_triples() -> Unit raise {
   let sa = sassn
   def(
     "keep",
-    "keep((fs : List[Cl]), (inst : Inst), (q : \{a}), (s : Wstore), (f : Wframe), (vs : List[Value])) == (s_funcs(s) == fs && f_inst(f) == inst && q(s, f, vs))",
+    "keep((fs : List[Cl]), (tabs : List[(Tab_t, List[V_ref])]), (inst : Inst), (q : \{a}), (s : Wstore), (f : Wframe), (vs : List[Value])) == (s_funcs(s) == fs && s_tabs(s) == tabs && f_inst(f) == inst && q(s, f, vs))",
   )
   def(
     "sl_triple_m",
-    "sl_triple_m((fs : List[Cl]), (inst : Inst), (p : \{sa}), (bs : List[B_e]), (q : \{sa}), (ls : List[\{sa}])) == (∀ r : \{hprop}, triple_l(keep(fs, inst, lift(p, r)), bs, keep(fs, inst, lift(q, r)), MAP(keep(fs, inst), MAP((x : \{sa}) => lift(x, r), ls))))",
+    "sl_triple_m((fs : List[Cl]), (tabs : List[(Tab_t, List[V_ref])]), (inst : Inst), (p : \{sa}), (bs : List[B_e]), (q : \{sa}), (ls : List[\{sa}])) == (∀ r : \{hprop}, triple_l(keep(fs, tabs, inst, lift(p, r)), bs, keep(fs, tabs, inst, lift(q, r)), MAP(keep(fs, tabs, inst), MAP((x : \{sa}) => lift(x, r), ls))))",
   )
   let safel = thm("safel")
   let keep = thm("keep")
@@ -296,7 +319,7 @@ fn prove_module_triples() -> Unit raise {
   ])
   let _ = lemma(
     "safel_keep",
-    "∀ n : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ es : List[Einstr], ∀ q : \{a}, ∀ l : List[\{a}], ∀ fs : List[Cl], ∀ inst : Inst, s_funcs(s) == fs && f_inst(f) == inst && call_free(es) && safel(n, s, f, es, q, l) → safel(n, s, f, es, keep(fs, inst, q), MAP(keep(fs, inst), l))",
+    "∀ n : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ es : List[Einstr], ∀ q : \{a}, ∀ l : List[\{a}], ∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, s_funcs(s) == fs && s_tabs(s) == tabs && f_inst(f) == inst && call_free(es) && safel(n, s, f, es, q, l) → safel(n, s, f, es, keep(fs, tabs, inst, q), MAP(keep(fs, tabs, inst), l))",
     @tactics.thenl(
       @nums.induct_tac,
       @list.List([
@@ -349,7 +372,7 @@ fn prove_module_triples() -> Unit raise {
   let unfold = @simp.rewrite_rule(ths([thm("call_free"), thm("call_free_b")]))
   let _ = lemma(
     "sl_triple_m_of",
-    "∀ fs : List[Cl], ∀ inst : Inst, ∀ p : \{sa}, ∀ bs : List[B_e], ∀ q : \{sa}, ∀ ls : List[\{sa}], call_free_b(bs) && sl_triple_l(p, bs, q, ls) → sl_triple_m(fs, inst, p, bs, q, ls)",
+    "∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, ∀ p : \{sa}, ∀ bs : List[B_e], ∀ q : \{sa}, ∀ ls : List[\{sa}], call_free_b(bs) && sl_triple_l(p, bs, q, ls) → sl_triple_m(fs, tabs, inst, p, bs, q, ls)",
     seq([
       @simp.rewrite_tac(ths([thm("sl_triple_m"), thm("sl_triple_l"), thm("triple_l"), keep])),
       @tactics.repeat_tac(@tactics.strip_tac),
@@ -365,20 +388,20 @@ fn prove_module_triples() -> Unit raise {
   )
   let _ = lemma(
     "sl_seq_m",
-    "∀ fs : List[Cl], ∀ inst : Inst, ∀ p : \{sa}, ∀ bs1 : List[B_e], ∀ q : \{sa}, ∀ bs2 : List[B_e], ∀ r : \{sa}, ∀ ls : List[\{sa}], sl_triple_m(fs, inst, p, bs1, q, ls) && sl_triple_m(fs, inst, q, bs2, r, ls) → sl_triple_m(fs, inst, p, APPEND(bs1, bs2), r, ls)",
+    "∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, ∀ p : \{sa}, ∀ bs1 : List[B_e], ∀ q : \{sa}, ∀ bs2 : List[B_e], ∀ r : \{sa}, ∀ ls : List[\{sa}], sl_triple_m(fs, tabs, inst, p, bs1, q, ls) && sl_triple_m(fs, tabs, inst, q, bs2, r, ls) → sl_triple_m(fs, tabs, inst, p, APPEND(bs1, bs2), r, ls)",
     seq([@simp.rewrite_tac(ths([thm("sl_triple_m")])), @meson.meson_tac(ths([thm("triple_l_seq")]))]),
   )
   let ent = (x : String, y : String) => "(∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, \{x}(vs, lc, gs, ms, h) → \{y}(vs, lc, gs, ms, h))"
   let _ = lemma(
     "sl_conseq_m",
-    "∀ fs : List[Cl], ∀ inst : Inst, ∀ p : \{sa}, ∀ p2 : \{sa}, ∀ bs : List[B_e], ∀ q : \{sa}, ∀ q2 : \{sa}, ∀ ls : List[\{sa}], \{ent("p2", "p")} && sl_triple_m(fs, inst, p, bs, q, ls) && \{ent("q", "q2")} → sl_triple_m(fs, inst, p2, bs, q2, ls)",
+    "∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, ∀ p : \{sa}, ∀ p2 : \{sa}, ∀ bs : List[B_e], ∀ q : \{sa}, ∀ q2 : \{sa}, ∀ ls : List[\{sa}], \{ent("p2", "p")} && sl_triple_m(fs, tabs, inst, p, bs, q, ls) && \{ent("q", "q2")} → sl_triple_m(fs, tabs, inst, p2, bs, q2, ls)",
     seq([
       @simp.rewrite_tac(ths([thm("sl_triple_m")])),
       @tactics.repeat_tac(@tactics.strip_tac),
       @tactics.match_mp_tac(thm("triple_l_conseq")),
-      @tactics.exists_tac(tm("keep(fs, inst, lift((p : \{sa}), (r : \{hprop})))")),
-      @tactics.exists_tac(tm("keep(fs, inst, lift((q : \{sa}), (r : \{hprop})))")),
-      @tactics.exists_tac(tm("MAP(keep(fs, inst), MAP((x : \{sa}) => lift(x, (r : \{hprop})), (ls : List[\{sa}])))")),
+      @tactics.exists_tac(tm("keep(fs, tabs, inst, lift((p : \{sa}), (r : \{hprop})))")),
+      @tactics.exists_tac(tm("keep(fs, tabs, inst, lift((q : \{sa}), (r : \{hprop})))")),
+      @tactics.exists_tac(tm("MAP(keep(fs, tabs, inst), MAP((x : \{sa}) => lift(x, (r : \{hprop})), (ls : List[\{sa}])))")),
       @simp.asm_rewrite_tac(ths([keep])),
       @tactics.repeat_tac(@tactics.strip_tac),
       @simp.asm_rewrite_tac(ths([])),

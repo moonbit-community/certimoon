@@ -99,6 +99,7 @@ good order to read it in:
 | state.mbt, arrays.mbt | exact states `st` and the `st_` rules; `arr` and the array rules |
 | sym.mbt | `sym_prove` and its rules (`prove_sym_derived`) |
 | calls.mbt | call-free code (`has_call`, `call_free_step`), module triples (`sl_triple_m`, `keep`) |
+| indirect.mbt | `call_indirect`: its step, `sl_call_indirect_g` and sym's rule for it |
 | adequacy.mbt | what triples say about runs (`reduce_trans`): `sl_triple_adequate`, `sl_triple_m_adequate` |
 | frames.mbt, call_rule.mbt | frame steps and safety, `return_stuck`; call and invoke steps, `sl_call` |
 | returns.mbt | `safer`: safety with returns; its seq, label and frame lemmas |
@@ -128,8 +129,9 @@ eval.mbt and builder.mbt (the evaluator), and the tests.
 | Adequacy: `sl_triple` and `sl_triple_m` (no labels) stated with `reduce_trans` alone | done |
 | Closed theorems: `fact_closed`, `quicksort_closed` (from `call 0` in a frame of the instance) | done |
 | A public API for proofs in other packages | done |
-| Examples: store/load, sum, fill, array sum, insertion sort, call, factorial, quicksort | done |
-| `call_indirect`, functions of other modules or the host | not started |
+| Examples: store/load, sum, fill, array sum, insertion sort, call, factorial, quicksort, indirect call | done |
+| `call_indirect` (tables kept by module triples) | done |
+| Functions of other modules or the host; writing tables | not started |
 | An importer for `.wat` / `.wasm`, and a compiled program | not started |
 
 Known limits of what exists:
@@ -312,14 +314,23 @@ say so.
 
 ### Features
 
-1. **`call_indirect`.** The target comes from a table in the store, which
-   the triples do not fix (code without calls may write tables). Plan:
-   keep the tables fixed in g triples as well as the functions, and carry
-   over only call-free code with no table writes (a predicate like
-   `call_free`, and its step lemma like `call_free_step`). Then
-   `call_indirect` with the table's entry for c is `call` of that
-   function, if its type is the one asked for. Done when a call through a
-   function table is verified.
+1. **`call_indirect`.** Done. The target comes from a table in the
+   store, so module triples now keep the store's tables as well as its
+   functions: `keep(fs, tabs, inst, ...)`, and with it `sl_triple_m`,
+   `sl_triple_g`, `specs_ok` and the adequacy theorems, take the tables
+   `tabs` (the closed theorems instantiate them as `s_tabs(s)` and say
+   they are kept). Table writes (`table.set`, `table.grow`, and `init`,
+   `copy` and `fill`, which step to `table.set`s) count as calls for
+   `has_call_b`, so call-free code keeps the tables (`call_free_step`).
+   `logic/indirect.mbt`: `call_indirect_step`, `sl_call_indirect_g` (with
+   tabs holding a at c, and a's type the instance's type j, a call of a by
+   its spec in G) and `sl_call_indirect_st_g` for sym_prove, which leaves
+   the table's facts as conditions. `example_indirect` calls, through
+   table 0, whatever function it holds at k, and returns x + x when that
+   is example_call's doubling function. Not yet: code that writes tables
+   (a rule for `table.set` would update tabs), and the evaluator does not
+   run `call_indirect`, so this example has no closed theorem or
+   non-vacuity check yet.
 
 2. **Real programs.** An untrusted `.wat` or `.wasm` importer that makes
    programs through the builder, then verify a function from a compiled

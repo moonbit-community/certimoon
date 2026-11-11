@@ -684,3 +684,4 @@ Triples of verified programs, with what their statements depend on.
 | `example_call` | 247 | 235 | 12 |
 | `example_fact` | 248 | 235 | 13 |
 | `example_quicksort` | 254 | 235 | 19 |
+| `example_indirect` | 248 | 235 | 13 |

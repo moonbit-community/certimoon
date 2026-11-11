@@ -56,11 +56,11 @@ fn prove_sym_rules() -> Unit raise {
 ///|
 /// The rules sym_tac uses, from the triple's basic rules: for sl_triple_l
 /// (g = false), or for g triples (specs.mbt), where each also takes G, fs,
-/// inst and rp first, and is named by g_name.
+/// tabs, inst and rp first, and is named by g_name.
 fn prove_sym_derived(g : Bool) -> Unit raise {
   let sa = sassn
   let st = thm("st")
-  // the triple, the quantifiers for G, fs, inst and rp, and the names
+  // the triple, the quantifiers for G, fs, tabs, inst and rp, and the names
   let tr = (p : String, bs : String, q : String, ls : String) => if g {
     triple_g(p, bs, q, ls)
   } else {
@@ -70,7 +70,7 @@ fn prove_sym_derived(g : Bool) -> Unit raise {
   let name = (n : String) => if g { g_name(n) } else { n }
   let rule = (n : String) => thm(name(n))
   let env_terms = if g {
-    ["(G : \{specs_ty})", "(fs : List[Cl])", "(inst : Inst)", "(rp : \{sa})"].map(tm)
+    ["(G : \{specs_ty})", "(fs : List[Cl])", "(tabs : List[(Tab_t, List[V_ref])])", "(inst : Inst)", "(rp : \{sa})"].map(tm)
   } else {
     []
   }
@@ -300,11 +300,11 @@ fn is_g(goal : @kernel.Term) -> Bool {
 
 ///|
 /// The rule `name` for the goal's triple: as it is for sl_triple_l, and
-/// g_name(name) with the goal's G, fs, inst and rp for a g triple.
+/// g_name(name) with the goal's G, fs, tabs, inst and rp for a g triple.
 fn rule_of(goal : @kernel.Term, name : String) -> @kernel.Thm raise {
   if is_g(goal) {
     let args = @basics.strip_comb(goal).1.to_array()
-    @bool.ispecl(@list.List(args[0:4].to_owned()), thm(g_name(name)))
+    @bool.ispecl(@list.List(args[0:5].to_owned()), thm(g_name(name)))
   } else {
     thm(name)
   }
@@ -369,6 +369,31 @@ fn split_stack(s : @kernel.Term, k : Int) -> (@kernel.Term, Array[@kernel.Term])
     Some(b) => if n == k { b } else { mk_append(b, below) }
   }
   (prefix, elems[n - k:].to_owned())
+}
+
+///|
+/// Rewrites the precondition's stack, `APPEND(prefix, [x1, ..., xk])`
+/// (after split_tac), to `APPEND(prefix, APPEND([x1, ..., xk-1], [xk]))`.
+fn last_apart_tac() -> @tactics.Tactic {
+  g => {
+    let (p, _, _, _) = triple_l_terms(g.1)
+    guard args_of(p, "st", 3) is Some([s, _, _]) && args_of(s, "APPEND", 2) is Some([_, top]) else {
+      raise Failure("last_apart_tac")
+    }
+    let items = @basics.dest_list(top).to_array()
+    let n = items.length()
+    let apart = mk_append(
+      @lists.mk_list(@list.List(items[:n - 1].to_owned()), values_ty()),
+      @lists.mk_list(@list.List([items[n - 1]]), values_ty()),
+    )
+    let th = @simp.rewrite_conv(ths([@lists.append()]))(apart)
+    if !@basics.aconv(@equal.rhs(@kernel.concl(th)), top) {
+      raise Failure("certimoon/logic: sym: cannot take the top apart in " + show(s))
+    }
+    let back = @equal.sym(th)
+    let at_top : @equal.Conv = t => if @basics.aconv(t, top) { back } else { raise Failure("last_apart_tac") }
+    @tactics.conv_tac(pre_conv(stack_conv(@equal.rand_conv(at_top))))(g)
+  }
 }
 
 ///|
@@ -587,6 +612,17 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
           @list.List([seq([beta_goal(), vc_tac(sym)]), seq([beta_goal(), sym_tac(sym)])]),
         )(g)
       }
+      "Call_indirect" if is_g(g.1) => {
+        // the index c on top, and below it the arguments of a spec's P
+        guard args_of(p, "st", 3) is Some([s, l, r]) else { raise Failure("certimoon/logic: sym: call_indirect") }
+        let below = @basics.list_mk_icomb("st", @list.List([split_stack(s, 1).0, l, r]))
+        let (k, spec) = call_spec(sym, g.1, instr, below, rule_name="sl_call_indirect_st")
+        let rule = @drule.match_mp(rule_of(g.1, "sl_call_indirect_st"))(spec)
+        @tactics.thenl(
+          seq([renorm, split_tac(k + 1), last_apart_tac(), @tactics.match_mp_tac(rule), @tactics.conj_tac]),
+          @list.List([vc_tac(sym), sym_tac(sym)]),
+        )(g)
+      }
       "Call" if is_g(g.1) => {
         let (k, spec) = call_spec(sym, g.1, instr, p)
         let rule = @drule.match_mp(rule_of(g.1, "sl_call_st"))(spec)
@@ -652,7 +688,13 @@ fn spec_arity(spec : @kernel.Thm) -> Int raise {
 /// G(a, P, Q) of a spec in sym.specs whose P takes the arguments on
 /// top of p's stack, its variables chosen to match them, and its frame
 /// (a variable R applied to gs, ms and h) the state's.
-fn call_spec(sym : Sym, goal : @kernel.Term, instr : @kernel.Term, p : @kernel.Term) -> (Int, @kernel.Thm) raise {
+fn call_spec(
+  sym : Sym,
+  goal : @kernel.Term,
+  instr : @kernel.Term,
+  p : @kernel.Term,
+  rule_name? : String = "sl_call_st",
+) -> (Int, @kernel.Thm) raise {
   guard args_of(p, "st", 3) is Some([s, _, r]) else { raise Failure("call_spec") }
   let avoid = @kernel.frees(goal)
   for spec in sym.specs {
@@ -685,7 +727,7 @@ fn call_spec(sym : Sym, goal : @kernel.Term, instr : @kernel.Term, p : @kernel.T
       None => th
     }
     // the spec's function must be the call's
-    let rule = rule_of(goal, "sl_call_st")
+    let rule = rule_of(goal, rule_name)
     guard (try Some(@drule.match_mp(rule)(th)) catch { _ => None }) is Some(_) else { continue }
     return (k, th)
   }
@@ -846,7 +888,7 @@ fn structure_of(code : @kernel.Term) -> (Array[@kernel.Term], Array[@kernel.Term
 /// Proves `stmt` by running its code (sym_tac), and records it as `name`.
 ///
 /// `stmt` is `∀ xs. hyps → sl_triple(p, code, q)` (code without calls),
-/// or `∀ xs. hyps → sl_triple_g(G, fs, inst, rp, p, code, q, ls)` (a
+/// or `∀ xs. hyps → sl_triple_g(G, fs, tabs, inst, rp, p, code, q, ls)` (a
 /// function's body, or any code with calls and returns). The code may be
 /// a program's name (`program`): its definition is unfolded first.
 ///
@@ -884,9 +926,9 @@ pub fn sym_prove(
   let goal = tm(stmt)
   let (_, body) = @basics.strip_forall(goal)
   let triple = if @basics.is_imp(body) { @basics.dest_imp(body).1 } else { body }
-  let (code, g) = match (args_of(triple, "sl_triple", 3), args_of(triple, "sl_triple_g", 8)) {
+  let (code, g) = match (args_of(triple, "sl_triple", 3), args_of(triple, "sl_triple_g", 9)) {
     (Some([_, code, _]), _) => (code, false)
-    (_, Some(args)) => (args[5], true)
+    (_, Some(args)) => (args[6], true)
     _ => raise Failure("certimoon/logic: sym_prove: not a triple: " + show(triple))
   }
   // a program's name: run its code
