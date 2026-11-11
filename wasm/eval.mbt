@@ -117,7 +117,7 @@ fn setup() -> Unit raise {
     let text = @term_syntax.print_term(body)
     for m in marks {
       if !text.contains(m) {
-        raise Failure("wasmcert/wasm eval: \{rel} rule \{i} is not \{key}: \{text}")
+        raise Failure("certimoon/wasm eval: \{rel} rule \{i} is not \{key}: \{text}")
       }
     }
     rules[key] = th
@@ -231,7 +231,7 @@ fn suc_arg_conv(t : @kernel.Term) -> @kernel.Thm raise {
 fn rule(key : String) -> @kernel.Thm raise {
   match rules.get(key) {
     Some(th) => th
-    None => raise Failure("wasmcert/wasm eval: no rule " + key)
+    None => raise Failure("certimoon/wasm eval: no rule " + key)
   }
 }
 
@@ -240,7 +240,7 @@ fn rule(key : String) -> @kernel.Thm raise {
 fn list_conv(t : @kernel.Term) -> @kernel.Thm raise {
   match list_rewrite.val {
     Some(c) => c(t)
-    None => raise Failure("wasmcert/wasm eval: not set up")
+    None => raise Failure("certimoon/wasm eval: not set up")
   }
 }
 
@@ -249,7 +249,7 @@ fn list_conv(t : @kernel.Term) -> @kernel.Thm raise {
 /// evaluating word and numeral arithmetic until nothing changes.
 fn eval_conv(t : @kernel.Term) -> @kernel.Thm raise {
   guard eval_rewrite.val is Some(rw) else {
-    raise Failure("wasmcert/wasm eval: not set up")
+    raise Failure("certimoon/wasm eval: not set up")
   }
   let once = @equal.thenc(
     rw,
@@ -265,7 +265,7 @@ fn eval_conv(t : @kernel.Term) -> @kernel.Thm raise {
     th = @kernel.trans(th, next)
   }
   raise Failure(
-    "wasmcert/wasm eval: evaluating " + show_term(t) + " does not settle",
+    "certimoon/wasm eval: evaluating " + show_term(t) + " does not settle",
   )
 }
 
@@ -372,7 +372,7 @@ fn inst(
   }
   for p in pairs {
     if !names.contains(p.0) {
-      raise Failure("wasmcert/wasm eval: rule \{key} has no variable \{p.0}")
+      raise Failure("certimoon/wasm eval: rule \{key} has no variable \{p.0}")
     }
   }
   @bool.ispecl(@list.List(tms), th)
@@ -502,7 +502,7 @@ fn lfilled_rec(
   rest : @kernel.Term,
 ) -> @kernel.Thm raise {
   let (_, a) = head_args(@kernel.concl(inner))
-  guard a is [k, l, es, lk] else { raise Failure("wasmcert/wasm eval: lfilled_rec") }
+  guard a is [k, l, es, lk] else { raise Failure("certimoon/wasm eval: lfilled_rec") }
   let vs = value_list(vals[:])
   let lr = call("LRec", [vs, n, es0, l, rest])
   apply_rule(
@@ -530,7 +530,7 @@ fn in_context(
   build : (@kernel.Term) -> @kernel.Thm raise,
 ) -> @kernel.Thm raise {
   let (_, a) = head_args(@kernel.concl(step))
-  guard a is [_, _, es, _, _, es2] else { raise Failure("wasmcert/wasm eval: in_context") }
+  guard a is [_, _, es, _, _, es2] else { raise Failure("certimoon/wasm eval: in_context") }
   let lf1 = build(es)
   let lf2 = build(es2)
   @drule.match_mp(rule("context"))(@bool.conj(step, @bool.conj(lf1, lf2)))
@@ -607,7 +607,7 @@ fn br_context(
     (owned(vals[k:]), lf)
   } else {
     guard head_args(items[pos]) is ("Label", [n2, es0, li]) else {
-      raise Failure("wasmcert/wasm eval: br_context")
+      raise Failure("certimoon/wasm eval: br_context")
     }
     let (used, inner) = br_context(@basics.dest_list(li).to_array(), depth - 1, n)
     (used, lfilled_rec(vals, n2, es0, inner, rest))
@@ -686,7 +686,7 @@ fn frame_step(
       )
     }
     Escapes => raise Stuck("a br leaves the blocks of a function")
-    Final => raise Failure("wasmcert/wasm eval: frame body is final")
+    Final => raise Failure("certimoon/wasm eval: frame body is final")
   }
 }
 
@@ -798,7 +798,7 @@ fn step(
             match step(s, f, li) {
               Stepped(inner) => in_label(inner, n, es0)
               Escapes => return Escapes
-              Final => raise Failure("wasmcert/wasm eval: label body is final")
+              Final => raise Failure("certimoon/wasm eval: label body is final")
             }
         }
       }
@@ -1121,20 +1121,20 @@ pub fn run(cfg : @kernel.Term, max_steps? : Int = 10000) -> @kernel.Thm raise {
   let steps = []
   while true {
     if steps.length() >= max_steps {
-      raise Failure("wasmcert/wasm run: no final state after \{max_steps} steps")
+      raise Failure("certimoon/wasm run: no final state after \{max_steps} steps")
     }
     let (s, rest) = @pair.dest_pair(cur)
     let (f, es) = @pair.dest_pair(rest)
     let r = step(s, f, es) catch {
       Stuck(msg) =>
         raise Failure(
-          "wasmcert/wasm run: stuck after \{steps.length()} steps: \{msg}",
+          "certimoon/wasm run: stuck after \{steps.length()} steps: \{msg}",
         )
       e => raise e
     }
     match r {
       Final => break
-      Escapes => raise Failure("wasmcert/wasm run: a br leaves every block")
+      Escapes => raise Failure("certimoon/wasm run: a br leaves every block")
       Stepped(th) => {
         steps.push(th)
         let a = head_args(@kernel.concl(th)).1

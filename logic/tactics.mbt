@@ -216,7 +216,7 @@ fn rule_with(rules : @kernel.Thm, parts : Array[String]) -> @kernel.Thm raise {
       return r
     }
   }
-  raise Failure("wasmcert/logic: no rule with " + parts.join(", "))
+  raise Failure("certimoon/logic: no rule with " + parts.join(", "))
 }
 
 ///|
@@ -248,7 +248,7 @@ fn triple_l_terms(
   match args.to_array() {
     [p, bs, q, ls] => (p, bs, q, ls)
     [_, _, _, _, p, bs, q, ls] => (p, bs, q, ls)
-    _ => raise Failure("wasmcert/logic: not a triple with labels: " + show(t))
+    _ => raise Failure("certimoon/logic: not a triple with labels: " + show(t))
   }
 }
 

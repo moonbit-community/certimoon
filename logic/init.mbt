@@ -18,7 +18,7 @@ pub fn load() -> Unit {
   }
   loaded.val = true
   @wasm.props() catch {
-    e => abort("wasmcert/logic: " + e.to_string())
+    e => abort("certimoon/logic: " + e.to_string())
   }
   @theory.begin_theory("WasmLogic")
   in_load.val = true
@@ -102,8 +102,8 @@ pub fn load() -> Unit {
         _ => e.to_string()
       }
       // abort's message does not reach the test output on every target
-      println("wasmcert/logic: loading failed: " + msg)
-      abort("wasmcert/logic: loading failed: " + msg)
+      println("certimoon/logic: loading failed: " + msg)
+      abort("certimoon/logic: loading failed: " + msg)
     }
   }
   in_load.val = false

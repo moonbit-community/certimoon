@@ -42,12 +42,12 @@ pub fn thm(name : String) -> @kernel.Thm {
   if thms.get(name) is None && !props_loaded.val {
     // the facts about reduction are proved on first use
     props() catch {
-      e => abort("wasmcert/wasm: " + e.to_string())
+      e => abort("certimoon/wasm: " + e.to_string())
     }
   }
   match thms.get(name) {
     Some(th) => th
-    None => abort("wasmcert/wasm: no theorem " + name)
+    None => abort("certimoon/wasm: no theorem " + name)
   }
 }
 
@@ -61,7 +61,7 @@ pub fn names() -> Array[String] {
 ///|
 fn record(name : String, th : @kernel.Thm) -> Unit {
   if thms.contains(name) {
-    abort("wasmcert/wasm: " + name + " recorded twice")
+    abort("certimoon/wasm: " + name + " recorded twice")
   }
   thms[name] = th
 }
@@ -86,7 +86,7 @@ fn def(
   loc~ : SourceLoc,
 ) -> Unit raise {
   let th = @define.define_(tm(s)) catch {
-    e => raise Failure("wasmcert/wasm: defining " + name + ": " + e.to_string())
+    e => raise Failure("certimoon/wasm: defining " + name + ": " + e.to_string())
   }
   record(name, th)
   def_thms.push(th)
@@ -119,7 +119,7 @@ fn inductive(
     let parsed = tm(binders + "(" + r + ")") catch {
       e =>
         raise Failure(
-          "wasmcert/wasm: " + name + " rule " + i.to_string() + ": " + e.to_string(),
+          "certimoon/wasm: " + name + " rule " + i.to_string() + ": " + e.to_string(),
         )
     }
     let (relvars, body) = @basics.strip_abs(parsed)
@@ -128,7 +128,7 @@ fn inductive(
   }
   let spec = @bool.list_mk_conj(@list.List(clauses))
   let (rules, induct, cases) = @ind_defs.new_inductive_definition(spec) catch {
-    e => raise Failure("wasmcert/wasm: defining " + name + ": " + e.to_string())
+    e => raise Failure("certimoon/wasm: defining " + name + ": " + e.to_string())
   }
   record(name + "_rules", rules)
   record(name + "_induct", induct)
@@ -149,7 +149,7 @@ fn datatype(
   loc~ : SourceLoc,
 ) -> Unit raise {
   let fail = (msg : String) => Failure(
-    "wasmcert/wasm: datatype " + name + ": " + msg,
+    "certimoon/wasm: datatype " + name + ": " + msg,
   )
   // define_type reads the type as an enum in the term syntax, named
   // with a capital (enum B_e defines b_e)

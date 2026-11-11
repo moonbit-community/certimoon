@@ -1,4 +1,4 @@
-name = "moonbit-community/wasmcert"
+name = "moonbit-community/certimoon"
 
 version = "0.1.0"
 
@@ -8,12 +8,12 @@ import {
 
 readme = "README.md"
 
-repository = "https://github.com/moonbit-community/wasmcert"
+repository = "https://github.com/moonbit-community/certimoon"
 
 license = "BSD-2-Clause"
 
-keywords = [ "theorem-prover", "hol", "webassembly", "wasm" ]
+keywords = [ "theorem-prover", "hol", "verification", "moonbit", "webassembly", "wasm" ]
 
 preferred_target = "wasm-gc"
 
-description = "WasmCert-Isabelle's WebAssembly formalization, ported to bobzhang/hol_light"
+description = "Proving MoonBit programs correct through the WebAssembly they compile to, in bobzhang/hol_light"

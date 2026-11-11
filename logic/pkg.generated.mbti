@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "moonbit-community/wasmcert/logic"
+package "moonbit-community/certimoon/logic"
 
 import {
   "bobzhang/hol_light/kernel",

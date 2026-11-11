@@ -383,7 +383,7 @@ fn prove_frame_safe() -> Unit raise {
         found = Some(r)
       }
     }
-    guard found is Some(r) else { raise Failure("wasmcert/logic: no frame rule") }
+    guard found is Some(r) else { raise Failure("certimoon/logic: no frame rule") }
     r
   }
   let rb_lift = @bool.conjuncts_rule(rb).to_array()[0]

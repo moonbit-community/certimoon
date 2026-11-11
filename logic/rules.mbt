@@ -135,7 +135,7 @@ fn arity_conv(t : @kernel.Term) -> @kernel.Thm raise {
     }
     th = @kernel.trans(th, next)
   }
-  raise Failure("wasmcert/logic: arity_conv does not settle")
+  raise Failure("certimoon/logic: arity_conv does not settle")
 }
 
 ///|

@@ -926,7 +926,7 @@ fn prove_safer_frame() -> Unit raise {
       }
     }
     guard found is Some(r) else {
-      raise Failure("wasmcert/logic: no frame rule")
+      raise Failure("certimoon/logic: no frame rule")
     }
     r
   }

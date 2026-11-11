@@ -135,7 +135,7 @@ fn triple_m_parts(t : @kernel.Term) -> (@kernel.Term, @kernel.Term) raise {
     c = @basics.dest_imp(c).1
   }
   guard args_of(c, "sl_triple_m", 6) is Some(args) else {
-    raise Failure("wasmcert/logic: not a module triple: " + show(c))
+    raise Failure("certimoon/logic: not a module triple: " + show(c))
   }
   (args[2], args[4])
 }

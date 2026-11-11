@@ -249,7 +249,7 @@ class Site:
 
     def nav(self, depth, here):
         up = "../" * depth
-        parts = ['<nav>', f'<div><a href="{up}index.html"><b>WasmCert review</b></a></div>',
+        parts = ['<nav>', f'<div><a href="{up}index.html"><b>CertiMoon review</b></a></div>',
                  '<h2>Search</h2><input id="search" placeholder="a name…" autocomplete="off">',
                  '<ul id="results"></ul>']
         for title, es in [("Theorems", self.theorems), ("Examples", self.examples)]:
@@ -352,7 +352,7 @@ class Site:
                 n["definition" if e["kind"] != "relation" else "relation"] += 1
             elif e["kind"] in n:
                 n[e["kind"]] += 1
-        out = ['<h1>WasmCert: what is defined and proved</h1>',
+        out = ['<h1>CertiMoon: what is defined and proved</h1>',
                '<div class="note">A theorem here trusts hol_light\'s kernel, the definitions its '
                'statement depends on, and its statement; nothing else. Package <b>wasm</b> is '
                'WasmCert\'s WebAssembly semantics ported from Isabelle; package <b>logic</b> is a '
@@ -391,7 +391,7 @@ class Site:
                 lm = sum(1 for e in es if e["kind"] in ("lemma", "theorem", "example"))
                 out.append(f'<tr><td><a href="{esc(page)}">{esc(f)}</a></td><td>{d}</td><td>{lm}</td></tr>')
             out.append('</table>')
-        return self.document("WasmCert review", 0, "index.html", "".join(out), fragment)
+        return self.document("CertiMoon review", 0, "index.html", "".join(out), fragment)
 
     def search_index(self):
         items = [[e["name"], self.href(e, 0)] for e in self.entries]
@@ -418,7 +418,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--out", default="_site")
     ap.add_argument("--root", default=".")
-    ap.add_argument("--source-url", default="https://github.com/moonbit-community/wasmcert/blob/main/")
+    ap.add_argument("--source-url", default="https://github.com/moonbit-community/certimoon/blob/main/")
     ap.add_argument("--fragment-index", action="store_true",
                     help="write index.html without its doctype, html, head and body tags")
     args = ap.parse_args()

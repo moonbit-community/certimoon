@@ -30,7 +30,7 @@ fn inductive_def(name : String, rels : Array[(String, String)], rules : Array[St
   }
   let spec = @bool.list_mk_conj(@list.List(clauses))
   let (rules, induct, cases) = @ind_defs.new_inductive_definition(spec) catch {
-    e => raise Failure("wasmcert/logic: defining " + name + ": " + e.to_string())
+    e => raise Failure("certimoon/logic: defining " + name + ": " + e.to_string())
   }
   record(name + "_rules", rules, kind="definition", loc~)
   record(name + "_induct", induct, loc~)

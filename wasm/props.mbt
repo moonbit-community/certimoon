@@ -61,7 +61,7 @@ fn lemma(
     tac
   }
   let th = @tactics.prove(tm(stmt), tac) catch {
-    e => raise Failure("wasmcert/wasm: proving " + name + ": " + e.to_string())
+    e => raise Failure("certimoon/wasm: proving " + name + ": " + e.to_string())
   }
   record(name, th)
   list_entry("lemma", name, th, loc~)
@@ -147,7 +147,7 @@ fn define_props() -> Unit raise {
   // reduce without its context rule
   let texts = reduce_rule_texts()
   if !texts[context_rule_index].contains("Lfilled(k, lholed, es', les')") {
-    raise Failure("wasmcert/wasm: reduce rule \{context_rule_index} is not the context rule")
+    raise Failure("certimoon/wasm: reduce rule \{context_rule_index} is not the context rule")
   }
   let base = []
   for i, r in texts {
@@ -163,7 +163,7 @@ fn define_props() -> Unit raise {
       r
     }
     if !r2.contains("reduce_base(") {
-      raise Failure("wasmcert/wasm: no conclusion in reduce rule \{i}")
+      raise Failure("certimoon/wasm: no conclusion in reduce rule \{i}")
     }
     base.push(r2)
   }
@@ -1018,7 +1018,7 @@ fn inversion_conv(t : @kernel.Term) -> @kernel.Thm raise {
     }
     th = @kernel.trans(th, next)
   }
-  raise Failure("wasmcert/wasm step_cases: the simplification does not settle")
+  raise Failure("certimoon/wasm step_cases: the simplification does not settle")
 }
 
 ///|
@@ -1038,12 +1038,12 @@ pub fn step_cases(
   props()
   let items = @basics.dest_list(es).to_array()
   guard items.last() is Some(x) && head_args(x).0 == "Basic" else {
-    raise Failure("wasmcert/wasm step_cases: the list does not end in a basic instruction")
+    raise Failure("certimoon/wasm step_cases: the list does not end in a basic instruction")
   }
   let cs = items[:items.length() - 1]
   for c in cs {
     if as_value(c) is None {
-      raise Failure("wasmcert/wasm step_cases: " + show_term(c) + " is not a value")
+      raise Failure("certimoon/wasm step_cases: " + show_term(c) + " is not a value")
     }
   }
   let s2 = @kernel.mk_var("s'", hol_type("wstore"))
@@ -1061,7 +1061,7 @@ pub fn step_cases(
   let (ant, _) = @basics.dest_imp(@kernel.concl(th))
   let want = call("reduce", [s, f, es, s2, f2, es2])
   if !@basics.aconv(ant, want) {
-    raise Failure("wasmcert/wasm step_cases: side conditions left: " + show_term(ant))
+    raise Failure("certimoon/wasm step_cases: side conditions left: " + show_term(ant))
   }
   let th = @equal.conv_rule(@equal.rand_conv(inversion_conv), th)
   if !compute {

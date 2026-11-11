@@ -1,8 +1,11 @@
-# wasmcert
+# CertiMoon
 
-WebAssembly's semantics and a separation logic for it, in
-[hol_light.mbt](https://github.com/bobzhang/hol-light.mbt) (the MoonBit
-port of HOL Light), for proving that WebAssembly programs are correct.
+Proving MoonBit programs correct, down to the WebAssembly they compile
+to. CertiMoon has WebAssembly's semantics and a separation logic for it,
+in [hol_light.mbt](https://github.com/bobzhang/hol-light.mbt) (the
+MoonBit port of HOL Light). The goal is to prove things about the wasm
+binaries the MoonBit compiler emits, so that a proof does not trust the
+compiler: only the HOL Light kernel and WebAssembly's definition.
 
 - Package `wasm` is a port of
   [WasmCert-Isabelle](https://github.com/WasmCert/WasmCert-Isabelle)
@@ -27,7 +30,7 @@ to work on the code.
 
 ## Build and test
 
-This module (`moonbit-community/wasmcert`) needs hol_light's current
+This module (`moonbit-community/certimoon`) needs hol_light's current
 sources: it uses the term syntax, which the published `bobzhang/hol_light`
 does not have yet. Its workspace (`moon.work`) resolves
 `bobzhang/hol_light` to a hol-light.mbt checkout next to this one, so
@@ -41,8 +44,8 @@ This module was last tested with its commit `da8dc488`.
 
 ```bash
 git clone -b perf https://github.com/Yu-zh/hol-light.mbt
-git clone https://github.com/moonbit-community/wasmcert
-cd wasmcert
+git clone https://github.com/moonbit-community/certimoon
+cd certimoon
 ```
 
 A plain `moon check` here checks hol_light too and, like `moon info`,
@@ -61,11 +64,11 @@ select the package. The tests need a larger stack than the default. The
 module's preferred target is wasm-gc, by far the fastest here:
 
 ```bash
-ulimit -s 65520 && moon test -p moonbit-community/wasmcert/wasm
+ulimit -s 65520 && moon test -p moonbit-community/certimoon/wasm
 ```
 
 ```bash
-ulimit -s 65520 && moon test -p moonbit-community/wasmcert/logic
+ulimit -s 65520 && moon test -p moonbit-community/certimoon/logic
 ```
 
 Loading the logic proves all of it again (there is no theorem cache):
@@ -78,7 +81,7 @@ listing to read and diff, and `theory.json`, the same entries as data,
 each with its statement, the constants it uses and defines, and the line
 of the source that makes it. `tools/review_site.py` turns the two
 `theory.json` files into a static site, published from `main` at
-<https://moonbit-community.github.io/wasmcert/> by
+<https://moonbit-community.github.io/certimoon/> by
 `.github/workflows/review-site.yml`. To build it locally:
 
 ```bash
@@ -159,7 +162,7 @@ traps or gets stuck.
 
 `sym_prove` proves a triple by running the code symbolically, from an
 exact state, and leaves you the conditions it cannot close. In another
-package, import `moonbit-community/wasmcert/logic` (and the hol_light
+package, import `moonbit-community/certimoon/logic` (and the hol_light
 packages for tactics, such as `bobzhang/hol_light/tactics`):
 
 ```moonbit
@@ -495,7 +498,7 @@ Seven deep recursions of `call.wast` (`fac 25`, `fib 20`, `even 100`, ...:
 a skipped test runs them:
 
 ```bash
-ulimit -s 65520 && moon test -p moonbit-community/wasmcert/wasm --target wasm-gc --release --include-skipped -f '*slow ones too*'
+ulimit -s 65520 && moon test -p moonbit-community/certimoon/wasm --target wasm-gc --release --include-skipped -f '*slow ones too*'
 ```
 `tools/spec_cases.py` writes `wasm/spec_cases_test.mbt` from the
 testsuite files; the header of that file names the testsuite commit and

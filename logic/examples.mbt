@@ -13,7 +13,7 @@ fn beta(th : @kernel.Thm) -> @kernel.Thm raise {
 fn triple_parts(th : @kernel.Thm) -> (@kernel.Term, @kernel.Term, @kernel.Term) raise {
   let (_, args) = @basics.strip_comb(@kernel.concl(th))
   guard args.to_array() is [p, bs, q] else {
-    raise Failure("wasmcert/logic: not a triple: " + show(@kernel.concl(th)))
+    raise Failure("certimoon/logic: not a triple: " + show(@kernel.concl(th)))
   }
   (p, bs, q)
 }

@@ -202,5 +202,5 @@ fn norm(th : @kernel.Thm) -> @kernel.Thm raise {
     }
     cur = next
   }
-  raise Failure("wasmcert/logic: norm does not settle")
+  raise Failure("certimoon/logic: norm does not settle")
 }

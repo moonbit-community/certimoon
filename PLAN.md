@@ -348,7 +348,7 @@ Build and test commands are in the README. After changing what a package defines
 or proves, regenerate the listings and read the diff:
 
 ```bash
-ulimit -s 65520 && moon test -p moonbit-community/wasmcert/logic --target wasm-gc --update
+ulimit -s 65520 && moon test -p moonbit-community/certimoon/logic --target wasm-gc --update
 ```
 
 Add a new theorem you rely on to the list in `logic/logic_test.mbt`.
@@ -378,7 +378,7 @@ The reduction rules are referred to by position in `reduce_rule_texts()`
 
 ### Debugging a proof
 
-- A failed proof raises, and loading prints `wasmcert/logic: loading failed: ...`.
+- A failed proof raises, and loading prints `certimoon/logic: loading failed: ...`.
 - To see goals, add a whitebox test that sets `trace.val = true`
   (`@logic.set_trace(true)` from outside) and calls `load()`. `lemma` then
   names each lemma and prints the goals left over, and `show_goal("label")`
@@ -518,7 +518,7 @@ reformats that repository too, and the current version crashed halfway
 
 Costs: loading `logic` re-proves everything; there is no theorem cache.
 On wasm-gc, the module's preferred target, `moon test -p
-moonbit-community/wasmcert/logic` takes about a minute (70 s, November
+moonbit-community/certimoon/logic` takes about a minute (70 s, November
 2026), and rebuilding after a change a few seconds; with `--update` twice
 that, as moon runs the tests again after updating a snapshot. Of a 50 s
 load: HOL Light's core and its words library 6 s, the WasmCert definitions

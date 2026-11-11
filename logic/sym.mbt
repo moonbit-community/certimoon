@@ -361,7 +361,7 @@ fn split_stack(s : @kernel.Term, k : Int) -> (@kernel.Term, Array[@kernel.Term])
   }
   let n = elems.length()
   if k > n {
-    raise Failure("wasmcert/logic: sym: the stack " + show(s) + " has fewer than " + k.to_string() + " values on top")
+    raise Failure("certimoon/logic: sym: the stack " + show(s) + " has fewer than " + k.to_string() + " values on top")
   }
   let below = @lists.mk_list(@list.List(elems[0:n - k].to_owned()), values_ty())
   let prefix = match base {
@@ -381,7 +381,7 @@ fn split_tac(k : Int) -> @tactics.Tactic {
     let split = mk_append(prefix, @lists.mk_list(@list.List(top), values_ty()))
     let th = norm_conv()(split)
     if !@basics.aconv(@equal.rhs(@kernel.concl(th)), s) {
-      raise Failure("wasmcert/logic: sym: cannot split the stack " + show(s))
+      raise Failure("certimoon/logic: sym: cannot split the stack " + show(s))
     }
     let back = @equal.sym(th)
     let at_s : @equal.Conv = t => if @basics.aconv(t, s) { back } else { raise Failure("split_tac") }
@@ -437,7 +437,7 @@ fn step_rule(rules : Array[String], instr : @kernel.Term, p : @kernel.Term) -> @
     let th = @drule.instantiate_rule(i, th)
     return norm(compute_results(th))
   }
-  raise Failure("wasmcert/logic: sym: no rule for " + show(instr) + " from " + show(p))
+  raise Failure("certimoon/logic: sym: no rule for " + show(instr) + " from " + show(p))
 }
 
 ///|
@@ -452,7 +452,7 @@ fn compute_results(th : @kernel.Thm) -> @kernel.Thm raise {
   guard h is Comb(Comb(Const("=", _), x), Comb(Const("SOME", _), Var(_, _) as v)) else { return th }
   let computed = @equal.rhs(@kernel.concl(norm_conv()(x)))
   guard computed is Comb(Const("SOME", _), d) else {
-    raise Failure("wasmcert/logic: sym: " + show(x) + " is " + show(computed) + ", not SOME of a value")
+    raise Failure("certimoon/logic: sym: " + show(x) + " is " + show(computed) + ", not SOME of a value")
   }
   @bool.spec(d, @bool.gen(v, th))
 }
@@ -505,11 +505,11 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
       return seq([renorm, @tactics.match_mp_tac(rule_of(g.1, "sl_nil_st")), vc_tac(sym)])(g)
     }
     guard args_of(code, "CONS", 2) is Some([instr, rest]) else {
-      raise Failure("wasmcert/logic: sym: the code is not a list: " + show(code))
+      raise Failure("certimoon/logic: sym: the code is not a list: " + show(code))
     }
     let last = @basics.is_list(rest) && @basics.dest_list(rest).is_empty()
     let need_last = (what : String) => if !last {
-      raise Failure("wasmcert/logic: sym: " + what + " must end its instruction list")
+      raise Failure("certimoon/logic: sym: " + what + " must end its instruction list")
     }
     let name = head_name(instr)
     if !last && (name == "Block" || name == "If" || name == "Loop") {
@@ -521,7 +521,7 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
         }
       }
       guard after is Some(q) else {
-        raise Failure("wasmcert/logic: sym: no state given for after " + show(instr))
+        raise Failure("certimoon/logic: sym: no state given for after " + show(instr))
       }
       return seq([
         renorm,
@@ -568,7 +568,7 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
           }
         }
         guard inv is Some(inv) else {
-          raise Failure("wasmcert/logic: sym: no invariant for " + show(instr))
+          raise Failure("certimoon/logic: sym: no invariant for " + show(instr))
         }
         @tactics.thenl(
           seq([renorm, @tactics.match_mp_tac(@bool.ispec(inv, rule_of(g.1, "sl_loop_st"))), beta_goal(), @tactics.conj_tac]),
@@ -620,7 +620,7 @@ fn step_tac(th : @kernel.Thm, p : @kernel.Term, goal : @kernel.Term) -> @tactics
     raise Failure("step_tac: " + show(@kernel.concl(th)))
   }
   if !@basics.aconv(p, p2) {
-    raise Failure("wasmcert/logic: sym: the rule's precondition " + show(p2) + " is not the state " + show(p))
+    raise Failure("certimoon/logic: sym: the rule's precondition " + show(p2) + " is not the state " + show(p))
   }
   let step = @drule.match_mp(rule_of(goal, "sl_step_l"))(th)
   if is_g(goal) {
@@ -638,13 +638,13 @@ fn spec_arity(spec : @kernel.Thm) -> Int raise {
   let (_, sargs) = @basics.strip_comb(@kernel.concl(spec))
   let pp = sargs.to_array()[sargs.length() - 2]
   let (bvs, body) = @basics.strip_abs(pp)
-  guard bvs.to_array() is [args, _, _, _] else { raise Failure("wasmcert/logic: sym: not a spec: " + show(pp)) }
+  guard bvs.to_array() is [args, _, _, _] else { raise Failure("certimoon/logic: sym: not a spec: " + show(pp)) }
   for c in @basics.conjuncts(body) {
     if args_of(c, "=", 2) is Some([a, b]) && a == args && @basics.is_list(b) {
       return @basics.dest_list(b).length()
     }
   }
-  raise Failure("wasmcert/logic: sym: the spec's P does not give its arguments: " + show(pp))
+  raise Failure("certimoon/logic: sym: the spec's P does not give its arguments: " + show(pp))
 }
 
 ///|
@@ -689,7 +689,7 @@ fn call_spec(sym : Sym, goal : @kernel.Term, instr : @kernel.Term, p : @kernel.T
     guard (try Some(@drule.match_mp(rule)(th)) catch { _ => None }) is Some(_) else { continue }
     return (k, th)
   }
-  raise Failure("wasmcert/logic: sym: no spec for " + show(instr) + " from " + show(p))
+  raise Failure("certimoon/logic: sym: no spec for " + show(instr) + " from " + show(p))
 }
 
 ///|
@@ -716,7 +716,7 @@ fn intro_tac() -> @tactics.Tactic {
     let (p, bs, q, ls) = triple_l_terms(g.1)
     let (bvs, body) = @basics.strip_abs(p)
     guard bvs.to_array() is [vs, lc, gs, ms, h] else {
-      raise Failure("wasmcert/logic: sym: the precondition is not an assertion: " + show(p))
+      raise Failure("certimoon/logic: sym: the precondition is not an assertion: " + show(p))
     }
     if @basics.is_exists(body) {
       let (x, b) = @basics.dest_exists(body)
@@ -753,11 +753,11 @@ fn intro_tac() -> @tactics.Tactic {
       } else if !mentions(c, vs) && !mentions(c, lc) {
         rest.push(c)
       } else {
-        raise Failure("wasmcert/logic: sym: cannot read " + show(c) + " as part of a state")
+        raise Failure("certimoon/logic: sym: cannot read " + show(c) + " as part of a state")
       }
     }
     guard stack is Some(s) && locals is Some(l) else {
-      raise Failure("wasmcert/logic: sym: the precondition does not fix the stack and locals: " + show(p))
+      raise Failure("certimoon/logic: sym: the precondition does not fix the stack and locals: " + show(p))
     }
     let rbody = if rest.is_empty() { tm("T") } else { @bool.list_mk_conj(@list.List(rest)) }
     let r = @basics.list_mk_abs(@list.List([gs, ms, h]), rbody)
@@ -781,7 +781,7 @@ fn intro_tac() -> @tactics.Tactic {
           // the state's R is written out: so are the facts it came from
           @tactics.rule_assum_tac(@simp.rewrite_rule(ths(norm_thms()))),
           @simp.asm_rewrite_tac(ths([])),
-          g => raise Failure("wasmcert/logic: sym: cannot rearrange the precondition: " + show(g.1)),
+          g => raise Failure("certimoon/logic: sym: cannot rearrange the precondition: " + show(g.1)),
         ]),
         @tactics.all_tac,
       ]),
@@ -887,7 +887,7 @@ pub fn sym_prove(
   let (code, g) = match (args_of(triple, "sl_triple", 3), args_of(triple, "sl_triple_g", 8)) {
     (Some([_, code, _]), _) => (code, false)
     (_, Some(args)) => (args[5], true)
-    _ => raise Failure("wasmcert/logic: sym_prove: not a triple: " + show(triple))
+    _ => raise Failure("certimoon/logic: sym_prove: not a triple: " + show(triple))
   }
   // a program's name: run its code
   let (code, unfold) = match program_def(code) {
@@ -897,7 +897,7 @@ pub fn sym_prove(
   let (loops, after) = structure_of(code)
   if loops.length() != invs.length() || after.length() != afters.length() {
     raise Failure(
-      "wasmcert/logic: sym_prove " + name + ": " + loops.length().to_string() + " loops, " +
+      "certimoon/logic: sym_prove " + name + ": " + loops.length().to_string() + " loops, " +
       invs.length().to_string() + " invariants, " + after.length().to_string() +
       " blocks with code after them, " + afters.length().to_string() + " states after",
     )
@@ -928,7 +928,7 @@ pub fn sym_prove(
       // say what is left
       let left = (try run((@list.List([]), goal)) catch { _ => raise e }).1
       let msg = StringBuilder()
-      msg.write_string("wasmcert/logic: sym_prove " + name + ": " + e.to_string() + "; ")
+      msg.write_string("certimoon/logic: sym_prove " + name + ": " + e.to_string() + "; ")
       msg.write_string(left.length().to_string() + " goals left (" + vcs.length().to_string() + " tactics):")
       let goal_text = (gl : @tactics.Goal) => {
         let b = StringBuilder()

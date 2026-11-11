@@ -10,7 +10,7 @@ pub fn thm(name : String) -> @kernel.Thm {
   load()
   match thms.get(name) {
     Some(th) => th
-    None => abort("wasmcert/logic: no theorem " + name)
+    None => abort("certimoon/logic: no theorem " + name)
   }
 }
 
@@ -35,7 +35,7 @@ pub fn record(
   loc~ : SourceLoc,
 ) -> Unit {
   if thms.contains(name) {
-    abort("wasmcert/logic: " + name + " recorded twice")
+    abort("certimoon/logic: " + name + " recorded twice")
   }
   thms[name] = th
   // what load() proves is the theory listing; a user's theorems are not
@@ -57,7 +57,7 @@ pub fn tm(s : String) -> @kernel.Term raise {
 #callsite(autofill(loc))
 pub fn def(name : String, s : String, loc~ : SourceLoc) -> Unit raise {
   let th = @define.define_(tm(s)) catch {
-    e => raise Failure("wasmcert/logic: defining " + name + ": " + e.to_string())
+    e => raise Failure("certimoon/logic: defining " + name + ": " + e.to_string())
   }
   record(name, th, kind="definition", loc~)
 }
@@ -83,7 +83,7 @@ pub fn program(
 ) -> String raise {
   let lhs = if params.is_empty() { name } else { name + "(" + params.join(", ") + ")" }
   let th = @define.define_(tm(lhs + " == (" + code + " : List[B_e])")) catch {
-    e => raise Failure("wasmcert/logic: defining " + name + ": " + e.to_string())
+    e => raise Failure("certimoon/logic: defining " + name + ": " + e.to_string())
   }
   programs.push(th)
   record(name, th, kind="program", loc~)
@@ -138,7 +138,7 @@ pub fn lemma(
     tac
   }
   let th = @tactics.prove(tm(stmt), tac) catch {
-    e => raise Failure("wasmcert/logic: proving " + name + ": " + e.to_string())
+    e => raise Failure("certimoon/logic: proving " + name + ": " + e.to_string())
   }
   record(name, th, loc~)
   th

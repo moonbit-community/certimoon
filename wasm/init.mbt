@@ -61,7 +61,7 @@ pub fn load() -> Unit {
     section("Runs (reduce_trans)")
     define_reduce_trans()
   })() catch {
-    e => abort("WasmCert: loading failed: " + e.to_string())
+    e => abort("certimoon/wasm: loading failed: " + e.to_string())
   }
   @theory.end_theory()
 }

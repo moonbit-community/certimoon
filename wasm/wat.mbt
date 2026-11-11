@@ -234,7 +234,7 @@ pub fn wat_of_code(code : @kernel.Term, indent? : String = "") -> String raise {
   let text = lines.map(l => indent + l).join("\n")
   let back = code_of_wat(text)
   guard @term_syntax.same_term(back, code) else {
-    raise Failure("wasmcert/wasm: wat_of_code: the text does not read back as the code:\n" + text)
+    raise Failure("certimoon/wasm: wat_of_code: the text does not read back as the code:\n" + text)
   }
   text
 }
@@ -267,12 +267,12 @@ fn read_instrs(lines : Array[String], start : Int) -> (Array[String], Int) raise
         } else if rest.has_prefix("(type ") && rest.has_suffix(")") {
           "Tbf(" + rest[6:rest.length() - 1].to_owned() + ")"
         } else {
-          raise Failure("wasmcert/wasm: code_of_wat: block type " + rest)
+          raise Failure("certimoon/wasm: code_of_wat: block type " + rest)
         }
     }
     let list = (xs : Array[String]) => if xs.is_empty() { "NIL" } else { "[" + xs.join(", ") + "]" }
     let expect_end = (k : Int) => if k >= lines.length() || lines[k] != "end" {
-      raise Failure("wasmcert/wasm: code_of_wat: no end for line " + (start + 1).to_string())
+      raise Failure("certimoon/wasm: code_of_wat: no end for line " + (start + 1).to_string())
     }
     match word {
       "block" | "loop" => {
@@ -314,7 +314,7 @@ fn read_instrs(lines : Array[String], start : Int) -> (Array[String], Int) raise
         } else if plain.get(line) is Some(t) {
           out.push(t)
         } else {
-          raise Failure("wasmcert/wasm: code_of_wat: unknown instruction " + line)
+          raise Failure("certimoon/wasm: code_of_wat: unknown instruction " + line)
         }
         i = i + 1
       }
@@ -329,7 +329,7 @@ fn memarg(s : String) -> String raise {
   match s.split(" ").collect() {
     [o, a] if o.has_prefix("offset=") && a.has_prefix("align=2**") =>
       a[9:].to_owned() + ", " + o[7:].to_owned()
-    _ => raise Failure("wasmcert/wasm: code_of_wat: memory argument " + s)
+    _ => raise Failure("certimoon/wasm: code_of_wat: memory argument " + s)
   }
 }
 
@@ -340,7 +340,7 @@ pub fn code_of_wat(text : String) -> @kernel.Term raise {
   let lines = text.split("\n").map(l => l.trim().to_owned()).filter(l => l != "").collect()
   let (instrs, k) = read_instrs(lines, 0)
   if k != lines.length() {
-    raise Failure("wasmcert/wasm: code_of_wat: unexpected " + lines[k])
+    raise Failure("certimoon/wasm: code_of_wat: unexpected " + lines[k])
   }
   @term_syntax.parse_term("[" + instrs.join(", ") + "]")
 }
