@@ -4,7 +4,7 @@ What package `wasm` defines and proves, in order: each definition, datatype, rel
 
 Word types are abbreviated: `Byte`, `W32`, `W64` and `W128` are `Word[...]` of 8, 32, 64 and 128 bits.
 
-A statement is laid out as `∀ (x y : T) (z : U)`, its variables grouped by type; then, if it has hypotheses, `if` and the numbered hypotheses H1, ..., Hn and `then` and the conclusion C, with `or` between alternatives and `&&` before each further conjunct (as between a definition's equations). It stands for `∀ x y z, H1 && ... && Hn → C`. Each layout is printed from the kernel's statement and checked to read back as it (wasm/layout.mbt).
+A statement is laid out as `∀ (x y : T) (z : U)`, its variables grouped by type; then, if it has hypotheses, `if` and the numbered hypotheses H1, ..., Hn and `then` and the conclusion C, with `or` between alternatives and `&&` before each further conjunct (as between a definition's equations). It stands for `∀ x y z, H1 && ... && Hn → C`. A line longer than 80 characters is broken by its brackets and operators, an argument, conjunct or case per line; only whitespace changes. Each layout is printed from the kernel's statement and checked to read back as it (wasm/layout.mbt).
 
 ## List and option helpers
 
@@ -12,7 +12,8 @@ definition `take`
 
 ```
 take(0, (l : List[A])) == NIL
-&& (take : (Num, List[A]) -> List[A])(SUC((n : Num)), (NIL : List[A])) == (NIL : List[A])
+&& (take : (Num, List[A]) -> List[A])(SUC((n : Num)), (NIL : List[A]))
+     == (NIL : List[A])
 && take(SUC((n : Num)), CONS((h : A), (t : List[A]))) == CONS(h, take(n, t))
 ```
 
@@ -20,7 +21,8 @@ definition `drop`
 
 ```
 drop(0, (l : List[A])) == l
-&& (drop : (Num, List[A]) -> List[A])(SUC((n : Num)), (NIL : List[A])) == (NIL : List[A])
+&& (drop : (Num, List[A]) -> List[A])(SUC((n : Num)), (NIL : List[A]))
+     == (NIL : List[A])
 && drop(SUC((n : Num)), CONS((h : A), (t : List[A]))) == drop(n, t)
 ```
 
@@ -29,7 +31,8 @@ definition `takefill`
 ```
 takefill((a : A), 0, (l : List[A])) == NIL
 && takefill((a : A), SUC((n : Num)), NIL) == CONS(a, takefill(a, n, NIL))
-&& takefill((a : A), SUC((n : Num)), CONS((h : A), (t : List[A]))) == CONS(h, takefill(a, n, t))
+&& takefill((a : A), SUC((n : Num)), CONS((h : A), (t : List[A])))
+     == CONS(h, takefill(a, n, t))
 ```
 
 definition `list_update`
@@ -37,14 +40,16 @@ definition `list_update`
 ```
 list_update(NIL, (i : Num), (x : A)) == NIL
 && list_update(CONS((h : A), (t : List[A])), 0, (x : A)) == CONS(x, t)
-&& list_update(CONS((h : A), (t : List[A])), SUC((n : Num)), (x : A)) == CONS(h, list_update(t, n, x))
+&& list_update(CONS((h : A), (t : List[A])), SUC((n : Num)), (x : A))
+     == CONS(h, list_update(t, n, x))
 ```
 
 definition `upt`
 
 ```
 upt((i : Num), 0) == NIL
-&& upt((i : Num), SUC((j : Num))) == (if i <= j { APPEND(upt(i, j), [j]) } else { NIL })
+&& upt((i : Num), SUC((j : Num)))
+     == (if i <= j { APPEND(upt(i, j), [j]) } else { NIL })
 ```
 
 definition `concat`
@@ -71,8 +76,10 @@ pred_option((p : (A) -> Bool), NONE) == true
 definition `those`
 
 ```
-(those : (List[Option[A]]) -> Option[List[A]])((NIL : List[Option[A]])) == (SOME : (List[A]) -> Option[List[A]])((NIL : List[A]))
-&& those(CONS((x : Option[A]), (xs : List[Option[A]]))) == match x { NONE => NONE; SOME(y) => map_option(CONS(y), those(xs)) }
+(those : (List[Option[A]]) -> Option[List[A]])((NIL : List[Option[A]]))
+  == (SOME : (List[A]) -> Option[List[A]])((NIL : List[A]))
+&& those(CONS((x : Option[A]), (xs : List[Option[A]])))
+     == match x { NONE => NONE; SOME(y) => map_option(CONS(y), those(xs)) }
 ```
 
 ## Abstract syntax (Wasm_Ast)
@@ -481,19 +488,23 @@ mem_max((m : (Limit_t, List[Byte]))) == l_max(FST(m))
 definition `read_bytes`
 
 ```
-read_bytes((m : (Limit_t, List[Byte])), (n : Num), (l : Num)) == take(l, drop(n, SND(m)))
+read_bytes((m : (Limit_t, List[Byte])), (n : Num), (l : Num))
+  == take(l, drop(n, SND(m)))
 ```
 
 definition `write_bytes`
 
 ```
-write_bytes((m : (Limit_t, List[Byte])), (n : Num), (bs : List[Byte])) == (FST(m), APPEND(take(n, SND(m)), APPEND(bs, drop(n + LENGTH(bs), SND(m)))))
+write_bytes((m : (Limit_t, List[Byte])), (n : Num), (bs : List[Byte]))
+  == (FST(m), APPEND(take(n, SND(m)), APPEND(bs, drop(n + LENGTH(bs), SND(m)))))
 ```
 
 definition `mem_append`
 
 ```
-mem_append((m : (Limit_t, List[Byte])), (n : Num), (b : Byte)) == (l_min_update(l_min(FST(m)) + DIV(n, Ki64), FST(m)), APPEND(SND(m), REPLICATE(n, b)))
+mem_append((m : (Limit_t, List[Byte])), (n : Num), (b : Byte)) == (
+  l_min_update(l_min(FST(m)) + DIV(n, Ki64), FST(m)),
+  APPEND(SND(m), REPLICATE(n, b)))
 ```
 
 ## Integer operations
@@ -519,25 +530,37 @@ int_popcnt((x : Word[N])) == word(word_popcount(x))
 definition `int_div_u`
 
 ```
-int_div_u((x : Word[N]), (y : Word[N])) == (if y == word(0) { NONE } else { SOME(word_udiv(x, y)) })
+int_div_u((x : Word[N]), (y : Word[N]))
+  == (if y == word(0) { NONE } else { SOME(word_udiv(x, y)) })
 ```
 
 definition `int_div_s`
 
 ```
-(int_div_s : (Word[N], Word[N]) -> Option[Word[N]])((x : Word[N]), (y : Word[N])) == (if y == (word : (Num) -> Word[N])(0) || x == (word : (Num) -> Word[N])(EXP(2, (dimindex : ((N) -> Bool) -> Num)((UNIV : (N) -> Bool)) - 1)) && y == (word_not : (Word[N]) -> Word[N])((word : (Num) -> Word[N])(0)) { (NONE : Option[Word[N]]) } else { (SOME : (Word[N]) -> Option[Word[N]])((word_jdiv : (Word[N], Word[N]) -> Word[N])(x, y)) })
+(int_div_s : (Word[N], Word[N]) -> Option[Word[N]])(
+  (x : Word[N]),
+  (y : Word[N])) == (
+  if y == (word : (Num) -> Word[N])(0)
+  || x == (word : (Num) -> Word[N])(
+       EXP(2, (dimindex : ((N) -> Bool) -> Num)((UNIV : (N) -> Bool)) - 1))
+     && y == (word_not : (Word[N]) -> Word[N])((word : (Num) -> Word[N])(0)) {
+          (NONE : Option[Word[N]]) } else {
+          (SOME : (Word[N]) -> Option[Word[N]])(
+            (word_jdiv : (Word[N], Word[N]) -> Word[N])(x, y)) })
 ```
 
 definition `int_rem_u`
 
 ```
-int_rem_u((x : Word[N]), (y : Word[N])) == (if y == word(0) { NONE } else { SOME(word_umod(x, y)) })
+int_rem_u((x : Word[N]), (y : Word[N]))
+  == (if y == word(0) { NONE } else { SOME(word_umod(x, y)) })
 ```
 
 definition `int_rem_s`
 
 ```
-int_rem_s((x : Word[N]), (y : Word[N])) == (if y == word(0) { NONE } else { SOME(word_jrem(x, y)) })
+int_rem_s((x : Word[N]), (y : Word[N]))
+  == (if y == word(0) { NONE } else { SOME(word_jrem(x, y)) })
 ```
 
 definition `int_eqz`
@@ -938,14 +961,16 @@ definition `le_bytes`
 
 ```
 le_bytes(0, (n : Num)) == NIL
-&& le_bytes(SUC((k : Num)), (n : Num)) == CONS(word(n), le_bytes(k, DIV(n, 256)))
+&& le_bytes(SUC((k : Num)), (n : Num))
+     == CONS(word(n), le_bytes(k, DIV(n, 256)))
 ```
 
 definition `num_of_bytes`
 
 ```
 num_of_bytes(NIL) == 0
-&& num_of_bytes(CONS((b : Byte), (bs : List[Byte]))) == val(b) + 256 * num_of_bytes(bs)
+&& num_of_bytes(CONS((b : Byte), (bs : List[Byte])))
+     == val(b) + 256 * num_of_bytes(bs)
 ```
 
 definition `serialise_i32`
@@ -995,68 +1020,126 @@ mem_size((m : (Limit_t, List[Byte]))) == DIV(mem_length(m), Ki64)
 definition `mem_grow`
 
 ```
-mem_grow((m : (Limit_t, List[Byte])), (n : Num)) == (if mem_size(m) + n <= 65536 && pred_option((max : Num) => mem_size(m) + n <= max, mem_max(m)) { SOME(mem_append(m, n * Ki64, zero_byte)) } else { NONE })
+mem_grow((m : (Limit_t, List[Byte])), (n : Num)) == (
+  if mem_size(m) + n <= 65536
+  && pred_option((max : Num) => mem_size(m) + n <= max, mem_max(m)) {
+       SOME(mem_append(m, n * Ki64, zero_byte)) } else { NONE })
 ```
 
 definition `load`
 
 ```
-load((m : (Limit_t, List[Byte])), (n : Num), (off : Num), (l : Num)) == (if n + off + l <= mem_length(m) { SOME(read_bytes(m, n + off, l)) } else { NONE })
+load((m : (Limit_t, List[Byte])), (n : Num), (off : Num), (l : Num)) == (
+  if n + off + l <= mem_length(m) { SOME(read_bytes(m, n + off, l)) } else {
+    NONE })
 ```
 
 definition `sign_extend`
 
 ```
 sign_extend(U, (l : Num), (bs : List[Byte])) == bytes_takefill(zero_byte, l, bs)
-&& sign_extend(S, (l : Num), (bs : List[Byte])) == bytes_takefill(if msb_byte(msbyte(bs)) { negone_byte } else { zero_byte }, l, bs)
+&& sign_extend(S, (l : Num), (bs : List[Byte])) == bytes_takefill(
+     if msb_byte(msbyte(bs)) { negone_byte } else { zero_byte },
+     l,
+     bs)
 ```
 
 definition `load_packed`
 
 ```
-load_packed((sx : Sx), (m : (Limit_t, List[Byte])), (n : Num), (off : Num), (lp : Num), (l : Num)) == map_option(sign_extend(sx, l), load(m, n, off, lp))
+load_packed(
+  (sx : Sx),
+  (m : (Limit_t, List[Byte])),
+  (n : Num),
+  (off : Num),
+  (lp : Num),
+  (l : Num))
+  == map_option(sign_extend(sx, l), load(m, n, off, lp))
 ```
 
 definition `store`
 
 ```
-store((m : (Limit_t, List[Byte])), (n : Num), (off : Num), (bs : List[Byte]), (l : Num)) == (if n + off + l <= mem_length(m) { SOME(write_bytes(m, n + off, bytes_takefill(zero_byte, l, bs))) } else { NONE })
+store(
+  (m : (Limit_t, List[Byte])),
+  (n : Num),
+  (off : Num),
+  (bs : List[Byte]),
+  (l : Num)) == (
+  if n + off + l <= mem_length(m) {
+    SOME(write_bytes(m, n + off, bytes_takefill(zero_byte, l, bs))) } else {
+    NONE })
 ```
 
 definition `store_packed`
 
 ```
-store_packed((m : (Limit_t, List[Byte])), (n : Num), (off : Num), (bs : List[Byte]), (l : Num)) == store(m, n, off, bs, l)
+store_packed(
+  (m : (Limit_t, List[Byte])),
+  (n : Num),
+  (off : Num),
+  (bs : List[Byte]),
+  (l : Num))
+  == store(m, n, off, bs, l)
 ```
 
 definition `store_tab_list`
 
 ```
-store_tab_list((tab : (Tab_t, List[V_ref])), (n : Num), (vrs : List[V_ref])) == (if n + LENGTH(vrs) <= tab_size(tab) { SOME((FST(tab), APPEND(take(n, SND(tab)), APPEND(vrs, drop(n + LENGTH(vrs), SND(tab)))))) } else { NONE })
+store_tab_list((tab : (Tab_t, List[V_ref])), (n : Num), (vrs : List[V_ref])) == (
+  if n + LENGTH(vrs) <= tab_size(tab) {
+    SOME(
+      (
+        FST(tab),
+        APPEND(
+          take(n, SND(tab)),
+          APPEND(vrs, drop(n + LENGTH(vrs), SND(tab)))))) } else { NONE })
 ```
 
 definition `store_tab1`
 
 ```
-store_tab1((tab : (Tab_t, List[V_ref])), (n : Num), (vr : V_ref)) == (if n < tab_size(tab) { SOME((FST(tab), APPEND(take(n, SND(tab)), APPEND([vr], drop(n + 1, SND(tab)))))) } else { NONE })
+store_tab1((tab : (Tab_t, List[V_ref])), (n : Num), (vr : V_ref)) == (
+  if n < tab_size(tab) {
+    SOME(
+      (
+        FST(tab),
+        APPEND(take(n, SND(tab)), APPEND([vr], drop(n + 1, SND(tab)))))) } else {
+    NONE })
 ```
 
 definition `load_tabs1`
 
 ```
-load_tabs1((tables : List[(Tab_t, List[V_ref])]), (ti : Num), (n : Num)) == (if n < tab_size(EL(ti, tables)) { SOME(EL(n, SND(EL(ti, tables)))) } else { NONE })
+load_tabs1((tables : List[(Tab_t, List[V_ref])]), (ti : Num), (n : Num)) == (
+  if n < tab_size(EL(ti, tables)) { SOME(EL(n, SND(EL(ti, tables)))) } else {
+    NONE })
 ```
 
 definition `store_tabs1`
 
 ```
-store_tabs1((tables : List[(Tab_t, List[V_ref])]), (ti : Num), (n : Num), (vr : V_ref)) == match store_tab1(EL(ti, tables), n, vr) { SOME(tab') => SOME(APPEND(take(ti, tables), APPEND([tab'], drop(ti + 1, tables)))); NONE => NONE }
+store_tabs1(
+  (tables : List[(Tab_t, List[V_ref])]),
+  (ti : Num),
+  (n : Num),
+  (vr : V_ref)) == match store_tab1(EL(ti, tables), n, vr) {
+  SOME(tab') => SOME(APPEND(take(ti, tables), APPEND([tab'], drop(ti + 1, tables))));
+  NONE => NONE }
 ```
 
 definition `grow_tab`
 
 ```
-grow_tab((t : (Tab_t, List[V_ref])), (n : Num), (vr : V_ref)) == (if tab_size(t) + n < EXP(2, 32) && pred_option((max : Num) => tab_size(t) + n <= max, tab_max(t)) { SOME((T_tab(l_min_update(tab_size(t) + n, tab_t_lim(FST(t))), tab_t_reftype(FST(t))), APPEND(SND(t), REPLICATE(n, vr)))) } else { NONE })
+grow_tab((t : (Tab_t, List[V_ref])), (n : Num), (vr : V_ref)) == (
+  if tab_size(t) + n < EXP(2, 32)
+  && pred_option((max : Num) => tab_size(t) + n <= max, tab_max(t)) {
+       SOME(
+         (
+           T_tab(
+             l_min_update(tab_size(t) + n, tab_t_lim(FST(t))),
+             tab_t_reftype(FST(t))),
+           APPEND(SND(t), REPLICATE(n, vr)))) } else { NONE })
 ```
 
 constant `host_func_apply`
@@ -1070,17 +1153,23 @@ host_func_apply : (Wstore, Tf, Host_func, List[Value], Host_state, Option[(Wstor
 definition `wasm_deserialise_num`
 
 ```
-wasm_deserialise_num((bs : List[Byte]), T_i32) == ConstInt32(deserialise_i32(bs))
-&& wasm_deserialise_num((bs : List[Byte]), T_i64) == ConstInt64(deserialise_i64(bs))
-&& wasm_deserialise_num((bs : List[Byte]), T_f32) == ConstFloat32(deserialise_f32(bs))
-&& wasm_deserialise_num((bs : List[Byte]), T_f64) == ConstFloat64(deserialise_f64(bs))
+wasm_deserialise_num((bs : List[Byte]), T_i32)
+  == ConstInt32(deserialise_i32(bs))
+&& wasm_deserialise_num((bs : List[Byte]), T_i64)
+     == ConstInt64(deserialise_i64(bs))
+&& wasm_deserialise_num((bs : List[Byte]), T_f32)
+     == ConstFloat32(deserialise_f32(bs))
+&& wasm_deserialise_num((bs : List[Byte]), T_f64)
+     == ConstFloat64(deserialise_f64(bs))
 ```
 
 definition `wasm_deserialise`
 
 ```
-wasm_deserialise((bs : List[Byte]), T_num((tn : T_num))) == V_num(wasm_deserialise_num(bs, tn))
-&& wasm_deserialise((bs : List[Byte]), T_vec((tv : T_vec))) == V_vec(ConstVec128(deserialise_v128(bs)))
+wasm_deserialise((bs : List[Byte]), T_num((tn : T_num)))
+  == V_num(wasm_deserialise_num(bs, tn))
+&& wasm_deserialise((bs : List[Byte]), T_vec((tv : T_vec)))
+     == V_vec(ConstVec128(deserialise_v128(bs)))
 ```
 
 definition `bits_num`
@@ -1352,7 +1441,8 @@ definition `unop_t_num_agree`
 ```
 unop_t_num_agree(Unop_i((iop : Unop_i)), (t : T_num)) == is_int_t_num(t)
 && unop_t_num_agree(Unop_f((fop : Unop_f)), (t : T_num)) == is_float_t_num(t)
-&& unop_t_num_agree(Extend_s((tp : Tp_num)), (t : T_num)) == (is_int_t_num(t) && t_num_length(t) > tp_num_length(tp))
+&& unop_t_num_agree(Extend_s((tp : Tp_num)), (t : T_num))
+     == (is_int_t_num(t) && t_num_length(t) > tp_num_length(tp))
 ```
 
 definition `binop_t_num_agree`
@@ -1382,8 +1472,10 @@ app_unop_i(Ctz, (c : Word[N])) == int_ctz(c)
 definition `app_unop_i_v`
 
 ```
-app_unop_i_v((iop : Unop_i), ConstInt32((c1 : W32))) == ConstInt32(app_unop_i(iop, c1))
-&& app_unop_i_v((iop : Unop_i), ConstInt64((c2 : W64))) == ConstInt64(app_unop_i(iop, c2))
+app_unop_i_v((iop : Unop_i), ConstInt32((c1 : W32)))
+  == ConstInt32(app_unop_i(iop, c1))
+&& app_unop_i_v((iop : Unop_i), ConstInt64((c2 : W64)))
+     == ConstInt64(app_unop_i(iop, c2))
 && app_unop_i_v((iop : Unop_i), ConstFloat32((c3 : F32))) == ConstFloat32(c3)
 && app_unop_i_v((iop : Unop_i), ConstFloat64((c4 : F64))) == ConstFloat64(c4)
 ```
@@ -1403,8 +1495,10 @@ app_unop_f(Neg, (c : A)) == float_neg(c)
 definition `app_unop_f_v`
 
 ```
-app_unop_f_v((fop : Unop_f), ConstFloat32((c3 : F32))) == ConstFloat32(app_unop_f(fop, c3))
-&& app_unop_f_v((fop : Unop_f), ConstFloat64((c4 : F64))) == ConstFloat64(app_unop_f(fop, c4))
+app_unop_f_v((fop : Unop_f), ConstFloat32((c3 : F32)))
+  == ConstFloat32(app_unop_f(fop, c3))
+&& app_unop_f_v((fop : Unop_f), ConstFloat64((c4 : F64)))
+     == ConstFloat64(app_unop_f(fop, c4))
 && app_unop_f_v((fop : Unop_f), ConstInt32((c1 : W32))) == ConstInt32(c1)
 && app_unop_f_v((fop : Unop_f), ConstInt64((c2 : W64))) == ConstInt64(c2)
 ```
@@ -1412,7 +1506,12 @@ app_unop_f_v((fop : Unop_f), ConstFloat32((c3 : F32))) == ConstFloat32(app_unop_
 definition `app_extend_s`
 
 ```
-app_extend_s((tp : Tp_num), (v : V_num)) == wasm_deserialise_num(sign_extend(S, t_num_length(typeof_num(v)), take(tp_num_length(tp), bits_num(v))), typeof_num(v))
+app_extend_s((tp : Tp_num), (v : V_num)) == wasm_deserialise_num(
+  sign_extend(
+    S,
+    t_num_length(typeof_num(v)),
+    take(tp_num_length(tp), bits_num(v))),
+  typeof_num(v))
 ```
 
 definition `app_unop`
@@ -1437,8 +1536,10 @@ app_binop_i(Add, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_add(c1, c2))
 && app_binop_i(Or, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_or(c1, c2))
 && app_binop_i(Xor, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_xor(c1, c2))
 && app_binop_i(Shl, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_jshl(c1, c2))
-&& app_binop_i(Shr(U), (c1 : Word[N]), (c2 : Word[N])) == SOME(word_jushr(c1, c2))
-&& app_binop_i(Shr(S), (c1 : Word[N]), (c2 : Word[N])) == SOME(word_jshr(c1, c2))
+&& app_binop_i(Shr(U), (c1 : Word[N]), (c2 : Word[N]))
+     == SOME(word_jushr(c1, c2))
+&& app_binop_i(Shr(S), (c1 : Word[N]), (c2 : Word[N]))
+     == SOME(word_jshr(c1, c2))
 && app_binop_i(Rotl, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_jrol(c1, c2))
 && app_binop_i(Rotr, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_jror(c1, c2))
 ```
@@ -1446,7 +1547,12 @@ app_binop_i(Add, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_add(c1, c2))
 definition `app_binop_i_v`
 
 ```
-app_binop_i_v((iop : Binop_i), (v1 : V_num), (v2 : V_num)) == match (v1, v2) { (ConstInt32(a1), ConstInt32(a2)) => map_option(ConstInt32, app_binop_i(iop, a1, a2)); (ConstInt64(b1), ConstInt64(b2)) => map_option(ConstInt64, app_binop_i(iop, b1, b2)); other => NONE }
+app_binop_i_v((iop : Binop_i), (v1 : V_num), (v2 : V_num)) == match (v1, v2) {
+  (ConstInt32(a1), ConstInt32(a2)) =>
+    map_option(ConstInt32, app_binop_i(iop, a1, a2));
+  (ConstInt64(b1), ConstInt64(b2)) =>
+    map_option(ConstInt64, app_binop_i(iop, b1, b2));
+  other => NONE }
 ```
 
 definition `app_binop_f`
@@ -1464,14 +1570,21 @@ app_binop_f(Addf, (c1 : A), (c2 : A)) == SOME(float_add(c1, c2))
 definition `app_binop_f_v`
 
 ```
-app_binop_f_v((fop : Binop_f), (v1 : V_num), (v2 : V_num)) == match (v1, v2) { (ConstFloat32(a1), ConstFloat32(a2)) => map_option(ConstFloat32, app_binop_f(fop, a1, a2)); (ConstFloat64(b1), ConstFloat64(b2)) => map_option(ConstFloat64, app_binop_f(fop, b1, b2)); other => NONE }
+app_binop_f_v((fop : Binop_f), (v1 : V_num), (v2 : V_num)) == match (v1, v2) {
+  (ConstFloat32(a1), ConstFloat32(a2)) =>
+    map_option(ConstFloat32, app_binop_f(fop, a1, a2));
+  (ConstFloat64(b1), ConstFloat64(b2)) =>
+    map_option(ConstFloat64, app_binop_f(fop, b1, b2));
+  other => NONE }
 ```
 
 definition `app_binop`
 
 ```
-app_binop(Binop_i((iop : Binop_i)), (v1 : V_num), (v2 : V_num)) == app_binop_i_v(iop, v1, v2)
-&& app_binop(Binop_f((fop : Binop_f)), (v1 : V_num), (v2 : V_num)) == app_binop_f_v(fop, v1, v2)
+app_binop(Binop_i((iop : Binop_i)), (v1 : V_num), (v2 : V_num))
+  == app_binop_i_v(iop, v1, v2)
+&& app_binop(Binop_f((fop : Binop_f)), (v1 : V_num), (v2 : V_num))
+     == app_binop_f_v(fop, v1, v2)
 ```
 
 definition `app_testop_i`
@@ -1483,8 +1596,10 @@ app_testop_i(Eqz, (c : Word[N])) == int_eqz(c)
 definition `app_testop`
 
 ```
-app_testop((op : Testop), ConstInt32((c1 : W32))) == ConstInt32(wasm_bool(app_testop_i(op, c1)))
-&& app_testop((op : Testop), ConstInt64((c2 : W64))) == ConstInt32(wasm_bool(app_testop_i(op, c2)))
+app_testop((op : Testop), ConstInt32((c1 : W32)))
+  == ConstInt32(wasm_bool(app_testop_i(op, c1)))
+&& app_testop((op : Testop), ConstInt64((c2 : W64)))
+     == ConstInt32(wasm_bool(app_testop_i(op, c2)))
 && app_testop((op : Testop), ConstFloat32((c3 : F32))) == ConstInt32(word(0))
 && app_testop((op : Testop), ConstFloat64((c4 : F64))) == ConstInt32(word(0))
 ```
@@ -1507,7 +1622,12 @@ app_relop_i(Eq, (c1 : Word[N]), (c2 : Word[N])) == (c1 == c2)
 definition `app_relop_i_v`
 
 ```
-app_relop_i_v((iop : Relop_i), (v1 : V_num), (v2 : V_num)) == match (v1, v2) { (ConstInt32(a1), ConstInt32(a2)) => ConstInt32(wasm_bool(app_relop_i(iop, a1, a2))); (ConstInt64(b1), ConstInt64(b2)) => ConstInt32(wasm_bool(app_relop_i(iop, b1, b2))); other => ConstInt32(word(0)) }
+app_relop_i_v((iop : Relop_i), (v1 : V_num), (v2 : V_num)) == match (v1, v2) {
+  (ConstInt32(a1), ConstInt32(a2)) =>
+    ConstInt32(wasm_bool(app_relop_i(iop, a1, a2)));
+  (ConstInt64(b1), ConstInt64(b2)) =>
+    ConstInt32(wasm_bool(app_relop_i(iop, b1, b2)));
+  other => ConstInt32(word(0)) }
 ```
 
 definition `app_relop_f`
@@ -1524,14 +1644,21 @@ app_relop_f(Eqf, (c1 : A), (c2 : A)) == float_eq(c1, c2)
 definition `app_relop_f_v`
 
 ```
-app_relop_f_v((fop : Relop_f), (v1 : V_num), (v2 : V_num)) == match (v1, v2) { (ConstFloat32(a1), ConstFloat32(a2)) => ConstInt32(wasm_bool(app_relop_f(fop, a1, a2))); (ConstFloat64(b1), ConstFloat64(b2)) => ConstInt32(wasm_bool(app_relop_f(fop, b1, b2))); other => ConstInt32(word(0)) }
+app_relop_f_v((fop : Relop_f), (v1 : V_num), (v2 : V_num)) == match (v1, v2) {
+  (ConstFloat32(a1), ConstFloat32(a2)) =>
+    ConstInt32(wasm_bool(app_relop_f(fop, a1, a2)));
+  (ConstFloat64(b1), ConstFloat64(b2)) =>
+    ConstInt32(wasm_bool(app_relop_f(fop, b1, b2)));
+  other => ConstInt32(word(0)) }
 ```
 
 definition `app_relop`
 
 ```
-app_relop(Relop_i((iop : Relop_i)), (v1 : V_num), (v2 : V_num)) == app_relop_i_v(iop, v1, v2)
-&& app_relop(Relop_f((fop : Relop_f)), (v1 : V_num), (v2 : V_num)) == app_relop_f_v(fop, v1, v2)
+app_relop(Relop_i((iop : Relop_i)), (v1 : V_num), (v2 : V_num))
+  == app_relop_i_v(iop, v1, v2)
+&& app_relop(Relop_f((fop : Relop_f)), (v1 : V_num), (v2 : V_num))
+     == app_relop_f_v(fop, v1, v2)
 ```
 
 ## Vector operators
@@ -1539,108 +1666,180 @@ app_relop(Relop_i((iop : Relop_i)), (v1 : V_num), (v2 : V_num)) == app_relop_i_v
 definition `insert_lane_vec_bs`
 
 ```
-insert_lane_vec_bs((len_lane : Num), (i : Num), (bs_lane : List[Byte]), (bs_vec : List[Byte])) == APPEND(take(i * len_lane, bs_vec), APPEND(take(len_lane, bs_lane), drop((i + 1) * len_lane, bs_vec)))
+insert_lane_vec_bs(
+  (len_lane : Num),
+  (i : Num),
+  (bs_lane : List[Byte]),
+  (bs_vec : List[Byte])) == APPEND(
+  take(i * len_lane, bs_vec),
+  APPEND(take(len_lane, bs_lane), drop((i + 1) * len_lane, bs_vec)))
 ```
 
 definition `app_unop_vec`
 
 ```
-app_unop_vec((uop : Unop_vec), ConstVec128((c : V128))) == ConstVec128(app_unop_vec_v(uop, c))
+app_unop_vec((uop : Unop_vec), ConstVec128((c : V128)))
+  == ConstVec128(app_unop_vec_v(uop, c))
 ```
 
 definition `app_binop_vec`
 
 ```
-app_binop_vec((bop : Binop_vec), ConstVec128((c1 : V128)), ConstVec128((c2 : V128))) == map_option(ConstVec128, app_binop_vec_v(bop, c1, c2))
+app_binop_vec(
+  (bop : Binop_vec),
+  ConstVec128((c1 : V128)),
+  ConstVec128((c2 : V128)))
+  == map_option(ConstVec128, app_binop_vec_v(bop, c1, c2))
 ```
 
 definition `app_shuffle_vec`
 
 ```
-app_shuffle_vec((is_ : List[Num]), ConstVec128((c1 : V128)), ConstVec128((c2 : V128))) == ConstVec128(app_shuffle_vec_v(is_, c1, c2))
+app_shuffle_vec(
+  (is_ : List[Num]),
+  ConstVec128((c1 : V128)),
+  ConstVec128((c2 : V128)))
+  == ConstVec128(app_shuffle_vec_v(is_, c1, c2))
 ```
 
 definition `app_ternop_vec`
 
 ```
-app_ternop_vec((op : Ternop_vec), ConstVec128((c1 : V128)), ConstVec128((c2 : V128)), ConstVec128((c3 : V128))) == ConstVec128(app_ternop_vec_v(op, c1, c2, c3))
+app_ternop_vec(
+  (op : Ternop_vec),
+  ConstVec128((c1 : V128)),
+  ConstVec128((c2 : V128)),
+  ConstVec128((c3 : V128)))
+  == ConstVec128(app_ternop_vec_v(op, c1, c2, c3))
 ```
 
 definition `app_test_vec`
 
 ```
-app_test_vec((op : Testop_vec), ConstVec128((c : V128))) == app_test_vec_v(op, c)
+app_test_vec((op : Testop_vec), ConstVec128((c : V128)))
+  == app_test_vec_v(op, c)
 ```
 
 definition `app_shift_vec`
 
 ```
-app_shift_vec((sop : Shiftop_vec), ConstVec128((cv : V128)), (cn : W32)) == ConstVec128(app_shift_vec_v(sop, cv, cn))
+app_shift_vec((sop : Shiftop_vec), ConstVec128((cv : V128)), (cn : W32))
+  == ConstVec128(app_shift_vec_v(sop, cv, cn))
 ```
 
 definition `app_splat_vec`
 
 ```
-app_splat_vec((sv : Shape_vec), (v : V_num)) == ConstVec128(deserialise_v128(concat(REPLICATE(vec_num(sv), take(vec_length(sv), bits_num(v))))))
+app_splat_vec((sv : Shape_vec), (v : V_num)) == ConstVec128(
+  deserialise_v128(
+    concat(REPLICATE(vec_num(sv), take(vec_length(sv), bits_num(v))))))
 ```
 
 definition `lane_bytes`
 
 ```
-lane_bytes((sv : Shape_vec), (i : Num), (vv : V_vec)) == take(vec_length(sv), drop(i * vec_length(sv), bits_vec(vv)))
+lane_bytes((sv : Shape_vec), (i : Num), (vv : V_vec))
+  == take(vec_length(sv), drop(i * vec_length(sv), bits_vec(vv)))
 ```
 
 definition `app_extract_vec`
 
 ```
-app_extract_vec(Svi(I8_16), (sx : Sx), (i : Num), (vv : V_vec)) == ConstInt32(deserialise_i32(sign_extend(sx, 4, lane_bytes(Svi(I8_16), i, vv))))
-&& app_extract_vec(Svi(I16_8), (sx : Sx), (i : Num), (vv : V_vec)) == ConstInt32(deserialise_i32(sign_extend(sx, 4, lane_bytes(Svi(I16_8), i, vv))))
-&& app_extract_vec(Svi(I32_4), (sx : Sx), (i : Num), (vv : V_vec)) == ConstInt32(deserialise_i32(lane_bytes(Svi(I32_4), i, vv)))
-&& app_extract_vec(Svi(I64_2), (sx : Sx), (i : Num), (vv : V_vec)) == ConstInt64(deserialise_i64(lane_bytes(Svi(I64_2), i, vv)))
-&& app_extract_vec(Svf(F32_4), (sx : Sx), (i : Num), (vv : V_vec)) == ConstFloat32(deserialise_f32(lane_bytes(Svf(F32_4), i, vv)))
-&& app_extract_vec(Svf(F64_2), (sx : Sx), (i : Num), (vv : V_vec)) == ConstFloat64(deserialise_f64(lane_bytes(Svf(F64_2), i, vv)))
+app_extract_vec(Svi(I8_16), (sx : Sx), (i : Num), (vv : V_vec)) == ConstInt32(
+  deserialise_i32(sign_extend(sx, 4, lane_bytes(Svi(I8_16), i, vv))))
+&& app_extract_vec(Svi(I16_8), (sx : Sx), (i : Num), (vv : V_vec)) == ConstInt32(
+     deserialise_i32(sign_extend(sx, 4, lane_bytes(Svi(I16_8), i, vv))))
+&& app_extract_vec(Svi(I32_4), (sx : Sx), (i : Num), (vv : V_vec))
+     == ConstInt32(deserialise_i32(lane_bytes(Svi(I32_4), i, vv)))
+&& app_extract_vec(Svi(I64_2), (sx : Sx), (i : Num), (vv : V_vec))
+     == ConstInt64(deserialise_i64(lane_bytes(Svi(I64_2), i, vv)))
+&& app_extract_vec(Svf(F32_4), (sx : Sx), (i : Num), (vv : V_vec))
+     == ConstFloat32(deserialise_f32(lane_bytes(Svf(F32_4), i, vv)))
+&& app_extract_vec(Svf(F64_2), (sx : Sx), (i : Num), (vv : V_vec))
+     == ConstFloat64(deserialise_f64(lane_bytes(Svf(F64_2), i, vv)))
 ```
 
 definition `app_replace_vec`
 
 ```
-app_replace_vec((sv : Shape_vec), (i : Num), (vv : V_vec), (vn : V_num)) == ConstVec128(deserialise_v128(insert_lane_vec_bs(vec_length(sv), i, bits_num(vn), bits_vec(vv))))
+app_replace_vec((sv : Shape_vec), (i : Num), (vv : V_vec), (vn : V_num)) == ConstVec128(
+  deserialise_v128(
+    insert_lane_vec_bs(vec_length(sv), i, bits_num(vn), bits_vec(vv))))
 ```
 
 definition `read_bytes_vec`
 
 ```
-read_bytes_vec(0, (len : Num), (sx : Sx), (m : (Limit_t, List[Byte])), (ind : Num)) == NIL
-&& read_bytes_vec(SUC((n : Num)), (len : Num), (sx : Sx), (m : (Limit_t, List[Byte])), (ind : Num)) == APPEND(sign_extend(sx, len * 2, read_bytes(m, ind, len)), read_bytes_vec(n, len, sx, m, ind + len))
+read_bytes_vec(
+  0,
+  (len : Num),
+  (sx : Sx),
+  (m : (Limit_t, List[Byte])),
+  (ind : Num))
+  == NIL
+&& read_bytes_vec(
+     SUC((n : Num)),
+     (len : Num),
+     (sx : Sx),
+     (m : (Limit_t, List[Byte])),
+     (ind : Num)) == APPEND(
+     sign_extend(sx, len * 2, read_bytes(m, ind, len)),
+     read_bytes_vec(n, len, sx, m, ind + len))
 ```
 
 definition `load_packed_vec`
 
 ```
-load_packed_vec((tp : Tp_vec), (sx : Sx), (m : (Limit_t, List[Byte])), (n : Num), (off : Num)) == (if n + off + tp_vec_num(tp) * tp_vec_length(tp) <= mem_length(m) { SOME(read_bytes_vec(tp_vec_num(tp), tp_vec_length(tp), sx, m, n + off)) } else { NONE })
+load_packed_vec(
+  (tp : Tp_vec),
+  (sx : Sx),
+  (m : (Limit_t, List[Byte])),
+  (n : Num),
+  (off : Num)) == (
+  if n + off + tp_vec_num(tp) * tp_vec_length(tp) <= mem_length(m) {
+    SOME(read_bytes_vec(tp_vec_num(tp), tp_vec_length(tp), sx, m, n + off)) } else {
+    NONE })
 ```
 
 definition `load_vec`
 
 ```
-load_vec(Load_128, (m : (Limit_t, List[Byte])), (n : Num), (off : Num)) == load(m, n, off, t_vec_length(T_v128))
-&& load_vec(Load_packed_vec((tp : Tp_vec), (sx : Sx)), (m : (Limit_t, List[Byte])), (n : Num), (off : Num)) == load_packed_vec(tp, sx, m, n, off)
-&& load_vec(Load_32_zero, (m : (Limit_t, List[Byte])), (n : Num), (off : Num)) == map_option((bs : List[Byte]) => bytes_takefill(zero_byte, t_vec_length(T_v128), bs), load(m, n, off, 4))
-&& load_vec(Load_64_zero, (m : (Limit_t, List[Byte])), (n : Num), (off : Num)) == map_option((bs : List[Byte]) => bytes_takefill(zero_byte, t_vec_length(T_v128), bs), load(m, n, off, 8))
-&& load_vec(Load_splat((svi : Shape_vec_i)), (m : (Limit_t, List[Byte])), (n : Num), (off : Num)) == map_option((bs : List[Byte]) => concat(REPLICATE(vec_i_num(svi), bs)), load(m, n, off, vec_i_length(svi)))
+load_vec(Load_128, (m : (Limit_t, List[Byte])), (n : Num), (off : Num))
+  == load(m, n, off, t_vec_length(T_v128))
+&& load_vec(
+     Load_packed_vec((tp : Tp_vec), (sx : Sx)),
+     (m : (Limit_t, List[Byte])),
+     (n : Num),
+     (off : Num))
+     == load_packed_vec(tp, sx, m, n, off)
+&& load_vec(Load_32_zero, (m : (Limit_t, List[Byte])), (n : Num), (off : Num)) == map_option(
+     (bs : List[Byte]) => bytes_takefill(zero_byte, t_vec_length(T_v128), bs),
+     load(m, n, off, 4))
+&& load_vec(Load_64_zero, (m : (Limit_t, List[Byte])), (n : Num), (off : Num)) == map_option(
+     (bs : List[Byte]) => bytes_takefill(zero_byte, t_vec_length(T_v128), bs),
+     load(m, n, off, 8))
+&& load_vec(
+     Load_splat((svi : Shape_vec_i)),
+     (m : (Limit_t, List[Byte])),
+     (n : Num),
+     (off : Num)) == map_option(
+     (bs : List[Byte]) => concat(REPLICATE(vec_i_num(svi), bs)),
+     load(m, n, off, vec_i_length(svi)))
 ```
 
 definition `insert_lane_vec`
 
 ```
-insert_lane_vec((svi : Shape_vec_i), (i : Num), (bs : List[Byte]), (v : V128)) == deserialise_v128(insert_lane_vec_bs(vec_i_length(svi), i, bs, serialise_v128(v)))
+insert_lane_vec((svi : Shape_vec_i), (i : Num), (bs : List[Byte]), (v : V128)) == deserialise_v128(
+  insert_lane_vec_bs(vec_i_length(svi), i, bs, serialise_v128(v)))
 ```
 
 definition `store_serialise_vec`
 
 ```
 store_serialise_vec(Store_128, (v : V128)) == serialise_v128(v)
-&& store_serialise_vec(Store_lane((svi : Shape_vec_i), (i : Num)), (v : V128)) == take(vec_i_length(svi), drop(i * vec_i_length(svi), serialise_v128(v)))
+&& store_serialise_vec(Store_lane((svi : Shape_vec_i), (i : Num)), (v : V128))
+     == take(vec_i_length(svi), drop(i * vec_i_length(svi), serialise_v128(v)))
 ```
 
 ## Numeric conversions
@@ -1649,51 +1848,97 @@ definition `cvt_i32`
 
 ```
 cvt_i32((sat_sx : Option[(Sat, Sx)]), ConstInt32((c1 : W32))) == NONE
-&& cvt_i32((sat_sx : Option[(Sat, Sx)]), ConstInt64((c2 : W64))) == SOME(wasm_wrap(c2))
-&& cvt_i32((sat_sx : Option[(Sat, Sx)]), ConstFloat32((c3 : F32))) == match sat_sx { SOME((Nonsat, U)) => ui32_trunc_f32(c3); SOME((Nonsat, S)) => si32_trunc_f32(c3); SOME((Sat, U)) => SOME(ui32_trunc_sat_f32(c3)); SOME((Sat, S)) => SOME(si32_trunc_sat_f32(c3)); NONE => NONE }
-&& cvt_i32((sat_sx : Option[(Sat, Sx)]), ConstFloat64((c4 : F64))) == match sat_sx { SOME((Nonsat, U)) => ui32_trunc_f64(c4); SOME((Nonsat, S)) => si32_trunc_f64(c4); SOME((Sat, U)) => SOME(ui32_trunc_sat_f64(c4)); SOME((Sat, S)) => SOME(si32_trunc_sat_f64(c4)); NONE => NONE }
+&& cvt_i32((sat_sx : Option[(Sat, Sx)]), ConstInt64((c2 : W64)))
+     == SOME(wasm_wrap(c2))
+&& cvt_i32((sat_sx : Option[(Sat, Sx)]), ConstFloat32((c3 : F32))) == match sat_sx {
+     SOME((Nonsat, U)) => ui32_trunc_f32(c3);
+     SOME((Nonsat, S)) => si32_trunc_f32(c3);
+     SOME((Sat, U)) => SOME(ui32_trunc_sat_f32(c3));
+     SOME((Sat, S)) => SOME(si32_trunc_sat_f32(c3));
+     NONE => NONE }
+&& cvt_i32((sat_sx : Option[(Sat, Sx)]), ConstFloat64((c4 : F64))) == match sat_sx {
+     SOME((Nonsat, U)) => ui32_trunc_f64(c4);
+     SOME((Nonsat, S)) => si32_trunc_f64(c4);
+     SOME((Sat, U)) => SOME(ui32_trunc_sat_f64(c4));
+     SOME((Sat, S)) => SOME(si32_trunc_sat_f64(c4));
+     NONE => NONE }
 ```
 
 definition `cvt_i64`
 
 ```
-cvt_i64((sat_sx : Option[(Sat, Sx)]), ConstInt32((c1 : W32))) == match sat_sx { SOME((x1, U)) => SOME(wasm_extend_u(c1)); SOME((x2, S)) => SOME(wasm_extend_s(c1)); NONE => NONE }
+cvt_i64((sat_sx : Option[(Sat, Sx)]), ConstInt32((c1 : W32))) == match sat_sx {
+  SOME((x1, U)) => SOME(wasm_extend_u(c1));
+  SOME((x2, S)) => SOME(wasm_extend_s(c1));
+  NONE => NONE }
 && cvt_i64((sat_sx : Option[(Sat, Sx)]), ConstInt64((c2 : W64))) == NONE
-&& cvt_i64((sat_sx : Option[(Sat, Sx)]), ConstFloat32((c3 : F32))) == match sat_sx { SOME((Nonsat, U)) => ui64_trunc_f32(c3); SOME((Nonsat, S)) => si64_trunc_f32(c3); SOME((Sat, U)) => SOME(ui64_trunc_sat_f32(c3)); SOME((Sat, S)) => SOME(si64_trunc_sat_f32(c3)); NONE => NONE }
-&& cvt_i64((sat_sx : Option[(Sat, Sx)]), ConstFloat64((c4 : F64))) == match sat_sx { SOME((Nonsat, U)) => ui64_trunc_f64(c4); SOME((Nonsat, S)) => si64_trunc_f64(c4); SOME((Sat, U)) => SOME(ui64_trunc_sat_f64(c4)); SOME((Sat, S)) => SOME(si64_trunc_sat_f64(c4)); NONE => NONE }
+&& cvt_i64((sat_sx : Option[(Sat, Sx)]), ConstFloat32((c3 : F32))) == match sat_sx {
+     SOME((Nonsat, U)) => ui64_trunc_f32(c3);
+     SOME((Nonsat, S)) => si64_trunc_f32(c3);
+     SOME((Sat, U)) => SOME(ui64_trunc_sat_f32(c3));
+     SOME((Sat, S)) => SOME(si64_trunc_sat_f32(c3));
+     NONE => NONE }
+&& cvt_i64((sat_sx : Option[(Sat, Sx)]), ConstFloat64((c4 : F64))) == match sat_sx {
+     SOME((Nonsat, U)) => ui64_trunc_f64(c4);
+     SOME((Nonsat, S)) => si64_trunc_f64(c4);
+     SOME((Sat, U)) => SOME(ui64_trunc_sat_f64(c4));
+     SOME((Sat, S)) => SOME(si64_trunc_sat_f64(c4));
+     NONE => NONE }
 ```
 
 definition `cvt_f32`
 
 ```
-cvt_f32((sat_sx : Option[(_, Sx)]), ConstInt32((c1 : W32))) == match sat_sx { SOME((x1, U)) => SOME(f32_convert_ui32(c1)); SOME((x2, S)) => SOME(f32_convert_si32(c1)); NONE => NONE }
-&& cvt_f32((sat_sx : Option[(_, Sx)]), ConstInt64((c2 : W64))) == match sat_sx { SOME((x1, U)) => SOME(f32_convert_ui64(c2)); SOME((x2, S)) => SOME(f32_convert_si64(c2)); NONE => NONE }
+cvt_f32((sat_sx : Option[(_, Sx)]), ConstInt32((c1 : W32))) == match sat_sx {
+  SOME((x1, U)) => SOME(f32_convert_ui32(c1));
+  SOME((x2, S)) => SOME(f32_convert_si32(c1));
+  NONE => NONE }
+&& cvt_f32((sat_sx : Option[(_, Sx)]), ConstInt64((c2 : W64))) == match sat_sx {
+     SOME((x1, U)) => SOME(f32_convert_ui64(c2));
+     SOME((x2, S)) => SOME(f32_convert_si64(c2));
+     NONE => NONE }
 && cvt_f32((sat_sx : Option[(_, Sx)]), ConstFloat32((c3 : F32))) == NONE
-&& cvt_f32((sat_sx : Option[(_, Sx)]), ConstFloat64((c4 : F64))) == SOME(wasm_demote(c4))
+&& cvt_f32((sat_sx : Option[(_, Sx)]), ConstFloat64((c4 : F64)))
+     == SOME(wasm_demote(c4))
 ```
 
 definition `cvt_f64`
 
 ```
-cvt_f64((sat_sx : Option[(_, Sx)]), ConstInt32((c1 : W32))) == match sat_sx { SOME((x1, U)) => SOME(f64_convert_ui32(c1)); SOME((x2, S)) => SOME(f64_convert_si32(c1)); NONE => NONE }
-&& cvt_f64((sat_sx : Option[(_, Sx)]), ConstInt64((c2 : W64))) == match sat_sx { SOME((x1, U)) => SOME(f64_convert_ui64(c2)); SOME((x2, S)) => SOME(f64_convert_si64(c2)); NONE => NONE }
-&& cvt_f64((sat_sx : Option[(_, Sx)]), ConstFloat32((c3 : F32))) == SOME(wasm_promote(c3))
+cvt_f64((sat_sx : Option[(_, Sx)]), ConstInt32((c1 : W32))) == match sat_sx {
+  SOME((x1, U)) => SOME(f64_convert_ui32(c1));
+  SOME((x2, S)) => SOME(f64_convert_si32(c1));
+  NONE => NONE }
+&& cvt_f64((sat_sx : Option[(_, Sx)]), ConstInt64((c2 : W64))) == match sat_sx {
+     SOME((x1, U)) => SOME(f64_convert_ui64(c2));
+     SOME((x2, S)) => SOME(f64_convert_si64(c2));
+     NONE => NONE }
+&& cvt_f64((sat_sx : Option[(_, Sx)]), ConstFloat32((c3 : F32)))
+     == SOME(wasm_promote(c3))
 && cvt_f64((sat_sx : Option[(_, Sx)]), ConstFloat64((c4 : F64))) == NONE
 ```
 
 definition `cvt`
 
 ```
-cvt(T_i32, (sat_sx : Option[(Sat, Sx)]), (v : V_num)) == match cvt_i32(sat_sx, v) { SOME(c1) => SOME(ConstInt32(c1)); NONE => NONE }
-&& cvt(T_i64, (sat_sx : Option[(Sat, Sx)]), (v : V_num)) == match cvt_i64(sat_sx, v) { SOME(c2) => SOME(ConstInt64(c2)); NONE => NONE }
-&& cvt(T_f32, (sat_sx : Option[(Sat, Sx)]), (v : V_num)) == match cvt_f32(sat_sx, v) { SOME(c3) => SOME(ConstFloat32(c3)); NONE => NONE }
-&& cvt(T_f64, (sat_sx : Option[(Sat, Sx)]), (v : V_num)) == match cvt_f64(sat_sx, v) { SOME(c4) => SOME(ConstFloat64(c4)); NONE => NONE }
+cvt(T_i32, (sat_sx : Option[(Sat, Sx)]), (v : V_num))
+  == match cvt_i32(sat_sx, v) { SOME(c1) => SOME(ConstInt32(c1)); NONE => NONE }
+&& cvt(T_i64, (sat_sx : Option[(Sat, Sx)]), (v : V_num)) == match cvt_i64(
+     sat_sx,
+     v) { SOME(c2) => SOME(ConstInt64(c2)); NONE => NONE }
+&& cvt(T_f32, (sat_sx : Option[(Sat, Sx)]), (v : V_num)) == match cvt_f32(
+     sat_sx,
+     v) { SOME(c3) => SOME(ConstFloat32(c3)); NONE => NONE }
+&& cvt(T_f64, (sat_sx : Option[(Sat, Sx)]), (v : V_num)) == match cvt_f64(
+     sat_sx,
+     v) { SOME(c4) => SOME(ConstFloat64(c4)); NONE => NONE }
 ```
 
 definition `wasm_reinterpret`
 
 ```
-wasm_reinterpret((t : T_num), (v : V_num)) == wasm_deserialise_num(bits_num(v), t)
+wasm_reinterpret((t : T_num), (v : V_num))
+  == wasm_deserialise_num(bits_num(v), t)
 ```
 
 ## Subtyping
@@ -1701,7 +1946,14 @@ wasm_reinterpret((t : T_num), (v : V_num)) == wasm_deserialise_num(bits_num(v), 
 definition `limits_compat`
 
 ```
-limits_compat((lt1 : Limit_t), (lt2 : Limit_t)) == (l_min(lt1) >= l_min(lt2) && pred_option((lt2_the : Num) => match l_max(lt1) { SOME(lt1_the) => lt1_the <= lt2_the; NONE => false }, l_max(lt2)))
+limits_compat((lt1 : Limit_t), (lt2 : Limit_t)) == (
+  l_min(lt1) >= l_min(lt2)
+  && pred_option(
+       (lt2_the : Num) =>
+         match l_max(lt1) {
+           SOME(lt1_the) => lt1_the <= lt2_the;
+           NONE => false },
+       l_max(lt2)))
 ```
 
 definition `t_subtyping`
@@ -1713,13 +1965,23 @@ t_subtyping((t1 : Valtype), (t2 : Valtype)) == (t1 == T_bot || t1 == t2)
 definition `t_list_subtyping`
 
 ```
-t_list_subtyping((t1s : List[Valtype]), (t2s : List[Valtype])) == ALL2(t_subtyping, t1s, t2s)
+t_list_subtyping((t1s : List[Valtype]), (t2s : List[Valtype]))
+  == ALL2(t_subtyping, t1s, t2s)
 ```
 
 definition `instr_subtyping`
 
 ```
-instr_subtyping((tf1 : Tf), (tf2 : Tf)) == (∃ ts : List[Valtype], ∃ ts' : List[Valtype], ∃ tf1_dom_sub : List[Valtype], ∃ tf1_ran_sub : List[Valtype], tf_dom(tf2) == APPEND(ts, tf1_dom_sub) && tf_ran(tf2) == APPEND(ts', tf1_ran_sub) && t_list_subtyping(ts, ts') && t_list_subtyping(tf1_dom_sub, tf_dom(tf1)) && t_list_subtyping(tf_ran(tf1), tf1_ran_sub))
+instr_subtyping((tf1 : Tf), (tf2 : Tf)) == (
+  ∃ ts : List[Valtype],
+    ∃ ts' : List[Valtype],
+      ∃ tf1_dom_sub : List[Valtype],
+        ∃ tf1_ran_sub : List[Valtype],
+          tf_dom(tf2) == APPEND(ts, tf1_dom_sub)
+          && tf_ran(tf2) == APPEND(ts', tf1_ran_sub)
+          && t_list_subtyping(ts, ts')
+          && t_list_subtyping(tf1_dom_sub, tf_dom(tf1))
+          && t_list_subtyping(tf_ran(tf1), tf1_ran_sub))
 ```
 
 definition `mem_subtyping`
@@ -1731,7 +1993,10 @@ mem_subtyping((t1 : Limit_t), (t2 : Limit_t)) == limits_compat(t1, t2)
 definition `tab_subtyping`
 
 ```
-tab_subtyping(T_tab((lims1 : Limit_t), (tr1 : T_ref)), T_tab((lims2 : Limit_t), (tr2 : T_ref))) == (limits_compat(lims1, lims2) && tr1 == tr2)
+tab_subtyping(
+  T_tab((lims1 : Limit_t), (tr1 : T_ref)),
+  T_tab((lims2 : Limit_t), (tr2 : T_ref)))
+  == (limits_compat(lims1, lims2) && tr1 == tr2)
 ```
 
 ## Store and instance lookups
@@ -1739,7 +2004,9 @@ tab_subtyping(T_tab((lims1 : Limit_t), (tr1 : T_ref)), T_tab((lims2 : Limit_t), 
 definition `cl_type`
 
 ```
-cl_type(Func_native((i : Inst), (tf1 : Tf), (ts : List[Valtype]), (es : List[B_e]))) == tf1
+cl_type(
+  Func_native((i : Inst), (tf1 : Tf), (ts : List[Valtype]), (es : List[B_e])))
+  == tf1
 && cl_type(Func_host((tf2 : Tf), (h : Host))) == tf2
 ```
 
@@ -1754,7 +2021,8 @@ tb_tf((inst : Inst), Tbf((i : Num))) == EL(i, inst_types(inst))
 definition `tb_tf_t`
 
 ```
-tb_tf_t((C : T_context), Tbf((i : Num))) == (if i < LENGTH(ctx_types(C)) { SOME(EL(i, ctx_types(C))) } else { NONE })
+tb_tf_t((C : T_context), Tbf((i : Num)))
+  == (if i < LENGTH(ctx_types(C)) { SOME(EL(i, ctx_types(C))) } else { NONE })
 && tb_tf_t((C : T_context), Tbv(SOME((t : Valtype)))) == SOME(Tf(NIL, [t]))
 && tb_tf_t((C : T_context), Tbv(NONE)) == SOME(Tf(NIL, NIL))
 ```
@@ -1804,19 +2072,22 @@ sglob_val((s : Wstore), (i : Inst), (j : Num)) == g_val(sglob(s, i, j))
 definition `smem_ind`
 
 ```
-smem_ind((i : Inst)) == match inst_mems(i) { CONS(n, rest) => SOME(n); NIL => NONE }
+smem_ind((i : Inst))
+  == match inst_mems(i) { CONS(n, rest) => SOME(n); NIL => NONE }
 ```
 
 definition `tab_cl_ind`
 
 ```
-tab_cl_ind((st : List[(Tab_t, List[V_ref])]), (i : Num), (j : Num)) == (if LENGTH(SND(EL(i, st))) > j { SOME(EL(j, SND(EL(i, st)))) } else { NONE })
+tab_cl_ind((st : List[(Tab_t, List[V_ref])]), (i : Num), (j : Num)) == (
+  if LENGTH(SND(EL(i, st))) > j { SOME(EL(j, SND(EL(i, st)))) } else { NONE })
 ```
 
 definition `is_some_const_ref_func`
 
 ```
-is_some_const_ref_func((x : Option[V_ref])) == match x { SOME(ConstRefFunc(i)) => true; other => false }
+is_some_const_ref_func((x : Option[V_ref]))
+  == match x { SOME(ConstRefFunc(i)) => true; other => false }
 ```
 
 definition `stab_cl_ind`
@@ -1828,31 +2099,40 @@ stab_cl_ind((s : Wstore), (i : Num), (j : Num)) == tab_cl_ind(s_tabs(s), i, j)
 definition `stab`
 
 ```
-stab((s : Wstore), (i : Inst), (ti : Num), (j : Num)) == (if ti < LENGTH(inst_tabs(i)) { stab_cl_ind(s, EL(ti, inst_tabs(i)), j) } else { NONE })
+stab((s : Wstore), (i : Inst), (ti : Num), (j : Num)) == (
+  if ti < LENGTH(inst_tabs(i)) { stab_cl_ind(s, EL(ti, inst_tabs(i)), j) } else {
+    NONE })
 ```
 
 definition `stab_ind`
 
 ```
-stab_ind((i : Inst), (ti : Num)) == (if ti < LENGTH(inst_tabs(i)) { SOME(EL(ti, inst_tabs(i))) } else { NONE })
+stab_ind((i : Inst), (ti : Num))
+  == (if ti < LENGTH(inst_tabs(i)) { SOME(EL(ti, inst_tabs(i))) } else { NONE })
 ```
 
 definition `update_glob`
 
 ```
-update_glob((gs : List[Global]), (i : Inst), (j : Num), (v : Value)) == list_update(gs, sglob_ind(i, j), g_val_update(v, EL(sglob_ind(i, j), gs)))
+update_glob((gs : List[Global]), (i : Inst), (j : Num), (v : Value))
+  == list_update(gs, sglob_ind(i, j), g_val_update(v, EL(sglob_ind(i, j), gs)))
 ```
 
 definition `supdate_glob`
 
 ```
-supdate_glob((s : Wstore), (i : Inst), (j : Num), (v : Value)) == s_globs_update(update_glob(s_globs(s), i, j, v), s)
+supdate_glob((s : Wstore), (i : Inst), (j : Num), (v : Value))
+  == s_globs_update(update_glob(s_globs(s), i, j, v), s)
 ```
 
 definition `is_const`
 
 ```
-is_const((e : Einstr)) == match e { Basic(EConstNum(x)) => true; Basic(EConstVec(y)) => true; Ref(z) => true; other => false }
+is_const((e : Einstr)) == match e {
+  Basic(EConstNum(x)) => true;
+  Basic(EConstVec(y)) => true;
+  Ref(z) => true;
+  other => false }
 ```
 
 definition `const_list`
@@ -1866,31 +2146,42 @@ const_list((xs : List[Einstr])) == ALL(is_const, xs)
 definition `tab_extension`
 
 ```
-tab_extension((t1 : (Tab_t, List[V_ref])), (t2 : (Tab_t, List[V_ref]))) == (tab_size(t1) <= tab_size(t2) && tab_max(t1) == tab_max(t2) && tab_subtyping(FST(t2), FST(t1)))
+tab_extension((t1 : (Tab_t, List[V_ref])), (t2 : (Tab_t, List[V_ref]))) == (
+  tab_size(t1) <= tab_size(t2)
+  && tab_max(t1) == tab_max(t2)
+  && tab_subtyping(FST(t2), FST(t1)))
 ```
 
 definition `mem_extension`
 
 ```
-mem_extension((m1 : (Limit_t, List[Byte])), (m2 : (Limit_t, List[Byte]))) == (mem_size(m1) <= mem_size(m2) && mem_max(m1) == mem_max(m2) && mem_subtyping(FST(m2), FST(m1)))
+mem_extension((m1 : (Limit_t, List[Byte])), (m2 : (Limit_t, List[Byte]))) == (
+  mem_size(m1) <= mem_size(m2)
+  && mem_max(m1) == mem_max(m2)
+  && mem_subtyping(FST(m2), FST(m1)))
 ```
 
 definition `global_extension`
 
 ```
-global_extension((g1 : Global), (g2 : Global)) == (g_mut(g1) == g_mut(g2) && typeof_v(g_val(g1)) == typeof_v(g_val(g2)) && (g_mut(g1) == T_immut → g_val(g1) == g_val(g2)))
+global_extension((g1 : Global), (g2 : Global)) == (
+  g_mut(g1) == g_mut(g2)
+  && typeof_v(g_val(g1)) == typeof_v(g_val(g2))
+  && (g_mut(g1) == T_immut → g_val(g1) == g_val(g2)))
 ```
 
 definition `elem_extension`
 
 ```
-elem_extension((e1 : (T_ref, List[V_ref])), (e2 : (T_ref, List[V_ref]))) == (FST(e1) == FST(e2) && (SND(e1) == SND(e2) || LENGTH(SND(e2)) == 0))
+elem_extension((e1 : (T_ref, List[V_ref])), (e2 : (T_ref, List[V_ref])))
+  == (FST(e1) == FST(e2) && (SND(e1) == SND(e2) || LENGTH(SND(e2)) == 0))
 ```
 
 definition `data_extension`
 
 ```
-data_extension((d1 : List[Byte]), (d2 : List[Byte])) == (d1 == d2 || LENGTH(d2) == 0)
+data_extension((d1 : List[Byte]), (d2 : List[Byte]))
+  == (d1 == d2 || LENGTH(d2) == 0)
 ```
 
 relation `store_extension`
@@ -1907,7 +2198,15 @@ if
   5. ALL2(elem_extension, es, es')
   6. ALL2(data_extension, ds, ds')
 then
-  store_extension(Wstore(fs, tclss, bss, gs, es, ds), Wstore(APPEND(fs', fs''), APPEND(tclss', tclss''), APPEND(bss', bss''), APPEND(gs', gs''), APPEND(es', es''), APPEND(ds', dss'')))
+  store_extension(
+    Wstore(fs, tclss, bss, gs, es, ds),
+    Wstore(
+      APPEND(fs', fs''),
+      APPEND(tclss', tclss''),
+      APPEND(bss', bss''),
+      APPEND(gs', gs''),
+      APPEND(es', es''),
+      APPEND(ds', dss'')))
 ```
 
 ## Evaluation contexts
@@ -1935,7 +2234,11 @@ if
   1. lholed == LRec(vs, n, es', l, es'')
   2. Lfilled(k, l, es, lfilledk)
 then
-  Lfilled(k + 1, lholed, es, APPEND(MAP(v_to_e, vs), APPEND([Label(n, es', lfilledk)], es'')))
+  Lfilled(
+    k + 1,
+    lholed,
+    es,
+    APPEND(MAP(v_to_e, vs), APPEND([Label(n, es', lfilledk)], es'')))
 ```
 
 relation `Lfilled_exact`
@@ -1953,7 +2256,11 @@ if
   1. lholed == LRec(vs, n, es', l, es'')
   2. Lfilled_exact(k, l, es, lfilledk)
 then
-  Lfilled_exact(k + 1, lholed, es, APPEND(MAP(v_to_e, vs), APPEND([Label(n, es', lfilledk)], es'')))
+  Lfilled_exact(
+    k + 1,
+    lholed,
+    es,
+    APPEND(MAP(v_to_e, vs), APPEND([Label(n, es', lfilledk)], es'')))
 ```
 
 ## Bounds
@@ -1961,25 +2268,35 @@ then
 definition `load_store_t_bounds`
 
 ```
-load_store_t_bounds((a : Num), NONE, (t : T_num)) == (EXP(2, a) <= t_num_length(t))
-&& load_store_t_bounds((a : Num), SOME((tp : Tp_num)), (t : T_num)) == (EXP(2, a) <= tp_num_length(tp) && tp_num_length(tp) < t_num_length(t) && is_int_t_num(t))
+load_store_t_bounds((a : Num), NONE, (t : T_num))
+  == (EXP(2, a) <= t_num_length(t))
+&& load_store_t_bounds((a : Num), SOME((tp : Tp_num)), (t : T_num)) == (
+     EXP(2, a) <= tp_num_length(tp)
+     && tp_num_length(tp) < t_num_length(t)
+     && is_int_t_num(t))
 ```
 
 definition `load_vec_t_bounds`
 
 ```
-load_vec_t_bounds(Load_packed_vec((tp : Tp_vec), (sx : Sx)), (a : Num)) == (EXP(2, a) <= tp_vec_length(tp) * tp_vec_num(tp))
-&& load_vec_t_bounds(Load_splat((svi : Shape_vec_i)), (a : Num)) == (EXP(2, a) <= vec_i_length(svi))
+load_vec_t_bounds(Load_packed_vec((tp : Tp_vec), (sx : Sx)), (a : Num))
+  == (EXP(2, a) <= tp_vec_length(tp) * tp_vec_num(tp))
+&& load_vec_t_bounds(Load_splat((svi : Shape_vec_i)), (a : Num))
+     == (EXP(2, a) <= vec_i_length(svi))
 && load_vec_t_bounds(Load_128, (a : Num)) == (EXP(2, a) <= t_vec_length(T_v128))
-&& load_vec_t_bounds(Load_32_zero, (a : Num)) == (EXP(2, a) <= t_vec_length(T_v128))
-&& load_vec_t_bounds(Load_64_zero, (a : Num)) == (EXP(2, a) <= t_vec_length(T_v128))
+&& load_vec_t_bounds(Load_32_zero, (a : Num))
+     == (EXP(2, a) <= t_vec_length(T_v128))
+&& load_vec_t_bounds(Load_64_zero, (a : Num))
+     == (EXP(2, a) <= t_vec_length(T_v128))
 ```
 
 definition `store_vec_t_bounds`
 
 ```
-store_vec_t_bounds(Store_lane((svi : Shape_vec_i), (i : Num)), (a : Num)) == (i < vec_i_num(svi) && EXP(2, a) <= vec_i_length(svi))
-&& store_vec_t_bounds(Store_128, (a : Num)) == (EXP(2, a) <= t_vec_length(T_v128))
+store_vec_t_bounds(Store_lane((svi : Shape_vec_i), (i : Num)), (a : Num))
+  == (i < vec_i_num(svi) && EXP(2, a) <= vec_i_length(svi))
+&& store_vec_t_bounds(Store_128, (a : Num))
+     == (EXP(2, a) <= t_vec_length(T_v128))
 ```
 
 ## Typing of basic instructions
@@ -1987,9 +2304,11 @@ store_vec_t_bounds(Store_lane((svi : Shape_vec_i), (i : Num)), (a : Num)) == (i 
 relation `b_e_typing`
 
 ```
-∀ (C : T_context) (v : V_num), b_e_typing(C, [EConstNum(v)], Tf(NIL, [T_num(typeof_num(v))]))
+∀ (C : T_context) (v : V_num),
+  b_e_typing(C, [EConstNum(v)], Tf(NIL, [T_num(typeof_num(v))]))
 
-∀ (C : T_context) (v : V_vec), b_e_typing(C, [EConstVec(v)], Tf(NIL, [T_vec(typeof_vec(v))]))
+∀ (C : T_context) (v : V_vec),
+  b_e_typing(C, [EConstVec(v)], Tf(NIL, [T_vec(typeof_vec(v))]))
 
 ∀ (C : T_context) (op : Unop) (t : T_num)
 if
@@ -2017,7 +2336,8 @@ then
 
 ∀ (C : T_context) (t : T_ref), b_e_typing(C, [Ref_null(t)], Tf(NIL, [T_ref(t)]))
 
-∀ (C : T_context) (t : T_ref), b_e_typing(C, [Ref_is_null], Tf([T_ref(t)], [T_num(T_i32)]))
+∀ (C : T_context) (t : T_ref),
+  b_e_typing(C, [Ref_is_null], Tf([T_ref(t)], [T_num(T_i32)]))
 
 ∀ (C : T_context) (j : Num)
 if
@@ -2033,16 +2353,25 @@ then
 if
   1. binop_vec_wf(op)
 then
-  b_e_typing(C, [Binop_vec(op)], Tf([T_vec(T_v128), T_vec(T_v128)], [T_vec(T_v128)]))
+  b_e_typing(
+    C,
+    [Binop_vec(op)],
+    Tf([T_vec(T_v128), T_vec(T_v128)], [T_vec(T_v128)]))
 
 ∀ (C : T_context) (op : Ternop_vec),
-  b_e_typing(C, [Ternop_vec(op)], Tf([T_vec(T_v128), T_vec(T_v128), T_vec(T_v128)], [T_vec(T_v128)]))
+  b_e_typing(
+    C,
+    [Ternop_vec(op)],
+    Tf([T_vec(T_v128), T_vec(T_v128), T_vec(T_v128)], [T_vec(T_v128)]))
 
 ∀ (C : T_context) (op : Testop_vec),
   b_e_typing(C, [Test_vec(op)], Tf([T_vec(T_v128)], [T_num(T_i32)]))
 
 ∀ (C : T_context) (op : Shiftop_vec),
-  b_e_typing(C, [Shift_vec(op)], Tf([T_vec(T_v128), T_num(T_i32)], [T_vec(T_v128)]))
+  b_e_typing(
+    C,
+    [Shift_vec(op)],
+    Tf([T_vec(T_v128), T_num(T_i32)], [T_vec(T_v128)]))
 
 ∀ (C : T_context) (sv : Shape_vec),
   b_e_typing(C, [Splat_vec(sv)], Tf([T_num(vec_lane_t(sv))], [T_vec(T_v128)]))
@@ -2052,18 +2381,28 @@ if
   1. i < vec_num(sv)
   2. sx == U || vec_length(sv) <= 2
 then
-  b_e_typing(C, [Extract_vec(sv, sx, i)], Tf([T_vec(T_v128)], [T_num(vec_lane_t(sv))]))
+  b_e_typing(
+    C,
+    [Extract_vec(sv, sx, i)],
+    Tf([T_vec(T_v128)], [T_num(vec_lane_t(sv))]))
 
 ∀ (C : T_context) (i : Num) (sv : Shape_vec)
 if
   1. i < vec_num(sv)
 then
-  b_e_typing(C, [Replace_vec(sv, i)], Tf([T_vec(T_v128), T_num(vec_lane_t(sv))], [T_vec(T_v128)]))
+  b_e_typing(
+    C,
+    [Replace_vec(sv, i)],
+    Tf([T_vec(T_v128), T_num(vec_lane_t(sv))], [T_vec(T_v128)]))
 
 ∀ (C : T_context) (sat_sx : Option[(Sat, Sx)]) (t2 t1 : T_num)
 if
   1. !(t1 == t2)
-  2. (sat_sx == NONE) == (is_float_t_num(t1) && is_float_t_num(t2) || is_int_t_num(t1) && is_int_t_num(t2) && t_num_length(t1) < t_num_length(t2))
+  2. (sat_sx == NONE) == (
+       is_float_t_num(t1) && is_float_t_num(t2)
+       || is_int_t_num(t1)
+          && is_int_t_num(t2)
+          && t_num_length(t1) < t_num_length(t2))
 then
   b_e_typing(C, [Cvtop(t1, Convert, t2, sat_sx)], Tf([T_num(t2)], [T_num(t1)]))
 
@@ -2072,9 +2411,13 @@ if
   1. !(t1 == t2)
   2. t_num_length(t1) == t_num_length(t2)
 then
-  b_e_typing(C, [Cvtop(t1, Reinterpret, t2, NONE)], Tf([T_num(t2)], [T_num(t1)]))
+  b_e_typing(
+    C,
+    [Cvtop(t1, Reinterpret, t2, NONE)],
+    Tf([T_num(t2)], [T_num(t1)]))
 
-∀ (C : T_context) (ts ts' : List[Valtype]), b_e_typing(C, [Unreachable], Tf(ts, ts'))
+∀ (C : T_context) (ts ts' : List[Valtype]),
+  b_e_typing(C, [Unreachable], Tf(ts, ts'))
 
 ∀ (C : T_context), b_e_typing(C, [Nop], Tf(NIL, NIL))
 
@@ -2082,7 +2425,8 @@ then
 
 ∀ (C : T_context) (t_tag : Option[Valtype]) (t : Valtype)
 if
-  1. t_tag == NONE && (is_num_type(t) || is_vec_type(t) || t == T_bot) || t_tag == SOME(t)
+  1. t_tag == NONE && (is_num_type(t) || is_vec_type(t) || t == T_bot)
+     || t_tag == SOME(t)
 then
   b_e_typing(C, [Select(t_tag)], Tf([t, t, T_num(T_i32)], [t]))
 
@@ -2124,9 +2468,15 @@ then
 
 ∀ (C : T_context) (is_ : List[Num]) (i : Num) (t1s ts t2s : List[Valtype])
 if
-  1. ALL((k : Num) => k < LENGTH(ctx_label(C)) && t_list_subtyping(ts, EL(k, ctx_label(C))), APPEND(is_, [i]))
+  1. ALL(
+       (k : Num) =>
+         k < LENGTH(ctx_label(C)) && t_list_subtyping(ts, EL(k, ctx_label(C))),
+       APPEND(is_, [i]))
 then
-  b_e_typing(C, [Br_table(is_, i)], Tf(APPEND(t1s, APPEND(ts, [T_num(T_i32)])), t2s))
+  b_e_typing(
+    C,
+    [Br_table(is_, i)],
+    Tf(APPEND(t1s, APPEND(ts, [T_num(T_i32)])), t2s))
 
 ∀ (C : T_context) (t1s ts t2s : List[Valtype])
 if
@@ -2213,14 +2563,20 @@ if
   2. i < vec_i_num(svi)
   3. EXP(2, a) <= vec_i_length(svi)
 then
-  b_e_typing(C, [Load_lane_vec(svi, i, a, off)], Tf([T_num(T_i32), T_vec(T_v128)], [T_vec(T_v128)]))
+  b_e_typing(
+    C,
+    [Load_lane_vec(svi, i, a, off)],
+    Tf([T_num(T_i32), T_vec(T_v128)], [T_vec(T_v128)]))
 
 ∀ (C : T_context) (svop : Storeop_vec) (a off : Num)
 if
   1. LENGTH(ctx_memory(C)) >= 1
   2. store_vec_t_bounds(svop, a)
 then
-  b_e_typing(C, [Store_vec(svop, a, off)], Tf([T_num(T_i32), T_vec(T_v128)], NIL))
+  b_e_typing(
+    C,
+    [Store_vec(svop, a, off)],
+    Tf([T_num(T_i32), T_vec(T_v128)], NIL))
 
 ∀ (C : T_context)
 if
@@ -2282,19 +2638,28 @@ if
   1. LENGTH(ctx_memory(C)) >= 1
   2. i < LENGTH(ctx_data(C))
 then
-  b_e_typing(C, [Memory_init(i)], Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL))
+  b_e_typing(
+    C,
+    [Memory_init(i)],
+    Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL))
 
 ∀ (C : T_context)
 if
   1. LENGTH(ctx_memory(C)) >= 1
 then
-  b_e_typing(C, [Memory_copy], Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL))
+  b_e_typing(
+    C,
+    [Memory_copy],
+    Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL))
 
 ∀ (C : T_context)
 if
   1. LENGTH(ctx_memory(C)) >= 1
 then
-  b_e_typing(C, [Memory_fill], Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL))
+  b_e_typing(
+    C,
+    [Memory_fill],
+    Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL))
 
 ∀ (tr : T_ref) (C : T_context) (x y : Num)
 if
@@ -2303,7 +2668,10 @@ if
   3. tr == tab_t_reftype(EL(x, ctx_table(C)))
   4. tr == EL(y, ctx_elem(C))
 then
-  b_e_typing(C, [Table_init(x, y)], Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL))
+  b_e_typing(
+    C,
+    [Table_init(x, y)],
+    Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL))
 
 ∀ (tr : T_ref) (C : T_context) (x y : Num)
 if
@@ -2312,14 +2680,20 @@ if
   3. y < LENGTH(ctx_table(C))
   4. tr == tab_t_reftype(EL(y, ctx_table(C)))
 then
-  b_e_typing(C, [Table_copy(x, y)], Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL))
+  b_e_typing(
+    C,
+    [Table_copy(x, y)],
+    Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL))
 
 ∀ (C : T_context) (x : Num) (tr : T_ref)
 if
   1. x < LENGTH(ctx_table(C))
   2. tr == tab_t_reftype(EL(x, ctx_table(C)))
 then
-  b_e_typing(C, [Table_fill(x)], Tf([T_num(T_i32), T_ref(tr), T_num(T_i32)], NIL))
+  b_e_typing(
+    C,
+    [Table_fill(x)],
+    Tf([T_num(T_i32), T_ref(tr), T_num(T_i32)], NIL))
 
 ∀ (C : T_context) (x : Num)
 if
@@ -2367,31 +2741,36 @@ then
 definition `glob_typing`
 
 ```
-glob_typing((g : Global), (tg : Tg)) == (tg_mut(tg) == g_mut(g) && tg_t(tg) == typeof_v(g_val(g)))
+glob_typing((g : Global), (tg : Tg))
+  == (tg_mut(tg) == g_mut(g) && tg_t(tg) == typeof_v(g_val(g)))
 ```
 
 definition `globi_agree`
 
 ```
-globi_agree((gs : List[Global]), (n : Num), (g : Tg)) == (n < LENGTH(gs) && glob_typing(EL(n, gs), g))
+globi_agree((gs : List[Global]), (n : Num), (g : Tg))
+  == (n < LENGTH(gs) && glob_typing(EL(n, gs), g))
 ```
 
 definition `tabi_agree`
 
 ```
-tabi_agree((ts : List[(Tab_t, List[V_ref])]), (n : Num), (tab_t : Tab_t)) == (n < LENGTH(ts) && tab_subtyping(FST(EL(n, ts)), tab_t))
+tabi_agree((ts : List[(Tab_t, List[V_ref])]), (n : Num), (tab_t : Tab_t))
+  == (n < LENGTH(ts) && tab_subtyping(FST(EL(n, ts)), tab_t))
 ```
 
 definition `memi_agree`
 
 ```
-memi_agree((ms : List[(Limit_t, List[Byte])]), (n : Num), (mem_t : Limit_t)) == (n < LENGTH(ms) && mem_subtyping(FST(EL(n, ms)), mem_t))
+memi_agree((ms : List[(Limit_t, List[Byte])]), (n : Num), (mem_t : Limit_t))
+  == (n < LENGTH(ms) && mem_subtyping(FST(EL(n, ms)), mem_t))
 ```
 
 definition `funci_agree`
 
 ```
-funci_agree((fs : List[Cl]), (n : Num), (f : Tf)) == (n < LENGTH(fs) && cl_type(EL(n, fs)) == f)
+funci_agree((fs : List[Cl]), (n : Num), (f : Tf))
+  == (n < LENGTH(fs) && cl_type(EL(n, fs)) == f)
 ```
 
 definition `data_typing`
@@ -2403,19 +2782,26 @@ data_typing((d : List[Byte]), (dt : Unit)) == true
 definition `datai_agree`
 
 ```
-datai_agree((ds : List[List[Byte]]), (n : Num), (dt : Unit)) == (n < LENGTH(ds) && data_typing(EL(n, ds), dt))
+datai_agree((ds : List[List[Byte]]), (n : Num), (dt : Unit))
+  == (n < LENGTH(ds) && data_typing(EL(n, ds), dt))
 ```
 
 definition `elem_typing`
 
 ```
-elem_typing((s : Wstore), (ei : (T_ref, List[V_ref])), (et : T_ref)) == (FST(ei) == et && ALL((vr : V_ref) => ref_typing(s, vr, et), SND(ei)))
+elem_typing((s : Wstore), (ei : (T_ref, List[V_ref])), (et : T_ref))
+  == (FST(ei) == et && ALL((vr : V_ref) => ref_typing(s, vr, et), SND(ei)))
 ```
 
 definition `elemi_agree`
 
 ```
-elemi_agree((s : Wstore), (es : List[(T_ref, List[V_ref])]), (n : Num), (et : T_ref)) == (n < LENGTH(es) && elem_typing(s, EL(n, es), et))
+elemi_agree(
+  (s : Wstore),
+  (es : List[(T_ref, List[V_ref])]),
+  (n : Num),
+  (et : T_ref))
+  == (n < LENGTH(es) && elem_typing(s, EL(n, es), et))
 ```
 
 relation `inst_typing`
@@ -2432,7 +2818,21 @@ if
   5. ALL2(elemi_agree(s, s_elems(s)), es, elems_t)
   6. ALL2(datai_agree(s_datas(s)), ds, datas_t)
 then
-  inst_typing(s, Inst(ts, fs, tbs, ms, gs, es, ds), T_context(ts, tfs, tgs, elems_t, datas_t, tabs_t, mems_t, NIL, NIL, NONE, upt(0, LENGTH(fs))))
+  inst_typing(
+    s,
+    Inst(ts, fs, tbs, ms, gs, es, ds),
+    T_context(
+      ts,
+      tfs,
+      tgs,
+      elems_t,
+      datas_t,
+      tabs_t,
+      mems_t,
+      NIL,
+      NIL,
+      NONE,
+      upt(0, LENGTH(fs))))
 ```
 
 relation `frame_typing`
@@ -2454,7 +2854,14 @@ relation `cl_typing`
 if
   1. inst_typing(s, i, C)
   2. tf == Tf(t1s, t2s)
-  3. b_e_typing(ctx_return_update(SOME(t2s), ctx_label_update(CONS(t2s, ctx_label(ctx_local_update(APPEND(t1s, ts), C))), ctx_local_update(APPEND(t1s, ts), C))), es, Tf(NIL, t2s))
+  3. b_e_typing(
+       ctx_return_update(
+         SOME(t2s),
+         ctx_label_update(
+           CONS(t2s, ctx_label(ctx_local_update(APPEND(t1s, ts), C))),
+           ctx_local_update(APPEND(t1s, ts), C))),
+       es,
+       Tf(NIL, t2s))
   4. !(n_zeros(ts) == NONE)
 then
   cl_typing(s, Func_native(i, tf, ts, es), Tf(t1s, t2s))
@@ -2533,19 +2940,28 @@ then
 definition `glob_agree`
 
 ```
-glob_agree((s : Wstore), (glob : Global)) == (∃ t : Valtype, v_typing(s, g_val(glob), t))
+glob_agree((s : Wstore), (glob : Global))
+  == (∃ t : Valtype, v_typing(s, g_val(glob), t))
 ```
 
 definition `tab_agree`
 
 ```
-tab_agree((s : Wstore), (T_tab((lims : Limit_t), (tr : T_ref)), (tab_elems : List[V_ref]))) == (l_min(lims) == tab_size((T_tab(lims, tr), tab_elems)) && pred_option((max : Num) => tab_size((T_tab(lims, tr), tab_elems)) <= max, tab_max((T_tab(lims, tr), tab_elems))) && ALL((vr : V_ref) => ref_typing(s, vr, tr), tab_elems))
+tab_agree(
+  (s : Wstore),
+  (T_tab((lims : Limit_t), (tr : T_ref)), (tab_elems : List[V_ref]))) == (
+  l_min(lims) == tab_size((T_tab(lims, tr), tab_elems))
+  && pred_option(
+       (max : Num) => tab_size((T_tab(lims, tr), tab_elems)) <= max,
+       tab_max((T_tab(lims, tr), tab_elems)))
+  && ALL((vr : V_ref) => ref_typing(s, vr, tr), tab_elems))
 ```
 
 definition `elem_agree`
 
 ```
-elem_agree((s : Wstore), (ei : (T_ref, List[V_ref]))) == ALL((vr : V_ref) => ref_typing(s, vr, FST(ei)), SND(ei))
+elem_agree((s : Wstore), (ei : (T_ref, List[V_ref])))
+  == ALL((vr : V_ref) => ref_typing(s, vr, FST(ei)), SND(ei))
 ```
 
 definition `data_agree`
@@ -2557,7 +2973,9 @@ data_agree((s : Wstore), (di : List[Byte])) == true
 definition `mem_agree`
 
 ```
-mem_agree((m : (Limit_t, List[Byte]))) == (l_min(FST(m)) * Ki64 == mem_length(m) && pred_option((max : Num) => mem_size(m) <= max, mem_max(m)))
+mem_agree((m : (Limit_t, List[Byte]))) == (
+  l_min(FST(m)) * Ki64 == mem_length(m)
+  && pred_option((max : Num) => mem_size(m) <= max, mem_max(m)))
 ```
 
 relation `store_typing`
@@ -2592,45 +3010,61 @@ relation `reduce_simple`
 
 ```
 ∀ (t : T_num) (op : Unop) (v : V_num),
-  reduce_simple([Basic(EConstNum(v)), Basic(Unop(t, op))], [Basic(EConstNum(app_unop(op, v)))])
+  reduce_simple(
+    [Basic(EConstNum(v)), Basic(Unop(t, op))],
+    [Basic(EConstNum(app_unop(op, v)))])
 
 ∀ (v1 v2 v : V_num) (t : T_num) (op : Binop)
 if
   1. app_binop(op, v1, v2) == SOME(v)
 then
-  reduce_simple([Basic(EConstNum(v1)), Basic(EConstNum(v2)), Basic(Binop(t, op))], [Basic(EConstNum(v))])
+  reduce_simple(
+    [Basic(EConstNum(v1)), Basic(EConstNum(v2)), Basic(Binop(t, op))],
+    [Basic(EConstNum(v))])
 
 ∀ (v1 v2 : V_num) (t : T_num) (op : Binop)
 if
   1. app_binop(op, v1, v2) == NONE
 then
-  reduce_simple([Basic(EConstNum(v1)), Basic(EConstNum(v2)), Basic(Binop(t, op))], [Trap])
+  reduce_simple(
+    [Basic(EConstNum(v1)), Basic(EConstNum(v2)), Basic(Binop(t, op))],
+    [Trap])
 
 ∀ (t : T_num) (op : Testop) (v : V_num),
-  reduce_simple([Basic(EConstNum(v)), Basic(Testop(t, op))], [Basic(EConstNum(app_testop(op, v)))])
+  reduce_simple(
+    [Basic(EConstNum(v)), Basic(Testop(t, op))],
+    [Basic(EConstNum(app_testop(op, v)))])
 
 ∀ (t : T_num) (op : Relop) (v1 v2 : V_num),
-  reduce_simple([Basic(EConstNum(v1)), Basic(EConstNum(v2)), Basic(Relop(t, op))], [Basic(EConstNum(app_relop(op, v1, v2)))])
+  reduce_simple(
+    [Basic(EConstNum(v1)), Basic(EConstNum(v2)), Basic(Relop(t, op))],
+    [Basic(EConstNum(app_relop(op, v1, v2)))])
 
 ∀ (v v' : V_num) (t2 t1 : T_num) (sat_sx : Option[(Sat, Sx)])
 if
   1. typeof_num(v) == t1
   2. cvt(t2, sat_sx, v) == SOME(v')
 then
-  reduce_simple([Basic(EConstNum(v)), Basic(Cvtop(t2, Convert, t1, sat_sx))], [Basic(EConstNum(v'))])
+  reduce_simple(
+    [Basic(EConstNum(v)), Basic(Cvtop(t2, Convert, t1, sat_sx))],
+    [Basic(EConstNum(v'))])
 
 ∀ (v : V_num) (t2 t1 : T_num) (sat_sx : Option[(Sat, Sx)])
 if
   1. typeof_num(v) == t1
   2. cvt(t2, sat_sx, v) == NONE
 then
-  reduce_simple([Basic(EConstNum(v)), Basic(Cvtop(t2, Convert, t1, sat_sx))], [Trap])
+  reduce_simple(
+    [Basic(EConstNum(v)), Basic(Cvtop(t2, Convert, t1, sat_sx))],
+    [Trap])
 
 ∀ (t1 t2 : T_num) (v : V_num)
 if
   1. typeof_num(v) == t1
 then
-  reduce_simple([Basic(EConstNum(v)), Basic(Cvtop(t2, Reinterpret, t1, NONE))], [Basic(EConstNum(wasm_reinterpret(t2, v)))])
+  reduce_simple(
+    [Basic(EConstNum(v)), Basic(Cvtop(t2, Reinterpret, t1, NONE))],
+    [Basic(EConstNum(wasm_reinterpret(t2, v)))])
 
 ∀ (t : T_ref), reduce_simple([Basic(Ref_null(t))], [Ref(ConstNull(t))])
 
@@ -2638,46 +3072,70 @@ then
 if
   1. is_null_ref(v_r)
 then
-  reduce_simple([Ref(v_r), Basic(Ref_is_null)], [Basic(EConstNum(ConstInt32(wasm_bool(true))))])
+  reduce_simple(
+    [Ref(v_r), Basic(Ref_is_null)],
+    [Basic(EConstNum(ConstInt32(wasm_bool(true))))])
 
 ∀ (v_r : V_ref)
 if
   1. !is_null_ref(v_r)
 then
-  reduce_simple([Ref(v_r), Basic(Ref_is_null)], [Basic(EConstNum(ConstInt32(wasm_bool(false))))])
+  reduce_simple(
+    [Ref(v_r), Basic(Ref_is_null)],
+    [Basic(EConstNum(ConstInt32(wasm_bool(false))))])
 
 ∀ (op : Unop_vec) (v : V_vec),
-  reduce_simple([Basic(EConstVec(v)), Basic(Unop_vec(op))], [Basic(EConstVec(app_unop_vec(op, v)))])
+  reduce_simple(
+    [Basic(EConstVec(v)), Basic(Unop_vec(op))],
+    [Basic(EConstVec(app_unop_vec(op, v)))])
 
 ∀ (v1 v2 v : V_vec) (op : Binop_vec)
 if
   1. app_binop_vec(op, v1, v2) == SOME(v)
 then
-  reduce_simple([Basic(EConstVec(v1)), Basic(EConstVec(v2)), Basic(Binop_vec(op))], [Basic(EConstVec(v))])
+  reduce_simple(
+    [Basic(EConstVec(v1)), Basic(EConstVec(v2)), Basic(Binop_vec(op))],
+    [Basic(EConstVec(v))])
 
 ∀ (v1 v2 : V_vec) (op : Binop_vec)
 if
   1. app_binop_vec(op, v1, v2) == NONE
 then
-  reduce_simple([Basic(EConstVec(v1)), Basic(EConstVec(v2)), Basic(Binop_vec(op))], [Trap])
+  reduce_simple(
+    [Basic(EConstVec(v1)), Basic(EConstVec(v2)), Basic(Binop_vec(op))],
+    [Trap])
 
 ∀ (op : Ternop_vec) (v1 v2 v3 : V_vec),
-  reduce_simple([Basic(EConstVec(v1)), Basic(EConstVec(v2)), Basic(EConstVec(v3)), Basic(Ternop_vec(op))], [Basic(EConstVec(app_ternop_vec(op, v1, v2, v3)))])
+  reduce_simple(
+    [Basic(EConstVec(v1)), Basic(EConstVec(v2)), Basic(EConstVec(v3)),
+     Basic(Ternop_vec(op))],
+    [Basic(EConstVec(app_ternop_vec(op, v1, v2, v3)))])
 
 ∀ (op : Testop_vec) (v : V_vec),
-  reduce_simple([Basic(EConstVec(v)), Basic(Test_vec(op))], [Basic(EConstNum(ConstInt32(app_test_vec(op, v))))])
+  reduce_simple(
+    [Basic(EConstVec(v)), Basic(Test_vec(op))],
+    [Basic(EConstNum(ConstInt32(app_test_vec(op, v))))])
 
 ∀ (op : Shiftop_vec) (v : V_vec) (n : W32),
-  reduce_simple([Basic(EConstVec(v)), Basic(EConstNum(ConstInt32(n))), Basic(Shift_vec(op))], [Basic(EConstVec(app_shift_vec(op, v, n)))])
+  reduce_simple(
+    [Basic(EConstVec(v)), Basic(EConstNum(ConstInt32(n))),
+     Basic(Shift_vec(op))],
+    [Basic(EConstVec(app_shift_vec(op, v, n)))])
 
 ∀ (sv : Shape_vec) (v : V_num),
-  reduce_simple([Basic(EConstNum(v)), Basic(Splat_vec(sv))], [Basic(EConstVec(app_splat_vec(sv, v)))])
+  reduce_simple(
+    [Basic(EConstNum(v)), Basic(Splat_vec(sv))],
+    [Basic(EConstVec(app_splat_vec(sv, v)))])
 
 ∀ (sv : Shape_vec) (sx : Sx) (i : Num) (v : V_vec),
-  reduce_simple([Basic(EConstVec(v)), Basic(Extract_vec(sv, sx, i))], [Basic(EConstNum(app_extract_vec(sv, sx, i, v)))])
+  reduce_simple(
+    [Basic(EConstVec(v)), Basic(Extract_vec(sv, sx, i))],
+    [Basic(EConstNum(app_extract_vec(sv, sx, i, v)))])
 
 ∀ (sv : Shape_vec) (i : Num) (v : V_vec) (vn : V_num),
-  reduce_simple([Basic(EConstVec(v)), Basic(EConstNum(vn)), Basic(Replace_vec(sv, i))], [Basic(EConstVec(app_replace_vec(sv, i, v, vn)))])
+  reduce_simple(
+    [Basic(EConstVec(v)), Basic(EConstNum(vn)), Basic(Replace_vec(sv, i))],
+    [Basic(EConstVec(app_replace_vec(sv, i, v, vn)))])
 
 reduce_simple([Basic(Unreachable)], [Trap])
 
@@ -2689,25 +3147,35 @@ reduce_simple([Basic(Nop)], NIL)
 if
   1. n == word(0)
 then
-  reduce_simple([v_to_e(v1), v_to_e(v2), Basic(EConstNum(ConstInt32(n))), Basic(Select(t_tag))], [v_to_e(v2)])
+  reduce_simple(
+    [v_to_e(v1), v_to_e(v2), Basic(EConstNum(ConstInt32(n))),
+     Basic(Select(t_tag))],
+    [v_to_e(v2)])
 
 ∀ (v2 v1 : Value) (n : W32) (t_tag : Option[Valtype])
 if
   1. !(n == word(0))
 then
-  reduce_simple([v_to_e(v1), v_to_e(v2), Basic(EConstNum(ConstInt32(n))), Basic(Select(t_tag))], [v_to_e(v1)])
+  reduce_simple(
+    [v_to_e(v1), v_to_e(v2), Basic(EConstNum(ConstInt32(n))),
+     Basic(Select(t_tag))],
+    [v_to_e(v1)])
 
 ∀ (n : W32) (e1s e2s : List[B_e]) (tb : Tb)
 if
   1. n == word(0)
 then
-  reduce_simple([Basic(EConstNum(ConstInt32(n))), Basic(If(tb, e1s, e2s))], [Basic(Block(tb, e2s))])
+  reduce_simple(
+    [Basic(EConstNum(ConstInt32(n))), Basic(If(tb, e1s, e2s))],
+    [Basic(Block(tb, e2s))])
 
 ∀ (n : W32) (e2s e1s : List[B_e]) (tb : Tb)
 if
   1. !(n == word(0))
 then
-  reduce_simple([Basic(EConstNum(ConstInt32(n))), Basic(If(tb, e1s, e2s))], [Basic(Block(tb, e1s))])
+  reduce_simple(
+    [Basic(EConstNum(ConstInt32(n))), Basic(If(tb, e1s, e2s))],
+    [Basic(Block(tb, e1s))])
 
 ∀ (n : Num) (es : List[Einstr]) (vs : List[Value]),
   reduce_simple([Label(n, es, MAP(v_to_e, vs))], MAP(v_to_e, vs))
@@ -2731,19 +3199,25 @@ then
 if
   1. !(n == word(0))
 then
-  reduce_simple([Basic(EConstNum(ConstInt32(n))), Basic(Br_if(i))], [Basic(Br(i))])
+  reduce_simple(
+    [Basic(EConstNum(ConstInt32(n))), Basic(Br_if(i))],
+    [Basic(Br(i))])
 
 ∀ (i : Num) (c : W32) (is_ : List[Num])
 if
   1. LENGTH(is_) > val(c)
 then
-  reduce_simple([Basic(EConstNum(ConstInt32(c))), Basic(Br_table(is_, i))], [Basic(Br(EL(val(c), is_)))])
+  reduce_simple(
+    [Basic(EConstNum(ConstInt32(c))), Basic(Br_table(is_, i))],
+    [Basic(Br(EL(val(c), is_)))])
 
 ∀ (c : W32) (is_ : List[Num]) (i : Num)
 if
   1. LENGTH(is_) <= val(c)
 then
-  reduce_simple([Basic(EConstNum(ConstInt32(c))), Basic(Br_table(is_, i))], [Basic(Br(i))])
+  reduce_simple(
+    [Basic(EConstNum(ConstInt32(c))), Basic(Br_table(is_, i))],
+    [Basic(Br(i))])
 
 ∀ (n : Num) (f : Wframe) (vs : List[Value]),
   reduce_simple([Frame(n, f, MAP(v_to_e, vs))], MAP(v_to_e, vs))
@@ -2759,7 +3233,9 @@ then
   reduce_simple([Frame(n, f, es)], MAP(v_to_e, vs))
 
 ∀ (v : Value) (i : Num),
-  reduce_simple([v_to_e(v), Basic(Local_tee(i))], [v_to_e(v), v_to_e(v), Basic(Local_set(i))])
+  reduce_simple(
+    [v_to_e(v), Basic(Local_tee(i))],
+    [v_to_e(v), v_to_e(v), Basic(Local_set(i))])
 
 ∀ (lholed : Lholed) (es : List[Einstr])
 if
@@ -2790,14 +3266,28 @@ if
   3. stypes(i, j) == tf
   4. cl_type(EL(i_cl, s_funcs(s))) == tf
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(c))), Basic(Call_indirect(ti, j))], s, f, [Invoke(i_cl)])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(c))), Basic(Call_indirect(ti, j))],
+    s,
+    f,
+    [Invoke(i_cl)])
 
 ∀ (i_cl ti j : Num) (i : Inst) (c : W32) (s : Wstore) (f : Wframe)
 if
   1. f_inst(f) == i
-  2. stab(s, i, ti, val(c)) == SOME(ConstRefFunc(i_cl)) && !(stypes(i, j) == cl_type(EL(i_cl, s_funcs(s)))) || !is_some_const_ref_func(stab(s, i, ti, val(c)))
+  2. stab(s, i, ti, val(c)) == SOME(ConstRefFunc(i_cl))
+     && !(stypes(i, j) == cl_type(EL(i_cl, s_funcs(s))))
+     || !is_some_const_ref_func(stab(s, i, ti, val(c)))
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(c))), Basic(Call_indirect(ti, j))], s, f, [Trap])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(c))), Basic(Call_indirect(ti, j))],
+    s,
+    f,
+    [Trap])
 
 ∀ (k n i_cl m : Num) (t1s t2s ts : List[Valtype]) (ves : List[Einstr])
   (s : Wstore) (f : Wframe) (vcs zs : List[Value]) (j : Inst) (es : List[B_e])
@@ -2810,7 +3300,13 @@ if
   6. LENGTH(t2s) == m
   7. n_zeros(ts) == SOME(zs)
 then
-  reduce(s, f, APPEND(ves, [Invoke(i_cl)]), s, f, [Frame(m, Wframe(APPEND(vcs, zs), j), [Label(m, NIL, MAP(Basic, es))])])
+  reduce(
+    s,
+    f,
+    APPEND(ves, [Invoke(i_cl)]),
+    s,
+    f,
+    [Frame(m, Wframe(APPEND(vcs, zs), j), [Label(m, NIL, MAP(Basic, es))])])
 
 ∀ (n m i_cl : Num) (t1s t2s : List[Valtype]) (hf : Host_func)
   (vcs vcs' : List[Value]) (hs : Host_state) (s s' : Wstore)
@@ -2853,10 +3349,22 @@ then
 if
   1. LENGTH(vi) == j
 then
-  reduce(s, Wframe(APPEND(vi, APPEND([v], vs)), i), [v_to_e(v'), Basic(Local_set(j))], s, Wframe(APPEND(vi, APPEND([v'], vs)), i), NIL)
+  reduce(
+    s,
+    Wframe(APPEND(vi, APPEND([v], vs)), i),
+    [v_to_e(v'), Basic(Local_set(j))],
+    s,
+    Wframe(APPEND(vi, APPEND([v'], vs)), i),
+    NIL)
 
 ∀ (s : Wstore) (f : Wframe) (j : Num),
-  reduce(s, f, [Basic(Global_get(j))], s, f, [v_to_e(sglob_val(s, f_inst(f), j))])
+  reduce(
+    s,
+    f,
+    [Basic(Global_get(j))],
+    s,
+    f,
+    [v_to_e(sglob_val(s, f_inst(f), j))])
 
 ∀ (s s' : Wstore) (v : Value) (j : Num) (f : Wframe)
 if
@@ -2871,7 +3379,13 @@ if
   2. EL(j, s_mems(s)) == m
   3. load(m, val(k), off, t_num_length(t)) == SOME(bs)
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(Load(t, NONE, a, off))], s, f, [Basic(EConstNum(wasm_deserialise_num(bs, t)))])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(Load(t, NONE, a, off))],
+    s,
+    f,
+    [Basic(EConstNum(wasm_deserialise_num(bs, t)))])
 
 ∀ (j a off : Num) (m : (Limit_t, List[Byte])) (k : W32) (t : T_num) (s : Wstore)
   (f : Wframe)
@@ -2880,16 +3394,29 @@ if
   2. EL(j, s_mems(s)) == m
   3. load(m, val(k), off, t_num_length(t)) == NONE
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(Load(t, NONE, a, off))], s, f, [Trap])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(Load(t, NONE, a, off))],
+    s,
+    f,
+    [Trap])
 
 ∀ (j a off : Num) (m : (Limit_t, List[Byte])) (k : W32) (tp : Tp_num) (sx : Sx)
   (s : Wstore) (f : Wframe) (bs : List[Byte]) (t : T_num)
 if
   1. smem_ind(f_inst(f)) == SOME(j)
   2. EL(j, s_mems(s)) == m
-  3. load_packed(sx, m, val(k), off, tp_num_length(tp), t_num_length(t)) == SOME(bs)
+  3. load_packed(sx, m, val(k), off, tp_num_length(tp), t_num_length(t))
+       == SOME(bs)
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(Load(t, SOME((tp, sx)), a, off))], s, f, [Basic(EConstNum(wasm_deserialise_num(bs, t)))])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(Load(t, SOME((tp, sx)), a, off))],
+    s,
+    f,
+    [Basic(EConstNum(wasm_deserialise_num(bs, t)))])
 
 ∀ (j a off : Num) (m : (Limit_t, List[Byte])) (k : W32) (t : T_num)
   (tp : Tp_num) (sx : Sx) (s : Wstore) (f : Wframe)
@@ -2898,7 +3425,13 @@ if
   2. EL(j, s_mems(s)) == m
   3. load_packed(sx, m, val(k), off, tp_num_length(tp), t_num_length(t)) == NONE
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(Load(t, SOME((tp, sx)), a, off))], s, f, [Trap])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(Load(t, SOME((tp, sx)), a, off))],
+    s,
+    f,
+    [Trap])
 
 ∀ (m mem' : (Limit_t, List[Byte])) (k : W32) (v : V_num) (t : T_num)
   (a off j : Num) (s : Wstore) (f : Wframe)
@@ -2908,7 +3441,14 @@ if
   3. EL(j, s_mems(s)) == m
   4. store(m, val(k), off, bits_num(v), t_num_length(t)) == SOME(mem')
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(EConstNum(v)), Basic(Store(t, NONE, a, off))], s_mems_update(list_update(s_mems(s), j, mem'), s), f, NIL)
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(EConstNum(v)),
+     Basic(Store(t, NONE, a, off))],
+    s_mems_update(list_update(s_mems(s), j, mem'), s),
+    f,
+    NIL)
 
 ∀ (j a off : Num) (m : (Limit_t, List[Byte])) (k : W32) (v : V_num) (t : T_num)
   (s : Wstore) (f : Wframe)
@@ -2918,7 +3458,14 @@ if
   3. EL(j, s_mems(s)) == m
   4. store(m, val(k), off, bits_num(v), t_num_length(t)) == NONE
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(EConstNum(v)), Basic(Store(t, NONE, a, off))], s, f, [Trap])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(EConstNum(v)),
+     Basic(Store(t, NONE, a, off))],
+    s,
+    f,
+    [Trap])
 
 ∀ (m mem' : (Limit_t, List[Byte])) (k : W32) (v : V_num) (t : T_num)
   (tp : Tp_num) (a off j : Num) (s : Wstore) (f : Wframe)
@@ -2928,7 +3475,14 @@ if
   3. EL(j, s_mems(s)) == m
   4. store_packed(m, val(k), off, bits_num(v), tp_num_length(tp)) == SOME(mem')
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(EConstNum(v)), Basic(Store(t, SOME(tp), a, off))], s_mems_update(list_update(s_mems(s), j, mem'), s), f, NIL)
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(EConstNum(v)),
+     Basic(Store(t, SOME(tp), a, off))],
+    s_mems_update(list_update(s_mems(s), j, mem'), s),
+    f,
+    NIL)
 
 ∀ (j a off : Num) (m : (Limit_t, List[Byte])) (k : W32) (v : V_num) (t : T_num)
   (tp : Tp_num) (s : Wstore) (f : Wframe)
@@ -2938,7 +3492,14 @@ if
   3. EL(j, s_mems(s)) == m
   4. store_packed(m, val(k), off, bits_num(v), tp_num_length(tp)) == NONE
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(EConstNum(v)), Basic(Store(t, SOME(tp), a, off))], s, f, [Trap])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(EConstNum(v)),
+     Basic(Store(t, SOME(tp), a, off))],
+    s,
+    f,
+    [Trap])
 
 ∀ (j a off : Num) (m : (Limit_t, List[Byte])) (k : W32) (lv : Loadop_vec)
   (s : Wstore) (f : Wframe) (bs : List[Byte])
@@ -2947,7 +3508,13 @@ if
   2. EL(j, s_mems(s)) == m
   3. load_vec(lv, m, val(k), off) == SOME(bs)
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(Load_vec(lv, a, off))], s, f, [Basic(EConstVec(ConstVec128(deserialise_v128(bs))))])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(Load_vec(lv, a, off))],
+    s,
+    f,
+    [Basic(EConstVec(ConstVec128(deserialise_v128(bs))))])
 
 ∀ (j a off : Num) (m : (Limit_t, List[Byte])) (k : W32) (lv : Loadop_vec)
   (s : Wstore) (f : Wframe)
@@ -2956,7 +3523,13 @@ if
   2. EL(j, s_mems(s)) == m
   3. load_vec(lv, m, val(k), off) == NONE
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(Load_vec(lv, a, off))], s, f, [Trap])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(Load_vec(lv, a, off))],
+    s,
+    f,
+    [Trap])
 
 ∀ (j a off i : Num) (m : (Limit_t, List[Byte])) (k : W32) (s : Wstore)
   (f : Wframe) (svi : Shape_vec_i) (bs : List[Byte]) (v : V128)
@@ -2965,7 +3538,14 @@ if
   2. EL(j, s_mems(s)) == m
   3. load(m, val(k), off, vec_i_length(svi)) == SOME(bs)
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(EConstVec(ConstVec128(v))), Basic(Load_lane_vec(svi, i, a, off))], s, f, [Basic(EConstVec(ConstVec128(insert_lane_vec(svi, i, bs, v))))])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(EConstVec(ConstVec128(v))),
+     Basic(Load_lane_vec(svi, i, a, off))],
+    s,
+    f,
+    [Basic(EConstVec(ConstVec128(insert_lane_vec(svi, i, bs, v))))])
 
 ∀ (j i a off : Num) (m : (Limit_t, List[Byte])) (k : W32) (v : V128)
   (svi : Shape_vec_i) (s : Wstore) (f : Wframe)
@@ -2974,7 +3554,14 @@ if
   2. EL(j, s_mems(s)) == m
   3. load(m, val(k), off, vec_i_length(svi)) == NONE
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(EConstVec(ConstVec128(v))), Basic(Load_lane_vec(svi, i, a, off))], s, f, [Trap])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(EConstVec(ConstVec128(v))),
+     Basic(Load_lane_vec(svi, i, a, off))],
+    s,
+    f,
+    [Trap])
 
 ∀ (m mem' : (Limit_t, List[Byte])) (bs : List[Byte]) (k : W32) (v : V128)
   (sv : Storeop_vec) (a off j : Num) (s : Wstore) (f : Wframe)
@@ -2984,7 +3571,14 @@ if
   3. store_serialise_vec(sv, v) == bs
   4. store(m, val(k), off, bs, LENGTH(bs)) == SOME(mem')
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(EConstVec(ConstVec128(v))), Basic(Store_vec(sv, a, off))], s_mems_update(list_update(s_mems(s), j, mem'), s), f, NIL)
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(EConstVec(ConstVec128(v))),
+     Basic(Store_vec(sv, a, off))],
+    s_mems_update(list_update(s_mems(s), j, mem'), s),
+    f,
+    NIL)
 
 ∀ (j a off : Num) (m : (Limit_t, List[Byte])) (bs : List[Byte]) (k : W32)
   (v : V128) (sv : Storeop_vec) (s : Wstore) (f : Wframe)
@@ -2994,7 +3588,14 @@ if
   3. store_serialise_vec(sv, v) == bs
   4. store(m, val(k), off, bs, LENGTH(bs)) == NONE
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(EConstVec(ConstVec128(v))), Basic(Store_vec(sv, a, off))], s, f, [Trap])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(EConstVec(ConstVec128(v))),
+     Basic(Store_vec(sv, a, off))],
+    s,
+    f,
+    [Trap])
 
 ∀ (j n : Num) (m : (Limit_t, List[Byte])) (s : Wstore) (f : Wframe)
 if
@@ -3002,7 +3603,13 @@ if
   2. EL(j, s_mems(s)) == m
   3. mem_size(m) == n
 then
-  reduce(s, f, [Basic(Memory_size)], s, f, [Basic(EConstNum(ConstInt32(word(n))))])
+  reduce(
+    s,
+    f,
+    [Basic(Memory_size)],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(word(n))))])
 
 ∀ (m mem' : (Limit_t, List[Byte])) (c : W32) (j n : Num) (s : Wstore)
   (f : Wframe)
@@ -3012,7 +3619,13 @@ if
   3. mem_size(m) == n
   4. mem_grow(m, val(c)) == SOME(mem')
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(c))), Basic(Memory_grow)], s_mems_update(list_update(s_mems(s), j, mem'), s), f, [Basic(EConstNum(ConstInt32(word(n))))])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(c))), Basic(Memory_grow)],
+    s_mems_update(list_update(s_mems(s), j, mem'), s),
+    f,
+    [Basic(EConstNum(ConstInt32(word(n))))])
 
 ∀ (j n : Num) (m : (Limit_t, List[Byte])) (c : W32) (s : Wstore) (f : Wframe)
 if
@@ -3020,21 +3633,39 @@ if
   2. EL(j, s_mems(s)) == m
   3. mem_size(m) == n
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(c))), Basic(Memory_grow)], s, f, [Basic(EConstNum(ConstInt32(int32_minus_one)))])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(c))), Basic(Memory_grow)],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(int32_minus_one)))])
 
 ∀ (a ti : Num) (n : W32) (s : Wstore) (f : Wframe) (tv : V_ref)
 if
   1. stab_ind(f_inst(f), ti) == SOME(a)
   2. load_tabs1(s_tabs(s), a, val(n)) == SOME(tv)
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(n))), Basic(Table_get(ti))], s, f, [Ref(tv)])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(n))), Basic(Table_get(ti))],
+    s,
+    f,
+    [Ref(tv)])
 
 ∀ (a ti : Num) (n : W32) (s : Wstore) (f : Wframe)
 if
   1. stab_ind(f_inst(f), ti) == SOME(a)
   2. load_tabs1(s_tabs(s), a, val(n)) == NONE
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(n))), Basic(Table_get(ti))], s, f, [Trap])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(n))), Basic(Table_get(ti))],
+    s,
+    f,
+    [Trap])
 
 ∀ (a ti : Num) (n : W32) (vr : V_ref) (tabs' : List[(Tab_t, List[V_ref])])
   (s : Wstore) (f : Wframe)
@@ -3042,14 +3673,26 @@ if
   1. stab_ind(f_inst(f), ti) == SOME(a)
   2. store_tabs1(s_tabs(s), a, val(n), vr) == SOME(tabs')
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(n))), Ref(vr), Basic(Table_set(ti))], s_tabs_update(tabs', s), f, NIL)
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(n))), Ref(vr), Basic(Table_set(ti))],
+    s_tabs_update(tabs', s),
+    f,
+    NIL)
 
 ∀ (a ti : Num) (n : W32) (vr : V_ref) (s : Wstore) (f : Wframe)
 if
   1. stab_ind(f_inst(f), ti) == SOME(a)
   2. store_tabs1(s_tabs(s), a, val(n), vr) == NONE
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(n))), Ref(vr), Basic(Table_set(ti))], s, f, [Trap])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(n))), Ref(vr), Basic(Table_set(ti))],
+    s,
+    f,
+    [Trap])
 
 ∀ (a ti n : Num) (t : (Tab_t, List[V_ref])) (s : Wstore) (f : Wframe)
 if
@@ -3057,7 +3700,13 @@ if
   2. EL(a, s_tabs(s)) == t
   3. tab_size(t) == n
 then
-  reduce(s, f, [Basic(Table_size(ti))], s, f, [Basic(EConstNum(ConstInt32(word(n))))])
+  reduce(
+    s,
+    f,
+    [Basic(Table_size(ti))],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(word(n))))])
 
 ∀ (tab tab' : (Tab_t, List[V_ref])) (vr : V_ref) (n : W32) (ti a sz : Num)
   (s : Wstore) (f : Wframe)
@@ -3067,10 +3716,22 @@ if
   3. sz == tab_size(tab)
   4. grow_tab(tab, val(n), vr) == SOME(tab')
 then
-  reduce(s, f, [Ref(vr), Basic(EConstNum(ConstInt32(n))), Basic(Table_grow(ti))], s_tabs_update(list_update(s_tabs(s), a, tab'), s), f, [Basic(EConstNum(ConstInt32(word(sz))))])
+  reduce(
+    s,
+    f,
+    [Ref(vr), Basic(EConstNum(ConstInt32(n))), Basic(Table_grow(ti))],
+    s_tabs_update(list_update(s_tabs(s), a, tab'), s),
+    f,
+    [Basic(EConstNum(ConstInt32(word(sz))))])
 
 ∀ (vr : V_ref) (n : W32) (ti : Num) (s : Wstore) (f : Wframe),
-  reduce(s, f, [Ref(vr), Basic(EConstNum(ConstInt32(n))), Basic(Table_grow(ti))], s, f, [Basic(EConstNum(ConstInt32(int32_minus_one)))])
+  reduce(
+    s,
+    f,
+    [Ref(vr), Basic(EConstNum(ConstInt32(n))), Basic(Table_grow(ti))],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(int32_minus_one)))])
 
 ∀ (t1s t2s : List[Valtype]) (n m : Num) (tb : Tb) (s : Wstore) (f : Wframe)
   (vs : List[Value]) (es : List[B_e])
@@ -3080,7 +3741,13 @@ if
   3. LENGTH(t1s) == n
   4. LENGTH(t2s) == m
 then
-  reduce(s, f, APPEND(MAP(v_to_e, vs), [Basic(Block(tb, es))]), s, f, [Label(m, NIL, APPEND(MAP(v_to_e, vs), MAP(Basic, es)))])
+  reduce(
+    s,
+    f,
+    APPEND(MAP(v_to_e, vs), [Basic(Block(tb, es))]),
+    s,
+    f,
+    [Label(m, NIL, APPEND(MAP(v_to_e, vs), MAP(Basic, es)))])
 
 ∀ (t1s t2s : List[Valtype]) (m n : Num) (s : Wstore) (f : Wframe) (tb : Tb)
   (vs : List[Value]) (es : List[B_e])
@@ -3090,7 +3757,13 @@ if
   3. LENGTH(t1s) == n
   4. LENGTH(t2s) == m
 then
-  reduce(s, f, APPEND(MAP(v_to_e, vs), [Basic(Loop(tb, es))]), s, f, [Label(n, [Basic(Loop(tb, es))], APPEND(MAP(v_to_e, vs), MAP(Basic, es)))])
+  reduce(
+    s,
+    f,
+    APPEND(MAP(v_to_e, vs), [Basic(Loop(tb, es))]),
+    s,
+    f,
+    [Label(n, [Basic(Loop(tb, es))], APPEND(MAP(v_to_e, vs), MAP(Basic, es)))])
 
 ∀ (es es' les les' : List[Einstr]) (k : Num) (lholed : Lholed) (s s' : Wstore)
   (f f' : Wframe)
@@ -3119,7 +3792,14 @@ if
   7. nn == val(n)
   8. nsrc + nn > LENGTH(dat) || ndest + nn > mem_length(m)
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_init(x))], s, f, [Trap])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_init(x))],
+    s,
+    f,
+    [Trap])
 
 ∀ (ma da nsrc ndest nn x : Num) (dat : List[Byte]) (m : (Limit_t, List[Byte]))
   (dest src n : W32) (s : Wstore) (f : Wframe)
@@ -3135,7 +3815,14 @@ if
   9. ndest + nn <= mem_length(m)
   10. nn == 0
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_init(x))], s, f, NIL)
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_init(x))],
+    s,
+    f,
+    NIL)
 
 ∀ (ma da nn b ndest nsrc nn_pred x : Num) (m : (Limit_t, List[Byte]))
   (dat : List[Byte]) (dest src n : W32) (s : Wstore) (f : Wframe)
@@ -3152,7 +3839,19 @@ if
   10. nn == nn_pred + 1
   11. b == val(EL(nsrc, dat))
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_init(x))], s, f, [Basic(EConstNum(ConstInt32(word(ndest)))), Basic(EConstNum(ConstInt32(word(b)))), Basic(Store(T_i32, SOME(Tp_i8), 0, 0)), Basic(EConstNum(ConstInt32(word(ndest + 1)))), Basic(EConstNum(ConstInt32(word(nsrc + 1)))), Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Memory_init(x))])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_init(x))],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(word(ndest)))),
+     Basic(EConstNum(ConstInt32(word(b)))),
+     Basic(Store(T_i32, SOME(Tp_i8), 0, 0)),
+     Basic(EConstNum(ConstInt32(word(ndest + 1)))),
+     Basic(EConstNum(ConstInt32(word(nsrc + 1)))),
+     Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Memory_init(x))])
 
 ∀ (ma nsrc ndest nn : Num) (m : (Limit_t, List[Byte])) (dest src n : W32)
   (s : Wstore) (f : Wframe)
@@ -3164,7 +3863,14 @@ if
   5. nn == val(n)
   6. nsrc + nn > mem_length(m) || ndest + nn > mem_length(m)
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_copy)], s, f, [Trap])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_copy)],
+    s,
+    f,
+    [Trap])
 
 ∀ (ma nsrc ndest nn : Num) (m : (Limit_t, List[Byte])) (dest src n : W32)
   (s : Wstore) (f : Wframe)
@@ -3178,7 +3884,14 @@ if
   7. ndest + nn <= mem_length(m)
   8. nn == 0
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_copy)], s, f, NIL)
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_copy)],
+    s,
+    f,
+    NIL)
 
 ∀ (ma nn ndest nsrc nn_pred : Num) (m : (Limit_t, List[Byte]))
   (n dest src : W32) (s : Wstore) (f : Wframe)
@@ -3193,7 +3906,19 @@ if
   8. nn == nn_pred + 1
   9. ndest <= nsrc
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_copy)], s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(Load(T_i32, SOME((Tp_i8, U)), 0, 0)), Basic(Store(T_i32, SOME(Tp_i8), 0, 0)), Basic(EConstNum(ConstInt32(word(ndest + 1)))), Basic(EConstNum(ConstInt32(word(nsrc + 1)))), Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Memory_copy)])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_copy)],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(Load(T_i32, SOME((Tp_i8, U)), 0, 0)),
+     Basic(Store(T_i32, SOME(Tp_i8), 0, 0)),
+     Basic(EConstNum(ConstInt32(word(ndest + 1)))),
+     Basic(EConstNum(ConstInt32(word(nsrc + 1)))),
+     Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Memory_copy)])
 
 ∀ (ma nn ndest nsrc nn_pred : Num) (m : (Limit_t, List[Byte]))
   (n dest src : W32) (s : Wstore) (f : Wframe)
@@ -3208,7 +3933,19 @@ if
   8. nn == nn_pred + 1
   9. ndest > nsrc
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_copy)], s, f, [Basic(EConstNum(ConstInt32(word(ndest + nn_pred)))), Basic(EConstNum(ConstInt32(word(nsrc + nn_pred)))), Basic(Load(T_i32, SOME((Tp_i8, U)), 0, 0)), Basic(Store(T_i32, SOME(Tp_i8), 0, 0)), Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Memory_copy)])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_copy)],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(word(ndest + nn_pred)))),
+     Basic(EConstNum(ConstInt32(word(nsrc + nn_pred)))),
+     Basic(Load(T_i32, SOME((Tp_i8, U)), 0, 0)),
+     Basic(Store(T_i32, SOME(Tp_i8), 0, 0)),
+     Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Memory_copy)])
 
 ∀ (ma ndest nn : Num) (m : (Limit_t, List[Byte])) (dest fv n : W32) (s : Wstore)
   (f : Wframe)
@@ -3219,7 +3956,14 @@ if
   4. nn == val(n)
   5. ndest + nn > mem_length(m)
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(fv))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_fill)], s, f, [Trap])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(fv))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_fill)],
+    s,
+    f,
+    [Trap])
 
 ∀ (ma ndest nn : Num) (m : (Limit_t, List[Byte])) (dest fv n : W32) (s : Wstore)
   (f : Wframe)
@@ -3231,7 +3975,14 @@ if
   5. ndest + nn <= mem_length(m)
   6. nn == 0
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(fv))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_fill)], s, f, NIL)
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(fv))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_fill)],
+    s,
+    f,
+    NIL)
 
 ∀ (ma nn ndest nn_pred : Num) (m : (Limit_t, List[Byte])) (n dest fv : W32)
   (s : Wstore) (f : Wframe)
@@ -3243,7 +3994,18 @@ if
   5. ndest + nn <= mem_length(m)
   6. nn == nn_pred + 1
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(fv))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_fill)], s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(fv))), Basic(Store(T_i32, SOME(Tp_i8), 0, 0)), Basic(EConstNum(ConstInt32(word(ndest + 1)))), Basic(EConstNum(ConstInt32(fv))), Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Memory_fill)])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(fv))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_fill)],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(fv))),
+     Basic(Store(T_i32, SOME(Tp_i8), 0, 0)),
+     Basic(EConstNum(ConstInt32(word(ndest + 1)))),
+     Basic(EConstNum(ConstInt32(fv))),
+     Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Memory_fill)])
 
 ∀ (ta ea nsrc ndest nn x y : Num) (el : (T_ref, List[V_ref]))
   (tab : (Tab_t, List[V_ref])) (dest src n : W32) (s : Wstore) (f : Wframe)
@@ -3257,7 +4019,14 @@ if
   7. nn == val(n)
   8. nsrc + nn > LENGTH(SND(el)) || ndest + nn > LENGTH(SND(tab))
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Table_init(x, y))], s, f, [Trap])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_init(x, y))],
+    s,
+    f,
+    [Trap])
 
 ∀ (ta ea nsrc ndest nn x y : Num) (el : (T_ref, List[V_ref]))
   (tab : (Tab_t, List[V_ref])) (dest src n : W32) (s : Wstore) (f : Wframe)
@@ -3273,7 +4042,14 @@ if
   9. ndest + nn <= LENGTH(SND(tab))
   10. nn == 0
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Table_init(x, y))], s, f, NIL)
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_init(x, y))],
+    s,
+    f,
+    NIL)
 
 ∀ (ta ea nn ndest nsrc nn_pred x y : Num) (tab : (Tab_t, List[V_ref]))
   (el : (T_ref, List[V_ref])) (src n dest : W32) (s : Wstore) (f : Wframe)
@@ -3291,7 +4067,17 @@ if
   10. nn == nn_pred + 1
   11. tv == EL(nsrc, SND(el))
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Table_init(x, y))], s, f, [Basic(EConstNum(ConstInt32(dest))), v_to_e(V_ref(tv)), Basic(Table_set(x)), Basic(EConstNum(ConstInt32(word(ndest + 1)))), Basic(EConstNum(ConstInt32(word(nsrc + 1)))), Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Table_init(x, y))])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_init(x, y))],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), v_to_e(V_ref(tv)),
+     Basic(Table_set(x)), Basic(EConstNum(ConstInt32(word(ndest + 1)))),
+     Basic(EConstNum(ConstInt32(word(nsrc + 1)))),
+     Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Table_init(x, y))])
 
 ∀ (ta ni nn x : Num) (tab : (Tab_t, List[V_ref])) (i n : W32) (vr : V_ref)
   (s : Wstore) (f : Wframe)
@@ -3302,7 +4088,14 @@ if
   4. nn == val(n)
   5. ni + nn > LENGTH(SND(tab))
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(i))), v_to_e(V_ref(vr)), Basic(EConstNum(ConstInt32(n))), Basic(Table_fill(x))], s, f, [Trap])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(i))), v_to_e(V_ref(vr)),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_fill(x))],
+    s,
+    f,
+    [Trap])
 
 ∀ (ta ni nn x : Num) (tab : (Tab_t, List[V_ref])) (i n : W32) (vr : V_ref)
   (s : Wstore) (f : Wframe)
@@ -3314,7 +4107,14 @@ if
   5. ni + nn <= LENGTH(SND(tab))
   6. nn == 0
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(i))), v_to_e(V_ref(vr)), Basic(EConstNum(ConstInt32(n))), Basic(Table_fill(x))], s, f, NIL)
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(i))), v_to_e(V_ref(vr)),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_fill(x))],
+    s,
+    f,
+    NIL)
 
 ∀ (ta nn ni nn_pred x : Num) (tab : (Tab_t, List[V_ref])) (n i : W32)
   (s : Wstore) (f : Wframe) (vr : V_ref)
@@ -3326,7 +4126,16 @@ if
   5. ni + nn <= LENGTH(SND(tab))
   6. nn == nn_pred + 1
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(i))), v_to_e(V_ref(vr)), Basic(EConstNum(ConstInt32(n))), Basic(Table_fill(x))], s, f, [Basic(EConstNum(ConstInt32(i))), v_to_e(V_ref(vr)), Basic(Table_set(x)), Basic(EConstNum(ConstInt32(word(ni + 1)))), v_to_e(V_ref(vr)), Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Table_fill(x))])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(i))), v_to_e(V_ref(vr)),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_fill(x))],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(i))), v_to_e(V_ref(vr)), Basic(Table_set(x)),
+     Basic(EConstNum(ConstInt32(word(ni + 1)))), v_to_e(V_ref(vr)),
+     Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Table_fill(x))])
 
 ∀ (tax tay ty nrsc nsrc ndest nn x y : Num) (tabx taby : (Tab_t, List[V_ref]))
   (dest src n : W32) (s : Wstore) (f : Wframe)
@@ -3340,7 +4149,14 @@ if
   7. nn == val(n)
   8. nsrc + nn > LENGTH(SND(tabx)) || ndest + nn > LENGTH(SND(taby))
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Table_copy(x, y))], s, f, [Trap])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_copy(x, y))],
+    s,
+    f,
+    [Trap])
 
 ∀ (tax tay ty nrsc nsrc ndest nn x y : Num) (tabx taby : (Tab_t, List[V_ref]))
   (dest src n : W32) (s : Wstore) (f : Wframe)
@@ -3356,7 +4172,14 @@ if
   9. ndest + nn <= LENGTH(SND(taby))
   10. nn == 0
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Table_copy(x, y))], s, f, NIL)
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_copy(x, y))],
+    s,
+    f,
+    NIL)
 
 ∀ (tax tay ty nrsc nn ndest nsrc nn_pred x y : Num)
   (tabx taby : (Tab_t, List[V_ref])) (n dest src : W32) (s : Wstore)
@@ -3374,7 +4197,18 @@ if
   10. nn == nn_pred + 1
   11. ndest <= nsrc
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Table_copy(x, y))], s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(Table_get(y)), Basic(Table_set(x)), Basic(EConstNum(ConstInt32(word(ndest + 1)))), Basic(EConstNum(ConstInt32(word(nsrc + 1)))), Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Table_copy(x, y))])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_copy(x, y))],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(Table_get(y)), Basic(Table_set(x)),
+     Basic(EConstNum(ConstInt32(word(ndest + 1)))),
+     Basic(EConstNum(ConstInt32(word(nsrc + 1)))),
+     Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Table_copy(x, y))])
 
 ∀ (tax tay ty nrsc nn ndest nsrc nn_pred x y : Num)
   (tabx taby : (Tab_t, List[V_ref])) (n dest src : W32) (s : Wstore)
@@ -3392,19 +4226,44 @@ if
   10. nn == nn_pred + 1
   11. ndest > nsrc
 then
-  reduce(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Table_copy(x, y))], s, f, [Basic(EConstNum(ConstInt32(word(ndest + nn_pred)))), Basic(EConstNum(ConstInt32(word(nsrc + nn_pred)))), Basic(Table_get(y)), Basic(Table_set(x)), Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Table_copy(x, y))])
+  reduce(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_copy(x, y))],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(word(ndest + nn_pred)))),
+     Basic(EConstNum(ConstInt32(word(nsrc + nn_pred)))), Basic(Table_get(y)),
+     Basic(Table_set(x)), Basic(EConstNum(ConstInt32(dest))),
+     Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Table_copy(x, y))])
 
 ∀ (x a : Num) (s : Wstore) (f : Wframe)
 if
   1. a == EL(x, inst_elems(f_inst(f)))
 then
-  reduce(s, f, [Basic(Elem_drop(x))], s_elems_update(list_update(s_elems(s), a, (FST(EL(a, s_elems(s))), NIL)), s), f, NIL)
+  reduce(
+    s,
+    f,
+    [Basic(Elem_drop(x))],
+    s_elems_update(
+      list_update(s_elems(s), a, (FST(EL(a, s_elems(s))), NIL)),
+      s),
+    f,
+    NIL)
 
 ∀ (x a : Num) (s : Wstore) (f : Wframe)
 if
   1. a == EL(x, inst_datas(f_inst(f)))
 then
-  reduce(s, f, [Basic(Data_drop(x))], s_datas_update(list_update(s_datas(s), a, NIL), s), f, NIL)
+  reduce(
+    s,
+    f,
+    [Basic(Data_drop(x))],
+    s_datas_update(list_update(s_datas(s), a, NIL), s),
+    f,
+    NIL)
 ```
 
 ## Runs (reduce_trans)
@@ -3450,13 +4309,18 @@ v_stack_to_es((v : List[Value])) == MAP(v_to_e, REVERSE(v))
 definition `computes`
 
 ```
-computes((cfg : (Wstore, Wframe, List[Einstr])), (s' : Wstore), (vs : List[Value])) == (∃ f' : Wframe, reduce_trans(cfg, (s', f', v_stack_to_es(vs))))
+computes(
+  (cfg : (Wstore, Wframe, List[Einstr])),
+  (s' : Wstore),
+  (vs : List[Value]))
+  == (∃ f' : Wframe, reduce_trans(cfg, (s', f', v_stack_to_es(vs))))
 ```
 
 definition `traps`
 
 ```
-traps((cfg : (Wstore, Wframe, List[Einstr])), (s' : Wstore)) == (∃ f' : Wframe, reduce_trans(cfg, (s', f', [Trap])))
+traps((cfg : (Wstore, Wframe, List[Einstr])), (s' : Wstore))
+  == (∃ f' : Wframe, reduce_trans(cfg, (s', f', [Trap])))
 ```
 
 definition `empty_frame`
@@ -3468,7 +4332,8 @@ empty_frame == Wframe(NIL, Inst(NIL, NIL, NIL, NIL, NIL, NIL, NIL))
 definition `invoke_config`
 
 ```
-invoke_config((s : _), (vargs : List[Value]), (i : Num)) == (s, empty_frame, APPEND(MAP(v_to_e, vargs), [Invoke(i)]))
+invoke_config((s : _), (vargs : List[Value]), (i : Num))
+  == (s, empty_frame, APPEND(MAP(v_to_e, vargs), [Invoke(i)]))
 ```
 
 ## Facts about reduction (props.mbt)
@@ -3482,41 +4347,82 @@ is_val((e : Einstr)) == (∃ v : Value, e == v_to_e(v))
 definition `lfill`
 
 ```
-lfill(LBase((vs : List[Value]), (rest : List[Einstr])), (es : List[Einstr])) == APPEND(MAP(v_to_e, vs), APPEND(es, rest))
-&& lfill(LRec((vs : List[Value]), (n : Num), (e0 : List[Einstr]), (l : Lholed), (rest : List[Einstr])), (es : List[Einstr])) == APPEND(MAP(v_to_e, vs), CONS(Label(n, e0, lfill(l, es)), rest))
+lfill(LBase((vs : List[Value]), (rest : List[Einstr])), (es : List[Einstr]))
+  == APPEND(MAP(v_to_e, vs), APPEND(es, rest))
+&& lfill(
+     LRec(
+       (vs : List[Value]),
+       (n : Num),
+       (e0 : List[Einstr]),
+       (l : Lholed),
+       (rest : List[Einstr])),
+     (es : List[Einstr]))
+     == APPEND(MAP(v_to_e, vs), CONS(Label(n, e0, lfill(l, es)), rest))
 ```
 
 definition `lh_depth`
 
 ```
 lh_depth(LBase((vs : List[Value]), (rest : List[Einstr]))) == 0
-&& lh_depth(LRec((vs : List[Value]), (n : Num), (e0 : List[Einstr]), (l : Lholed), (rest : List[Einstr]))) == lh_depth(l) + 1
+&& lh_depth(
+     LRec(
+       (vs : List[Value]),
+       (n : Num),
+       (e0 : List[Einstr]),
+       (l : Lholed),
+       (rest : List[Einstr])))
+     == lh_depth(l) + 1
 ```
 
 definition `lh_wrap`
 
 ```
-lh_wrap((vs : List[Value]), (rest : List[Einstr]), LBase((vs2 : List[Value]), (r2 : List[Einstr]))) == LBase(APPEND(vs, vs2), APPEND(r2, rest))
-&& lh_wrap((vs : List[Value]), (rest : List[Einstr]), LRec((vs2 : List[Value]), (n : Num), (e0 : List[Einstr]), (l : Lholed), (r2 : List[Einstr]))) == LRec(APPEND(vs, vs2), n, e0, l, APPEND(r2, rest))
+lh_wrap(
+  (vs : List[Value]),
+  (rest : List[Einstr]),
+  LBase((vs2 : List[Value]), (r2 : List[Einstr])))
+  == LBase(APPEND(vs, vs2), APPEND(r2, rest))
+&& lh_wrap(
+     (vs : List[Value]),
+     (rest : List[Einstr]),
+     LRec(
+       (vs2 : List[Value]),
+       (n : Num),
+       (e0 : List[Einstr]),
+       (l : Lholed),
+       (r2 : List[Einstr])))
+     == LRec(APPEND(vs, vs2), n, e0, l, APPEND(r2, rest))
 ```
 
 definition `lh_compose`
 
 ```
-lh_compose(LBase((vs : List[Value]), (rest : List[Einstr])), (l2 : Lholed)) == lh_wrap(vs, rest, l2)
-&& lh_compose(LRec((vs : List[Value]), (n : Num), (e0 : List[Einstr]), (l : Lholed), (rest : List[Einstr])), (l2 : Lholed)) == LRec(vs, n, e0, lh_compose(l, l2), rest)
+lh_compose(LBase((vs : List[Value]), (rest : List[Einstr])), (l2 : Lholed))
+  == lh_wrap(vs, rest, l2)
+&& lh_compose(
+     LRec(
+       (vs : List[Value]),
+       (n : Num),
+       (e0 : List[Einstr]),
+       (l : Lholed),
+       (rest : List[Einstr])),
+     (l2 : Lholed))
+     == LRec(vs, n, e0, lh_compose(l, l2), rest)
 ```
 
 definition `last_redex`
 
 ```
-last_redex((es : List[Einstr])) == (!(es == NIL) && ALL(is_val, BUTLAST(es)) && !is_val(LAST(es)))
+last_redex((es : List[Einstr]))
+  == (!(es == NIL) && ALL(is_val, BUTLAST(es)) && !is_val(LAST(es)))
 ```
 
 definition `trap_top`
 
 ```
-trap_top((es : List[Einstr])) == (∃ vs : List[Value], ∃ r : List[Einstr], es == APPEND(MAP(v_to_e, vs), CONS(Trap, r)))
+trap_top((es : List[Einstr])) == (
+  ∃ vs : List[Value],
+    ∃ r : List[Einstr], es == APPEND(MAP(v_to_e, vs), CONS(Trap, r)))
 ```
 
 relation `reduce_base`
@@ -3538,14 +4444,28 @@ if
   3. stypes(i, j) == tf
   4. cl_type(EL(i_cl, s_funcs(s))) == tf
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(c))), Basic(Call_indirect(ti, j))], s, f, [Invoke(i_cl)])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(c))), Basic(Call_indirect(ti, j))],
+    s,
+    f,
+    [Invoke(i_cl)])
 
 ∀ (i_cl ti j : Num) (i : Inst) (c : W32) (s : Wstore) (f : Wframe)
 if
   1. f_inst(f) == i
-  2. stab(s, i, ti, val(c)) == SOME(ConstRefFunc(i_cl)) && !(stypes(i, j) == cl_type(EL(i_cl, s_funcs(s)))) || !is_some_const_ref_func(stab(s, i, ti, val(c)))
+  2. stab(s, i, ti, val(c)) == SOME(ConstRefFunc(i_cl))
+     && !(stypes(i, j) == cl_type(EL(i_cl, s_funcs(s))))
+     || !is_some_const_ref_func(stab(s, i, ti, val(c)))
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(c))), Basic(Call_indirect(ti, j))], s, f, [Trap])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(c))), Basic(Call_indirect(ti, j))],
+    s,
+    f,
+    [Trap])
 
 ∀ (k n i_cl m : Num) (t1s t2s ts : List[Valtype]) (ves : List[Einstr])
   (s : Wstore) (f : Wframe) (vcs zs : List[Value]) (j : Inst) (es : List[B_e])
@@ -3558,7 +4478,13 @@ if
   6. LENGTH(t2s) == m
   7. n_zeros(ts) == SOME(zs)
 then
-  reduce_base(s, f, APPEND(ves, [Invoke(i_cl)]), s, f, [Frame(m, Wframe(APPEND(vcs, zs), j), [Label(m, NIL, MAP(Basic, es))])])
+  reduce_base(
+    s,
+    f,
+    APPEND(ves, [Invoke(i_cl)]),
+    s,
+    f,
+    [Frame(m, Wframe(APPEND(vcs, zs), j), [Label(m, NIL, MAP(Basic, es))])])
 
 ∀ (n m i_cl : Num) (t1s t2s : List[Valtype]) (hf : Host_func)
   (vcs vcs' : List[Value]) (hs : Host_state) (s s' : Wstore)
@@ -3601,10 +4527,22 @@ then
 if
   1. LENGTH(vi) == j
 then
-  reduce_base(s, Wframe(APPEND(vi, APPEND([v], vs)), i), [v_to_e(v'), Basic(Local_set(j))], s, Wframe(APPEND(vi, APPEND([v'], vs)), i), NIL)
+  reduce_base(
+    s,
+    Wframe(APPEND(vi, APPEND([v], vs)), i),
+    [v_to_e(v'), Basic(Local_set(j))],
+    s,
+    Wframe(APPEND(vi, APPEND([v'], vs)), i),
+    NIL)
 
 ∀ (s : Wstore) (f : Wframe) (j : Num),
-  reduce_base(s, f, [Basic(Global_get(j))], s, f, [v_to_e(sglob_val(s, f_inst(f), j))])
+  reduce_base(
+    s,
+    f,
+    [Basic(Global_get(j))],
+    s,
+    f,
+    [v_to_e(sglob_val(s, f_inst(f), j))])
 
 ∀ (s s' : Wstore) (v : Value) (j : Num) (f : Wframe)
 if
@@ -3619,7 +4557,13 @@ if
   2. EL(j, s_mems(s)) == m
   3. load(m, val(k), off, t_num_length(t)) == SOME(bs)
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(Load(t, NONE, a, off))], s, f, [Basic(EConstNum(wasm_deserialise_num(bs, t)))])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(Load(t, NONE, a, off))],
+    s,
+    f,
+    [Basic(EConstNum(wasm_deserialise_num(bs, t)))])
 
 ∀ (j a off : Num) (m : (Limit_t, List[Byte])) (k : W32) (t : T_num) (s : Wstore)
   (f : Wframe)
@@ -3628,16 +4572,29 @@ if
   2. EL(j, s_mems(s)) == m
   3. load(m, val(k), off, t_num_length(t)) == NONE
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(Load(t, NONE, a, off))], s, f, [Trap])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(Load(t, NONE, a, off))],
+    s,
+    f,
+    [Trap])
 
 ∀ (j a off : Num) (m : (Limit_t, List[Byte])) (k : W32) (tp : Tp_num) (sx : Sx)
   (s : Wstore) (f : Wframe) (bs : List[Byte]) (t : T_num)
 if
   1. smem_ind(f_inst(f)) == SOME(j)
   2. EL(j, s_mems(s)) == m
-  3. load_packed(sx, m, val(k), off, tp_num_length(tp), t_num_length(t)) == SOME(bs)
+  3. load_packed(sx, m, val(k), off, tp_num_length(tp), t_num_length(t))
+       == SOME(bs)
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(Load(t, SOME((tp, sx)), a, off))], s, f, [Basic(EConstNum(wasm_deserialise_num(bs, t)))])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(Load(t, SOME((tp, sx)), a, off))],
+    s,
+    f,
+    [Basic(EConstNum(wasm_deserialise_num(bs, t)))])
 
 ∀ (j a off : Num) (m : (Limit_t, List[Byte])) (k : W32) (t : T_num)
   (tp : Tp_num) (sx : Sx) (s : Wstore) (f : Wframe)
@@ -3646,7 +4603,13 @@ if
   2. EL(j, s_mems(s)) == m
   3. load_packed(sx, m, val(k), off, tp_num_length(tp), t_num_length(t)) == NONE
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(Load(t, SOME((tp, sx)), a, off))], s, f, [Trap])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(Load(t, SOME((tp, sx)), a, off))],
+    s,
+    f,
+    [Trap])
 
 ∀ (m mem' : (Limit_t, List[Byte])) (k : W32) (v : V_num) (t : T_num)
   (a off j : Num) (s : Wstore) (f : Wframe)
@@ -3656,7 +4619,14 @@ if
   3. EL(j, s_mems(s)) == m
   4. store(m, val(k), off, bits_num(v), t_num_length(t)) == SOME(mem')
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(EConstNum(v)), Basic(Store(t, NONE, a, off))], s_mems_update(list_update(s_mems(s), j, mem'), s), f, NIL)
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(EConstNum(v)),
+     Basic(Store(t, NONE, a, off))],
+    s_mems_update(list_update(s_mems(s), j, mem'), s),
+    f,
+    NIL)
 
 ∀ (j a off : Num) (m : (Limit_t, List[Byte])) (k : W32) (v : V_num) (t : T_num)
   (s : Wstore) (f : Wframe)
@@ -3666,7 +4636,14 @@ if
   3. EL(j, s_mems(s)) == m
   4. store(m, val(k), off, bits_num(v), t_num_length(t)) == NONE
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(EConstNum(v)), Basic(Store(t, NONE, a, off))], s, f, [Trap])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(EConstNum(v)),
+     Basic(Store(t, NONE, a, off))],
+    s,
+    f,
+    [Trap])
 
 ∀ (m mem' : (Limit_t, List[Byte])) (k : W32) (v : V_num) (t : T_num)
   (tp : Tp_num) (a off j : Num) (s : Wstore) (f : Wframe)
@@ -3676,7 +4653,14 @@ if
   3. EL(j, s_mems(s)) == m
   4. store_packed(m, val(k), off, bits_num(v), tp_num_length(tp)) == SOME(mem')
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(EConstNum(v)), Basic(Store(t, SOME(tp), a, off))], s_mems_update(list_update(s_mems(s), j, mem'), s), f, NIL)
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(EConstNum(v)),
+     Basic(Store(t, SOME(tp), a, off))],
+    s_mems_update(list_update(s_mems(s), j, mem'), s),
+    f,
+    NIL)
 
 ∀ (j a off : Num) (m : (Limit_t, List[Byte])) (k : W32) (v : V_num) (t : T_num)
   (tp : Tp_num) (s : Wstore) (f : Wframe)
@@ -3686,7 +4670,14 @@ if
   3. EL(j, s_mems(s)) == m
   4. store_packed(m, val(k), off, bits_num(v), tp_num_length(tp)) == NONE
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(EConstNum(v)), Basic(Store(t, SOME(tp), a, off))], s, f, [Trap])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(EConstNum(v)),
+     Basic(Store(t, SOME(tp), a, off))],
+    s,
+    f,
+    [Trap])
 
 ∀ (j a off : Num) (m : (Limit_t, List[Byte])) (k : W32) (lv : Loadop_vec)
   (s : Wstore) (f : Wframe) (bs : List[Byte])
@@ -3695,7 +4686,13 @@ if
   2. EL(j, s_mems(s)) == m
   3. load_vec(lv, m, val(k), off) == SOME(bs)
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(Load_vec(lv, a, off))], s, f, [Basic(EConstVec(ConstVec128(deserialise_v128(bs))))])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(Load_vec(lv, a, off))],
+    s,
+    f,
+    [Basic(EConstVec(ConstVec128(deserialise_v128(bs))))])
 
 ∀ (j a off : Num) (m : (Limit_t, List[Byte])) (k : W32) (lv : Loadop_vec)
   (s : Wstore) (f : Wframe)
@@ -3704,7 +4701,13 @@ if
   2. EL(j, s_mems(s)) == m
   3. load_vec(lv, m, val(k), off) == NONE
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(Load_vec(lv, a, off))], s, f, [Trap])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(Load_vec(lv, a, off))],
+    s,
+    f,
+    [Trap])
 
 ∀ (j a off i : Num) (m : (Limit_t, List[Byte])) (k : W32) (s : Wstore)
   (f : Wframe) (svi : Shape_vec_i) (bs : List[Byte]) (v : V128)
@@ -3713,7 +4716,14 @@ if
   2. EL(j, s_mems(s)) == m
   3. load(m, val(k), off, vec_i_length(svi)) == SOME(bs)
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(EConstVec(ConstVec128(v))), Basic(Load_lane_vec(svi, i, a, off))], s, f, [Basic(EConstVec(ConstVec128(insert_lane_vec(svi, i, bs, v))))])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(EConstVec(ConstVec128(v))),
+     Basic(Load_lane_vec(svi, i, a, off))],
+    s,
+    f,
+    [Basic(EConstVec(ConstVec128(insert_lane_vec(svi, i, bs, v))))])
 
 ∀ (j i a off : Num) (m : (Limit_t, List[Byte])) (k : W32) (v : V128)
   (svi : Shape_vec_i) (s : Wstore) (f : Wframe)
@@ -3722,7 +4732,14 @@ if
   2. EL(j, s_mems(s)) == m
   3. load(m, val(k), off, vec_i_length(svi)) == NONE
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(EConstVec(ConstVec128(v))), Basic(Load_lane_vec(svi, i, a, off))], s, f, [Trap])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(EConstVec(ConstVec128(v))),
+     Basic(Load_lane_vec(svi, i, a, off))],
+    s,
+    f,
+    [Trap])
 
 ∀ (m mem' : (Limit_t, List[Byte])) (bs : List[Byte]) (k : W32) (v : V128)
   (sv : Storeop_vec) (a off j : Num) (s : Wstore) (f : Wframe)
@@ -3732,7 +4749,14 @@ if
   3. store_serialise_vec(sv, v) == bs
   4. store(m, val(k), off, bs, LENGTH(bs)) == SOME(mem')
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(EConstVec(ConstVec128(v))), Basic(Store_vec(sv, a, off))], s_mems_update(list_update(s_mems(s), j, mem'), s), f, NIL)
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(EConstVec(ConstVec128(v))),
+     Basic(Store_vec(sv, a, off))],
+    s_mems_update(list_update(s_mems(s), j, mem'), s),
+    f,
+    NIL)
 
 ∀ (j a off : Num) (m : (Limit_t, List[Byte])) (bs : List[Byte]) (k : W32)
   (v : V128) (sv : Storeop_vec) (s : Wstore) (f : Wframe)
@@ -3742,7 +4766,14 @@ if
   3. store_serialise_vec(sv, v) == bs
   4. store(m, val(k), off, bs, LENGTH(bs)) == NONE
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(k))), Basic(EConstVec(ConstVec128(v))), Basic(Store_vec(sv, a, off))], s, f, [Trap])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(k))), Basic(EConstVec(ConstVec128(v))),
+     Basic(Store_vec(sv, a, off))],
+    s,
+    f,
+    [Trap])
 
 ∀ (j n : Num) (m : (Limit_t, List[Byte])) (s : Wstore) (f : Wframe)
 if
@@ -3750,7 +4781,13 @@ if
   2. EL(j, s_mems(s)) == m
   3. mem_size(m) == n
 then
-  reduce_base(s, f, [Basic(Memory_size)], s, f, [Basic(EConstNum(ConstInt32(word(n))))])
+  reduce_base(
+    s,
+    f,
+    [Basic(Memory_size)],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(word(n))))])
 
 ∀ (m mem' : (Limit_t, List[Byte])) (c : W32) (j n : Num) (s : Wstore)
   (f : Wframe)
@@ -3760,7 +4797,13 @@ if
   3. mem_size(m) == n
   4. mem_grow(m, val(c)) == SOME(mem')
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(c))), Basic(Memory_grow)], s_mems_update(list_update(s_mems(s), j, mem'), s), f, [Basic(EConstNum(ConstInt32(word(n))))])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(c))), Basic(Memory_grow)],
+    s_mems_update(list_update(s_mems(s), j, mem'), s),
+    f,
+    [Basic(EConstNum(ConstInt32(word(n))))])
 
 ∀ (j n : Num) (m : (Limit_t, List[Byte])) (c : W32) (s : Wstore) (f : Wframe)
 if
@@ -3768,21 +4811,39 @@ if
   2. EL(j, s_mems(s)) == m
   3. mem_size(m) == n
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(c))), Basic(Memory_grow)], s, f, [Basic(EConstNum(ConstInt32(int32_minus_one)))])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(c))), Basic(Memory_grow)],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(int32_minus_one)))])
 
 ∀ (a ti : Num) (n : W32) (s : Wstore) (f : Wframe) (tv : V_ref)
 if
   1. stab_ind(f_inst(f), ti) == SOME(a)
   2. load_tabs1(s_tabs(s), a, val(n)) == SOME(tv)
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(n))), Basic(Table_get(ti))], s, f, [Ref(tv)])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(n))), Basic(Table_get(ti))],
+    s,
+    f,
+    [Ref(tv)])
 
 ∀ (a ti : Num) (n : W32) (s : Wstore) (f : Wframe)
 if
   1. stab_ind(f_inst(f), ti) == SOME(a)
   2. load_tabs1(s_tabs(s), a, val(n)) == NONE
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(n))), Basic(Table_get(ti))], s, f, [Trap])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(n))), Basic(Table_get(ti))],
+    s,
+    f,
+    [Trap])
 
 ∀ (a ti : Num) (n : W32) (vr : V_ref) (tabs' : List[(Tab_t, List[V_ref])])
   (s : Wstore) (f : Wframe)
@@ -3790,14 +4851,26 @@ if
   1. stab_ind(f_inst(f), ti) == SOME(a)
   2. store_tabs1(s_tabs(s), a, val(n), vr) == SOME(tabs')
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(n))), Ref(vr), Basic(Table_set(ti))], s_tabs_update(tabs', s), f, NIL)
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(n))), Ref(vr), Basic(Table_set(ti))],
+    s_tabs_update(tabs', s),
+    f,
+    NIL)
 
 ∀ (a ti : Num) (n : W32) (vr : V_ref) (s : Wstore) (f : Wframe)
 if
   1. stab_ind(f_inst(f), ti) == SOME(a)
   2. store_tabs1(s_tabs(s), a, val(n), vr) == NONE
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(n))), Ref(vr), Basic(Table_set(ti))], s, f, [Trap])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(n))), Ref(vr), Basic(Table_set(ti))],
+    s,
+    f,
+    [Trap])
 
 ∀ (a ti n : Num) (t : (Tab_t, List[V_ref])) (s : Wstore) (f : Wframe)
 if
@@ -3805,7 +4878,13 @@ if
   2. EL(a, s_tabs(s)) == t
   3. tab_size(t) == n
 then
-  reduce_base(s, f, [Basic(Table_size(ti))], s, f, [Basic(EConstNum(ConstInt32(word(n))))])
+  reduce_base(
+    s,
+    f,
+    [Basic(Table_size(ti))],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(word(n))))])
 
 ∀ (tab tab' : (Tab_t, List[V_ref])) (vr : V_ref) (n : W32) (ti a sz : Num)
   (s : Wstore) (f : Wframe)
@@ -3815,10 +4894,22 @@ if
   3. sz == tab_size(tab)
   4. grow_tab(tab, val(n), vr) == SOME(tab')
 then
-  reduce_base(s, f, [Ref(vr), Basic(EConstNum(ConstInt32(n))), Basic(Table_grow(ti))], s_tabs_update(list_update(s_tabs(s), a, tab'), s), f, [Basic(EConstNum(ConstInt32(word(sz))))])
+  reduce_base(
+    s,
+    f,
+    [Ref(vr), Basic(EConstNum(ConstInt32(n))), Basic(Table_grow(ti))],
+    s_tabs_update(list_update(s_tabs(s), a, tab'), s),
+    f,
+    [Basic(EConstNum(ConstInt32(word(sz))))])
 
 ∀ (vr : V_ref) (n : W32) (ti : Num) (s : Wstore) (f : Wframe),
-  reduce_base(s, f, [Ref(vr), Basic(EConstNum(ConstInt32(n))), Basic(Table_grow(ti))], s, f, [Basic(EConstNum(ConstInt32(int32_minus_one)))])
+  reduce_base(
+    s,
+    f,
+    [Ref(vr), Basic(EConstNum(ConstInt32(n))), Basic(Table_grow(ti))],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(int32_minus_one)))])
 
 ∀ (t1s t2s : List[Valtype]) (n m : Num) (tb : Tb) (s : Wstore) (f : Wframe)
   (vs : List[Value]) (es : List[B_e])
@@ -3828,7 +4919,13 @@ if
   3. LENGTH(t1s) == n
   4. LENGTH(t2s) == m
 then
-  reduce_base(s, f, APPEND(MAP(v_to_e, vs), [Basic(Block(tb, es))]), s, f, [Label(m, NIL, APPEND(MAP(v_to_e, vs), MAP(Basic, es)))])
+  reduce_base(
+    s,
+    f,
+    APPEND(MAP(v_to_e, vs), [Basic(Block(tb, es))]),
+    s,
+    f,
+    [Label(m, NIL, APPEND(MAP(v_to_e, vs), MAP(Basic, es)))])
 
 ∀ (t1s t2s : List[Valtype]) (m n : Num) (s : Wstore) (f : Wframe) (tb : Tb)
   (vs : List[Value]) (es : List[B_e])
@@ -3838,7 +4935,13 @@ if
   3. LENGTH(t1s) == n
   4. LENGTH(t2s) == m
 then
-  reduce_base(s, f, APPEND(MAP(v_to_e, vs), [Basic(Loop(tb, es))]), s, f, [Label(n, [Basic(Loop(tb, es))], APPEND(MAP(v_to_e, vs), MAP(Basic, es)))])
+  reduce_base(
+    s,
+    f,
+    APPEND(MAP(v_to_e, vs), [Basic(Loop(tb, es))]),
+    s,
+    f,
+    [Label(n, [Basic(Loop(tb, es))], APPEND(MAP(v_to_e, vs), MAP(Basic, es)))])
 
 ∀ (s s' : Wstore) (f f0 f' : Wframe) (es es' : List[Einstr]) (n : Num)
 if
@@ -3858,7 +4961,14 @@ if
   7. nn == val(n)
   8. nsrc + nn > LENGTH(dat) || ndest + nn > mem_length(m)
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_init(x))], s, f, [Trap])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_init(x))],
+    s,
+    f,
+    [Trap])
 
 ∀ (ma da nsrc ndest nn x : Num) (dat : List[Byte]) (m : (Limit_t, List[Byte]))
   (dest src n : W32) (s : Wstore) (f : Wframe)
@@ -3874,7 +4984,14 @@ if
   9. ndest + nn <= mem_length(m)
   10. nn == 0
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_init(x))], s, f, NIL)
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_init(x))],
+    s,
+    f,
+    NIL)
 
 ∀ (ma da nn b ndest nsrc nn_pred x : Num) (m : (Limit_t, List[Byte]))
   (dat : List[Byte]) (dest src n : W32) (s : Wstore) (f : Wframe)
@@ -3891,7 +5008,19 @@ if
   10. nn == nn_pred + 1
   11. b == val(EL(nsrc, dat))
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_init(x))], s, f, [Basic(EConstNum(ConstInt32(word(ndest)))), Basic(EConstNum(ConstInt32(word(b)))), Basic(Store(T_i32, SOME(Tp_i8), 0, 0)), Basic(EConstNum(ConstInt32(word(ndest + 1)))), Basic(EConstNum(ConstInt32(word(nsrc + 1)))), Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Memory_init(x))])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_init(x))],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(word(ndest)))),
+     Basic(EConstNum(ConstInt32(word(b)))),
+     Basic(Store(T_i32, SOME(Tp_i8), 0, 0)),
+     Basic(EConstNum(ConstInt32(word(ndest + 1)))),
+     Basic(EConstNum(ConstInt32(word(nsrc + 1)))),
+     Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Memory_init(x))])
 
 ∀ (ma nsrc ndest nn : Num) (m : (Limit_t, List[Byte])) (dest src n : W32)
   (s : Wstore) (f : Wframe)
@@ -3903,7 +5032,14 @@ if
   5. nn == val(n)
   6. nsrc + nn > mem_length(m) || ndest + nn > mem_length(m)
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_copy)], s, f, [Trap])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_copy)],
+    s,
+    f,
+    [Trap])
 
 ∀ (ma nsrc ndest nn : Num) (m : (Limit_t, List[Byte])) (dest src n : W32)
   (s : Wstore) (f : Wframe)
@@ -3917,7 +5053,14 @@ if
   7. ndest + nn <= mem_length(m)
   8. nn == 0
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_copy)], s, f, NIL)
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_copy)],
+    s,
+    f,
+    NIL)
 
 ∀ (ma nn ndest nsrc nn_pred : Num) (m : (Limit_t, List[Byte]))
   (n dest src : W32) (s : Wstore) (f : Wframe)
@@ -3932,7 +5075,19 @@ if
   8. nn == nn_pred + 1
   9. ndest <= nsrc
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_copy)], s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(Load(T_i32, SOME((Tp_i8, U)), 0, 0)), Basic(Store(T_i32, SOME(Tp_i8), 0, 0)), Basic(EConstNum(ConstInt32(word(ndest + 1)))), Basic(EConstNum(ConstInt32(word(nsrc + 1)))), Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Memory_copy)])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_copy)],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(Load(T_i32, SOME((Tp_i8, U)), 0, 0)),
+     Basic(Store(T_i32, SOME(Tp_i8), 0, 0)),
+     Basic(EConstNum(ConstInt32(word(ndest + 1)))),
+     Basic(EConstNum(ConstInt32(word(nsrc + 1)))),
+     Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Memory_copy)])
 
 ∀ (ma nn ndest nsrc nn_pred : Num) (m : (Limit_t, List[Byte]))
   (n dest src : W32) (s : Wstore) (f : Wframe)
@@ -3947,7 +5102,19 @@ if
   8. nn == nn_pred + 1
   9. ndest > nsrc
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_copy)], s, f, [Basic(EConstNum(ConstInt32(word(ndest + nn_pred)))), Basic(EConstNum(ConstInt32(word(nsrc + nn_pred)))), Basic(Load(T_i32, SOME((Tp_i8, U)), 0, 0)), Basic(Store(T_i32, SOME(Tp_i8), 0, 0)), Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Memory_copy)])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_copy)],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(word(ndest + nn_pred)))),
+     Basic(EConstNum(ConstInt32(word(nsrc + nn_pred)))),
+     Basic(Load(T_i32, SOME((Tp_i8, U)), 0, 0)),
+     Basic(Store(T_i32, SOME(Tp_i8), 0, 0)),
+     Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Memory_copy)])
 
 ∀ (ma ndest nn : Num) (m : (Limit_t, List[Byte])) (dest fv n : W32) (s : Wstore)
   (f : Wframe)
@@ -3958,7 +5125,14 @@ if
   4. nn == val(n)
   5. ndest + nn > mem_length(m)
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(fv))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_fill)], s, f, [Trap])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(fv))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_fill)],
+    s,
+    f,
+    [Trap])
 
 ∀ (ma ndest nn : Num) (m : (Limit_t, List[Byte])) (dest fv n : W32) (s : Wstore)
   (f : Wframe)
@@ -3970,7 +5144,14 @@ if
   5. ndest + nn <= mem_length(m)
   6. nn == 0
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(fv))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_fill)], s, f, NIL)
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(fv))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_fill)],
+    s,
+    f,
+    NIL)
 
 ∀ (ma nn ndest nn_pred : Num) (m : (Limit_t, List[Byte])) (n dest fv : W32)
   (s : Wstore) (f : Wframe)
@@ -3982,7 +5163,18 @@ if
   5. ndest + nn <= mem_length(m)
   6. nn == nn_pred + 1
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(fv))), Basic(EConstNum(ConstInt32(n))), Basic(Memory_fill)], s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(fv))), Basic(Store(T_i32, SOME(Tp_i8), 0, 0)), Basic(EConstNum(ConstInt32(word(ndest + 1)))), Basic(EConstNum(ConstInt32(fv))), Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Memory_fill)])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(fv))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Memory_fill)],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(fv))),
+     Basic(Store(T_i32, SOME(Tp_i8), 0, 0)),
+     Basic(EConstNum(ConstInt32(word(ndest + 1)))),
+     Basic(EConstNum(ConstInt32(fv))),
+     Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Memory_fill)])
 
 ∀ (ta ea nsrc ndest nn x y : Num) (el : (T_ref, List[V_ref]))
   (tab : (Tab_t, List[V_ref])) (dest src n : W32) (s : Wstore) (f : Wframe)
@@ -3996,7 +5188,14 @@ if
   7. nn == val(n)
   8. nsrc + nn > LENGTH(SND(el)) || ndest + nn > LENGTH(SND(tab))
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Table_init(x, y))], s, f, [Trap])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_init(x, y))],
+    s,
+    f,
+    [Trap])
 
 ∀ (ta ea nsrc ndest nn x y : Num) (el : (T_ref, List[V_ref]))
   (tab : (Tab_t, List[V_ref])) (dest src n : W32) (s : Wstore) (f : Wframe)
@@ -4012,7 +5211,14 @@ if
   9. ndest + nn <= LENGTH(SND(tab))
   10. nn == 0
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Table_init(x, y))], s, f, NIL)
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_init(x, y))],
+    s,
+    f,
+    NIL)
 
 ∀ (ta ea nn ndest nsrc nn_pred x y : Num) (tab : (Tab_t, List[V_ref]))
   (el : (T_ref, List[V_ref])) (src n dest : W32) (s : Wstore) (f : Wframe)
@@ -4030,7 +5236,17 @@ if
   10. nn == nn_pred + 1
   11. tv == EL(nsrc, SND(el))
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Table_init(x, y))], s, f, [Basic(EConstNum(ConstInt32(dest))), v_to_e(V_ref(tv)), Basic(Table_set(x)), Basic(EConstNum(ConstInt32(word(ndest + 1)))), Basic(EConstNum(ConstInt32(word(nsrc + 1)))), Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Table_init(x, y))])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_init(x, y))],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), v_to_e(V_ref(tv)),
+     Basic(Table_set(x)), Basic(EConstNum(ConstInt32(word(ndest + 1)))),
+     Basic(EConstNum(ConstInt32(word(nsrc + 1)))),
+     Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Table_init(x, y))])
 
 ∀ (ta ni nn x : Num) (tab : (Tab_t, List[V_ref])) (i n : W32) (vr : V_ref)
   (s : Wstore) (f : Wframe)
@@ -4041,7 +5257,14 @@ if
   4. nn == val(n)
   5. ni + nn > LENGTH(SND(tab))
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(i))), v_to_e(V_ref(vr)), Basic(EConstNum(ConstInt32(n))), Basic(Table_fill(x))], s, f, [Trap])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(i))), v_to_e(V_ref(vr)),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_fill(x))],
+    s,
+    f,
+    [Trap])
 
 ∀ (ta ni nn x : Num) (tab : (Tab_t, List[V_ref])) (i n : W32) (vr : V_ref)
   (s : Wstore) (f : Wframe)
@@ -4053,7 +5276,14 @@ if
   5. ni + nn <= LENGTH(SND(tab))
   6. nn == 0
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(i))), v_to_e(V_ref(vr)), Basic(EConstNum(ConstInt32(n))), Basic(Table_fill(x))], s, f, NIL)
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(i))), v_to_e(V_ref(vr)),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_fill(x))],
+    s,
+    f,
+    NIL)
 
 ∀ (ta nn ni nn_pred x : Num) (tab : (Tab_t, List[V_ref])) (n i : W32)
   (s : Wstore) (f : Wframe) (vr : V_ref)
@@ -4065,7 +5295,16 @@ if
   5. ni + nn <= LENGTH(SND(tab))
   6. nn == nn_pred + 1
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(i))), v_to_e(V_ref(vr)), Basic(EConstNum(ConstInt32(n))), Basic(Table_fill(x))], s, f, [Basic(EConstNum(ConstInt32(i))), v_to_e(V_ref(vr)), Basic(Table_set(x)), Basic(EConstNum(ConstInt32(word(ni + 1)))), v_to_e(V_ref(vr)), Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Table_fill(x))])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(i))), v_to_e(V_ref(vr)),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_fill(x))],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(i))), v_to_e(V_ref(vr)), Basic(Table_set(x)),
+     Basic(EConstNum(ConstInt32(word(ni + 1)))), v_to_e(V_ref(vr)),
+     Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Table_fill(x))])
 
 ∀ (tax tay ty nrsc nsrc ndest nn x y : Num) (tabx taby : (Tab_t, List[V_ref]))
   (dest src n : W32) (s : Wstore) (f : Wframe)
@@ -4079,7 +5318,14 @@ if
   7. nn == val(n)
   8. nsrc + nn > LENGTH(SND(tabx)) || ndest + nn > LENGTH(SND(taby))
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Table_copy(x, y))], s, f, [Trap])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_copy(x, y))],
+    s,
+    f,
+    [Trap])
 
 ∀ (tax tay ty nrsc nsrc ndest nn x y : Num) (tabx taby : (Tab_t, List[V_ref]))
   (dest src n : W32) (s : Wstore) (f : Wframe)
@@ -4095,7 +5341,14 @@ if
   9. ndest + nn <= LENGTH(SND(taby))
   10. nn == 0
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Table_copy(x, y))], s, f, NIL)
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_copy(x, y))],
+    s,
+    f,
+    NIL)
 
 ∀ (tax tay ty nrsc nn ndest nsrc nn_pred x y : Num)
   (tabx taby : (Tab_t, List[V_ref])) (n dest src : W32) (s : Wstore)
@@ -4113,7 +5366,18 @@ if
   10. nn == nn_pred + 1
   11. ndest <= nsrc
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Table_copy(x, y))], s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(Table_get(y)), Basic(Table_set(x)), Basic(EConstNum(ConstInt32(word(ndest + 1)))), Basic(EConstNum(ConstInt32(word(nsrc + 1)))), Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Table_copy(x, y))])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_copy(x, y))],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(Table_get(y)), Basic(Table_set(x)),
+     Basic(EConstNum(ConstInt32(word(ndest + 1)))),
+     Basic(EConstNum(ConstInt32(word(nsrc + 1)))),
+     Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Table_copy(x, y))])
 
 ∀ (tax tay ty nrsc nn ndest nsrc nn_pred x y : Num)
   (tabx taby : (Tab_t, List[V_ref])) (n dest src : W32) (s : Wstore)
@@ -4131,33 +5395,62 @@ if
   10. nn == nn_pred + 1
   11. ndest > nsrc
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(n))), Basic(Table_copy(x, y))], s, f, [Basic(EConstNum(ConstInt32(word(ndest + nn_pred)))), Basic(EConstNum(ConstInt32(word(nsrc + nn_pred)))), Basic(Table_get(y)), Basic(Table_set(x)), Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))), Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Table_copy(x, y))])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(dest))), Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(n))), Basic(Table_copy(x, y))],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(word(ndest + nn_pred)))),
+     Basic(EConstNum(ConstInt32(word(nsrc + nn_pred)))), Basic(Table_get(y)),
+     Basic(Table_set(x)), Basic(EConstNum(ConstInt32(dest))),
+     Basic(EConstNum(ConstInt32(src))),
+     Basic(EConstNum(ConstInt32(word(nn_pred)))), Basic(Table_copy(x, y))])
 
 ∀ (x a : Num) (s : Wstore) (f : Wframe)
 if
   1. a == EL(x, inst_elems(f_inst(f)))
 then
-  reduce_base(s, f, [Basic(Elem_drop(x))], s_elems_update(list_update(s_elems(s), a, (FST(EL(a, s_elems(s))), NIL)), s), f, NIL)
+  reduce_base(
+    s,
+    f,
+    [Basic(Elem_drop(x))],
+    s_elems_update(
+      list_update(s_elems(s), a, (FST(EL(a, s_elems(s))), NIL)),
+      s),
+    f,
+    NIL)
 
 ∀ (x a : Num) (s : Wstore) (f : Wframe)
 if
   1. a == EL(x, inst_datas(f_inst(f)))
 then
-  reduce_base(s, f, [Basic(Data_drop(x))], s_datas_update(list_update(s_datas(s), a, NIL), s), f, NIL)
+  reduce_base(
+    s,
+    f,
+    [Basic(Data_drop(x))],
+    s_datas_update(list_update(s_datas(s), a, NIL), s),
+    f,
+    NIL)
 ```
 
 lemma `is_val_cases`
 
 ```
 ∀ (e : Einstr),
-  is_val(e) == ((∃ x : V_num, e == Basic(EConstNum(x))) || (∃ y : V_vec, e == Basic(EConstVec(y))) || (∃ r : V_ref, e == Ref(r)))
+  is_val(e) == (
+    (∃ x : V_num, e == Basic(EConstNum(x)))
+    || (∃ y : V_vec, e == Basic(EConstVec(y)))
+    || (∃ r : V_ref, e == Ref(r)))
 ```
 
 lemma `is_val_basic`
 
 ```
 ∀ (b : B_e),
-  is_val(Basic(b)) == ((∃ x : V_num, b == EConstNum(x)) || (∃ y : V_vec, b == EConstVec(y)))
+  is_val(Basic(b))
+    == ((∃ x : V_num, b == EConstNum(x)) || (∃ y : V_vec, b == EConstVec(y)))
 ```
 
 lemma `is_val_clauses`
@@ -4168,7 +5461,8 @@ lemma `is_val_clauses`
 && ∀ r : V_ref, is_val(Ref(r))
 && !is_val(Trap)
 && ∀ i : Num, !is_val(Invoke(i))
-&& ∀ n : Num, ∀ es : List[Einstr], ∀ les : List[Einstr], !is_val(Label(n, es, les))
+&& ∀ n : Num,
+     ∀ es : List[Einstr], ∀ les : List[Einstr], !is_val(Label(n, es, les))
 && ∀ n : Num, ∀ f : Wframe, ∀ es : List[Einstr], !is_val(Frame(n, f, es))
 && ∀ v : Value, is_val(v_to_e(v))
 ```
@@ -4184,13 +5478,17 @@ lemma `map_v_to_e_cons`
 
 ```
 ∀ (h : Einstr) (t : List[Einstr]) (vs : List[Value]),
-  (CONS(h, t) == MAP(v_to_e, vs)) == (∃ v : Value, ∃ vs2 : List[Value], vs == CONS(v, vs2) && h == v_to_e(v) && t == MAP(v_to_e, vs2))
+  (CONS(h, t) == MAP(v_to_e, vs)) == (
+    ∃ v : Value,
+      ∃ vs2 : List[Value],
+        vs == CONS(v, vs2) && h == v_to_e(v) && t == MAP(v_to_e, vs2))
 ```
 
 lemma `vals_map`
 
 ```
-∀ (es : List[Einstr]), ALL(is_val, es) == (∃ vs : List[Value], es == MAP(v_to_e, vs))
+∀ (es : List[Einstr]),
+  ALL(is_val, es) == (∃ vs : List[Value], es == MAP(v_to_e, vs))
 ```
 
 lemma `all_vals_map`
@@ -4219,7 +5517,11 @@ lemma `lfilled_rec`
 if
   1. Lfilled(k, l, es, lk)
 then
-  Lfilled(k + 1, LRec(vs, n, e0, l, rest), es, APPEND(MAP(v_to_e, vs), CONS(Label(n, e0, lk), rest)))
+  Lfilled(
+    k + 1,
+    LRec(vs, n, e0, l, rest),
+    es,
+    APPEND(MAP(v_to_e, vs), CONS(Label(n, e0, lk), rest)))
 ```
 
 lemma `lfilled_imp`
@@ -4254,7 +5556,8 @@ lemma `lfilled_eq`
 lemma `lfilled_lfill`
 
 ```
-∀ (lh : Lholed) (es : List[Einstr]), Lfilled(lh_depth(lh), lh, es, lfill(lh, es))
+∀ (lh : Lholed) (es : List[Einstr]),
+  Lfilled(lh_depth(lh), lh, es, lfill(lh, es))
 ```
 
 lemma `lfilled_deterministic`
@@ -4272,14 +5575,17 @@ lemma `lfill_wrap`
 
 ```
 ∀ (vs : List[Value]) (rest es : List[Einstr]) (l : Lholed),
-  lfill(lh_wrap(vs, rest, l), es) == APPEND(MAP(v_to_e, vs), APPEND(lfill(l, es), rest)) && lh_depth(lh_wrap(vs, rest, l)) == lh_depth(l)
+  lfill(lh_wrap(vs, rest, l), es)
+    == APPEND(MAP(v_to_e, vs), APPEND(lfill(l, es), rest))
+  && lh_depth(lh_wrap(vs, rest, l)) == lh_depth(l)
 ```
 
 lemma `lfill_compose`
 
 ```
 ∀ (lh l1 : Lholed) (es : List[Einstr]),
-  lfill(lh, lfill(l1, es)) == lfill(lh_compose(lh, l1), es) && lh_depth(lh_compose(lh, l1)) == lh_depth(lh) + lh_depth(l1)
+  lfill(lh, lfill(l1, es)) == lfill(lh_compose(lh, l1), es)
+  && lh_depth(lh_compose(lh, l1)) == lh_depth(lh) + lh_depth(l1)
 ```
 
 lemma `lfill_vals`
@@ -4336,7 +5642,8 @@ lemma `reduce_not_vals`
 lemma `reduce_not_trap`
 
 ```
-∀ (s s' : Wstore) (f f' : Wframe) (es' : List[Einstr]), !reduce(s, f, [Trap], s', f', es')
+∀ (s s' : Wstore) (f f' : Wframe) (es' : List[Einstr]),
+  !reduce(s, f, [Trap], s', f', es')
 ```
 
 lemma `reduce_base_reduce`
@@ -4389,7 +5696,13 @@ lemma `reduce_decompose`
 
 ```
 ∀ (s s' : Wstore) (f f' : Wframe) (les les' : List[Einstr]),
-  reduce(s, f, les, s', f', les') == (∃ lh : Lholed, ∃ e : List[Einstr], ∃ e' : List[Einstr], les == lfill(lh, e) && les' == lfill(lh, e') && reduce_base(s, f, e, s', f', e'))
+  reduce(s, f, les, s', f', les') == (
+    ∃ lh : Lholed,
+      ∃ e : List[Einstr],
+        ∃ e' : List[Einstr],
+          les == lfill(lh, e)
+          && les' == lfill(lh, e')
+          && reduce_base(s, f, e, s', f', e'))
 ```
 
 lemma `nil_eq_append`
@@ -4402,14 +5715,18 @@ lemma `cons_eq_append`
 
 ```
 ∀ (h : A) (t x y : List[A]),
-  (CONS(h, t) == APPEND(x, y)) == (x == NIL && y == CONS(h, t) || (∃ x2 : List[A], x == CONS(h, x2) && t == APPEND(x2, y)))
+  (CONS(h, t) == APPEND(x, y)) == (
+    x == NIL && y == CONS(h, t)
+    || (∃ x2 : List[A], x == CONS(h, x2) && t == APPEND(x2, y)))
 ```
 
 lemma `append_split`
 
 ```
 ∀ (a b c d : List[A]),
-  (APPEND(a, b) == APPEND(c, d)) == ((∃ m : List[A], a == APPEND(c, m) && d == APPEND(m, b)) || (∃ m : List[A], c == APPEND(a, m) && b == APPEND(m, d)))
+  (APPEND(a, b) == APPEND(c, d)) == (
+    (∃ m : List[A], a == APPEND(c, m) && d == APPEND(m, b))
+    || (∃ m : List[A], c == APPEND(a, m) && b == APPEND(m, d)))
 ```
 
 lemma `lfill_zero_trap`
@@ -4473,7 +5790,8 @@ lemma `map_app_assoc`
 
 ```
 ∀ (vs vs2 : List[Value]) (x : List[Einstr]),
-  APPEND(MAP(v_to_e, vs), APPEND(MAP(v_to_e, vs2), x)) == APPEND(MAP(v_to_e, APPEND(vs, vs2)), x)
+  APPEND(MAP(v_to_e, vs), APPEND(MAP(v_to_e, vs2), x))
+    == APPEND(MAP(v_to_e, APPEND(vs, vs2)), x)
 ```
 
 lemma `trap_top_vals`
@@ -4528,7 +5846,9 @@ lemma `last_redex_cases`
 
 ```
 ∀ (e : List[Einstr]),
-  last_redex(e) == (∃ vs2 : List[Value], ∃ h : Einstr, e == APPEND(MAP(v_to_e, vs2), [h]) && !is_val(h))
+  last_redex(e) == (
+    ∃ vs2 : List[Value],
+      ∃ h : Einstr, e == APPEND(MAP(v_to_e, vs2), [h]) && !is_val(h))
 ```
 
 lemma `lbase_split`
@@ -4551,14 +5871,16 @@ lemma `lfill_base_app`
 
 ```
 ∀ (vs : List[Value]) (x e2 es2 : List[Einstr]),
-  APPEND(lfill(LBase(vs, x), e2), es2) == APPEND(MAP(v_to_e, vs), APPEND(e2, APPEND(x, es2)))
+  APPEND(lfill(LBase(vs, x), e2), es2)
+    == APPEND(MAP(v_to_e, vs), APPEND(e2, APPEND(x, es2)))
 ```
 
 lemma `lfill_rec_app`
 
 ```
 ∀ (vs : List[Value]) (n : Num) (e0 x e2 es2 : List[Einstr]) (l : Lholed),
-  APPEND(lfill(LRec(vs, n, e0, l, x), e2), es2) == APPEND(MAP(v_to_e, vs), CONS(Label(n, e0, lfill(l, e2)), APPEND(x, es2)))
+  APPEND(lfill(LRec(vs, n, e0, l, x), e2), es2)
+    == APPEND(MAP(v_to_e, vs), CONS(Label(n, e0, lfill(l, e2)), APPEND(x, es2)))
 ```
 
 lemma `lrec_split_label`
@@ -4646,7 +5968,8 @@ if
   4. last_redex(e) || trap_top(e)
 then
   rest == NIL
-  && ∃ suf : List[Einstr], cs == APPEND(MAP(v_to_e, vs), suf) && e == APPEND(suf, [x])
+  && ∃ suf : List[Einstr],
+       cs == APPEND(MAP(v_to_e, vs), suf) && e == APPEND(suf, [x])
 ```
 
 lemma `step_basic_lrec`
@@ -4655,9 +5978,11 @@ lemma `step_basic_lrec`
 ∀ (cs e0 rest e : List[Einstr]) (x : Einstr) (vs : List[Value]) (n : Num)
   (l : Lholed)
 if
-  1. APPEND(cs, [x]) == APPEND(MAP(v_to_e, vs), CONS(Label(n, e0, lfill(l, e)), rest))
+  1. APPEND(cs, [x])
+       == APPEND(MAP(v_to_e, vs), CONS(Label(n, e0, lfill(l, e)), rest))
   2. ALL(is_val, cs)
-  3. ∀ n2 : Num, ∀ e2 : List[Einstr], ∀ li : List[Einstr], !(x == Label(n2, e2, li))
+  3. ∀ n2 : Num,
+       ∀ e2 : List[Einstr], ∀ li : List[Einstr], !(x == Label(n2, e2, li))
 then
   false
 ```
@@ -4670,7 +5995,8 @@ if
   1. reduce(s, f, APPEND(cs, [x]), s', f', les')
   2. ALL(is_val, cs)
   3. !(x == Trap)
-  4. ∀ n : Num, ∀ e0 : List[Einstr], ∀ li : List[Einstr], !(x == Label(n, e0, li))
+  4. ∀ n : Num,
+       ∀ e0 : List[Einstr], ∀ li : List[Einstr], !(x == Label(n, e0, li))
 then
   ∃ (pre suf e' : List[Einstr]),
     cs == APPEND(pre, suf)
@@ -4682,18 +6008,25 @@ lemma `map_v_to_e_eq_cons`
 
 ```
 ∀ (vs : List[Value]) (h : Einstr) (t : List[Einstr]),
-  (MAP(v_to_e, vs) == CONS(h, t)) == (∃ v : Value, ∃ vs2 : List[Value], vs == CONS(v, vs2) && h == v_to_e(v) && t == MAP(v_to_e, vs2))
+  (MAP(v_to_e, vs) == CONS(h, t)) == (
+    ∃ v : Value,
+      ∃ vs2 : List[Value],
+        vs == CONS(v, vs2) && h == v_to_e(v) && t == MAP(v_to_e, vs2))
 ```
 
 lemma `eq_v_to_e`
 
 ```
 ∀ (e : Einstr) (v : Value),
-  (e == v_to_e(v)) == ((∃ x : V_num, v == V_num(x) && e == Basic(EConstNum(x))) || (∃ y : V_vec, v == V_vec(y) && e == Basic(EConstVec(y))) || (∃ r : V_ref, v == V_ref(r) && e == Ref(r)))
+  (e == v_to_e(v)) == (
+    (∃ x : V_num, v == V_num(x) && e == Basic(EConstNum(x)))
+    || (∃ y : V_vec, v == V_vec(y) && e == Basic(EConstVec(y)))
+    || (∃ r : V_ref, v == V_ref(r) && e == Ref(r)))
 ```
 
 lemma `lfilled_trap_iff`
 
 ```
-∀ (es : List[Einstr]), (∃ lh : Lholed, Lfilled(0, lh, [Trap], es)) == trap_top(es)
+∀ (es : List[Einstr]),
+  (∃ lh : Lholed, Lfilled(0, lh, [Trap], es)) == trap_top(es)
 ```

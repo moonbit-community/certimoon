@@ -93,7 +93,7 @@ pub fn render_listing(
 
 ///|
 /// How the listings lay statements out, for their introductions.
-pub let layout_note : String = "A statement is laid out as `∀ (x y : T) (z : U)`, its variables grouped by type; then, if it has hypotheses, `if` and the numbered hypotheses H1, ..., Hn and `then` and the conclusion C, with `or` between alternatives and `&&` before each further conjunct (as between a definition's equations). It stands for `∀ x y z, H1 && ... && Hn → C`. Each layout is printed from the kernel's statement and checked to read back as it (wasm/layout.mbt)."
+pub let layout_note : String = "A statement is laid out as `∀ (x y : T) (z : U)`, its variables grouped by type; then, if it has hypotheses, `if` and the numbered hypotheses H1, ..., Hn and `then` and the conclusion C, with `or` between alternatives and `&&` before each further conjunct (as between a definition's equations). It stands for `∀ x y z, H1 && ... && Hn → C`. A line longer than 80 characters is broken by its brackets and operators, an argument, conjunct or case per line; only whitespace changes. Each layout is printed from the kernel's statement and checked to read back as it (wasm/layout.mbt)."
 
 ///|
 /// What this package defines and proves (loading it, and the facts about

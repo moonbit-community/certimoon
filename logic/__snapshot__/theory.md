@@ -6,7 +6,7 @@ Types are abbreviated: `Byte`, `W32`, `W64` are words of 8, 32, 64 bits; `Heap` 
 
 A program (`program`) is a constant defined as a list of instructions; its entry shows the list in WebAssembly's text format, one instruction per line, printed from the kernel's definition and checked to read back as it (wasm/wat.mbt). An instruction it has no name for is written in the term syntax after `hol`.
 
-A statement is laid out as `∀ (x y : T) (z : U)`, its variables grouped by type; then, if it has hypotheses, `if` and the numbered hypotheses H1, ..., Hn and `then` and the conclusion C, with `or` between alternatives and `&&` before each further conjunct (as between a definition's equations). It stands for `∀ x y z, H1 && ... && Hn → C`. Each layout is printed from the kernel's statement and checked to read back as it (wasm/layout.mbt).
+A statement is laid out as `∀ (x y : T) (z : U)`, its variables grouped by type; then, if it has hypotheses, `if` and the numbered hypotheses H1, ..., Hn and `then` and the conclusion C, with `or` between alternatives and `&&` before each further conjunct (as between a definition's equations). It stands for `∀ x y z, H1 && ... && Hn → C`. A line longer than 80 characters is broken by its brackets and operators, an argument, conjunct or case per line; only whitespace changes. Each layout is printed from the kernel's statement and checked to read back as it (wasm/layout.mbt).
 
 ## Lists and words (facts.mbt)
 
@@ -164,13 +164,17 @@ hdisj((h1 : Heap), (h2 : Heap)) == (∀ x : Num, h1(x) == NONE || h2(x) == NONE)
 definition `hunion`
 
 ```
-hunion((h1 : Heap), (h2 : Heap)) == ((x : Num) => if h1(x) == NONE { h2(x) } else { h1(x) })
+hunion((h1 : Heap), (h2 : Heap))
+  == ((x : Num) => if h1(x) == NONE { h2(x) } else { h1(x) })
 ```
 
 definition `star`
 
 ```
-star((p : HProp), (q : HProp)) == ((h : Heap) => ∃ h1 : Heap, ∃ h2 : Heap, hdisj(h1, h2) && h == hunion(h1, h2) && p(h1) && q(h2))
+star((p : HProp), (q : HProp)) == (
+  (h : Heap) =>
+    ∃ h1 : Heap,
+      ∃ h2 : Heap, hdisj(h1, h2) && h == hunion(h1, h2) && p(h1) && q(h2))
 ```
 
 definition `emp`
@@ -182,7 +186,9 @@ emp == ((h : Heap) => ∀ x : Num, h(x) == NONE)
 definition `pts_heap`
 
 ```
-pts_heap((a : Num), (bs : List[Byte])) == ((x : Num) => if a <= x && x < a + LENGTH(bs) { SOME(EL(x - a, bs)) } else { NONE })
+pts_heap((a : Num), (bs : List[Byte])) == (
+  (x : Num) =>
+    if a <= x && x < a + LENGTH(bs) { SOME(EL(x - a, bs)) } else { NONE })
 ```
 
 definition `pts`
@@ -194,7 +200,8 @@ pts((a : Num), (bs : List[Byte])) == ((h : Heap) => h == pts_heap(a, bs))
 definition `heap_of`
 
 ```
-heap_of((m : Mem)) == ((x : Num) => if x < LENGTH(SND(m)) { SOME(EL(x, SND(m))) } else { NONE })
+heap_of((m : Mem))
+  == ((x : Num) => if x < LENGTH(SND(m)) { SOME(EL(x, SND(m))) } else { NONE })
 ```
 
 lemma `hdisj_sym`
@@ -206,7 +213,8 @@ lemma `hdisj_sym`
 lemma `hunion_none`
 
 ```
-∀ (h1 h2 : Heap) (x : Num), (hunion(h1, h2, x) == NONE) == (h1(x) == NONE && h2(x) == NONE)
+∀ (h1 h2 : Heap) (x : Num),
+  (hunion(h1, h2, x) == NONE) == (h1(x) == NONE && h2(x) == NONE)
 ```
 
 lemma `hunion_comm`
@@ -222,13 +230,15 @@ then
 lemma `hdisj_union`
 
 ```
-∀ (h1 h2 h3 : Heap), hdisj(hunion(h1, h2), h3) == (hdisj(h1, h3) && hdisj(h2, h3))
+∀ (h1 h2 h3 : Heap),
+  hdisj(hunion(h1, h2), h3) == (hdisj(h1, h3) && hdisj(h2, h3))
 ```
 
 lemma `hdisj_union_r`
 
 ```
-∀ (h1 h2 h3 : Heap), hdisj(h1, hunion(h2, h3)) == (hdisj(h1, h2) && hdisj(h1, h3))
+∀ (h1 h2 h3 : Heap),
+  hdisj(h1, hunion(h2, h3)) == (hdisj(h1, h2) && hdisj(h1, h3))
 ```
 
 lemma `hunion_assoc`
@@ -363,7 +373,8 @@ if
   1. a + LENGTH(bs) <= LENGTH(l)
   2. x < LENGTH(l)
 then
-  EL(x, APPEND(take(a, l), APPEND(bs, drop(a + LENGTH(bs), l)))) == (if a <= x && x < a + LENGTH(bs) { EL(x - a, bs) } else { EL(x, l) })
+  EL(x, APPEND(take(a, l), APPEND(bs, drop(a + LENGTH(bs), l))))
+    == (if a <= x && x < a + LENGTH(bs) { EL(x - a, bs) } else { EL(x, l) })
 ```
 
 lemma `heap_of_write`
@@ -373,13 +384,17 @@ lemma `heap_of_write`
 if
   1. a + LENGTH(bs) <= LENGTH(SND(m))
 then
-  heap_of(write_bytes(m, a, bs)) == ((x : Num) => if a <= x && x < a + LENGTH(bs) { SOME(EL(x - a, bs)) } else { heap_of(m, x) })
+  heap_of(write_bytes(m, a, bs)) == (
+    (x : Num) =>
+      if a <= x
+      && x < a + LENGTH(bs) { SOME(EL(x - a, bs)) } else { heap_of(m, x) })
 ```
 
 lemma `pts_heap_none`
 
 ```
-∀ (a x : Num) (bs : List[Byte]), (pts_heap(a, bs, x) == NONE) == !(a <= x && x < a + LENGTH(bs))
+∀ (a x : Num) (bs : List[Byte]),
+  (pts_heap(a, bs, x) == NONE) == !(a <= x && x < a + LENGTH(bs))
 ```
 
 lemma `write_pts`
@@ -427,14 +442,16 @@ then
 lemma `pts_heap_disj`
 
 ```
-∀ (a : Num) (xs ys : List[Byte]), hdisj(pts_heap(a, xs), pts_heap(a + LENGTH(xs), ys))
+∀ (a : Num) (xs ys : List[Byte]),
+  hdisj(pts_heap(a, xs), pts_heap(a + LENGTH(xs), ys))
 ```
 
 lemma `pts_heap_append`
 
 ```
 ∀ (a : Num) (xs ys : List[Byte]),
-  pts_heap(a, APPEND(xs, ys)) == hunion(pts_heap(a, xs), pts_heap(a + LENGTH(xs), ys))
+  pts_heap(a, APPEND(xs, ys))
+    == hunion(pts_heap(a, xs), pts_heap(a + LENGTH(xs), ys))
 ```
 
 lemma `pts_split`
@@ -450,37 +467,80 @@ definition `safe`
 
 ```
 safe(0, (s : Wstore), (f : Wframe), (es : List[Einstr]), (q : Assn)) == true
-&& safe(SUC((n : Num)), (s : Wstore), (f : Wframe), (es : List[Einstr]), (q : Assn)) == ((∃ vs : List[Value], es == MAP(v_to_e, vs) && q(s, f, vs)) || (∃ s2 : Wstore, ∃ f2 : Wframe, ∃ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2)) && (∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2) → safe(n, s2, f2, es2, q)))
+&& safe(
+     SUC((n : Num)),
+     (s : Wstore),
+     (f : Wframe),
+     (es : List[Einstr]),
+     (q : Assn)) == (
+     (∃ vs : List[Value], es == MAP(v_to_e, vs) && q(s, f, vs))
+     || (
+          ∃ s2 : Wstore,
+            ∃ f2 : Wframe, ∃ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2))
+        && (
+             ∀ s2 : Wstore,
+               ∀ f2 : Wframe,
+                 ∀ es2 : List[Einstr],
+                   reduce(s, f, es, s2, f2, es2) → safe(n, s2, f2, es2, q)))
 ```
 
 definition `triple`
 
 ```
-triple((p : Assn), (bs : List[B_e]), (q : Assn)) == (∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ n : Num, p(s, f, vs) → safe(n, s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs)), q))
+triple((p : Assn), (bs : List[B_e]), (q : Assn)) == (
+  ∀ s : Wstore,
+    ∀ f : Wframe,
+      ∀ vs : List[Value],
+        ∀ n : Num,
+          p(s, f, vs) → safe(
+            n,
+            s,
+            f,
+            APPEND(MAP(v_to_e, vs), MAP(Basic, bs)),
+            q))
 ```
 
 definition `gvals`
 
 ```
-gvals((s : Wstore), (f : Wframe)) == MAP((a : Num) => g_val(EL(a, s_globs(s))), inst_globs(f_inst(f)))
+gvals((s : Wstore), (f : Wframe))
+  == MAP((a : Num) => g_val(EL(a, s_globs(s))), inst_globs(f_inst(f)))
 ```
 
 definition `globs_ok`
 
 ```
-globs_ok((s : Wstore), (f : Wframe)) == (∀ i : Num, i < LENGTH(inst_globs(f_inst(f))) → EL(i, inst_globs(f_inst(f))) < LENGTH(s_globs(s)) && (∀ k : Num, k < LENGTH(inst_globs(f_inst(f))) && EL(k, inst_globs(f_inst(f))) == EL(i, inst_globs(f_inst(f))) → k == i))
+globs_ok((s : Wstore), (f : Wframe)) == (
+  ∀ i : Num,
+    i < LENGTH(inst_globs(f_inst(f))) → EL(i, inst_globs(f_inst(f))) < LENGTH(
+      s_globs(s))
+    && (
+         ∀ k : Num,
+           k < LENGTH(inst_globs(f_inst(f)))
+           && EL(k, inst_globs(f_inst(f)))
+                == EL(i, inst_globs(f_inst(f))) → k
+                == i))
 ```
 
 definition `lift`
 
 ```
-lift((p : SAssn), (r : HProp), (s : Wstore), (f : Wframe), (vs : List[Value])) == (∃ j : Num, smem_ind(f_inst(f)) == SOME(j) && j < LENGTH(s_mems(s)) && globs_ok(s, f) && star(p(vs, f_locs(f), gvals(s, f), mem_length(EL(j, s_mems(s)))), r, heap_of(EL(j, s_mems(s)))))
+lift((p : SAssn), (r : HProp), (s : Wstore), (f : Wframe), (vs : List[Value])) == (
+  ∃ j : Num,
+    smem_ind(f_inst(f)) == SOME(j)
+    && j < LENGTH(s_mems(s))
+    && globs_ok(s, f)
+    && star(
+         p(vs, f_locs(f), gvals(s, f), mem_length(EL(j, s_mems(s)))),
+         r,
+         heap_of(EL(j, s_mems(s)))))
 ```
 
 definition `sl_triple`
 
 ```
-sl_triple((p : SAssn), (bs : List[B_e]), (q : SAssn)) == (∀ r : HProp, triple(lift(p, r), bs, lift(q, r)))
+sl_triple((p : SAssn), (bs : List[B_e]), (q : SAssn))
+  == (∀ r : HProp, triple(lift(p, r), bs, lift(q, r)))
 ```
 
 lemma `safe_vals`
@@ -521,7 +581,9 @@ lemma `lift_mono`
 ```
 ∀ (p p2 : SAssn) (r : HProp) (s : Wstore) (f : Wframe) (vs vs2 : List[Value])
 if
-  1. ∀ ls : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, p(vs, ls, gs, ms, h) → p2(vs2, ls, gs, ms, h)
+  1. ∀ ls : List[Value],
+       ∀ gs : List[Value],
+         ∀ ms : Num, ∀ h : Heap, p(vs, ls, gs, ms, h) → p2(vs2, ls, gs, ms, h)
   2. lift(p, r, s, f, vs)
 then
   lift(p2, r, s, f, vs2)
@@ -539,9 +601,15 @@ lemma `sl_conseq`
 ```
 ∀ (p p2 q q2 : SAssn) (bs : List[B_e])
 if
-  1. ∀ vs : List[Value], ∀ ls : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, p2(vs, ls, gs, ms, h) → p(vs, ls, gs, ms, h)
+  1. ∀ vs : List[Value],
+       ∀ ls : List[Value],
+         ∀ gs : List[Value],
+           ∀ ms : Num, ∀ h : Heap, p2(vs, ls, gs, ms, h) → p(vs, ls, gs, ms, h)
   2. sl_triple(p, bs, q)
-  3. ∀ vs : List[Value], ∀ ls : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, q(vs, ls, gs, ms, h) → q2(vs, ls, gs, ms, h)
+  3. ∀ vs : List[Value],
+       ∀ ls : List[Value],
+         ∀ gs : List[Value],
+           ∀ ms : Num, ∀ h : Heap, q(vs, ls, gs, ms, h) → q2(vs, ls, gs, ms, h)
 then
   sl_triple(p2, bs, q2)
 ```
@@ -550,7 +618,12 @@ lemma `lift_frame`
 
 ```
 ∀ (p : SAssn) (fr r : HProp),
-  lift((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => star(p(vs, ls, gs, ms), fr), r) == lift(p, star(fr, r))
+  lift(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) =>
+      star(p(vs, ls, gs, ms), fr),
+    r)
+    == lift(p, star(fr, r))
 ```
 
 lemma `sl_frame`
@@ -560,14 +633,27 @@ lemma `sl_frame`
 if
   1. sl_triple(p, bs, q)
 then
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => star(p(vs, ls, gs, ms), fr), bs, (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => star(q(vs, ls, gs, ms), fr))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) =>
+      star(p(vs, ls, gs, ms), fr),
+    bs,
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) =>
+      star(q(vs, ls, gs, ms), fr))
 ```
 
 lemma `sl_const`
 
 ```
 ∀ (p : SAssn) (c : V_num),
-  sl_triple(p, [EConstNum(c)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h))
+  sl_triple(
+    p,
+    [EConstNum(c)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h))
 ```
 
 ## Sequencing (seq.mbt)
@@ -605,7 +691,11 @@ lemma `safe_seq`
 ∀ (n : Num) (s : Wstore) (f : Wframe) (es1 es2 : List[Einstr]) (q r : Assn)
 if
   1. safe(n, s, f, es1, q)
-  2. ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ m : Num, q(s, f, vs) → safe(m, s, f, APPEND(MAP(v_to_e, vs), es2), r)
+  2. ∀ s : Wstore,
+       ∀ f : Wframe,
+         ∀ vs : List[Value],
+           ∀ m : Num,
+             q(s, f, vs) → safe(m, s, f, APPEND(MAP(v_to_e, vs), es2), r)
 then
   safe(n, s, f, APPEND(es1, es2), r)
 ```
@@ -666,14 +756,16 @@ then
 lemma `star_pure`
 
 ```
-∀ (c : Bool) (p r : HProp) (h : Heap), star((h1 : Heap) => c && p(h1), r, h) == (c && star(p, r, h))
+∀ (c : Bool) (p r : HProp) (h : Heap),
+  star((h1 : Heap) => c && p(h1), r, h) == (c && star(p, r, h))
 ```
 
 lemma `star_ex`
 
 ```
 ∀ (q : (A, Heap) -> Bool) (r : HProp) (h : Heap),
-  star((h1 : Heap) => ∃ vs0 : A, q(vs0, h1), r, h) == (∃ vs0 : A, star(q(vs0), r, h))
+  star((h1 : Heap) => ∃ vs0 : A, q(vs0, h1), r, h)
+    == (∃ vs0 : A, star(q(vs0), r, h))
 ```
 
 ## Triples with labels, br (labels.mbt)
@@ -681,20 +773,75 @@ lemma `star_ex`
 definition `safel`
 
 ```
-safel(0, (s : Wstore), (f : Wframe), (es : List[Einstr]), (q : Assn), (l : List[Assn])) == true
-&& safel(SUC((n : Num)), (s : Wstore), (f : Wframe), (es : List[Einstr]), (q : Assn), (l : List[Assn])) == ((∃ vs : List[Value], es == MAP(v_to_e, vs) && q(s, f, vs)) || (∃ i : Num, ∃ vs : List[Value], ∃ lh : Lholed, i < LENGTH(l) && es == lfill(lh, APPEND(MAP(v_to_e, vs), [Basic(Br(i + lh_depth(lh)))])) && EL(i, l, s, f, vs) && (∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2) → safel(n, s2, f2, es2, q, l))) || (∃ s2 : Wstore, ∃ f2 : Wframe, ∃ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2)) && (∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2) → safel(n, s2, f2, es2, q, l)))
+safel(
+  0,
+  (s : Wstore),
+  (f : Wframe),
+  (es : List[Einstr]),
+  (q : Assn),
+  (l : List[Assn]))
+  == true
+&& safel(
+     SUC((n : Num)),
+     (s : Wstore),
+     (f : Wframe),
+     (es : List[Einstr]),
+     (q : Assn),
+     (l : List[Assn])) == (
+     (∃ vs : List[Value], es == MAP(v_to_e, vs) && q(s, f, vs))
+     || (
+          ∃ i : Num,
+            ∃ vs : List[Value],
+              ∃ lh : Lholed,
+                i < LENGTH(l)
+                && es == lfill(
+                     lh,
+                     APPEND(MAP(v_to_e, vs), [Basic(Br(i + lh_depth(lh)))]))
+                && EL(i, l, s, f, vs)
+                && (
+                     ∀ s2 : Wstore,
+                       ∀ f2 : Wframe,
+                         ∀ es2 : List[Einstr],
+                           reduce(s, f, es, s2, f2, es2) → safel(
+                             n,
+                             s2,
+                             f2,
+                             es2,
+                             q,
+                             l)))
+     || (
+          ∃ s2 : Wstore,
+            ∃ f2 : Wframe, ∃ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2))
+        && (
+             ∀ s2 : Wstore,
+               ∀ f2 : Wframe,
+                 ∀ es2 : List[Einstr],
+                   reduce(s, f, es, s2, f2, es2) → safel(n, s2, f2, es2, q, l)))
 ```
 
 definition `triple_l`
 
 ```
-triple_l((p : Assn), (bs : List[B_e]), (q : Assn), (l : List[Assn])) == (∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ n : Num, p(s, f, vs) → safel(n, s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs)), q, l))
+triple_l((p : Assn), (bs : List[B_e]), (q : Assn), (l : List[Assn])) == (
+  ∀ s : Wstore,
+    ∀ f : Wframe,
+      ∀ vs : List[Value],
+        ∀ n : Num,
+          p(s, f, vs) → safel(
+            n,
+            s,
+            f,
+            APPEND(MAP(v_to_e, vs), MAP(Basic, bs)),
+            q,
+            l))
 ```
 
 definition `sl_triple_l`
 
 ```
-sl_triple_l((p : SAssn), (bs : List[B_e]), (q : SAssn), (ls : List[SAssn])) == (∀ r : HProp, triple_l(lift(p, r), bs, lift(q, r), MAP((x : SAssn) => lift(x, r), ls)))
+sl_triple_l((p : SAssn), (bs : List[B_e]), (q : SAssn), (ls : List[SAssn])) == (
+  ∀ r : HProp,
+    triple_l(lift(p, r), bs, lift(q, r), MAP((x : SAssn) => lift(x, r), ls)))
 ```
 
 lemma `safe_safel`
@@ -746,7 +893,11 @@ lemma `safel_seq`
   (l : List[Assn])
 if
   1. safel(n, s, f, es1, q, l)
-  2. ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ m : Num, q(s, f, vs) → safel(m, s, f, APPEND(MAP(v_to_e, vs), es2), r, l)
+  2. ∀ s : Wstore,
+       ∀ f : Wframe,
+         ∀ vs : List[Value],
+           ∀ m : Num,
+             q(s, f, vs) → safel(m, s, f, APPEND(MAP(v_to_e, vs), es2), r, l)
 then
   safel(n, s, f, APPEND(es1, es2), r, l)
 ```
@@ -781,7 +932,11 @@ lemma `safel_mono`
 if
   1. ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], q(s, f, vs) → q2(s, f, vs)
   2. LENGTH(l2) == LENGTH(l)
-  3. ∀ i : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], i < LENGTH(l) && EL(i, l, s, f, vs) → EL(i, l2, s, f, vs)
+  3. ∀ i : Num,
+       ∀ s : Wstore,
+         ∀ f : Wframe,
+           ∀ vs : List[Value],
+             i < LENGTH(l) && EL(i, l, s, f, vs) → EL(i, l2, s, f, vs)
   4. safel(n, s, f, es, q, l)
 then
   safel(n, s, f, es, q2, l2)
@@ -796,7 +951,11 @@ if
   2. triple_l(p, bs, q, l)
   3. ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], q(s, f, vs) → q2(s, f, vs)
   4. LENGTH(l2) == LENGTH(l)
-  5. ∀ i : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], i < LENGTH(l) && EL(i, l, s, f, vs) → EL(i, l2, s, f, vs)
+  5. ∀ i : Num,
+       ∀ s : Wstore,
+         ∀ f : Wframe,
+           ∀ vs : List[Value],
+             i < LENGTH(l) && EL(i, l, s, f, vs) → EL(i, l2, s, f, vs)
 then
   triple_l(p2, bs, q2, l2)
 ```
@@ -806,11 +965,24 @@ lemma `sl_conseq_l`
 ```
 ∀ (p p2 q q2 : SAssn) (bs : List[B_e]) (ls ls2 : List[SAssn])
 if
-  1. ∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, p2(vs, lc, gs, ms, h) → p(vs, lc, gs, ms, h)
+  1. ∀ vs : List[Value],
+       ∀ lc : List[Value],
+         ∀ gs : List[Value],
+           ∀ ms : Num, ∀ h : Heap, p2(vs, lc, gs, ms, h) → p(vs, lc, gs, ms, h)
   2. sl_triple_l(p, bs, q, ls)
-  3. ∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, q(vs, lc, gs, ms, h) → q2(vs, lc, gs, ms, h)
+  3. ∀ vs : List[Value],
+       ∀ lc : List[Value],
+         ∀ gs : List[Value],
+           ∀ ms : Num, ∀ h : Heap, q(vs, lc, gs, ms, h) → q2(vs, lc, gs, ms, h)
   4. LENGTH(ls2) == LENGTH(ls)
-  5. ∀ i : Num, ∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, i < LENGTH(ls) && EL(i, ls, vs, lc, gs, ms, h) → EL(i, ls2, vs, lc, gs, ms, h)
+  5. ∀ i : Num,
+       ∀ vs : List[Value],
+         ∀ lc : List[Value],
+           ∀ gs : List[Value],
+             ∀ ms : Num,
+               ∀ h : Heap,
+                 i < LENGTH(ls)
+                 && EL(i, ls, vs, lc, gs, ms, h) → EL(i, ls2, vs, lc, gs, ms, h)
 then
   sl_triple_l(p2, bs, q2, ls2)
 ```
@@ -822,7 +994,19 @@ lemma `sl_frame_l`
 if
   1. sl_triple_l(p, bs, q, ls)
 then
-  sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => star(p(vs, lc, gs, ms), fr), bs, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => star(q(vs, lc, gs, ms), fr), MAP((x : SAssn) => (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => star(x(vs, lc, gs, ms), fr), ls))
+  sl_triple_l(
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) =>
+      star(p(vs, lc, gs, ms), fr),
+    bs,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) =>
+      star(q(vs, lc, gs, ms), fr),
+    MAP(
+      (x : SAssn) => (vs : List[Value]) => (lc : List[Value]) =>
+      (gs : List[Value]) => (ms : Num) =>
+        star(x(vs, lc, gs, ms), fr),
+      ls))
 ```
 
 lemma `nobr_simple`
@@ -864,7 +1048,17 @@ lemma `sl_br`
 if
   1. i < LENGTH(ls)
 then
-  sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], ∃ vb : List[Value], vs == APPEND(vs0, vb) && EL(i, ls, vb, lc, gs, ms, h), [Br(i)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => false, ls)
+  sl_triple_l(
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        ∃ vb : List[Value],
+          vs == APPEND(vs0, vb) && EL(i, ls, vb, lc, gs, ms, h),
+    [Br(i)],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      false,
+    ls)
 ```
 
 ## Steps of a label, blocks and loops (block.mbt, loop.mbt)
@@ -884,7 +1078,8 @@ lemma `map_v_to_e_inj`
 lemma `no_trap_label`
 
 ```
-∀ (lh : Lholed) (n : Num) (e0 li : List[Einstr]), !Lfilled(0, lh, [Trap], [Label(n, e0, li)])
+∀ (lh : Lholed) (n : Num) (e0 li : List[Einstr]),
+  !Lfilled(0, lh, [Trap], [Label(n, e0, li)])
 ```
 
 lemma `label_simple`
@@ -916,7 +1111,15 @@ if
 then
   s2 == s
   && f2 == f
-  && (∃ vs : List[Value], li == MAP(v_to_e, vs) && e2 == MAP(v_to_e, vs)) || li == [Trap] && e2 == [Trap] || (∃ vs : List[Value], ∃ i : Num, ∃ lh : Lholed, LENGTH(vs) == m && Lfilled(i, lh, APPEND(MAP(v_to_e, vs), [Basic(Br(i))]), li) && e2 == APPEND(MAP(v_to_e, vs), e0))
+  && (∃ vs : List[Value], li == MAP(v_to_e, vs) && e2 == MAP(v_to_e, vs))
+     || li == [Trap] && e2 == [Trap]
+     || (
+          ∃ vs : List[Value],
+            ∃ i : Num,
+              ∃ lh : Lholed,
+                LENGTH(vs) == m
+                && Lfilled(i, lh, APPEND(MAP(v_to_e, vs), [Basic(Br(i))]), li)
+                && e2 == APPEND(MAP(v_to_e, vs), e0))
 ```
 
 lemma `arity_simple_label`
@@ -924,7 +1127,11 @@ lemma `arity_simple_label`
 ```
 ∀ (suf e2 : List[Einstr])
 if
-  1. reduce_simple(APPEND(suf, [Label((m : Num), (e0 : List[Einstr]), (li : List[Einstr]))]), e2)
+  1. reduce_simple(
+       APPEND(
+         suf,
+         [Label((m : Num), (e0 : List[Einstr]), (li : List[Einstr]))]),
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 0
@@ -935,7 +1142,15 @@ lemma `arity_label`
 ```
 ∀ (s s2 : Wstore) (f f2 : Wframe) (suf e2 : List[Einstr])
 if
-  1. reduce_base(s, f, APPEND(suf, [Label((m : Num), (e0 : List[Einstr]), (li : List[Einstr]))]), s2, f2, e2)
+  1. reduce_base(
+       s,
+       f,
+       APPEND(
+         suf,
+         [Label((m : Num), (e0 : List[Einstr]), (li : List[Einstr]))]),
+       s2,
+       f2,
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 0
@@ -953,7 +1168,15 @@ then
   s2 == s
   && f2 == f
   && lfill(LBase(vsx, rest), e') == APPEND(MAP(v_to_e, vs0), e')
-  && (∃ vs : List[Value], li == MAP(v_to_e, vs) && e' == MAP(v_to_e, vs)) || li == [Trap] && e' == [Trap] || (∃ vs : List[Value], ∃ i : Num, ∃ lh : Lholed, LENGTH(vs) == m && Lfilled(i, lh, APPEND(MAP(v_to_e, vs), [Basic(Br(i))]), li) && e' == APPEND(MAP(v_to_e, vs), e0))
+  && (∃ vs : List[Value], li == MAP(v_to_e, vs) && e' == MAP(v_to_e, vs))
+     || li == [Trap] && e' == [Trap]
+     || (
+          ∃ vs : List[Value],
+            ∃ i : Num,
+              ∃ lh : Lholed,
+                LENGTH(vs) == m
+                && Lfilled(i, lh, APPEND(MAP(v_to_e, vs), [Basic(Br(i))]), li)
+                && e' == APPEND(MAP(v_to_e, vs), e0))
 ```
 
 lemma `label_steps_inside`
@@ -962,11 +1185,13 @@ lemma `label_steps_inside`
 ∀ (s s2 : Wstore) (f f2 : Wframe) (vs0 vsx : List[Value]) (m n : Num)
   (e0 li e1 rest e e' : List[Einstr]) (l : Lholed)
 if
-  1. APPEND(MAP(v_to_e, vs0), [Label(m, e0, li)]) == lfill(LRec(vsx, n, e1, l, rest), e)
+  1. APPEND(MAP(v_to_e, vs0), [Label(m, e0, li)])
+       == lfill(LRec(vsx, n, e1, l, rest), e)
   2. reduce_base(s, f, e, s2, f2, e')
 then
   reduce(s, f, li, s2, f2, lfill(l, e'))
-  && lfill(LRec(vsx, n, e1, l, rest), e') == APPEND(MAP(v_to_e, vs0), [Label(m, e0, lfill(l, e'))])
+  && lfill(LRec(vsx, n, e1, l, rest), e')
+       == APPEND(MAP(v_to_e, vs0), [Label(m, e0, lfill(l, e'))])
 ```
 
 lemma `label_steps`
@@ -983,7 +1208,24 @@ then
 or
   s2 == s
   && f2 == f
-  && ∃ e2 : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e2) && ((∃ vs : List[Value], li == MAP(v_to_e, vs) && e2 == MAP(v_to_e, vs)) || li == [Trap] && e2 == [Trap] || (∃ vs : List[Value], ∃ i : Num, ∃ lh : Lholed, LENGTH(vs) == m && Lfilled(i, lh, APPEND(MAP(v_to_e, vs), [Basic(Br(i))]), li) && e2 == APPEND(MAP(v_to_e, vs), e0)))
+  && ∃ e2 : List[Einstr],
+       es2 == APPEND(MAP(v_to_e, vs0), e2)
+       && (
+            (
+              ∃ vs : List[Value],
+                li == MAP(v_to_e, vs) && e2 == MAP(v_to_e, vs))
+            || li == [Trap] && e2 == [Trap]
+            || (
+                 ∃ vs : List[Value],
+                   ∃ i : Num,
+                     ∃ lh : Lholed,
+                       LENGTH(vs) == m
+                       && Lfilled(
+                            i,
+                            lh,
+                            APPEND(MAP(v_to_e, vs), [Basic(Br(i))]),
+                            li)
+                       && e2 == APPEND(MAP(v_to_e, vs), e0)))
 ```
 
 lemma `first_nonval_eq`
@@ -994,7 +1236,8 @@ if
   1. !is_val(h1)
   2. !is_val(h2)
 then
-  (APPEND(MAP(v_to_e, a), CONS(h1, t1)) == APPEND(MAP(v_to_e, b), CONS(h2, t2))) == (a == b && h1 == h2 && t1 == t2)
+  (APPEND(MAP(v_to_e, a), CONS(h1, t1)) == APPEND(MAP(v_to_e, b), CONS(h2, t2)))
+    == (a == b && h1 == h2 && t1 == t2)
 ```
 
 lemma `br_unique`
@@ -1002,7 +1245,8 @@ lemma `br_unique`
 ```
 ∀ (lh1 lh2 : Lholed) (vs1 vs2 : List[Value]) (k1 k2 : Num)
 if
-  1. lfill(lh1, APPEND(MAP(v_to_e, vs1), [Basic(Br(k1))])) == lfill(lh2, APPEND(MAP(v_to_e, vs2), [Basic(Br(k2))]))
+  1. lfill(lh1, APPEND(MAP(v_to_e, vs1), [Basic(Br(k1))]))
+       == lfill(lh2, APPEND(MAP(v_to_e, vs2), [Basic(Br(k2))]))
 then
   lh_depth(lh1) == lh_depth(lh2)
   && k1 == k2
@@ -1013,7 +1257,11 @@ lemma `lfilled_label`
 
 ```
 ∀ (vs0 : List[Value]) (m : Num) (e0 x : List[Einstr]),
-  Lfilled(1, LRec(vs0, m, e0, LBase(NIL, NIL), NIL), x, APPEND(MAP(v_to_e, vs0), [Label(m, e0, x)]))
+  Lfilled(
+    1,
+    LRec(vs0, m, e0, LBase(NIL, NIL), NIL),
+    x,
+    APPEND(MAP(v_to_e, vs0), [Label(m, e0, x)]))
 ```
 
 lemma `reduce_label`
@@ -1024,7 +1272,13 @@ lemma `reduce_label`
 if
   1. reduce(s, f, li, s2, f2, li2)
 then
-  reduce(s, f, APPEND(MAP(v_to_e, vs0), [Label(m, e0, li)]), s2, f2, APPEND(MAP(v_to_e, vs0), [Label(m, e0, li2)]))
+  reduce(
+    s,
+    f,
+    APPEND(MAP(v_to_e, vs0), [Label(m, e0, li)]),
+    s2,
+    f2,
+    APPEND(MAP(v_to_e, vs0), [Label(m, e0, li2)]))
 ```
 
 lemma `no_trap_top_snoc`
@@ -1043,7 +1297,13 @@ lemma `br_no_step2`
 ```
 ∀ (s s2 : Wstore) (f f2 : Wframe) (a vs : List[Value]) (k : Num)
   (es2 : List[Einstr]),
-  !reduce(s, f, APPEND(MAP(v_to_e, a), APPEND(MAP(v_to_e, vs), [Basic(Br(k))])), s2, f2, es2)
+  !reduce(
+    s,
+    f,
+    APPEND(MAP(v_to_e, a), APPEND(MAP(v_to_e, vs), [Basic(Br(k))])),
+    s2,
+    f2,
+    es2)
 ```
 
 lemma `no_trap_top_br`
@@ -1089,8 +1349,20 @@ lemma `label_safe`
   (e0 li : List[Einstr]) (qb lb q : Assn) (l : List[Assn])
 if
   1. safel(n, s, f, li, qb, CONS(lb, l))
-  2. ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], qb(s, f, vs) → q(s, f, APPEND(vs0, vs))
-  3. ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ k : Num, k <= n → lb(s, f, vs) → LENGTH(vs) == m && safel(k, s, f, APPEND(MAP(v_to_e, vs0), APPEND(MAP(v_to_e, vs), e0)), q, l)
+  2. ∀ s : Wstore,
+       ∀ f : Wframe, ∀ vs : List[Value], qb(s, f, vs) → q(s, f, APPEND(vs0, vs))
+  3. ∀ s : Wstore,
+       ∀ f : Wframe,
+         ∀ vs : List[Value],
+           ∀ k : Num,
+             k <= n → lb(s, f, vs) → LENGTH(vs) == m
+             && safel(
+                  k,
+                  s,
+                  f,
+                  APPEND(MAP(v_to_e, vs0), APPEND(MAP(v_to_e, vs), e0)),
+                  q,
+                  l)
 then
   safel(n, s, f, APPEND(MAP(v_to_e, vs0), [Label(m, e0, li)]), q, l)
 ```
@@ -1105,7 +1377,8 @@ tbv_results(NONE) == NIL
 lemma `tb_tf_tbv`
 
 ```
-∀ (i : Inst) (ot : Option[Valtype]), tb_tf(i, Tbv(ot)) == Tf(NIL, tbv_results(ot))
+∀ (i : Inst) (ot : Option[Valtype]),
+  tb_tf(i, Tbv(ot)) == Tf(NIL, tbv_results(ot))
 ```
 
 lemma `arity_simple_block`
@@ -1113,7 +1386,11 @@ lemma `arity_simple_block`
 ```
 ∀ (suf e2 : List[Einstr])
 if
-  1. reduce_simple(APPEND(suf, [Basic(Block(Tbv((ot : Option[Valtype])), (bs : List[B_e])))]), e2)
+  1. reduce_simple(
+       APPEND(
+         suf,
+         [Basic(Block(Tbv((ot : Option[Valtype])), (bs : List[B_e])))]),
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 0
@@ -1124,7 +1401,15 @@ lemma `arity_block`
 ```
 ∀ (s s2 : Wstore) (f f2 : Wframe) (suf e2 : List[Einstr])
 if
-  1. reduce_base(s, f, APPEND(suf, [Basic(Block(Tbv((ot : Option[Valtype])), (bs : List[B_e])))]), s2, f2, e2)
+  1. reduce_base(
+       s,
+       f,
+       APPEND(
+         suf,
+         [Basic(Block(Tbv((ot : Option[Valtype])), (bs : List[B_e])))]),
+       s2,
+       f2,
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 0
@@ -1135,11 +1420,25 @@ lemma `prefix_block`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(Block(Tbv((ot : Option[Valtype])), (bs : List[B_e])))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [Basic(Block(Tbv((ot : Option[Valtype])), (bs : List[B_e])))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(Block(Tbv((ot : Option[Valtype])), (bs : List[B_e])))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [Basic(Block(Tbv((ot : Option[Valtype])), (bs : List[B_e])))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `block_step`
@@ -1147,7 +1446,15 @@ lemma `block_step`
 ```
 ∀ (s : Wstore) (f : Wframe) (vs0 : List[Value]) (ot : Option[Valtype])
   (bs : List[B_e]),
-  reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(Block(Tbv(ot), bs))]), s, f, APPEND(MAP(v_to_e, vs0), [Label(LENGTH(tbv_results(ot)), NIL, MAP(Basic, bs))]))
+  reduce(
+    s,
+    f,
+    APPEND(MAP(v_to_e, vs0), [Basic(Block(Tbv(ot), bs))]),
+    s,
+    f,
+    APPEND(
+      MAP(v_to_e, vs0),
+      [Label(LENGTH(tbv_results(ot)), NIL, MAP(Basic, bs))]))
 ```
 
 lemma `star_some`
@@ -1166,10 +1473,24 @@ lemma `sl_block`
 ∀ (ot : Option[Valtype]) (bs : List[B_e]) (pb qb lb : SAssn) (ls : List[SAssn])
   (vs0 : List[Value])
 if
-  1. ∀ r : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, lb(r, lc, gs, ms, h) → LENGTH(r) == LENGTH(tbv_results(ot))
+  1. ∀ r : List[Value],
+       ∀ lc : List[Value],
+         ∀ gs : List[Value],
+           ∀ ms : Num,
+             ∀ h : Heap,
+               lb(r, lc, gs, ms, h) → LENGTH(r) == LENGTH(tbv_results(ot))
   2. sl_triple_l(pb, bs, qb, CONS(lb, ls))
 then
-  sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == vs0 && pb(NIL, lc, gs, ms, h), [Block(Tbv(ot), bs)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ r : List[Value], vs == APPEND(vs0, r) && (qb(r, lc, gs, ms, h) || lb(r, lc, gs, ms, h)), ls)
+  sl_triple_l(
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == vs0 && pb(NIL, lc, gs, ms, h),
+    [Block(Tbv(ot), bs)],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ r : List[Value],
+        vs == APPEND(vs0, r) && (qb(r, lc, gs, ms, h) || lb(r, lc, gs, ms, h)),
+    ls)
 ```
 
 lemma `safel_down`
@@ -1189,7 +1510,11 @@ lemma `arity_simple_loop`
 ```
 ∀ (suf e2 : List[Einstr])
 if
-  1. reduce_simple(APPEND(suf, [Basic(Loop(Tbv((ot : Option[Valtype])), (bs : List[B_e])))]), e2)
+  1. reduce_simple(
+       APPEND(
+         suf,
+         [Basic(Loop(Tbv((ot : Option[Valtype])), (bs : List[B_e])))]),
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 0
@@ -1200,7 +1525,15 @@ lemma `arity_loop`
 ```
 ∀ (s s2 : Wstore) (f f2 : Wframe) (suf e2 : List[Einstr])
 if
-  1. reduce_base(s, f, APPEND(suf, [Basic(Loop(Tbv((ot : Option[Valtype])), (bs : List[B_e])))]), s2, f2, e2)
+  1. reduce_base(
+       s,
+       f,
+       APPEND(
+         suf,
+         [Basic(Loop(Tbv((ot : Option[Valtype])), (bs : List[B_e])))]),
+       s2,
+       f2,
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 0
@@ -1211,11 +1544,25 @@ lemma `prefix_loop`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(Loop(Tbv((ot : Option[Valtype])), (bs : List[B_e])))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [Basic(Loop(Tbv((ot : Option[Valtype])), (bs : List[B_e])))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(Loop(Tbv((ot : Option[Valtype])), (bs : List[B_e])))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [Basic(Loop(Tbv((ot : Option[Valtype])), (bs : List[B_e])))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `loop_step`
@@ -1223,7 +1570,15 @@ lemma `loop_step`
 ```
 ∀ (s : Wstore) (f : Wframe) (vs0 : List[Value]) (ot : Option[Valtype])
   (bs : List[B_e]),
-  reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(Loop(Tbv(ot), bs))]), s, f, APPEND(MAP(v_to_e, vs0), [Label(0, [Basic(Loop(Tbv(ot), bs))], MAP(Basic, bs))]))
+  reduce(
+    s,
+    f,
+    APPEND(MAP(v_to_e, vs0), [Basic(Loop(Tbv(ot), bs))]),
+    s,
+    f,
+    APPEND(
+      MAP(v_to_e, vs0),
+      [Label(0, [Basic(Loop(Tbv(ot), bs))], MAP(Basic, bs))]))
 ```
 
 lemma `sl_loop`
@@ -1232,9 +1587,27 @@ lemma `sl_loop`
 ∀ (ot : Option[Valtype]) (bs : List[B_e]) (linv : FProp) (qb : SAssn)
   (ls : List[SAssn]) (vs0 : List[Value])
 if
-  1. sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == NIL && linv(lc, gs, ms, h), bs, qb, CONS((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == NIL && linv(lc, gs, ms, h), ls))
+  1. sl_triple_l(
+       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+       (ms : Num) => (h : Heap) =>
+         vs == NIL && linv(lc, gs, ms, h),
+       bs,
+       qb,
+       CONS(
+         (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+         (ms : Num) => (h : Heap) =>
+           vs == NIL && linv(lc, gs, ms, h),
+         ls))
 then
-  sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == vs0 && linv(lc, gs, ms, h), [Loop(Tbv(ot), bs)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ r : List[Value], vs == APPEND(vs0, r) && qb(r, lc, gs, ms, h), ls)
+  sl_triple_l(
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == vs0 && linv(lc, gs, ms, h),
+    [Loop(Tbv(ot), bs)],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ r : List[Value], vs == APPEND(vs0, r) && qb(r, lc, gs, ms, h),
+    ls)
 ```
 
 ## More structural rules with labels (labels.mbt)
@@ -1244,7 +1617,15 @@ lemma `lift_ex`
 ```
 ∀ (pp : (A, List[Value], List[Value], List[Value], Num, Heap) -> Bool)
   (r : HProp) (s : Wstore) (f : Wframe) (vs : List[Value]),
-  lift((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ x : A, pp(x, vs, lc, gs, ms, h), r, s, f, vs) == (∃ x : A, lift(pp(x), r, s, f, vs))
+  lift(
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ x : A, pp(x, vs, lc, gs, ms, h),
+    r,
+    s,
+    f,
+    vs)
+    == (∃ x : A, lift(pp(x), r, s, f, vs))
 ```
 
 lemma `lift_pure`
@@ -1252,7 +1633,15 @@ lemma `lift_pure`
 ```
 ∀ (c : Bool) (p : SAssn) (r : HProp) (s : Wstore) (f : Wframe)
   (vs : List[Value]),
-  lift((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => c && p(vs, lc, gs, ms, h), r, s, f, vs) == (c && lift(p, r, s, f, vs))
+  lift(
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      c && p(vs, lc, gs, ms, h),
+    r,
+    s,
+    f,
+    vs)
+    == (c && lift(p, r, s, f, vs))
 ```
 
 lemma `sl_ex_l`
@@ -1263,7 +1652,13 @@ lemma `sl_ex_l`
 if
   1. ∀ x : A, sl_triple_l(pp(x), bs, q, ls)
 then
-  sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ x : A, pp(x, vs, lc, gs, ms, h), bs, q, ls)
+  sl_triple_l(
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ x : A, pp(x, vs, lc, gs, ms, h),
+    bs,
+    q,
+    ls)
 ```
 
 lemma `sl_pure_l`
@@ -1273,7 +1668,13 @@ lemma `sl_pure_l`
 if
   1. c → sl_triple_l(p, bs, q, ls)
 then
-  sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => c && p(vs, lc, gs, ms, h), bs, q, ls)
+  sl_triple_l(
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      c && p(vs, lc, gs, ms, h),
+    bs,
+    q,
+    ls)
 ```
 
 lemma `sl_nil_l`
@@ -1320,7 +1721,13 @@ lemma `arity_binop`
 ```
 ∀ (s s2 : Wstore) (f f2 : Wframe) (suf e2 : List[Einstr])
 if
-  1. reduce_base(s, f, APPEND(suf, [Basic(Binop((t : T_num), (op : Binop)))]), s2, f2, e2)
+  1. reduce_base(
+       s,
+       f,
+       APPEND(suf, [Basic(Binop((t : T_num), (op : Binop)))]),
+       s2,
+       f2,
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 2
@@ -1331,11 +1738,27 @@ lemma `prefix_binop`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c1 : V_num))), Basic(EConstNum((c2 : V_num))), Basic(Binop((t : T_num), (op : Binop)))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [Basic(EConstNum((c1 : V_num))), Basic(EConstNum((c2 : V_num))),
+          Basic(Binop((t : T_num), (op : Binop)))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum((c1 : V_num))), Basic(EConstNum((c2 : V_num))), Basic(Binop((t : T_num), (op : Binop)))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [Basic(EConstNum((c1 : V_num))), Basic(EConstNum((c2 : V_num))),
+          Basic(Binop((t : T_num), (op : Binop)))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `sl_binop`
@@ -1345,7 +1768,16 @@ lemma `sl_binop`
 if
   1. app_binop(op, c1, c2) == SOME(c)
 then
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c1), V_num(c2)]) && p(vs0, ls, gs, ms, h), [Binop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(c1), V_num(c2)]) && p(vs0, ls, gs, ms, h),
+    [Binop(t, op)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h))
 ```
 
 lemma `arity_simple_testop`
@@ -1364,7 +1796,13 @@ lemma `arity_testop`
 ```
 ∀ (s s2 : Wstore) (f f2 : Wframe) (suf e2 : List[Einstr])
 if
-  1. reduce_base(s, f, APPEND(suf, [Basic(Testop((t : T_num), (op : Testop)))]), s2, f2, e2)
+  1. reduce_base(
+       s,
+       f,
+       APPEND(suf, [Basic(Testop((t : T_num), (op : Testop)))]),
+       s2,
+       f2,
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 1
@@ -1375,18 +1813,43 @@ lemma `prefix_testop`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c : V_num))), Basic(Testop((t : T_num), (op : Testop)))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [Basic(EConstNum((c : V_num))),
+          Basic(Testop((t : T_num), (op : Testop)))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum((c : V_num))), Basic(Testop((t : T_num), (op : Testop)))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [Basic(EConstNum((c : V_num))),
+          Basic(Testop((t : T_num), (op : Testop)))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `sl_testop`
 
 ```
 ∀ (p : SAssn) (t : T_num) (op : Testop) (c : V_num),
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h), [Testop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(app_testop(op, c))]) && p(vs0, ls, gs, ms, h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h),
+    [Testop(t, op)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(app_testop(op, c))]) && p(vs0, ls, gs, ms, h))
 ```
 
 lemma `arity_simple_relop`
@@ -1405,7 +1868,13 @@ lemma `arity_relop`
 ```
 ∀ (s s2 : Wstore) (f f2 : Wframe) (suf e2 : List[Einstr])
 if
-  1. reduce_base(s, f, APPEND(suf, [Basic(Relop((t : T_num), (op : Relop)))]), s2, f2, e2)
+  1. reduce_base(
+       s,
+       f,
+       APPEND(suf, [Basic(Relop((t : T_num), (op : Relop)))]),
+       s2,
+       f2,
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 2
@@ -1416,18 +1885,44 @@ lemma `prefix_relop`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c1 : V_num))), Basic(EConstNum((c2 : V_num))), Basic(Relop((t : T_num), (op : Relop)))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [Basic(EConstNum((c1 : V_num))), Basic(EConstNum((c2 : V_num))),
+          Basic(Relop((t : T_num), (op : Relop)))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum((c1 : V_num))), Basic(EConstNum((c2 : V_num))), Basic(Relop((t : T_num), (op : Relop)))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [Basic(EConstNum((c1 : V_num))), Basic(EConstNum((c2 : V_num))),
+          Basic(Relop((t : T_num), (op : Relop)))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `sl_relop`
 
 ```
 ∀ (p : SAssn) (t : T_num) (op : Relop) (c1 c2 : V_num),
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c1), V_num(c2)]) && p(vs0, ls, gs, ms, h), [Relop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(app_relop(op, c1, c2))]) && p(vs0, ls, gs, ms, h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(c1), V_num(c2)]) && p(vs0, ls, gs, ms, h),
+    [Relop(t, op)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(app_relop(op, c1, c2))])
+        && p(vs0, ls, gs, ms, h))
 ```
 
 lemma `arity_simple_unop`
@@ -1446,7 +1941,13 @@ lemma `arity_unop`
 ```
 ∀ (s s2 : Wstore) (f f2 : Wframe) (suf e2 : List[Einstr])
 if
-  1. reduce_base(s, f, APPEND(suf, [Basic(Unop((t : T_num), (op : Unop)))]), s2, f2, e2)
+  1. reduce_base(
+       s,
+       f,
+       APPEND(suf, [Basic(Unop((t : T_num), (op : Unop)))]),
+       s2,
+       f2,
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 1
@@ -1457,18 +1958,42 @@ lemma `prefix_unop`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c : V_num))), Basic(Unop((t : T_num), (op : Unop)))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [Basic(EConstNum((c : V_num))),
+          Basic(Unop((t : T_num), (op : Unop)))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum((c : V_num))), Basic(Unop((t : T_num), (op : Unop)))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [Basic(EConstNum((c : V_num))), Basic(Unop((t : T_num), (op : Unop)))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `sl_unop`
 
 ```
 ∀ (p : SAssn) (t : T_num) (op : Unop) (c : V_num),
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h), [Unop(t, op)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(app_unop(op, c))]) && p(vs0, ls, gs, ms, h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h),
+    [Unop(t, op)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(app_unop(op, c))]) && p(vs0, ls, gs, ms, h))
 ```
 
 lemma `arity_simple_convert`
@@ -1476,7 +2001,17 @@ lemma `arity_simple_convert`
 ```
 ∀ (suf e2 : List[Einstr])
 if
-  1. reduce_simple(APPEND(suf, [Basic(Cvtop((t2 : T_num), Convert, (t1 : T_num), (sat_sx : Option[(Sat, Sx)])))]), e2)
+  1. reduce_simple(
+       APPEND(
+         suf,
+         [
+           Basic(
+             Cvtop(
+               (t2 : T_num),
+               Convert,
+               (t1 : T_num),
+               (sat_sx : Option[(Sat, Sx)])))]),
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 1
@@ -1487,7 +2022,21 @@ lemma `arity_convert`
 ```
 ∀ (s s2 : Wstore) (f f2 : Wframe) (suf e2 : List[Einstr])
 if
-  1. reduce_base(s, f, APPEND(suf, [Basic(Cvtop((t2 : T_num), Convert, (t1 : T_num), (sat_sx : Option[(Sat, Sx)])))]), s2, f2, e2)
+  1. reduce_base(
+       s,
+       f,
+       APPEND(
+         suf,
+         [
+           Basic(
+             Cvtop(
+               (t2 : T_num),
+               Convert,
+               (t1 : T_num),
+               (sat_sx : Option[(Sat, Sx)])))]),
+       s2,
+       f2,
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 1
@@ -1498,11 +2047,39 @@ lemma `prefix_convert`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c : V_num))), Basic(Cvtop((t2 : T_num), Convert, (t1 : T_num), (sat_sx : Option[(Sat, Sx)])))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [
+           Basic(EConstNum((c : V_num))),
+           Basic(
+             Cvtop(
+               (t2 : T_num),
+               Convert,
+               (t1 : T_num),
+               (sat_sx : Option[(Sat, Sx)])))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum((c : V_num))), Basic(Cvtop((t2 : T_num), Convert, (t1 : T_num), (sat_sx : Option[(Sat, Sx)])))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [
+           Basic(EConstNum((c : V_num))),
+           Basic(
+             Cvtop(
+               (t2 : T_num),
+               Convert,
+               (t1 : T_num),
+               (sat_sx : Option[(Sat, Sx)])))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `sl_convert`
@@ -1513,7 +2090,16 @@ if
   1. typeof_num(c) == t1
   2. cvt(t2, sat_sx, c) == SOME(d)
 then
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h), [Cvtop(t2, Convert, t1, sat_sx)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(d)]) && p(vs0, ls, gs, ms, h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h),
+    [Cvtop(t2, Convert, t1, sat_sx)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(d)]) && p(vs0, ls, gs, ms, h))
 ```
 
 lemma `arity_simple_reinterpret`
@@ -1521,7 +2107,13 @@ lemma `arity_simple_reinterpret`
 ```
 ∀ (suf e2 : List[Einstr])
 if
-  1. reduce_simple(APPEND(suf, [Basic(Cvtop((t2 : T_num), Reinterpret, typeof_num((c : V_num)), NONE))]), e2)
+  1. reduce_simple(
+       APPEND(
+         suf,
+         [
+           Basic(
+             Cvtop((t2 : T_num), Reinterpret, typeof_num((c : V_num)), NONE))]),
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 1
@@ -1532,7 +2124,17 @@ lemma `arity_reinterpret`
 ```
 ∀ (s s2 : Wstore) (f f2 : Wframe) (suf e2 : List[Einstr])
 if
-  1. reduce_base(s, f, APPEND(suf, [Basic(Cvtop((t2 : T_num), Reinterpret, typeof_num((c : V_num)), NONE))]), s2, f2, e2)
+  1. reduce_base(
+       s,
+       f,
+       APPEND(
+         suf,
+         [
+           Basic(
+             Cvtop((t2 : T_num), Reinterpret, typeof_num((c : V_num)), NONE))]),
+       s2,
+       f2,
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 1
@@ -1543,18 +2145,44 @@ lemma `prefix_reinterpret`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c : V_num))), Basic(Cvtop((t2 : T_num), Reinterpret, typeof_num(c), NONE))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [Basic(EConstNum((c : V_num))),
+          Basic(Cvtop((t2 : T_num), Reinterpret, typeof_num(c), NONE))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum((c : V_num))), Basic(Cvtop((t2 : T_num), Reinterpret, typeof_num(c), NONE))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [Basic(EConstNum((c : V_num))),
+          Basic(Cvtop((t2 : T_num), Reinterpret, typeof_num(c), NONE))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `reinterpret_typeof`
 
 ```
 ∀ (p : SAssn) (t2 : T_num) (c : V_num),
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h), [Cvtop(t2, Reinterpret, typeof_num(c), NONE)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(wasm_reinterpret(t2, c))]) && p(vs0, ls, gs, ms, h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h),
+    [Cvtop(t2, Reinterpret, typeof_num(c), NONE)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(wasm_reinterpret(t2, c))])
+        && p(vs0, ls, gs, ms, h))
 ```
 
 lemma `sl_reinterpret`
@@ -1564,7 +2192,17 @@ lemma `sl_reinterpret`
 if
   1. typeof_num(c) == t1
 then
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h), [Cvtop(t2, Reinterpret, t1, NONE)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(wasm_reinterpret(t2, c))]) && p(vs0, ls, gs, ms, h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(c)]) && p(vs0, ls, gs, ms, h),
+    [Cvtop(t2, Reinterpret, t1, NONE)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(wasm_reinterpret(t2, c))])
+        && p(vs0, ls, gs, ms, h))
 ```
 
 lemma `arity_simple_nop`
@@ -1605,7 +2243,14 @@ lemma `sl_nop_stack`
 
 ```
 ∀ (p : SAssn),
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == vs0 && p(vs0, ls, gs, ms, h), [Nop], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == vs0 && p(vs0, ls, gs, ms, h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value], vs == vs0 && p(vs0, ls, gs, ms, h),
+    [Nop],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value], vs == vs0 && p(vs0, ls, gs, ms, h))
 ```
 
 lemma `sl_nop`
@@ -1641,7 +2286,13 @@ lemma `prefix_drop`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [v_to_e((v : Value)), Basic(Drop)]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(MAP(v_to_e, vs0), [v_to_e((v : Value)), Basic(Drop)]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
@@ -1664,7 +2315,14 @@ lemma `sl_drop`
 
 ```
 ∀ (p : SAssn) (v : Value),
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [v]) && p(vs0, ls, gs, ms, h), [Drop], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == vs0 && p(vs0, ls, gs, ms, h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value], vs == APPEND(vs0, [v]) && p(vs0, ls, gs, ms, h),
+    [Drop],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value], vs == vs0 && p(vs0, ls, gs, ms, h))
 ```
 
 lemma `arity_simple_select`
@@ -1683,7 +2341,13 @@ lemma `arity_select`
 ```
 ∀ (s s2 : Wstore) (f f2 : Wframe) (suf e2 : List[Einstr])
 if
-  1. reduce_base(s, f, APPEND(suf, [Basic(Select((tt : Option[Valtype])))]), s2, f2, e2)
+  1. reduce_base(
+       s,
+       f,
+       APPEND(suf, [Basic(Select((tt : Option[Valtype])))]),
+       s2,
+       f2,
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 3
@@ -1694,11 +2358,29 @@ lemma `prefix_select`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [v_to_e((v1 : Value)), v_to_e((v2 : Value)), Basic(EConstNum(ConstInt32((b : W32)))), Basic(Select((tt : Option[Valtype])))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [v_to_e((v1 : Value)), v_to_e((v2 : Value)),
+          Basic(EConstNum(ConstInt32((b : W32)))),
+          Basic(Select((tt : Option[Valtype])))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [v_to_e((v1 : Value)), v_to_e((v2 : Value)), Basic(EConstNum(ConstInt32((b : W32)))), Basic(Select((tt : Option[Valtype])))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [v_to_e((v1 : Value)), v_to_e((v2 : Value)),
+          Basic(EConstNum(ConstInt32((b : W32)))),
+          Basic(Select((tt : Option[Valtype])))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `select_cases`
@@ -1707,7 +2389,14 @@ lemma `select_cases`
 ∀ (s s2 : Wstore) (f f2 : Wframe) (v1 v2 : Value) (b : W32)
   (tt : Option[Valtype]) (es2 : List[Einstr])
 if
-  1. reduce(s, f, [v_to_e(v1), v_to_e(v2), Basic(EConstNum(ConstInt32(b))), Basic(Select(tt))], s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       [v_to_e(v1), v_to_e(v2), Basic(EConstNum(ConstInt32(b))),
+        Basic(Select(tt))],
+       s2,
+       f2,
+       es2)
 then
   s2 == s
   && f2 == f
@@ -1718,7 +2407,18 @@ lemma `sl_select`
 
 ```
 ∀ (p : SAssn) (tt : Option[Valtype]) (v1 v2 : Value) (b : W32),
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [v1, v2, V_num(ConstInt32(b))]) && p(vs0, ls, gs, ms, h), [Select(tt)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [if b == word(0) { v2 } else { v1 }]) && p(vs0, ls, gs, ms, h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [v1, v2, V_num(ConstInt32(b))])
+        && p(vs0, ls, gs, ms, h),
+    [Select(tt)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [if b == word(0) { v2 } else { v1 }])
+        && p(vs0, ls, gs, ms, h))
 ```
 
 lemma `arity_simple_load`
@@ -1726,7 +2426,17 @@ lemma `arity_simple_load`
 ```
 ∀ (suf e2 : List[Einstr])
 if
-  1. reduce_simple(APPEND(suf, [Basic(Load((t : T_num), (sx : Option[(Tp_num, Sx)]), (a : Num), (off : Num)))]), e2)
+  1. reduce_simple(
+       APPEND(
+         suf,
+         [
+           Basic(
+             Load(
+               (t : T_num),
+               (sx : Option[(Tp_num, Sx)]),
+               (a : Num),
+               (off : Num)))]),
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 1
@@ -1737,7 +2447,21 @@ lemma `arity_load`
 ```
 ∀ (s s2 : Wstore) (f f2 : Wframe) (suf e2 : List[Einstr])
 if
-  1. reduce_base(s, f, APPEND(suf, [Basic(Load((t : T_num), (sx : Option[(Tp_num, Sx)]), (a : Num), (off : Num)))]), s2, f2, e2)
+  1. reduce_base(
+       s,
+       f,
+       APPEND(
+         suf,
+         [
+           Basic(
+             Load(
+               (t : T_num),
+               (sx : Option[(Tp_num, Sx)]),
+               (a : Num),
+               (off : Num)))]),
+       s2,
+       f2,
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 1
@@ -1754,11 +2478,39 @@ lemma `prefix_load_packed_i32`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum(ConstInt32((k : W32)))), Basic(Load(T_i32, SOME(((tp : Tp_num), (sx : Sx))), (a : Num), (off : Num)))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [
+           Basic(EConstNum(ConstInt32((k : W32)))),
+           Basic(
+             Load(
+               T_i32,
+               SOME(((tp : Tp_num), (sx : Sx))),
+               (a : Num),
+               (off : Num)))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum(ConstInt32((k : W32)))), Basic(Load(T_i32, SOME(((tp : Tp_num), (sx : Sx))), (a : Num), (off : Num)))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [
+           Basic(EConstNum(ConstInt32((k : W32)))),
+           Basic(
+             Load(
+               T_i32,
+               SOME(((tp : Tp_num), (sx : Sx))),
+               (a : Num),
+               (off : Num)))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `sl_load_packed_i32`
@@ -1768,7 +2520,20 @@ lemma `sl_load_packed_i32`
 if
   1. LENGTH(bs) == tp_num_length(tp)
 then
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h), [Load(T_i32, SOME((tp, sx)), a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(deserialise_i32(sign_extend(sx, 4, bs))))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(ConstInt32(k))])
+        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h),
+    [Load(T_i32, SOME((tp, sx)), a, off)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(
+          vs0,
+          [V_num(ConstInt32(deserialise_i32(sign_extend(sx, 4, bs))))])
+        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h))
 ```
 
 lemma `prefix_load`
@@ -1776,11 +2541,27 @@ lemma `prefix_load`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum(ConstInt32((k : W32)))), Basic(Load(T_i32, NONE, (a : Num), (off : Num)))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [Basic(EConstNum(ConstInt32((k : W32)))),
+          Basic(Load(T_i32, NONE, (a : Num), (off : Num)))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum(ConstInt32((k : W32)))), Basic(Load(T_i32, NONE, (a : Num), (off : Num)))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [Basic(EConstNum(ConstInt32((k : W32)))),
+          Basic(Load(T_i32, NONE, (a : Num), (off : Num)))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `sl_load_i32`
@@ -1790,7 +2571,18 @@ lemma `sl_load_i32`
 if
   1. LENGTH(bs) == 4
 then
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h), [Load(T_i32, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(deserialise_i32(bs)))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(ConstInt32(k))])
+        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h),
+    [Load(T_i32, NONE, a, off)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(ConstInt32(deserialise_i32(bs)))])
+        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h))
 ```
 
 lemma `prefix_load_packed_i64`
@@ -1798,11 +2590,39 @@ lemma `prefix_load_packed_i64`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum(ConstInt32((k : W32)))), Basic(Load(T_i64, SOME(((tp : Tp_num), (sx : Sx))), (a : Num), (off : Num)))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [
+           Basic(EConstNum(ConstInt32((k : W32)))),
+           Basic(
+             Load(
+               T_i64,
+               SOME(((tp : Tp_num), (sx : Sx))),
+               (a : Num),
+               (off : Num)))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum(ConstInt32((k : W32)))), Basic(Load(T_i64, SOME(((tp : Tp_num), (sx : Sx))), (a : Num), (off : Num)))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [
+           Basic(EConstNum(ConstInt32((k : W32)))),
+           Basic(
+             Load(
+               T_i64,
+               SOME(((tp : Tp_num), (sx : Sx))),
+               (a : Num),
+               (off : Num)))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `sl_load_packed_i64`
@@ -1812,7 +2632,20 @@ lemma `sl_load_packed_i64`
 if
   1. LENGTH(bs) == tp_num_length(tp)
 then
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h), [Load(T_i64, SOME((tp, sx)), a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt64(deserialise_i64(sign_extend(sx, 8, bs))))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(ConstInt32(k))])
+        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h),
+    [Load(T_i64, SOME((tp, sx)), a, off)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(
+          vs0,
+          [V_num(ConstInt64(deserialise_i64(sign_extend(sx, 8, bs))))])
+        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h))
 ```
 
 lemma `prefix_load_i64`
@@ -1820,11 +2653,27 @@ lemma `prefix_load_i64`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum(ConstInt32((k : W32)))), Basic(Load(T_i64, NONE, (a : Num), (off : Num)))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [Basic(EConstNum(ConstInt32((k : W32)))),
+          Basic(Load(T_i64, NONE, (a : Num), (off : Num)))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum(ConstInt32((k : W32)))), Basic(Load(T_i64, NONE, (a : Num), (off : Num)))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [Basic(EConstNum(ConstInt32((k : W32)))),
+          Basic(Load(T_i64, NONE, (a : Num), (off : Num)))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `sl_load_i64`
@@ -1834,7 +2683,18 @@ lemma `sl_load_i64`
 if
   1. LENGTH(bs) == 8
 then
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h), [Load(T_i64, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt64(deserialise_i64(bs)))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(ConstInt32(k))])
+        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h),
+    [Load(T_i64, NONE, a, off)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(ConstInt64(deserialise_i64(bs)))])
+        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h))
 ```
 
 lemma `length_list_update`
@@ -1869,7 +2729,8 @@ lemma `gvals_mems_update`
 
 ```
 ∀ (v : List[Mem]) (s : Wstore) (f : Wframe),
-  gvals(s_mems_update(v, s), f) == gvals(s, f) && globs_ok(s_mems_update(v, s), f) == globs_ok(s, f)
+  gvals(s_mems_update(v, s), f) == gvals(s, f)
+  && globs_ok(s_mems_update(v, s), f) == globs_ok(s, f)
 ```
 
 lemma `length_takefill`
@@ -1897,8 +2758,12 @@ if
   2. LENGTH(bs) == l
   3. !(bs == NIL)
 then
-  store(m, n, off, bs2, l) == SOME(write_bytes(m, n + off, bytes_takefill(zero_byte, l, bs2)))
-  && star(pts(n + off, bytes_takefill(zero_byte, l, bs2)), r, heap_of(write_bytes(m, n + off, bytes_takefill(zero_byte, l, bs2))))
+  store(m, n, off, bs2, l)
+    == SOME(write_bytes(m, n + off, bytes_takefill(zero_byte, l, bs2)))
+  && star(
+       pts(n + off, bytes_takefill(zero_byte, l, bs2)),
+       r,
+       heap_of(write_bytes(m, n + off, bytes_takefill(zero_byte, l, bs2))))
 ```
 
 lemma `arity_simple_store`
@@ -1906,7 +2771,17 @@ lemma `arity_simple_store`
 ```
 ∀ (suf e2 : List[Einstr])
 if
-  1. reduce_simple(APPEND(suf, [Basic(Store((t : T_num), (tp : Option[Tp_num]), (a : Num), (off : Num)))]), e2)
+  1. reduce_simple(
+       APPEND(
+         suf,
+         [
+           Basic(
+             Store(
+               (t : T_num),
+               (tp : Option[Tp_num]),
+               (a : Num),
+               (off : Num)))]),
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 2
@@ -1917,7 +2792,21 @@ lemma `arity_store`
 ```
 ∀ (s s2 : Wstore) (f f2 : Wframe) (suf e2 : List[Einstr])
 if
-  1. reduce_base(s, f, APPEND(suf, [Basic(Store((t : T_num), (tp : Option[Tp_num]), (a : Num), (off : Num)))]), s2, f2, e2)
+  1. reduce_base(
+       s,
+       f,
+       APPEND(
+         suf,
+         [
+           Basic(
+             Store(
+               (t : T_num),
+               (tp : Option[Tp_num]),
+               (a : Num),
+               (off : Num)))]),
+       s2,
+       f2,
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 2
@@ -1934,11 +2823,29 @@ lemma `prefix_store`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum(ConstInt32((k : W32)))), Basic(EConstNum(ConstInt32((v : W32)))), Basic(Store(T_i32, NONE, (a : Num), (off : Num)))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [Basic(EConstNum(ConstInt32((k : W32)))),
+          Basic(EConstNum(ConstInt32((v : W32)))),
+          Basic(Store(T_i32, NONE, (a : Num), (off : Num)))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum(ConstInt32((k : W32)))), Basic(EConstNum(ConstInt32((v : W32)))), Basic(Store(T_i32, NONE, (a : Num), (off : Num)))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [Basic(EConstNum(ConstInt32((k : W32)))),
+          Basic(EConstNum(ConstInt32((v : W32)))),
+          Basic(Store(T_i32, NONE, (a : Num), (off : Num)))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `sl_store_i32`
@@ -1948,7 +2855,18 @@ lemma `sl_store_i32`
 if
   1. LENGTH(bs) == 4
 then
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(ConstInt32(v))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h), [Store(T_i32, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == vs0 && star(pts(val(k) + off, serialise_i32(v)), p(vs0, ls, gs, ms), h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(ConstInt32(v))])
+        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h),
+    [Store(T_i32, NONE, a, off)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == vs0
+        && star(pts(val(k) + off, serialise_i32(v)), p(vs0, ls, gs, ms), h))
 ```
 
 lemma `prefix_store_packed_i32`
@@ -1956,11 +2874,29 @@ lemma `prefix_store_packed_i32`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum(ConstInt32((k : W32)))), Basic(EConstNum(ConstInt32((v : W32)))), Basic(Store(T_i32, SOME((tp : Tp_num)), (a : Num), (off : Num)))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [Basic(EConstNum(ConstInt32((k : W32)))),
+          Basic(EConstNum(ConstInt32((v : W32)))),
+          Basic(Store(T_i32, SOME((tp : Tp_num)), (a : Num), (off : Num)))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum(ConstInt32((k : W32)))), Basic(EConstNum(ConstInt32((v : W32)))), Basic(Store(T_i32, SOME((tp : Tp_num)), (a : Num), (off : Num)))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [Basic(EConstNum(ConstInt32((k : W32)))),
+          Basic(EConstNum(ConstInt32((v : W32)))),
+          Basic(Store(T_i32, SOME((tp : Tp_num)), (a : Num), (off : Num)))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `sl_store_packed_i32`
@@ -1970,7 +2906,23 @@ lemma `sl_store_packed_i32`
 if
   1. LENGTH(bs) == tp_num_length(tp)
 then
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(ConstInt32(v))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h), [Store(T_i32, SOME(tp), a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == vs0 && star(pts(val(k) + off, bytes_takefill(zero_byte, tp_num_length(tp), serialise_i32(v))), p(vs0, ls, gs, ms), h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(ConstInt32(v))])
+        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h),
+    [Store(T_i32, SOME(tp), a, off)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == vs0
+        && star(
+             pts(
+               val(k) + off,
+               bytes_takefill(zero_byte, tp_num_length(tp), serialise_i32(v))),
+             p(vs0, ls, gs, ms),
+             h))
 ```
 
 lemma `serialise_i64_length`
@@ -1984,11 +2936,29 @@ lemma `prefix_store_i64`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum(ConstInt32((k : W32)))), Basic(EConstNum(ConstInt64((v : W64)))), Basic(Store(T_i64, NONE, (a : Num), (off : Num)))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [Basic(EConstNum(ConstInt32((k : W32)))),
+          Basic(EConstNum(ConstInt64((v : W64)))),
+          Basic(Store(T_i64, NONE, (a : Num), (off : Num)))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum(ConstInt32((k : W32)))), Basic(EConstNum(ConstInt64((v : W64)))), Basic(Store(T_i64, NONE, (a : Num), (off : Num)))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [Basic(EConstNum(ConstInt32((k : W32)))),
+          Basic(EConstNum(ConstInt64((v : W64)))),
+          Basic(Store(T_i64, NONE, (a : Num), (off : Num)))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `sl_store_i64`
@@ -1998,7 +2968,18 @@ lemma `sl_store_i64`
 if
   1. LENGTH(bs) == 8
 then
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(ConstInt64(v))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h), [Store(T_i64, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == vs0 && star(pts(val(k) + off, serialise_i64(v)), p(vs0, ls, gs, ms), h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(ConstInt64(v))])
+        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h),
+    [Store(T_i64, NONE, a, off)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == vs0
+        && star(pts(val(k) + off, serialise_i64(v)), p(vs0, ls, gs, ms), h))
 ```
 
 lemma `prefix_store_packed_i64`
@@ -2006,11 +2987,29 @@ lemma `prefix_store_packed_i64`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum(ConstInt32((k : W32)))), Basic(EConstNum(ConstInt64((v : W64)))), Basic(Store(T_i64, SOME((tp : Tp_num)), (a : Num), (off : Num)))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [Basic(EConstNum(ConstInt32((k : W32)))),
+          Basic(EConstNum(ConstInt64((v : W64)))),
+          Basic(Store(T_i64, SOME((tp : Tp_num)), (a : Num), (off : Num)))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum(ConstInt32((k : W32)))), Basic(EConstNum(ConstInt64((v : W64)))), Basic(Store(T_i64, SOME((tp : Tp_num)), (a : Num), (off : Num)))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [Basic(EConstNum(ConstInt32((k : W32)))),
+          Basic(EConstNum(ConstInt64((v : W64)))),
+          Basic(Store(T_i64, SOME((tp : Tp_num)), (a : Num), (off : Num)))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `sl_store_packed_i64`
@@ -2020,7 +3019,23 @@ lemma `sl_store_packed_i64`
 if
   1. LENGTH(bs) == tp_num_length(tp)
 then
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(ConstInt64(v))]) && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h), [Store(T_i64, SOME(tp), a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == vs0 && star(pts(val(k) + off, bytes_takefill(zero_byte, tp_num_length(tp), serialise_i64(v))), p(vs0, ls, gs, ms), h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(ConstInt64(v))])
+        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h),
+    [Store(T_i64, SOME(tp), a, off)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == vs0
+        && star(
+             pts(
+               val(k) + off,
+               bytes_takefill(zero_byte, tp_num_length(tp), serialise_i64(v))),
+             p(vs0, ls, gs, ms),
+             h))
 ```
 
 ## Globals (globals.mbt)
@@ -2118,7 +3133,13 @@ lemma `prefix_global_get`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(Global_get((i : Num)))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(MAP(v_to_e, vs0), [Basic(Global_get((i : Num)))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
@@ -2129,14 +3150,30 @@ lemma `sl_global_get`
 
 ```
 ∀ (p : SAssn) (i : Num),
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => i < LENGTH(gs) && p(vs, ls, gs, ms, h), [Global_get(i)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [EL(i, gs)]) && i < LENGTH(gs) && p(vs0, ls, gs, ms, h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      i < LENGTH(gs) && p(vs, ls, gs, ms, h),
+    [Global_get(i)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [EL(i, gs)])
+        && i < LENGTH(gs)
+        && p(vs0, ls, gs, ms, h))
 ```
 
 lemma `global_set_step`
 
 ```
 ∀ (s : Wstore) (f : Wframe) (i : Num) (c : V_num),
-  reduce_base(s, f, [Basic(EConstNum(c)), Basic(Global_set(i))], supdate_glob(s, f_inst(f), i, V_num(c)), f, NIL)
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(c)), Basic(Global_set(i))],
+    supdate_glob(s, f_inst(f), i, V_num(c)),
+    f,
+    NIL)
 ```
 
 lemma `arity_simple_global_set`
@@ -2166,18 +3203,45 @@ lemma `prefix_global_set`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c : V_num))), Basic(Global_set((i : Num)))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [Basic(EConstNum((c : V_num))), Basic(Global_set((i : Num)))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum((c : V_num))), Basic(Global_set((i : Num)))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [Basic(EConstNum((c : V_num))), Basic(Global_set((i : Num)))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `sl_global_set`
 
 ```
 ∀ (p : SAssn) (i : Num) (c : V_num),
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && i < LENGTH(gs) && p(vs0, ls, gs, ms, h), [Global_set(i)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ gs0 : List[Value], gs == list_update(gs0, i, V_num(c)) && i < LENGTH(gs0) && p(vs, ls, gs0, ms, h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(c)])
+        && i < LENGTH(gs)
+        && p(vs0, ls, gs, ms, h),
+    [Global_set(i)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ gs0 : List[Value],
+        gs == list_update(gs0, i, V_num(c))
+        && i < LENGTH(gs0)
+        && p(vs, ls, gs0, ms, h))
 ```
 
 ## Memory size (memsize.mbt)
@@ -2185,14 +3249,16 @@ lemma `sl_global_set`
 lemma `mem_length_append`
 
 ```
-∀ (m : Mem) (n : Num) (b : Byte), mem_length(mem_append(m, n, b)) == mem_length(m) + n
+∀ (m : Mem) (n : Num) (b : Byte),
+  mem_length(mem_append(m, n, b)) == mem_length(m) + n
 ```
 
 lemma `heap_of_append`
 
 ```
 ∀ (m : Mem) (n : Num) (b : Byte),
-  heap_of(mem_append(m, n, b)) == hunion(heap_of(m), pts_heap(mem_length(m), REPLICATE(n, b)))
+  heap_of(mem_append(m, n, b))
+    == hunion(heap_of(m), pts_heap(mem_length(m), REPLICATE(n, b)))
 ```
 
 lemma `heap_of_disj`
@@ -2227,7 +3293,10 @@ lemma `star_grow`
 if
   1. star(p, r, heap_of(m))
 then
-  star(star(p, pts(mem_length(m), REPLICATE(n, b))), r, heap_of(mem_append(m, n, b)))
+  star(
+    star(p, pts(mem_length(m), REPLICATE(n, b))),
+    r,
+    heap_of(mem_append(m, n, b)))
 ```
 
 lemma `mem_grow_some`
@@ -2281,7 +3350,15 @@ lemma `memory_size_step`
 if
   1. smem_ind(f_inst(f)) == SOME(j)
 then
-  reduce_base(s, f, [Basic(Memory_size)], s, f, [Basic(EConstNum(ConstInt32(word(DIV(mem_length(EL(j, s_mems(s))), 65536)))))])
+  reduce_base(
+    s,
+    f,
+    [Basic(Memory_size)],
+    s,
+    f,
+    [
+      Basic(
+        EConstNum(ConstInt32(word(DIV(mem_length(EL(j, s_mems(s))), 65536)))))])
 ```
 
 lemma `memory_size_cases`
@@ -2294,14 +3371,23 @@ if
 then
   s2 == s
   && f2 == f
-  && es2 == [Basic(EConstNum(ConstInt32(word(DIV(mem_length(EL(j, s_mems(s))), 65536)))))]
+  && es2 == [
+       Basic(
+         EConstNum(ConstInt32(word(DIV(mem_length(EL(j, s_mems(s))), 65536)))))]
 ```
 
 lemma `sl_memory_size`
 
 ```
 ∀ (p : SAssn),
-  sl_triple(p, [Memory_size], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(word(DIV(ms, 65536))))]) && p(vs0, ls, gs, ms, h))
+  sl_triple(
+    p,
+    [Memory_size],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(ConstInt32(word(DIV(ms, 65536))))])
+        && p(vs0, ls, gs, ms, h))
 ```
 
 lemma `arity_simple_memory_grow`
@@ -2331,11 +3417,25 @@ lemma `prefix_memory_grow`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum(ConstInt32((c : W32)))), Basic(Memory_grow)]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [Basic(EConstNum(ConstInt32((c : W32)))), Basic(Memory_grow)]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum(ConstInt32((c : W32)))), Basic(Memory_grow)], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [Basic(EConstNum(ConstInt32((c : W32)))), Basic(Memory_grow)],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `memory_grow_fail_step`
@@ -2345,14 +3445,38 @@ lemma `memory_grow_fail_step`
 if
   1. smem_ind(f_inst(f)) == SOME(j)
 then
-  reduce_base(s, f, [Basic(EConstNum(ConstInt32(c))), Basic(Memory_grow)], s, f, [Basic(EConstNum(ConstInt32(int32_minus_one)))])
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(c))), Basic(Memory_grow)],
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(int32_minus_one)))])
 ```
 
 lemma `sl_memory_grow`
 
 ```
 ∀ (p : SAssn) (c : W32),
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(c))]) && p(vs0, ls, gs, ms, h), [Memory_grow], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], ∃ ms0 : Num, vs == APPEND(vs0, [V_num(ConstInt32(word(DIV(ms0, 65536))))]) && ms == ms0 + val(c) * 65536 && star(p(vs0, ls, gs, ms0), pts(ms0, REPLICATE(val(c) * 65536, word(0))), h) || vs == APPEND(vs0, [V_num(ConstInt32(int32_minus_one))]) && ms == ms0 && p(vs0, ls, gs, ms0, h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(ConstInt32(c))]) && p(vs0, ls, gs, ms, h),
+    [Memory_grow],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        ∃ ms0 : Num,
+          vs == APPEND(vs0, [V_num(ConstInt32(word(DIV(ms0, 65536))))])
+          && ms == ms0 + val(c) * 65536
+          && star(
+               p(vs0, ls, gs, ms0),
+               pts(ms0, REPLICATE(val(c) * 65536, word(0))),
+               h)
+          || vs == APPEND(vs0, [V_num(ConstInt32(int32_minus_one))])
+             && ms == ms0
+             && p(vs0, ls, gs, ms0, h))
 ```
 
 ## Locals (locals.mbt)
@@ -2361,7 +3485,10 @@ lemma `f_locs_update_get`
 
 ```
 ∀ (l : List[Value]) (f : Wframe) (s : Wstore),
-  f_locs(f_locs_update(l, f)) == l && f_inst(f_locs_update(l, f)) == f_inst(f) && gvals(s, f_locs_update(l, f)) == gvals(s, f) && globs_ok(s, f_locs_update(l, f)) == globs_ok(s, f)
+  f_locs(f_locs_update(l, f)) == l
+  && f_inst(f_locs_update(l, f)) == f_inst(f)
+  && gvals(s, f_locs_update(l, f)) == gvals(s, f)
+  && globs_ok(s, f_locs_update(l, f)) == globs_ok(s, f)
 ```
 
 lemma `arity_simple_local_get`
@@ -2391,7 +3518,13 @@ lemma `prefix_local_get`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(Local_get((k : Num)))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(MAP(v_to_e, vs0), [Basic(Local_get((k : Num)))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
@@ -2447,11 +3580,25 @@ lemma `prefix_local_set`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c : V_num))), Basic(Local_set((k : Num)))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [Basic(EConstNum((c : V_num))), Basic(Local_set((k : Num)))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum((c : V_num))), Basic(Local_set((k : Num)))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [Basic(EConstNum((c : V_num))), Basic(Local_set((k : Num)))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `local_set_step`
@@ -2461,7 +3608,13 @@ lemma `local_set_step`
 if
   1. k < LENGTH(f_locs(f))
 then
-  reduce_base(s, f, [Basic(EConstNum(c)), Basic(Local_set(k))], s, f_locs_update(list_update(f_locs(f), k, V_num(c)), f), NIL)
+  reduce_base(
+    s,
+    f,
+    [Basic(EConstNum(c)), Basic(Local_set(k))],
+    s,
+    f_locs_update(list_update(f_locs(f), k, V_num(c)), f),
+    NIL)
 ```
 
 lemma `local_set_cases`
@@ -2480,14 +3633,37 @@ lemma `sl_local_get`
 
 ```
 ∀ (p : SAssn) (k : Num),
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => k < LENGTH(ls) && p(vs, ls, gs, ms, h), [Local_get(k)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [EL(k, ls)]) && k < LENGTH(ls) && p(vs0, ls, gs, ms, h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      k < LENGTH(ls) && p(vs, ls, gs, ms, h),
+    [Local_get(k)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [EL(k, ls)])
+        && k < LENGTH(ls)
+        && p(vs0, ls, gs, ms, h))
 ```
 
 lemma `sl_local_set`
 
 ```
 ∀ (p : SAssn) (k : Num) (c : V_num),
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && k < LENGTH(ls) && p(vs0, ls, gs, ms, h), [Local_set(k)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ ls0 : List[Value], ls == list_update(ls0, k, V_num(c)) && k < LENGTH(ls0) && p(vs, ls0, gs, ms, h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(c)])
+        && k < LENGTH(ls)
+        && p(vs0, ls, gs, ms, h),
+    [Local_set(k)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ ls0 : List[Value],
+        ls == list_update(ls0, k, V_num(c))
+        && k < LENGTH(ls0)
+        && p(vs, ls0, gs, ms, h))
 ```
 
 lemma `arity_simple_local_tee`
@@ -2517,18 +3693,47 @@ lemma `prefix_local_tee`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum((c : V_num))), Basic(Local_tee((k : Num)))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [Basic(EConstNum((c : V_num))), Basic(Local_tee((k : Num)))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum((c : V_num))), Basic(Local_tee((k : Num)))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [Basic(EConstNum((c : V_num))), Basic(Local_tee((k : Num)))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `sl_local_tee`
 
 ```
 ∀ (p : SAssn) (k : Num) (c : V_num),
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && k < LENGTH(ls) && p(vs0, ls, gs, ms, h), [Local_tee(k)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], ∃ ls0 : List[Value], vs == APPEND(vs0, [V_num(c)]) && ls == list_update(ls0, k, V_num(c)) && k < LENGTH(ls0) && p(vs0, ls0, gs, ms, h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(c)])
+        && k < LENGTH(ls)
+        && p(vs0, ls, gs, ms, h),
+    [Local_tee(k)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        ∃ ls0 : List[Value],
+          vs == APPEND(vs0, [V_num(c)])
+          && ls == list_update(ls0, k, V_num(c))
+          && k < LENGTH(ls0)
+          && p(vs0, ls0, gs, ms, h))
 ```
 
 ## Conditionals (conditionals.mbt)
@@ -2560,11 +3765,25 @@ lemma `prefix_br_if`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum(ConstInt32((c : W32)))), Basic(Br_if((i : Num)))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [Basic(EConstNum(ConstInt32((c : W32)))), Basic(Br_if((i : Num)))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum(ConstInt32((c : W32)))), Basic(Br_if((i : Num)))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [Basic(EConstNum(ConstInt32((c : W32)))), Basic(Br_if((i : Num)))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `sl_br_if`
@@ -2573,9 +3792,21 @@ lemma `sl_br_if`
 ∀ (p q : SAssn) (ls : List[SAssn]) (i : Num) (c : W32)
 if
   1. !(c == word(0)) → sl_triple_l(p, [Br(i)], q, ls)
-  2. c == word(0) → (∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, p(vs, lc, gs, ms, h) → q(vs, lc, gs, ms, h))
+  2. c == word(0) → (
+       ∀ vs : List[Value],
+         ∀ lc : List[Value],
+           ∀ gs : List[Value],
+             ∀ ms : Num,
+               ∀ h : Heap, p(vs, lc, gs, ms, h) → q(vs, lc, gs, ms, h))
 then
-  sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(c))]) && p(vs0, lc, gs, ms, h), [Br_if(i)], q, ls)
+  sl_triple_l(
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(ConstInt32(c))]) && p(vs0, lc, gs, ms, h),
+    [Br_if(i)],
+    q,
+    ls)
 ```
 
 lemma `arity_simple_if`
@@ -2583,7 +3814,11 @@ lemma `arity_simple_if`
 ```
 ∀ (suf e2 : List[Einstr])
 if
-  1. reduce_simple(APPEND(suf, [Basic(If((tb : Tb), (bs1 : List[B_e]), (bs2 : List[B_e])))]), e2)
+  1. reduce_simple(
+       APPEND(
+         suf,
+         [Basic(If((tb : Tb), (bs1 : List[B_e]), (bs2 : List[B_e])))]),
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 1
@@ -2594,7 +3829,15 @@ lemma `arity_if`
 ```
 ∀ (s s2 : Wstore) (f f2 : Wframe) (suf e2 : List[Einstr])
 if
-  1. reduce_base(s, f, APPEND(suf, [Basic(If((tb : Tb), (bs1 : List[B_e]), (bs2 : List[B_e])))]), s2, f2, e2)
+  1. reduce_base(
+       s,
+       f,
+       APPEND(
+         suf,
+         [Basic(If((tb : Tb), (bs1 : List[B_e]), (bs2 : List[B_e])))]),
+       s2,
+       f2,
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 1
@@ -2605,11 +3848,27 @@ lemma `prefix_if`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(EConstNum(ConstInt32((c : W32)))), Basic(If((tb : Tb), (bs1 : List[B_e]), (bs2 : List[B_e])))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(
+         MAP(v_to_e, vs0),
+         [Basic(EConstNum(ConstInt32((c : W32)))),
+          Basic(If((tb : Tb), (bs1 : List[B_e]), (bs2 : List[B_e])))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
-    && reduce(s, f, [Basic(EConstNum(ConstInt32((c : W32)))), Basic(If((tb : Tb), (bs1 : List[B_e]), (bs2 : List[B_e])))], s2, f2, e)
+    && reduce(
+         s,
+         f,
+         [Basic(EConstNum(ConstInt32((c : W32)))),
+          Basic(If((tb : Tb), (bs1 : List[B_e]), (bs2 : List[B_e])))],
+         s2,
+         f2,
+         e)
 ```
 
 lemma `sl_if`
@@ -2620,7 +3879,14 @@ if
   1. !(c == word(0)) → sl_triple_l(p, [Block(tb, bs1)], q, ls)
   2. c == word(0) → sl_triple_l(p, [Block(tb, bs2)], q, ls)
 then
-  sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(c))]) && p(vs0, lc, gs, ms, h), [If(tb, bs1, bs2)], q, ls)
+  sl_triple_l(
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(ConstInt32(c))]) && p(vs0, lc, gs, ms, h),
+    [If(tb, bs1, bs2)],
+    q,
+    ls)
 ```
 
 ## Exact states (state.mbt)
@@ -2628,21 +3894,34 @@ then
 definition `st`
 
 ```
-st((v : List[Value]), (l : List[Value]), (r : GProp), (vs : List[Value]), (lc : List[Value]), (gs : List[Value]), (ms : Num), (h : Heap)) == (vs == v && lc == l && r(gs, ms, h))
+st(
+  (v : List[Value]),
+  (l : List[Value]),
+  (r : GProp),
+  (vs : List[Value]),
+  (lc : List[Value]),
+  (gs : List[Value]),
+  (ms : Num),
+  (h : Heap))
+  == (vs == v && lc == l && r(gs, ms, h))
 ```
 
 lemma `st_snoc_ex`
 
 ```
 ∀ (v l vs lc gs : List[Value]) (x : Value) (r : GProp) (ms : Num) (h : Heap),
-  (∃ vs0 : List[Value], vs == APPEND(vs0, [x]) && st(v, l, r, vs0, lc, gs, ms, h)) == st(APPEND(v, [x]), l, r, vs, lc, gs, ms, h)
+  (
+    ∃ vs0 : List[Value],
+      vs == APPEND(vs0, [x]) && st(v, l, r, vs0, lc, gs, ms, h))
+    == st(APPEND(v, [x]), l, r, vs, lc, gs, ms, h)
 ```
 
 lemma `list_update_cons`
 
 ```
 ∀ (h x : A) (t : List[A]) (k : Num),
-  list_update(CONS(h, t), k, x) == (if k == 0 { CONS(x, t) } else { CONS(h, list_update(t, k - 1, x)) })
+  list_update(CONS(h, t), k, x)
+    == (if k == 0 { CONS(x, t) } else { CONS(h, list_update(t, k - 1, x)) })
 ```
 
 lemma `st_const`
@@ -2659,21 +3938,30 @@ lemma `st_binop`
 if
   1. app_binop(op, c1, c2) == SOME(c)
 then
-  sl_triple(st(APPEND(v, [V_num(c1), V_num(c2)]), l, r), [Binop(t, op)], st(APPEND(v, [V_num(c)]), l, r))
+  sl_triple(
+    st(APPEND(v, [V_num(c1), V_num(c2)]), l, r),
+    [Binop(t, op)],
+    st(APPEND(v, [V_num(c)]), l, r))
 ```
 
 lemma `st_testop`
 
 ```
 ∀ (v l : List[Value]) (r : GProp) (t : T_num) (op : Testop) (c : V_num),
-  sl_triple(st(APPEND(v, [V_num(c)]), l, r), [Testop(t, op)], st(APPEND(v, [V_num(app_testop(op, c))]), l, r))
+  sl_triple(
+    st(APPEND(v, [V_num(c)]), l, r),
+    [Testop(t, op)],
+    st(APPEND(v, [V_num(app_testop(op, c))]), l, r))
 ```
 
 lemma `st_relop`
 
 ```
 ∀ (v l : List[Value]) (r : GProp) (t : T_num) (op : Relop) (c1 c2 : V_num),
-  sl_triple(st(APPEND(v, [V_num(c1), V_num(c2)]), l, r), [Relop(t, op)], st(APPEND(v, [V_num(app_relop(op, c1, c2))]), l, r))
+  sl_triple(
+    st(APPEND(v, [V_num(c1), V_num(c2)]), l, r),
+    [Relop(t, op)],
+    st(APPEND(v, [V_num(app_relop(op, c1, c2))]), l, r))
 ```
 
 lemma `st_local_get`
@@ -2693,7 +3981,10 @@ lemma `st_local_set`
 if
   1. k < LENGTH(l)
 then
-  sl_triple(st(APPEND(v, [V_num(c)]), l, r), [Local_set(k)], st(v, list_update(l, k, V_num(c)), r))
+  sl_triple(
+    st(APPEND(v, [V_num(c)]), l, r),
+    [Local_set(k)],
+    st(v, list_update(l, k, V_num(c)), r))
 ```
 
 definition `sum_to`
@@ -2707,7 +3998,9 @@ lemma `sum_to_suc_word`
 
 ```
 ∀ (m : Num),
-  (word : (Num) -> W32)(sum_to(SUC(m))) == (word_add : (W32, W32) -> W32)((word : (Num) -> W32)(SUC(m)), (word : (Num) -> W32)(sum_to(m)))
+  (word : (Num) -> W32)(sum_to(SUC(m))) == (word_add : (W32, W32) -> W32)(
+    (word : (Num) -> W32)(SUC(m)),
+    (word : (Num) -> W32)(sum_to(m)))
 ```
 
 lemma `sum_to_step`
@@ -2723,13 +4016,15 @@ then
 lemma `sum_to_one_word`
 
 ```
-(word : (Num) -> W32)(sum_to((val : (W32) -> Num)((word : (Num) -> W32)(1)))) == (word : (Num) -> W32)(1)
+(word : (Num) -> W32)(sum_to((val : (W32) -> Num)((word : (Num) -> W32)(1))))
+  == (word : (Num) -> W32)(1)
 ```
 
 lemma `sum_to_zero_word`
 
 ```
-(word : (Num) -> W32)(sum_to((val : (W32) -> Num)((word : (Num) -> W32)(0)))) == (word : (Num) -> W32)(0)
+(word : (Num) -> W32)(sum_to((val : (W32) -> Num)((word : (Num) -> W32)(0))))
+  == (word : (Num) -> W32)(0)
 ```
 
 ## Arrays (arrays.mbt)
@@ -2750,7 +4045,8 @@ definition `words_bytes`
 
 ```
 words_bytes(NIL) == NIL
-&& words_bytes(CONS((x : W32), (xs : List[W32]))) == APPEND(serialise_i32(x), words_bytes(xs))
+&& words_bytes(CONS((x : W32), (xs : List[W32])))
+     == APPEND(serialise_i32(x), words_bytes(xs))
 ```
 
 definition `arr`
@@ -2762,7 +4058,8 @@ arr((a : Num), (xs : List[W32])) == pts(a, words_bytes(xs))
 lemma `words_bytes_append`
 
 ```
-∀ (xs ys : List[W32]), words_bytes(APPEND(xs, ys)) == APPEND(words_bytes(xs), words_bytes(ys))
+∀ (xs ys : List[W32]),
+  words_bytes(APPEND(xs, ys)) == APPEND(words_bytes(xs), words_bytes(ys))
 ```
 
 lemma `length_words_bytes`
@@ -2795,13 +4092,16 @@ lemma `arr_focus`
 
 ```
 ∀ (a : Num) (ys zs : List[W32]) (x : W32),
-  arr(a, APPEND(ys, CONS(x, zs))) == star(pts(a + 4 * LENGTH(ys), serialise_i32(x)), star(arr(a, ys), arr(a + 4 * LENGTH(ys) + 4, zs)))
+  arr(a, APPEND(ys, CONS(x, zs))) == star(
+    pts(a + 4 * LENGTH(ys), serialise_i32(x)),
+    star(arr(a, ys), arr(a + 4 * LENGTH(ys) + 4, zs)))
 ```
 
 lemma `star_pure_r`
 
 ```
-∀ (c : Bool) (p r : HProp) (h : Heap), star(p, (h1 : Heap) => c && r(h1), h) == (c && star(p, r, h))
+∀ (c : Bool) (p r : HProp) (h : Heap),
+  star(p, (h1 : Heap) => c && r(h1), h) == (c && star(p, r, h))
 ```
 
 lemma `st_arr_store`
@@ -2812,7 +4112,18 @@ lemma `st_arr_store`
 if
   1. val(k) + off == a + 4 * LENGTH(ys)
 then
-  sl_triple(st(APPEND(v, [V_num(ConstInt32(k)), V_num(ConstInt32(x))]), l, (gs : List[Value]) => (ms : Num) => (h : Heap) => star(arr(a, APPEND(ys, CONS(x0, zs))), fp(gs, ms), h)), [Store(T_i32, NONE, al, off)], st(v, l, (gs : List[Value]) => (ms : Num) => (h : Heap) => star(arr(a, APPEND(ys, CONS(x, zs))), fp(gs, ms), h)))
+  sl_triple(
+    st(
+      APPEND(v, [V_num(ConstInt32(k)), V_num(ConstInt32(x))]),
+      l,
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(arr(a, APPEND(ys, CONS(x0, zs))), fp(gs, ms), h)),
+    [Store(T_i32, NONE, al, off)],
+    st(
+      v,
+      l,
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(arr(a, APPEND(ys, CONS(x, zs))), fp(gs, ms), h)))
 ```
 
 lemma `st_arr_load`
@@ -2823,7 +4134,18 @@ lemma `st_arr_load`
 if
   1. val(k) + off == a + 4 * LENGTH(ys)
 then
-  sl_triple(st(APPEND(v, [V_num(ConstInt32(k))]), l, (gs : List[Value]) => (ms : Num) => (h : Heap) => star(arr(a, APPEND(ys, CONS(x0, zs))), fp(gs, ms), h)), [Load(T_i32, NONE, al, off)], st(APPEND(v, [V_num(ConstInt32(x0))]), l, (gs : List[Value]) => (ms : Num) => (h : Heap) => star(arr(a, APPEND(ys, CONS(x0, zs))), fp(gs, ms), h)))
+  sl_triple(
+    st(
+      APPEND(v, [V_num(ConstInt32(k))]),
+      l,
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(arr(a, APPEND(ys, CONS(x0, zs))), fp(gs, ms), h)),
+    [Load(T_i32, NONE, al, off)],
+    st(
+      APPEND(v, [V_num(ConstInt32(x0))]),
+      l,
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(arr(a, APPEND(ys, CONS(x0, zs))), fp(gs, ms), h)))
 ```
 
 lemma `addr_at`
@@ -2845,7 +4167,18 @@ if
   1. val(P) + 4 * LENGTH(xs) < 4294967296
   2. val(J) < LENGTH(xs)
 then
-  sl_triple(st(APPEND(v, [V_num(ConstInt32(word_add(P, word_mul(J, word(4)))))]), l, (gs : List[Value]) => (ms : Num) => (h : Heap) => star(arr(val(P), xs), fp(gs, ms), h)), [Load(T_i32, NONE, al, 0)], st(APPEND(v, [V_num(ConstInt32(EL(val(J), xs)))]), l, (gs : List[Value]) => (ms : Num) => (h : Heap) => star(arr(val(P), xs), fp(gs, ms), h)))
+  sl_triple(
+    st(
+      APPEND(v, [V_num(ConstInt32(word_add(P, word_mul(J, word(4)))))]),
+      l,
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(arr(val(P), xs), fp(gs, ms), h)),
+    [Load(T_i32, NONE, al, 0)],
+    st(
+      APPEND(v, [V_num(ConstInt32(EL(val(J), xs)))]),
+      l,
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(arr(val(P), xs), fp(gs, ms), h)))
 ```
 
 lemma `st_arr_store_at`
@@ -2856,7 +4189,21 @@ if
   1. val(P) + 4 * LENGTH(xs) < 4294967296
   2. val(J) < LENGTH(xs)
 then
-  sl_triple(st(APPEND(v, [V_num(ConstInt32(word_add(P, word_mul(J, word(4))))), V_num(ConstInt32(x))]), l, (gs : List[Value]) => (ms : Num) => (h : Heap) => star(arr(val(P), xs), fp(gs, ms), h)), [Store(T_i32, NONE, al, 0)], st(v, l, (gs : List[Value]) => (ms : Num) => (h : Heap) => star(arr(val(P), list_update(xs, val(J), x)), fp(gs, ms), h)))
+  sl_triple(
+    st(
+      APPEND(
+        v,
+        [V_num(ConstInt32(word_add(P, word_mul(J, word(4))))),
+         V_num(ConstInt32(x))]),
+      l,
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(arr(val(P), xs), fp(gs, ms), h)),
+    [Store(T_i32, NONE, al, 0)],
+    st(
+      v,
+      l,
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(arr(val(P), list_update(xs, val(J), x)), fp(gs, ms), h)))
 ```
 
 ## Symbolic execution (sym.mbt)
@@ -2866,7 +4213,10 @@ lemma `sl_pre_l`
 ```
 ∀ (p p2 q : SAssn) (bs : List[B_e]) (ls : List[SAssn])
 if
-  1. ∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, p2(vs, lc, gs, ms, h) → p(vs, lc, gs, ms, h)
+  1. ∀ vs : List[Value],
+       ∀ lc : List[Value],
+         ∀ gs : List[Value],
+           ∀ ms : Num, ∀ h : Heap, p2(vs, lc, gs, ms, h) → p(vs, lc, gs, ms, h)
   2. sl_triple_l(p, bs, q, ls)
 then
   sl_triple_l(p2, bs, q, ls)
@@ -2899,7 +4249,8 @@ lemma `sl_nil_st`
 ```
 ∀ (v l : List[Value]) (R : GProp) (r : SAssn) (ls : List[SAssn])
 if
-  1. ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → r(v, l, gs, ms, h)
+  1. ∀ gs : List[Value],
+       ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → r(v, l, gs, ms, h)
 then
   sl_triple_l(st(v, l, R), NIL, r, ls)
 ```
@@ -2910,7 +4261,13 @@ lemma `sl_br_st`
 ∀ (v l : List[Value]) (R : GProp) (i : Num) (r : SAssn) (ls : List[SAssn])
 if
   1. i < LENGTH(ls)
-  2. ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → (∃ vs0 : List[Value], ∃ vb : List[Value], v == APPEND(vs0, vb) && EL(i, ls, vb, l, gs, ms, h))
+  2. ∀ gs : List[Value],
+       ∀ ms : Num,
+         ∀ h : Heap,
+           R(gs, ms, h) → (
+             ∃ vs0 : List[Value],
+               ∃ vb : List[Value],
+                 v == APPEND(vs0, vb) && EL(i, ls, vb, l, gs, ms, h))
 then
   sl_triple_l(st(v, l, R), [Br(i)], r, ls)
 ```
@@ -2921,10 +4278,20 @@ lemma `sl_br_if_st`
 ∀ (v l : List[Value]) (R : GProp) (c : W32) (i : Num) (rest : List[B_e])
   (r : SAssn) (ls : List[SAssn])
 if
-  1. !(c == word(0)) → sl_triple_l(st(v, l, R), [Br(i)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => false, ls)
+  1. !(c == word(0)) → sl_triple_l(
+       st(v, l, R),
+       [Br(i)],
+       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+       (ms : Num) => (h : Heap) =>
+         false,
+       ls)
   2. c == word(0) → sl_triple_l(st(v, l, R), rest, r, ls)
 then
-  sl_triple_l(st(APPEND(v, [V_num(ConstInt32(c))]), l, R), CONS(Br_if(i), rest), r, ls)
+  sl_triple_l(
+    st(APPEND(v, [V_num(ConstInt32(c))]), l, R),
+    CONS(Br_if(i), rest),
+    r,
+    ls)
 ```
 
 lemma `sl_if_st`
@@ -2936,7 +4303,11 @@ if
   1. !(c == word(0)) → sl_triple_l(st(v, l, R), [Block(tb, bs1)], r, ls)
   2. c == word(0) → sl_triple_l(st(v, l, R), [Block(tb, bs2)], r, ls)
 then
-  sl_triple_l(st(APPEND(v, [V_num(ConstInt32(c))]), l, R), [If(tb, bs1, bs2)], r, ls)
+  sl_triple_l(
+    st(APPEND(v, [V_num(ConstInt32(c))]), l, R),
+    [If(tb, bs1, bs2)],
+    r,
+    ls)
 ```
 
 lemma `sl_block_st`
@@ -2945,7 +4316,18 @@ lemma `sl_block_st`
 ∀ (v l : List[Value]) (R : GProp) (ot : Option[Valtype]) (bs : List[B_e])
   (r : SAssn) (ls : List[SAssn])
 if
-  1. sl_triple_l(st(NIL, l, R), bs, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => r(APPEND(v, vs), lc, gs, ms, h), CONS((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => LENGTH(vs) == LENGTH(tbv_results(ot)) && r(APPEND(v, vs), lc, gs, ms, h), ls))
+  1. sl_triple_l(
+       st(NIL, l, R),
+       bs,
+       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+       (ms : Num) => (h : Heap) =>
+         r(APPEND(v, vs), lc, gs, ms, h),
+       CONS(
+         (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+         (ms : Num) => (h : Heap) =>
+           LENGTH(vs) == LENGTH(tbv_results(ot))
+           && r(APPEND(v, vs), lc, gs, ms, h),
+         ls))
 then
   sl_triple_l(st(v, l, R), [Block(Tbv(ot), bs)], r, ls)
 ```
@@ -2956,8 +4338,21 @@ lemma `sl_loop_st`
 ∀ (linv : FProp) (v l : List[Value]) (R : GProp) (ot : Option[Valtype])
   (bs : List[B_e]) (r : SAssn) (ls : List[SAssn])
 if
-  1. ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → linv(l, gs, ms, h)
-  2. sl_triple_l((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == NIL && linv(lc, gs, ms, h), bs, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => r(APPEND(v, vs), lc, gs, ms, h), CONS((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == NIL && linv(lc, gs, ms, h), ls))
+  1. ∀ gs : List[Value],
+       ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → linv(l, gs, ms, h)
+  2. sl_triple_l(
+       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+       (ms : Num) => (h : Heap) =>
+         vs == NIL && linv(lc, gs, ms, h),
+       bs,
+       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+       (ms : Num) => (h : Heap) =>
+         r(APPEND(v, vs), lc, gs, ms, h),
+       CONS(
+         (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+         (ms : Num) => (h : Heap) =>
+           vs == NIL && linv(lc, gs, ms, h),
+         ls))
 then
   sl_triple_l(st(v, l, R), [Loop(Tbv(ot), bs)], r, ls)
 ```
@@ -2975,10 +4370,22 @@ definition `has_call_b_rules`
 ```
 ∀ j : Num, has_call_b(Call(j))
 && ∀ t : Num, ∀ j : Num, has_call_b(Call_indirect(t, j))
-&& ∀ b : B_e, ∀ tb : Tb, ∀ bs : List[B_e], MEM(b, bs) && has_call_b(b) → has_call_b(Block(tb, bs))
-&& ∀ b : B_e, ∀ tb : Tb, ∀ bs : List[B_e], MEM(b, bs) && has_call_b(b) → has_call_b(Loop(tb, bs))
-&& ∀ b : B_e, ∀ tb : Tb, ∀ bs1 : List[B_e], ∀ bs2 : List[B_e], MEM(b, bs1) && has_call_b(b) → has_call_b(If(tb, bs1, bs2))
-&& ∀ b : B_e, ∀ tb : Tb, ∀ bs1 : List[B_e], ∀ bs2 : List[B_e], MEM(b, bs2) && has_call_b(b) → has_call_b(If(tb, bs1, bs2))
+&& ∀ b : B_e,
+     ∀ tb : Tb,
+       ∀ bs : List[B_e], MEM(b, bs) && has_call_b(b) → has_call_b(Block(tb, bs))
+&& ∀ b : B_e,
+     ∀ tb : Tb,
+       ∀ bs : List[B_e], MEM(b, bs) && has_call_b(b) → has_call_b(Loop(tb, bs))
+&& ∀ b : B_e,
+     ∀ tb : Tb,
+       ∀ bs1 : List[B_e],
+         ∀ bs2 : List[B_e],
+           MEM(b, bs1) && has_call_b(b) → has_call_b(If(tb, bs1, bs2))
+&& ∀ b : B_e,
+     ∀ tb : Tb,
+       ∀ bs1 : List[B_e],
+         ∀ bs2 : List[B_e],
+           MEM(b, bs2) && has_call_b(b) → has_call_b(If(tb, bs1, bs2))
 ```
 
 lemma `has_call_b_induct`
@@ -2988,10 +4395,24 @@ lemma `has_call_b_induct`
 if
   1. ∀ j : Num, has_call_b'(Call(j))
   2. ∀ t : Num, ∀ j : Num, has_call_b'(Call_indirect(t, j))
-  3. ∀ b : B_e, ∀ tb : Tb, ∀ bs : List[B_e], MEM(b, bs) && has_call_b'(b) → has_call_b'(Block(tb, bs))
-  4. ∀ b : B_e, ∀ tb : Tb, ∀ bs : List[B_e], MEM(b, bs) && has_call_b'(b) → has_call_b'(Loop(tb, bs))
-  5. ∀ b : B_e, ∀ tb : Tb, ∀ bs1 : List[B_e], ∀ bs2 : List[B_e], MEM(b, bs1) && has_call_b'(b) → has_call_b'(If(tb, bs1, bs2))
-  6. ∀ b : B_e, ∀ tb : Tb, ∀ bs1 : List[B_e], ∀ bs2 : List[B_e], MEM(b, bs2) && has_call_b'(b) → has_call_b'(If(tb, bs1, bs2))
+  3. ∀ b : B_e,
+       ∀ tb : Tb,
+         ∀ bs : List[B_e],
+           MEM(b, bs) && has_call_b'(b) → has_call_b'(Block(tb, bs))
+  4. ∀ b : B_e,
+       ∀ tb : Tb,
+         ∀ bs : List[B_e],
+           MEM(b, bs) && has_call_b'(b) → has_call_b'(Loop(tb, bs))
+  5. ∀ b : B_e,
+       ∀ tb : Tb,
+         ∀ bs1 : List[B_e],
+           ∀ bs2 : List[B_e],
+             MEM(b, bs1) && has_call_b'(b) → has_call_b'(If(tb, bs1, bs2))
+  6. ∀ b : B_e,
+       ∀ tb : Tb,
+         ∀ bs1 : List[B_e],
+           ∀ bs2 : List[B_e],
+             MEM(b, bs2) && has_call_b'(b) → has_call_b'(If(tb, bs1, bs2))
   7. has_call_b(a)
 then
   has_call_b'(a)
@@ -3001,7 +4422,31 @@ lemma `has_call_b_cases`
 
 ```
 ∀ (a : B_e),
-  has_call_b(a) == ((∃ j : Num, a == Call(j)) || (∃ t : Num, ∃ j : Num, a == Call_indirect(t, j)) || (∃ b : B_e, ∃ tb : Tb, ∃ bs : List[B_e], a == Block(tb, bs) && MEM(b, bs) && has_call_b(b)) || (∃ b : B_e, ∃ tb : Tb, ∃ bs : List[B_e], a == Loop(tb, bs) && MEM(b, bs) && has_call_b(b)) || (∃ b : B_e, ∃ tb : Tb, ∃ bs1 : List[B_e], ∃ bs2 : List[B_e], a == If(tb, bs1, bs2) && MEM(b, bs1) && has_call_b(b)) || (∃ b : B_e, ∃ tb : Tb, ∃ bs1 : List[B_e], ∃ bs2 : List[B_e], a == If(tb, bs1, bs2) && MEM(b, bs2) && has_call_b(b)))
+  has_call_b(a) == (
+    (∃ j : Num, a == Call(j))
+    || (∃ t : Num, ∃ j : Num, a == Call_indirect(t, j))
+    || (
+         ∃ b : B_e,
+           ∃ tb : Tb,
+             ∃ bs : List[B_e],
+               a == Block(tb, bs) && MEM(b, bs) && has_call_b(b))
+    || (
+         ∃ b : B_e,
+           ∃ tb : Tb,
+             ∃ bs : List[B_e],
+               a == Loop(tb, bs) && MEM(b, bs) && has_call_b(b))
+    || (
+         ∃ b : B_e,
+           ∃ tb : Tb,
+             ∃ bs1 : List[B_e],
+               ∃ bs2 : List[B_e],
+                 a == If(tb, bs1, bs2) && MEM(b, bs1) && has_call_b(b))
+    || (
+         ∃ b : B_e,
+           ∃ tb : Tb,
+             ∃ bs1 : List[B_e],
+               ∃ bs2 : List[B_e],
+                 a == If(tb, bs1, bs2) && MEM(b, bs2) && has_call_b(b)))
 ```
 
 definition `has_call_rules`
@@ -3010,8 +4455,16 @@ definition `has_call_rules`
 ∀ b : B_e, has_call_b(b) → has_call(Basic(b))
 && ∀ a : Num, has_call(Invoke(a))
 && ∀ n : Num, ∀ f : Wframe, ∀ es : List[Einstr], has_call(Frame(n, f, es))
-&& ∀ e : Einstr, ∀ n : Num, ∀ es : List[Einstr], ∀ les : List[Einstr], MEM(e, es) && has_call(e) → has_call(Label(n, es, les))
-&& ∀ e : Einstr, ∀ n : Num, ∀ es : List[Einstr], ∀ les : List[Einstr], MEM(e, les) && has_call(e) → has_call(Label(n, es, les))
+&& ∀ e : Einstr,
+     ∀ n : Num,
+       ∀ es : List[Einstr],
+         ∀ les : List[Einstr],
+           MEM(e, es) && has_call(e) → has_call(Label(n, es, les))
+&& ∀ e : Einstr,
+     ∀ n : Num,
+       ∀ es : List[Einstr],
+         ∀ les : List[Einstr],
+           MEM(e, les) && has_call(e) → has_call(Label(n, es, les))
 ```
 
 lemma `has_call_induct`
@@ -3022,8 +4475,16 @@ if
   1. ∀ b : B_e, has_call_b(b) → has_call'(Basic(b))
   2. ∀ a : Num, has_call'(Invoke(a))
   3. ∀ n : Num, ∀ f : Wframe, ∀ es : List[Einstr], has_call'(Frame(n, f, es))
-  4. ∀ e : Einstr, ∀ n : Num, ∀ es : List[Einstr], ∀ les : List[Einstr], MEM(e, es) && has_call'(e) → has_call'(Label(n, es, les))
-  5. ∀ e : Einstr, ∀ n : Num, ∀ es : List[Einstr], ∀ les : List[Einstr], MEM(e, les) && has_call'(e) → has_call'(Label(n, es, les))
+  4. ∀ e : Einstr,
+       ∀ n : Num,
+         ∀ es : List[Einstr],
+           ∀ les : List[Einstr],
+             MEM(e, es) && has_call'(e) → has_call'(Label(n, es, les))
+  5. ∀ e : Einstr,
+       ∀ n : Num,
+         ∀ es : List[Einstr],
+           ∀ les : List[Einstr],
+             MEM(e, les) && has_call'(e) → has_call'(Label(n, es, les))
   6. has_call(a)
 then
   has_call'(a)
@@ -3033,7 +4494,22 @@ lemma `has_call_cases`
 
 ```
 ∀ (a : Einstr),
-  has_call(a) == ((∃ b : B_e, a == Basic(b) && has_call_b(b)) || (∃ a' : Num, a == Invoke(a')) || (∃ n : Num, ∃ f : Wframe, ∃ es : List[Einstr], a == Frame(n, f, es)) || (∃ e : Einstr, ∃ n : Num, ∃ es : List[Einstr], ∃ les : List[Einstr], a == Label(n, es, les) && MEM(e, es) && has_call(e)) || (∃ e : Einstr, ∃ n : Num, ∃ es : List[Einstr], ∃ les : List[Einstr], a == Label(n, es, les) && MEM(e, les) && has_call(e)))
+  has_call(a) == (
+    (∃ b : B_e, a == Basic(b) && has_call_b(b))
+    || (∃ a' : Num, a == Invoke(a'))
+    || (∃ n : Num, ∃ f : Wframe, ∃ es : List[Einstr], a == Frame(n, f, es))
+    || (
+         ∃ e : Einstr,
+           ∃ n : Num,
+             ∃ es : List[Einstr],
+               ∃ les : List[Einstr],
+                 a == Label(n, es, les) && MEM(e, es) && has_call(e))
+    || (
+         ∃ e : Einstr,
+           ∃ n : Num,
+             ∃ es : List[Einstr],
+               ∃ les : List[Einstr],
+                 a == Label(n, es, les) && MEM(e, les) && has_call(e)))
 ```
 
 definition `call_free`
@@ -3052,14 +4528,33 @@ lemma `has_call_b_eq`
 
 ```
 ∀ (b : B_e),
-  has_call_b(b) == ((∃ j : Num, b == Call(j)) || (∃ t : Num, ∃ j : Num, b == Call_indirect(t, j)) || (∃ tb : Tb, ∃ bs : List[B_e], b == Block(tb, bs) && EX(has_call_b, bs)) || (∃ tb : Tb, ∃ bs : List[B_e], b == Loop(tb, bs) && EX(has_call_b, bs)) || (∃ tb : Tb, ∃ bs1 : List[B_e], ∃ bs2 : List[B_e], b == If(tb, bs1, bs2) && (EX(has_call_b, bs1) || EX(has_call_b, bs2))))
+  has_call_b(b) == (
+    (∃ j : Num, b == Call(j))
+    || (∃ t : Num, ∃ j : Num, b == Call_indirect(t, j))
+    || (∃ tb : Tb, ∃ bs : List[B_e], b == Block(tb, bs) && EX(has_call_b, bs))
+    || (∃ tb : Tb, ∃ bs : List[B_e], b == Loop(tb, bs) && EX(has_call_b, bs))
+    || (
+         ∃ tb : Tb,
+           ∃ bs1 : List[B_e],
+             ∃ bs2 : List[B_e],
+               b == If(tb, bs1, bs2)
+               && (EX(has_call_b, bs1) || EX(has_call_b, bs2))))
 ```
 
 lemma `has_call_eq`
 
 ```
 ∀ (e : Einstr),
-  has_call(e) == ((∃ b : B_e, e == Basic(b) && has_call_b(b)) || (∃ a : Num, e == Invoke(a)) || (∃ n : Num, ∃ f : Wframe, ∃ es : List[Einstr], e == Frame(n, f, es)) || (∃ n : Num, ∃ es : List[Einstr], ∃ les : List[Einstr], e == Label(n, es, les) && (EX(has_call, es) || EX(has_call, les))))
+  has_call(e) == (
+    (∃ b : B_e, e == Basic(b) && has_call_b(b))
+    || (∃ a : Num, e == Invoke(a))
+    || (∃ n : Num, ∃ f : Wframe, ∃ es : List[Einstr], e == Frame(n, f, es))
+    || (
+         ∃ n : Num,
+           ∃ es : List[Einstr],
+             ∃ les : List[Einstr],
+               e == Label(n, es, les)
+               && (EX(has_call, es) || EX(has_call, les))))
 ```
 
 lemma `call_free_vals`
@@ -3103,10 +4598,12 @@ lemma `no_call_v_to_e`
 lemma `s_funcs_updates`
 
 ```
-s_funcs(s_tabs_update((v1 : List[(Tab_t, List[V_ref])]), (s : Wstore))) == s_funcs(s)
+s_funcs(s_tabs_update((v1 : List[(Tab_t, List[V_ref])]), (s : Wstore)))
+  == s_funcs(s)
 && s_funcs(s_mems_update((v2 : List[Mem]), (s : Wstore))) == s_funcs(s)
 && s_funcs(s_globs_update((v3 : List[Global]), (s : Wstore))) == s_funcs(s)
-&& s_funcs(s_elems_update((v4 : List[(T_ref, List[V_ref])]), (s : Wstore))) == s_funcs(s)
+&& s_funcs(s_elems_update((v4 : List[(T_ref, List[V_ref])]), (s : Wstore)))
+     == s_funcs(s)
 && s_funcs(s_datas_update((v5 : List[List[Byte]]), (s : Wstore))) == s_funcs(s)
 ```
 
@@ -3137,13 +4634,32 @@ then
 definition `keep`
 
 ```
-keep((fs : List[Cl]), (inst : Inst), (q : Assn), (s : Wstore), (f : Wframe), (vs : List[Value])) == (s_funcs(s) == fs && f_inst(f) == inst && q(s, f, vs))
+keep(
+  (fs : List[Cl]),
+  (inst : Inst),
+  (q : Assn),
+  (s : Wstore),
+  (f : Wframe),
+  (vs : List[Value]))
+  == (s_funcs(s) == fs && f_inst(f) == inst && q(s, f, vs))
 ```
 
 definition `sl_triple_m`
 
 ```
-sl_triple_m((fs : List[Cl]), (inst : Inst), (p : SAssn), (bs : List[B_e]), (q : SAssn), (ls : List[SAssn])) == (∀ r : HProp, triple_l(keep(fs, inst, lift(p, r)), bs, keep(fs, inst, lift(q, r)), MAP(keep(fs, inst), MAP((x : SAssn) => lift(x, r), ls))))
+sl_triple_m(
+  (fs : List[Cl]),
+  (inst : Inst),
+  (p : SAssn),
+  (bs : List[B_e]),
+  (q : SAssn),
+  (ls : List[SAssn])) == (
+  ∀ r : HProp,
+    triple_l(
+      keep(fs, inst, lift(p, r)),
+      bs,
+      keep(fs, inst, lift(q, r)),
+      MAP(keep(fs, inst), MAP((x : SAssn) => lift(x, r), ls))))
 ```
 
 lemma `safel_keep`
@@ -3190,9 +4706,15 @@ lemma `sl_conseq_m`
 ∀ (fs : List[Cl]) (inst : Inst) (p p2 q q2 : SAssn) (bs : List[B_e])
   (ls : List[SAssn])
 if
-  1. ∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, p2(vs, lc, gs, ms, h) → p(vs, lc, gs, ms, h)
+  1. ∀ vs : List[Value],
+       ∀ lc : List[Value],
+         ∀ gs : List[Value],
+           ∀ ms : Num, ∀ h : Heap, p2(vs, lc, gs, ms, h) → p(vs, lc, gs, ms, h)
   2. sl_triple_m(fs, inst, p, bs, q, ls)
-  3. ∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, q(vs, lc, gs, ms, h) → q2(vs, lc, gs, ms, h)
+  3. ∀ vs : List[Value],
+       ∀ lc : List[Value],
+         ∀ gs : List[Value],
+           ∀ ms : Num, ∀ h : Heap, q(vs, lc, gs, ms, h) → q2(vs, lc, gs, ms, h)
 then
   sl_triple_m(fs, inst, p2, bs, q2, ls)
 ```
@@ -3232,7 +4754,8 @@ then
     es == MAP(v_to_e, vs)
     && q(s, f, vs)
 or
-  ∃ (s2 : Wstore) (f2 : Wframe) (es2 : List[Einstr]), reduce(s, f, es, s2, f2, es2)
+  ∃ (s2 : Wstore) (f2 : Wframe) (es2 : List[Einstr]),
+    reduce(s, f, es, s2, f2, es2)
 ```
 
 lemma `safe_adequate`
@@ -3247,7 +4770,8 @@ then
     es2 == MAP(v_to_e, vs)
     && q(s2, f2, vs)
 or
-  ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]), reduce(s2, f2, es2, s3, f3, es3)
+  ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]),
+    reduce(s2, f2, es2, s3, f3, es3)
 ```
 
 lemma `sl_triple_adequate`
@@ -3258,13 +4782,16 @@ lemma `sl_triple_adequate`
 if
   1. sl_triple(p, bs, q)
   2. lift(p, r, s, f, vs)
-  3. reduce_trans((s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs))), (s2, f2, es2))
+  3. reduce_trans(
+       (s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs))),
+       (s2, f2, es2))
 then
   ∃ (vs2 : List[Value]),
     es2 == MAP(v_to_e, vs2)
     && lift(q, r, s2, f2, vs2)
 or
-  ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]), reduce(s2, f2, es2, s3, f3, es3)
+  ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]),
+    reduce(s2, f2, es2, s3, f3, es3)
 ```
 
 lemma `sl_triple_m_adequate`
@@ -3277,7 +4804,9 @@ if
   2. s_funcs(s) == fs
   3. f_inst(f) == inst
   4. lift(p, r, s, f, vs)
-  5. reduce_trans((s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs))), (s2, f2, es2))
+  5. reduce_trans(
+       (s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs))),
+       (s2, f2, es2))
 then
   ∃ (vs2 : List[Value]),
     es2 == MAP(v_to_e, vs2)
@@ -3285,7 +4814,8 @@ then
     && f_inst(f2) == inst
     && lift(q, r, s2, f2, vs2)
 or
-  ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]), reduce(s2, f2, es2, s3, f3, es3)
+  ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]),
+    reduce(s2, f2, es2, s3, f3, es3)
 ```
 
 lemma `hunion_emp`
@@ -3308,7 +4838,17 @@ lemma `lift_emp`
 
 ```
 ∀ (p : SAssn) (s : Wstore) (f : Wframe) (vs : List[Value]),
-  lift(p, emp, s, f, vs) == (∃ j : Num, smem_ind(f_inst(f)) == SOME(j) && j < LENGTH(s_mems(s)) && globs_ok(s, f) && p(vs, f_locs(f), gvals(s, f), mem_length(EL(j, s_mems(s))), heap_of(EL(j, s_mems(s)))))
+  lift(p, emp, s, f, vs) == (
+    ∃ j : Num,
+      smem_ind(f_inst(f)) == SOME(j)
+      && j < LENGTH(s_mems(s))
+      && globs_ok(s, f)
+      && p(
+           vs,
+           f_locs(f),
+           gvals(s, f),
+           mem_length(EL(j, s_mems(s))),
+           heap_of(EL(j, s_mems(s)))))
 ```
 
 lemma `sl_triple_m_adequate_whole`
@@ -3323,8 +4863,15 @@ if
   4. smem_ind(inst) == SOME(j)
   5. j < LENGTH(s_mems(s))
   6. globs_ok(s, f)
-  7. p(vs, f_locs(f), gvals(s, f), mem_length(EL(j, s_mems(s))), heap_of(EL(j, s_mems(s))))
-  8. reduce_trans((s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs))), (s2, f2, es2))
+  7. p(
+       vs,
+       f_locs(f),
+       gvals(s, f),
+       mem_length(EL(j, s_mems(s))),
+       heap_of(EL(j, s_mems(s))))
+  8. reduce_trans(
+       (s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs))),
+       (s2, f2, es2))
 then
   ∃ (vs2 : List[Value]),
     es2 == MAP(v_to_e, vs2)
@@ -3332,9 +4879,15 @@ then
     && f_inst(f2) == inst
     && j < LENGTH(s_mems(s2))
     && globs_ok(s2, f2)
-    && q(vs2, f_locs(f2), gvals(s2, f2), mem_length(EL(j, s_mems(s2))), heap_of(EL(j, s_mems(s2))))
+    && q(
+         vs2,
+         f_locs(f2),
+         gvals(s2, f2),
+         mem_length(EL(j, s_mems(s2))),
+         heap_of(EL(j, s_mems(s2))))
 or
-  ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]), reduce(s2, f2, es2, s3, f3, es3)
+  ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]),
+    reduce(s2, f2, es2, s3, f3, es3)
 ```
 
 lemma `heap_of_pts_heap`
@@ -3357,7 +4910,8 @@ if
   1. LENGTH(before) == a
   2. LENGTH(ys) == k
 then
-  star(arr(a, ys), star(pts(0, before), pts(a + 4 * k, after)), heap_of(m)) == (SND(m) == APPEND(before, APPEND(words_bytes(ys), after)))
+  star(arr(a, ys), star(pts(0, before), pts(a + 4 * k, after)), heap_of(m))
+    == (SND(m) == APPEND(before, APPEND(words_bytes(ys), after)))
 ```
 
 ## Frames (frames.mbt)
@@ -3398,7 +4952,15 @@ if
 then
   s2 == s
   && f2 == f0
-  && (∃ vs : List[Value], es == MAP(v_to_e, vs) && e2 == MAP(v_to_e, vs)) || es == [Trap] && e2 == [Trap] || (∃ vs : List[Value], ∃ i : Num, ∃ lh : Lholed, LENGTH(vs) == m && Lfilled(i, lh, APPEND(MAP(v_to_e, vs), [Basic(Return)]), es) && e2 == MAP(v_to_e, vs))
+  && (∃ vs : List[Value], es == MAP(v_to_e, vs) && e2 == MAP(v_to_e, vs))
+     || es == [Trap] && e2 == [Trap]
+     || (
+          ∃ vs : List[Value],
+            ∃ i : Num,
+              ∃ lh : Lholed,
+                LENGTH(vs) == m
+                && Lfilled(i, lh, APPEND(MAP(v_to_e, vs), [Basic(Return)]), es)
+                && e2 == MAP(v_to_e, vs))
 or
   ∃ (f1' : Wframe) (es' : List[Einstr]),
     reduce(s, f1, es, s2, f1', es')
@@ -3411,7 +4973,9 @@ lemma `arity_simple_frame`
 ```
 ∀ (suf e2 : List[Einstr])
 if
-  1. reduce_simple(APPEND(suf, [Frame((m : Num), (f1 : Wframe), (es : List[Einstr]))]), e2)
+  1. reduce_simple(
+       APPEND(suf, [Frame((m : Num), (f1 : Wframe), (es : List[Einstr]))]),
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 0
@@ -3422,7 +4986,13 @@ lemma `arity_frame`
 ```
 ∀ (s s2 : Wstore) (f f2 : Wframe) (suf e2 : List[Einstr])
 if
-  1. reduce_base(s, f, APPEND(suf, [Frame((m : Num), (f1 : Wframe), (es : List[Einstr]))]), s2, f2, e2)
+  1. reduce_base(
+       s,
+       f,
+       APPEND(suf, [Frame((m : Num), (f1 : Wframe), (es : List[Einstr]))]),
+       s2,
+       f2,
+       e2)
   2. ALL(is_val, suf)
 then
   LENGTH(suf) == 0
@@ -3438,7 +5008,28 @@ if
   2. reduce_base(s, f0, e, s2, f2, e')
 then
   lfill(LBase(vsx, rest), e') == APPEND(MAP(v_to_e, vs0), e')
-  && s2 == s && f2 == f0 && ((∃ vs : List[Value], es == MAP(v_to_e, vs) && e' == MAP(v_to_e, vs)) || es == [Trap] && e' == [Trap] || (∃ vs : List[Value], ∃ i : Num, ∃ lh : Lholed, LENGTH(vs) == m && Lfilled(i, lh, APPEND(MAP(v_to_e, vs), [Basic(Return)]), es) && e' == MAP(v_to_e, vs))) || (∃ f1' : Wframe, ∃ es' : List[Einstr], reduce(s, f1, es, s2, f1', es') && f2 == f0 && e' == [Frame(m, f1', es')])
+  && s2 == s
+     && f2 == f0
+     && (
+          (∃ vs : List[Value], es == MAP(v_to_e, vs) && e' == MAP(v_to_e, vs))
+          || es == [Trap] && e' == [Trap]
+          || (
+               ∃ vs : List[Value],
+                 ∃ i : Num,
+                   ∃ lh : Lholed,
+                     LENGTH(vs) == m
+                     && Lfilled(
+                          i,
+                          lh,
+                          APPEND(MAP(v_to_e, vs), [Basic(Return)]),
+                          es)
+                     && e' == MAP(v_to_e, vs)))
+     || (
+          ∃ f1' : Wframe,
+            ∃ es' : List[Einstr],
+              reduce(s, f1, es, s2, f1', es')
+              && f2 == f0
+              && e' == [Frame(m, f1', es')])
 ```
 
 lemma `frame_not_label`
@@ -3447,7 +5038,8 @@ lemma `frame_not_label`
 ∀ (s s2 : Wstore) (f0 f1 f2 : Wframe) (vs0 vsx : List[Value]) (m n : Num)
   (es e1 rest e e' : List[Einstr]) (l : Lholed)
 if
-  1. APPEND(MAP(v_to_e, vs0), [Frame(m, f1, es)]) == lfill(LRec(vsx, n, e1, l, rest), e)
+  1. APPEND(MAP(v_to_e, vs0), [Frame(m, f1, es)])
+       == lfill(LRec(vsx, n, e1, l, rest), e)
   2. reduce_base(s, f0, e, s2, f2, e')
 then
   false
@@ -3468,7 +5060,24 @@ then
 or
   s2 == s
   && f2 == f0
-  && ∃ e2 : List[Einstr], es2 == APPEND(MAP(v_to_e, vs0), e2) && ((∃ vs : List[Value], es == MAP(v_to_e, vs) && e2 == MAP(v_to_e, vs)) || es == [Trap] && e2 == [Trap] || (∃ vs : List[Value], ∃ i : Num, ∃ lh : Lholed, LENGTH(vs) == m && Lfilled(i, lh, APPEND(MAP(v_to_e, vs), [Basic(Return)]), es) && e2 == MAP(v_to_e, vs)))
+  && ∃ e2 : List[Einstr],
+       es2 == APPEND(MAP(v_to_e, vs0), e2)
+       && (
+            (
+              ∃ vs : List[Value],
+                es == MAP(v_to_e, vs) && e2 == MAP(v_to_e, vs))
+            || es == [Trap] && e2 == [Trap]
+            || (
+                 ∃ vs : List[Value],
+                   ∃ i : Num,
+                     ∃ lh : Lholed,
+                       LENGTH(vs) == m
+                       && Lfilled(
+                            i,
+                            lh,
+                            APPEND(MAP(v_to_e, vs), [Basic(Return)]),
+                            es)
+                       && e2 == MAP(v_to_e, vs)))
 ```
 
 lemma `ret_not_vals`
@@ -3481,7 +5090,8 @@ lemma `ret_not_vals`
 lemma `ret_not_trap`
 
 ```
-∀ (lh : Lholed) (vs : List[Value]), !(lfill(lh, APPEND(MAP(v_to_e, vs), [Basic(Return)])) == [Trap])
+∀ (lh : Lholed) (vs : List[Value]),
+  !(lfill(lh, APPEND(MAP(v_to_e, vs), [Basic(Return)])) == [Trap])
 ```
 
 lemma `noret_simple`
@@ -3520,20 +5130,29 @@ lemma `ret_no_step2`
 
 ```
 ∀ (s s2 : Wstore) (f f2 : Wframe) (a vs : List[Value]) (es2 : List[Einstr]),
-  !reduce(s, f, APPEND(MAP(v_to_e, a), APPEND(MAP(v_to_e, vs), [Basic(Return)])), s2, f2, es2)
+  !reduce(
+    s,
+    f,
+    APPEND(MAP(v_to_e, a), APPEND(MAP(v_to_e, vs), [Basic(Return)])),
+    s2,
+    f2,
+    es2)
 ```
 
 lemma `no_trap_top_ret`
 
 ```
-∀ (a vs : List[Value]), !trap_top(APPEND(MAP(v_to_e, a), APPEND(MAP(v_to_e, vs), [Basic(Return)])))
+∀ (a vs : List[Value]),
+  !trap_top(APPEND(MAP(v_to_e, a), APPEND(MAP(v_to_e, vs), [Basic(Return)])))
 ```
 
 lemma `br_ret_distinct`
 
 ```
 ∀ (lh1 lh2 : Lholed) (vs1 vs2 : List[Value]) (k : Num),
-  !(lfill(lh1, APPEND(MAP(v_to_e, vs1), [Basic(Br(k))])) == lfill(lh2, APPEND(MAP(v_to_e, vs2), [Basic(Return)])))
+  !(
+    lfill(lh1, APPEND(MAP(v_to_e, vs1), [Basic(Br(k))]))
+      == lfill(lh2, APPEND(MAP(v_to_e, vs2), [Basic(Return)])))
 ```
 
 lemma `return_stuck`
@@ -3541,7 +5160,13 @@ lemma `return_stuck`
 ```
 ∀ (lh : Lholed) (vs : List[Value]) (s s2 : Wstore) (f f2 : Wframe)
   (es2 : List[Einstr]),
-  !reduce(s, f, lfill(lh, APPEND(MAP(v_to_e, vs), [Basic(Return)])), s2, f2, es2)
+  !reduce(
+    s,
+    f,
+    lfill(lh, APPEND(MAP(v_to_e, vs), [Basic(Return)])),
+    s2,
+    f2,
+    es2)
 ```
 
 lemma `reduce_after_vals`
@@ -3551,7 +5176,13 @@ lemma `reduce_after_vals`
 if
   1. reduce_base(s, f, e, s2, f2, e2)
 then
-  reduce(s, f, APPEND(MAP(v_to_e, vs0), e), s2, f2, APPEND(MAP(v_to_e, vs0), e2))
+  reduce(
+    s,
+    f,
+    APPEND(MAP(v_to_e, vs0), e),
+    s2,
+    f2,
+    APPEND(MAP(v_to_e, vs0), e2))
 ```
 
 lemma `vals_not_trap`
@@ -3605,7 +5236,9 @@ lemma `frame_safe`
   (es : List[Einstr]) (qin q : Assn) (l : List[Assn])
 if
   1. safel(n, s, f1, es, qin, NIL)
-  2. ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ vs2 : List[Value], qin(s2, f2, vs2) → q(s2, f0, APPEND(vs0, vs2))
+  2. ∀ s2 : Wstore,
+       ∀ f2 : Wframe,
+         ∀ vs2 : List[Value], qin(s2, f2, vs2) → q(s2, f0, APPEND(vs0, vs2))
 then
   safel(n, s, f0, APPEND(MAP(v_to_e, vs0), [Frame(m, f1, es)]), q, l)
 ```
@@ -3639,7 +5272,13 @@ lemma `prefix_call`
 ```
 ∀ (vs0 : List[Value]) (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
 if
-  1. reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(Call((j : Num)))]), s2, f2, es2)
+  1. reduce(
+       s,
+       f,
+       APPEND(MAP(v_to_e, vs0), [Basic(Call((j : Num)))]),
+       s2,
+       f2,
+       es2)
 then
   ∃ (e : List[Einstr]),
     es2 == APPEND(MAP(v_to_e, vs0), e)
@@ -3663,7 +5302,13 @@ lemma `call_can_step`
 
 ```
 ∀ (s : Wstore) (f : Wframe) (vs0 : List[Value]) (j : Num),
-  reduce(s, f, APPEND(MAP(v_to_e, vs0), [Basic(Call(j))]), s, f, APPEND(MAP(v_to_e, vs0), [Invoke(sfunc_ind(f_inst(f), j))]))
+  reduce(
+    s,
+    f,
+    APPEND(MAP(v_to_e, vs0), [Basic(Call(j))]),
+    s,
+    f,
+    APPEND(MAP(v_to_e, vs0), [Invoke(sfunc_ind(f_inst(f), j))]))
 ```
 
 lemma `noinvoke_simple`
@@ -3694,7 +5339,11 @@ then
     && LENGTH(vcs) == LENGTH(t1s)
     && s2 == s
     && f2 == f
-    && e2 == [Frame(LENGTH(t2s), Wframe(APPEND(vcs, zs), i), [Label(LENGTH(t2s), NIL, MAP(Basic, es))])]
+    && e2 == [
+         Frame(
+           LENGTH(t2s),
+           Wframe(APPEND(vcs, zs), i),
+           [Label(LENGTH(t2s), NIL, MAP(Basic, es))])]
 ```
 
 lemma `invoke_step`
@@ -3706,11 +5355,23 @@ if
   1. EL(a, s_funcs(s)) == Func_native(i, Tf(t1s, t2s), ts, es)
   2. n_zeros(ts) == SOME(zs)
   3. LENGTH(args) == LENGTH(t1s)
-  4. reduce(s, f, APPEND(MAP(v_to_e, APPEND(vs0, args)), [Invoke(a)]), s2, f2, es2)
+  4. reduce(
+       s,
+       f,
+       APPEND(MAP(v_to_e, APPEND(vs0, args)), [Invoke(a)]),
+       s2,
+       f2,
+       es2)
 then
   s2 == s
   && f2 == f
-  && es2 == APPEND(MAP(v_to_e, vs0), [Frame(LENGTH(t2s), Wframe(APPEND(args, zs), i), [Label(LENGTH(t2s), NIL, MAP(Basic, es))])])
+  && es2 == APPEND(
+       MAP(v_to_e, vs0),
+       [
+         Frame(
+           LENGTH(t2s),
+           Wframe(APPEND(args, zs), i),
+           [Label(LENGTH(t2s), NIL, MAP(Basic, es))])])
 ```
 
 lemma `invoke_can_step`
@@ -3723,7 +5384,19 @@ if
   2. n_zeros(ts) == SOME(zs)
   3. LENGTH(args) == LENGTH(t1s)
 then
-  reduce(s, f, APPEND(MAP(v_to_e, APPEND(vs0, args)), [Invoke(a)]), s, f, APPEND(MAP(v_to_e, vs0), [Frame(LENGTH(t2s), Wframe(APPEND(args, zs), i), [Label(LENGTH(t2s), NIL, MAP(Basic, es))])]))
+  reduce(
+    s,
+    f,
+    APPEND(MAP(v_to_e, APPEND(vs0, args)), [Invoke(a)]),
+    s,
+    f,
+    APPEND(
+      MAP(v_to_e, vs0),
+      [
+        Frame(
+          LENGTH(t2s),
+          Wframe(APPEND(args, zs), i),
+          [Label(LENGTH(t2s), NIL, MAP(Basic, es))])]))
 ```
 
 lemma `call_safe`
@@ -3732,11 +5405,21 @@ lemma `call_safe`
 ∀ (n j : Num) (s : Wstore) (f : Wframe) (vs0 args zs : List[Value]) (i : Inst)
   (t1s t2s ts : List[Valtype]) (es : List[B_e]) (qin q : Assn) (l : List[Assn])
 if
-  1. EL(sfunc_ind(f_inst(f), j), s_funcs(s)) == Func_native(i, Tf(t1s, t2s), ts, es)
+  1. EL(sfunc_ind(f_inst(f), j), s_funcs(s))
+       == Func_native(i, Tf(t1s, t2s), ts, es)
   2. n_zeros(ts) == SOME(zs)
   3. LENGTH(args) == LENGTH(t1s)
-  4. ∀ k : Num, safel(k, s, Wframe(APPEND(args, zs), i), [Label(LENGTH(t2s), NIL, MAP(Basic, es))], qin, NIL)
-  5. ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ vs : List[Value], qin(s2, f2, vs) → q(s2, f, APPEND(vs0, vs))
+  4. ∀ k : Num,
+       safel(
+         k,
+         s,
+         Wframe(APPEND(args, zs), i),
+         [Label(LENGTH(t2s), NIL, MAP(Basic, es))],
+         qin,
+         NIL)
+  5. ∀ s2 : Wstore,
+       ∀ f2 : Wframe,
+         ∀ vs : List[Value], qin(s2, f2, vs) → q(s2, f, APPEND(vs0, vs))
 then
   safel(n, s, f, APPEND(MAP(v_to_e, APPEND(vs0, args)), [Basic(Call(j))]), q, l)
 ```
@@ -3747,7 +5430,8 @@ lemma `label_safe_top`
 ∀ (n m : Num) (s : Wstore) (f : Wframe) (li : List[Einstr]) (qb : Assn)
 if
   1. safel(n, s, f, li, qb, [qb])
-  2. ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ vs : List[Value], qb(s2, f2, vs) → LENGTH(vs) == m
+  2. ∀ s2 : Wstore,
+       ∀ f2 : Wframe, ∀ vs : List[Value], qb(s2, f2, vs) → LENGTH(vs) == m
 then
   safel(n, s, f, [Label(m, NIL, li)], qb, NIL)
 ```
@@ -3760,10 +5444,41 @@ lemma `sl_call`
 if
   1. EL(sfunc_ind(inst, j), fs) == Func_native(inst, Tf(t1s, t2s), ts, es)
   2. n_zeros(ts) == SOME(zs)
-  3. ∀ args : List[Value], LENGTH(args) == LENGTH(t1s) → sl_triple_m(fs, inst, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == NIL && lc == APPEND(args, zs) && P(args, gs, ms, h), es, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => Q(vs, gs, ms, h), [(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => Q(vs, gs, ms, h)])
-  4. ∀ res : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, Q(res, gs, ms, h) → LENGTH(res) == LENGTH(t2s)
+  3. ∀ args : List[Value],
+       LENGTH(args) == LENGTH(t1s) → sl_triple_m(
+         fs,
+         inst,
+         (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+         (ms : Num) => (h : Heap) =>
+           vs == NIL && lc == APPEND(args, zs) && P(args, gs, ms, h),
+         es,
+         (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+         (ms : Num) => (h : Heap) =>
+           Q(vs, gs, ms, h),
+         [
+           (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+           (ms : Num) => (h : Heap) =>
+             Q(vs, gs, ms, h)])
+  4. ∀ res : List[Value],
+       ∀ gs : List[Value],
+         ∀ ms : Num, ∀ h : Heap, Q(res, gs, ms, h) → LENGTH(res) == LENGTH(t2s)
 then
-  sl_triple_m(fs, inst, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ args : List[Value], vs == APPEND(vs0, args) && LENGTH(args) == LENGTH(t1s) && lc == lc0 && P(args, gs, ms, h), [Call(j)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ res : List[Value], vs == APPEND(vs0, res) && lc == lc0 && Q(res, gs, ms, h), ls)
+  sl_triple_m(
+    fs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ args : List[Value],
+        vs == APPEND(vs0, args)
+        && LENGTH(args) == LENGTH(t1s)
+        && lc == lc0
+        && P(args, gs, ms, h),
+    [Call(j)],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ res : List[Value],
+        vs == APPEND(vs0, res) && lc == lc0 && Q(res, gs, ms, h),
+    ls)
 ```
 
 ## Returns (returns.mbt)
@@ -3771,8 +5486,65 @@ then
 definition `safer`
 
 ```
-safer(0, (s : Wstore), (f : Wframe), (es : List[Einstr]), (q : Assn), (l : List[Assn]), (rq : Assn)) == true
-&& safer(SUC((n : Num)), (s : Wstore), (f : Wframe), (es : List[Einstr]), (q : Assn), (l : List[Assn]), (rq : Assn)) == ((∃ vs : List[Value], es == MAP(v_to_e, vs) && q(s, f, vs)) || (∃ i : Num, ∃ vs : List[Value], ∃ lh : Lholed, i < LENGTH(l) && es == lfill(lh, APPEND(MAP(v_to_e, vs), [Basic(Br(i + lh_depth(lh)))])) && EL(i, l, s, f, vs) && (∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2) → safer(n, s2, f2, es2, q, l, rq))) || (∃ vs : List[Value], ∃ lh : Lholed, es == lfill(lh, APPEND(MAP(v_to_e, vs), [Basic(Return)])) && rq(s, f, vs)) || (∃ s2 : Wstore, ∃ f2 : Wframe, ∃ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2)) && (∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2) → safer(n, s2, f2, es2, q, l, rq)))
+safer(
+  0,
+  (s : Wstore),
+  (f : Wframe),
+  (es : List[Einstr]),
+  (q : Assn),
+  (l : List[Assn]),
+  (rq : Assn))
+  == true
+&& safer(
+     SUC((n : Num)),
+     (s : Wstore),
+     (f : Wframe),
+     (es : List[Einstr]),
+     (q : Assn),
+     (l : List[Assn]),
+     (rq : Assn)) == (
+     (∃ vs : List[Value], es == MAP(v_to_e, vs) && q(s, f, vs))
+     || (
+          ∃ i : Num,
+            ∃ vs : List[Value],
+              ∃ lh : Lholed,
+                i < LENGTH(l)
+                && es == lfill(
+                     lh,
+                     APPEND(MAP(v_to_e, vs), [Basic(Br(i + lh_depth(lh)))]))
+                && EL(i, l, s, f, vs)
+                && (
+                     ∀ s2 : Wstore,
+                       ∀ f2 : Wframe,
+                         ∀ es2 : List[Einstr],
+                           reduce(s, f, es, s2, f2, es2) → safer(
+                             n,
+                             s2,
+                             f2,
+                             es2,
+                             q,
+                             l,
+                             rq)))
+     || (
+          ∃ vs : List[Value],
+            ∃ lh : Lholed,
+              es == lfill(lh, APPEND(MAP(v_to_e, vs), [Basic(Return)]))
+              && rq(s, f, vs))
+     || (
+          ∃ s2 : Wstore,
+            ∃ f2 : Wframe, ∃ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2))
+        && (
+             ∀ s2 : Wstore,
+               ∀ f2 : Wframe,
+                 ∀ es2 : List[Einstr],
+                   reduce(s, f, es, s2, f2, es2) → safer(
+                     n,
+                     s2,
+                     f2,
+                     es2,
+                     q,
+                     l,
+                     rq)))
 ```
 
 lemma `safer_vals`
@@ -3817,8 +5589,13 @@ lemma `safer_mono`
 if
   1. ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], q(s, f, vs) → q2(s, f, vs)
   2. LENGTH(l2) == LENGTH(l)
-  3. ∀ i : Num, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], i < LENGTH(l) && EL(i, l, s, f, vs) → EL(i, l2, s, f, vs)
-  4. ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], rq(s, f, vs) → rq2(s, f, vs)
+  3. ∀ i : Num,
+       ∀ s : Wstore,
+         ∀ f : Wframe,
+           ∀ vs : List[Value],
+             i < LENGTH(l) && EL(i, l, s, f, vs) → EL(i, l2, s, f, vs)
+  4. ∀ s : Wstore,
+       ∀ f : Wframe, ∀ vs : List[Value], rq(s, f, vs) → rq2(s, f, vs)
   5. safer(n, s, f, es, q, l, rq)
 then
   safer(n, s, f, es, q2, l2, rq2)
@@ -3850,7 +5627,10 @@ lemma `safer_det_step`
   (l : List[Assn])
 if
   1. reduce(s, f, es, s, f, es1)
-  2. ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2) → s2 == s && f2 == f && es2 == es1
+  2. ∀ s2 : Wstore,
+       ∀ f2 : Wframe,
+         ∀ es2 : List[Einstr],
+           reduce(s, f, es, s2, f2, es2) → s2 == s && f2 == f && es2 == es1
   3. safer(n, s, f, es1, q, l, rq)
 then
   safer(SUC(n), s, f, es, q, l, rq)
@@ -3863,7 +5643,18 @@ lemma `safer_seq`
   (l : List[Assn])
 if
   1. safer(n, s, f, es1, q, l, rq)
-  2. ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ m : Num, m <= n → q(s, f, vs) → safer(m, s, f, APPEND(MAP(v_to_e, vs), es2), r, l, rq)
+  2. ∀ s : Wstore,
+       ∀ f : Wframe,
+         ∀ vs : List[Value],
+           ∀ m : Num,
+             m <= n → q(s, f, vs) → safer(
+               m,
+               s,
+               f,
+               APPEND(MAP(v_to_e, vs), es2),
+               r,
+               l,
+               rq)
 then
   safer(n, s, f, APPEND(es1, es2), r, l, rq)
 ```
@@ -3873,7 +5664,8 @@ lemma `ret_unique`
 ```
 ∀ (lh1 lh2 : Lholed) (vs1 vs2 : List[Value])
 if
-  1. lfill(lh1, APPEND(MAP(v_to_e, vs1), [Basic(Return)])) == lfill(lh2, APPEND(MAP(v_to_e, vs2), [Basic(Return)]))
+  1. lfill(lh1, APPEND(MAP(v_to_e, vs1), [Basic(Return)]))
+       == lfill(lh2, APPEND(MAP(v_to_e, vs2), [Basic(Return)]))
 then
   lh_depth(lh1) == lh_depth(lh2)
   && LENGTH(vs1) == LENGTH(vs2) → vs1 == vs2
@@ -3885,9 +5677,11 @@ lemma `ret_frame_case`
 ∀ (lh lh2 : Lholed) (vs vs2 : List[Value]) (m : Num) (rin : Assn) (s : Wstore)
   (f : Wframe)
 if
-  1. lfill(lh, APPEND(MAP(v_to_e, vs), [Basic(Return)])) == lfill(lh2, APPEND(MAP(v_to_e, vs2), [Basic(Return)]))
+  1. lfill(lh, APPEND(MAP(v_to_e, vs), [Basic(Return)]))
+       == lfill(lh2, APPEND(MAP(v_to_e, vs2), [Basic(Return)]))
   2. rin(s, f, vs)
-  3. ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ v : List[Value], rin(s2, f2, v) → LENGTH(v) == m
+  3. ∀ s2 : Wstore,
+       ∀ f2 : Wframe, ∀ v : List[Value], rin(s2, f2, v) → LENGTH(v) == m
   4. LENGTH(vs2) == m
 then
   rin(s, f, vs2)
@@ -3900,8 +5694,21 @@ lemma `safer_label`
   (e0 li : List[Einstr]) (qb lb q rq : Assn) (l : List[Assn])
 if
   1. safer(n, s, f, li, qb, CONS(lb, l), rq)
-  2. ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], qb(s, f, vs) → q(s, f, APPEND(vs0, vs))
-  3. ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ k : Num, k <= n → lb(s, f, vs) → LENGTH(vs) == m && safer(k, s, f, APPEND(MAP(v_to_e, vs0), APPEND(MAP(v_to_e, vs), e0)), q, l, rq)
+  2. ∀ s : Wstore,
+       ∀ f : Wframe, ∀ vs : List[Value], qb(s, f, vs) → q(s, f, APPEND(vs0, vs))
+  3. ∀ s : Wstore,
+       ∀ f : Wframe,
+         ∀ vs : List[Value],
+           ∀ k : Num,
+             k <= n → lb(s, f, vs) → LENGTH(vs) == m
+             && safer(
+                  k,
+                  s,
+                  f,
+                  APPEND(MAP(v_to_e, vs0), APPEND(MAP(v_to_e, vs), e0)),
+                  q,
+                  l,
+                  rq)
 then
   safer(n, s, f, APPEND(MAP(v_to_e, vs0), [Label(m, e0, li)]), q, l, rq)
 ```
@@ -3912,7 +5719,8 @@ lemma `safer_label_top`
 ∀ (n m : Num) (s : Wstore) (f : Wframe) (li : List[Einstr]) (qb rb : Assn)
 if
   1. safer(n, s, f, li, qb, [qb], rb)
-  2. ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ vs : List[Value], qb(s2, f2, vs) → LENGTH(vs) == m
+  2. ∀ s2 : Wstore,
+       ∀ f2 : Wframe, ∀ vs : List[Value], qb(s2, f2, vs) → LENGTH(vs) == m
 then
   safer(n, s, f, [Label(m, NIL, li)], qb, NIL, rb)
 ```
@@ -3924,7 +5732,8 @@ lemma `frame_can_step_r`
   (es : List[Einstr]) (qin rin : Assn)
 if
   1. safer(SUC(n), s, f1, es, qin, NIL, rin)
-  2. ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ vs : List[Value], rin(s2, f2, vs) → LENGTH(vs) == m
+  2. ∀ s2 : Wstore,
+       ∀ f2 : Wframe, ∀ vs : List[Value], rin(s2, f2, vs) → LENGTH(vs) == m
 then
   ∃ (s2 : Wstore) (f2 : Wframe) (es2 : List[Einstr]),
     reduce(s, f0, APPEND(MAP(v_to_e, vs0), [Frame(m, f1, es)]), s2, f2, es2)
@@ -3938,7 +5747,8 @@ lemma `frame_next_r`
 if
   1. safer(SUC(n), s, f1, es, qin, NIL, rin)
   2. reduce(s, f0, APPEND(MAP(v_to_e, vs0), [Frame(m, f1, es)]), s2, f2, es2)
-  3. ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ vs : List[Value], rin(s2, f2, vs) → LENGTH(vs) == m
+  3. ∀ s2 : Wstore,
+       ∀ f2 : Wframe, ∀ vs : List[Value], rin(s2, f2, vs) → LENGTH(vs) == m
 then
   ∃ (f1' : Wframe) (es' : List[Einstr]),
     safer(n, s2, f1', es', qin, NIL, rin)
@@ -3947,7 +5757,8 @@ then
 or
   s2 == s
   && f2 == f0
-  && ∃ vs : List[Value], es2 == MAP(v_to_e, APPEND(vs0, vs)) && (qin(s, f1, vs) || rin(s, f1, vs))
+  && ∃ vs : List[Value],
+       es2 == MAP(v_to_e, APPEND(vs0, vs)) && (qin(s, f1, vs) || rin(s, f1, vs))
 ```
 
 lemma `frame_safe_r`
@@ -3957,8 +5768,13 @@ lemma `frame_safe_r`
   (es : List[Einstr]) (qin rin q rq : Assn) (l : List[Assn])
 if
   1. safer(n, s, f1, es, qin, NIL, rin)
-  2. ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ vs2 : List[Value], qin(s2, f2, vs2) → q(s2, f0, APPEND(vs0, vs2))
-  3. ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ vs2 : List[Value], rin(s2, f2, vs2) → LENGTH(vs2) == m && q(s2, f0, APPEND(vs0, vs2))
+  2. ∀ s2 : Wstore,
+       ∀ f2 : Wframe,
+         ∀ vs2 : List[Value], qin(s2, f2, vs2) → q(s2, f0, APPEND(vs0, vs2))
+  3. ∀ s2 : Wstore,
+       ∀ f2 : Wframe,
+         ∀ vs2 : List[Value],
+           rin(s2, f2, vs2) → LENGTH(vs2) == m && q(s2, f0, APPEND(vs0, vs2))
 then
   safer(n, s, f0, APPEND(MAP(v_to_e, vs0), [Frame(m, f1, es)]), q, l, rq)
 ```
@@ -3968,19 +5784,91 @@ then
 definition `inv_ok`
 
 ```
-inv_ok((n : Num), (fs : List[Cl]), (inst : Inst), (a : Num), (P : FProp), (Q : FProp)) == (∀ m : Num, ∀ fr : HProp, ∀ s : Wstore, ∀ f : Wframe, ∀ stk : List[Value], ∀ vs0 : List[Value], ∀ lc0 : List[Value], ∀ l : List[Assn], ∀ rq : Assn, m <= n && keep(fs, inst, lift((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ args : List[Value], vs == APPEND(vs0, args) && lc == lc0 && P(args, gs, ms, h), fr), s, f, stk) → safer(m, s, f, APPEND(MAP(v_to_e, stk), [Invoke(a)]), keep(fs, inst, lift((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ res : List[Value], vs == APPEND(vs0, res) && lc == lc0 && Q(res, gs, ms, h), fr)), l, rq))
+inv_ok(
+  (n : Num),
+  (fs : List[Cl]),
+  (inst : Inst),
+  (a : Num),
+  (P : FProp),
+  (Q : FProp)) == (
+  ∀ m : Num,
+    ∀ fr : HProp,
+      ∀ s : Wstore,
+        ∀ f : Wframe,
+          ∀ stk : List[Value],
+            ∀ vs0 : List[Value],
+              ∀ lc0 : List[Value],
+                ∀ l : List[Assn],
+                  ∀ rq : Assn,
+                    m <= n
+                    && keep(
+                         fs,
+                         inst,
+                         lift(
+                           (vs : List[Value]) => (lc : List[Value]) =>
+                           (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+                             ∃ args : List[Value],
+                               vs == APPEND(vs0, args)
+                               && lc == lc0
+                               && P(args, gs, ms, h),
+                           fr),
+                         s,
+                         f,
+                         stk) → safer(
+                         m,
+                         s,
+                         f,
+                         APPEND(MAP(v_to_e, stk), [Invoke(a)]),
+                         keep(
+                           fs,
+                           inst,
+                           lift(
+                             (vs : List[Value]) => (lc : List[Value]) =>
+                             (gs : List[Value]) => (ms : Num) =>
+                             (h : Heap) =>
+                               ∃ res : List[Value],
+                                 vs == APPEND(vs0, res)
+                                 && lc == lc0
+                                 && Q(res, gs, ms, h),
+                             fr)),
+                         l,
+                         rq))
 ```
 
 definition `specs_ok`
 
 ```
-specs_ok((n : Num), (G : Specs), (fs : List[Cl]), (inst : Inst)) == (∀ a : Num, ∀ P : FProp, ∀ Q : FProp, G(a, P, Q) → inv_ok(n, fs, inst, a, P, Q))
+specs_ok((n : Num), (G : Specs), (fs : List[Cl]), (inst : Inst)) == (
+  ∀ a : Num,
+    ∀ P : FProp, ∀ Q : FProp, G(a, P, Q) → inv_ok(n, fs, inst, a, P, Q))
 ```
 
 definition `sl_triple_g`
 
 ```
-sl_triple_g((G : Specs), (fs : List[Cl]), (inst : Inst), (rp : SAssn), (p : SAssn), (bs : List[B_e]), (q : SAssn), (ls : List[SAssn])) == (∀ n : Num, ∀ fr : HProp, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], specs_ok(n, G, fs, inst) && keep(fs, inst, lift(p, fr), s, f, vs) → safer(n, s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs)), keep(fs, inst, lift(q, fr)), MAP(keep(fs, inst), MAP((x : SAssn) => lift(x, fr), ls)), keep(fs, inst, lift(rp, fr))))
+sl_triple_g(
+  (G : Specs),
+  (fs : List[Cl]),
+  (inst : Inst),
+  (rp : SAssn),
+  (p : SAssn),
+  (bs : List[B_e]),
+  (q : SAssn),
+  (ls : List[SAssn])) == (
+  ∀ n : Num,
+    ∀ fr : HProp,
+      ∀ s : Wstore,
+        ∀ f : Wframe,
+          ∀ vs : List[Value],
+            specs_ok(n, G, fs, inst)
+            && keep(fs, inst, lift(p, fr), s, f, vs) → safer(
+                 n,
+                 s,
+                 f,
+                 APPEND(MAP(v_to_e, vs), MAP(Basic, bs)),
+                 keep(fs, inst, lift(q, fr)),
+                 MAP(keep(fs, inst), MAP((x : SAssn) => lift(x, fr), ls)),
+                 keep(fs, inst, lift(rp, fr))))
 ```
 
 lemma `specs_down`
@@ -4024,7 +5912,17 @@ lemma `sl_triple_m_of_g`
   (ls : List[SAssn])
 if
   1. ∀ n : Num, specs_ok(n, G, fs, inst)
-  2. sl_triple_g(G, fs, inst, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => false, p, bs, q, ls)
+  2. sl_triple_g(
+       G,
+       fs,
+       inst,
+       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+       (ms : Num) => (h : Heap) =>
+         false,
+       p,
+       bs,
+       q,
+       ls)
 then
   sl_triple_m(fs, inst, p, bs, q, ls)
 ```
@@ -4047,11 +5945,24 @@ lemma `sl_conseq_g`
 ∀ (G : Specs) (fs : List[Cl]) (inst : Inst) (rp p p2 q q2 : SAssn)
   (bs : List[B_e]) (ls ls2 : List[SAssn])
 if
-  1. ∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, p2(vs, lc, gs, ms, h) → p(vs, lc, gs, ms, h)
+  1. ∀ vs : List[Value],
+       ∀ lc : List[Value],
+         ∀ gs : List[Value],
+           ∀ ms : Num, ∀ h : Heap, p2(vs, lc, gs, ms, h) → p(vs, lc, gs, ms, h)
   2. sl_triple_g(G, fs, inst, rp, p, bs, q, ls)
-  3. ∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, q(vs, lc, gs, ms, h) → q2(vs, lc, gs, ms, h)
+  3. ∀ vs : List[Value],
+       ∀ lc : List[Value],
+         ∀ gs : List[Value],
+           ∀ ms : Num, ∀ h : Heap, q(vs, lc, gs, ms, h) → q2(vs, lc, gs, ms, h)
   4. LENGTH(ls2) == LENGTH(ls)
-  5. ∀ i : Num, ∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, i < LENGTH(ls) && EL(i, ls, vs, lc, gs, ms, h) → EL(i, ls2, vs, lc, gs, ms, h)
+  5. ∀ i : Num,
+       ∀ vs : List[Value],
+         ∀ lc : List[Value],
+           ∀ gs : List[Value],
+             ∀ ms : Num,
+               ∀ h : Heap,
+                 i < LENGTH(ls)
+                 && EL(i, ls, vs, lc, gs, ms, h) → EL(i, ls2, vs, lc, gs, ms, h)
 then
   sl_triple_g(G, fs, inst, rp, p2, bs, q2, ls2)
 ```
@@ -4062,7 +5973,11 @@ lemma `sl_conseq_ret_g`
 ∀ (G : Specs) (fs : List[Cl]) (inst : Inst) (rp rp2 p q : SAssn)
   (bs : List[B_e]) (ls : List[SAssn])
 if
-  1. ∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, rp(vs, lc, gs, ms, h) → rp2(vs, lc, gs, ms, h)
+  1. ∀ vs : List[Value],
+       ∀ lc : List[Value],
+         ∀ gs : List[Value],
+           ∀ ms : Num,
+             ∀ h : Heap, rp(vs, lc, gs, ms, h) → rp2(vs, lc, gs, ms, h)
   2. sl_triple_g(G, fs, inst, rp, p, bs, q, ls)
 then
   sl_triple_g(G, fs, inst, rp2, p, bs, q, ls)
@@ -4080,7 +5995,17 @@ lemma `sl_false_g`
 ```
 ∀ (G : Specs) (fs : List[Cl]) (inst : Inst) (rp q : SAssn) (bs : List[B_e])
   (ls : List[SAssn]),
-  sl_triple_g(G, fs, inst, rp, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => false, bs, q, ls)
+  sl_triple_g(
+    G,
+    fs,
+    inst,
+    rp,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      false,
+    bs,
+    q,
+    ls)
 ```
 
 lemma `sl_ex_g`
@@ -4092,7 +6017,17 @@ lemma `sl_ex_g`
 if
   1. ∀ x : A, sl_triple_g(G, fs, inst, rp, pp(x), bs, q, ls)
 then
-  sl_triple_g(G, fs, inst, rp, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ x : A, pp(x, vs, lc, gs, ms, h), bs, q, ls)
+  sl_triple_g(
+    G,
+    fs,
+    inst,
+    rp,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ x : A, pp(x, vs, lc, gs, ms, h),
+    bs,
+    q,
+    ls)
 ```
 
 lemma `sl_pure_g`
@@ -4103,7 +6038,17 @@ lemma `sl_pure_g`
 if
   1. c → sl_triple_g(G, fs, inst, rp, p, bs, q, ls)
 then
-  sl_triple_g(G, fs, inst, rp, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => c && p(vs, lc, gs, ms, h), bs, q, ls)
+  sl_triple_g(
+    G,
+    fs,
+    inst,
+    rp,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      c && p(vs, lc, gs, ms, h),
+    bs,
+    q,
+    ls)
 ```
 
 lemma `sl_br_g`
@@ -4114,20 +6059,48 @@ lemma `sl_br_g`
 if
   1. i < LENGTH(ls)
 then
-  sl_triple_g(G, fs, inst, rp, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], ∃ vb : List[Value], vs == APPEND(vs0, vb) && EL(i, ls, vb, lc, gs, ms, h), [Br(i)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => false, ls)
+  sl_triple_g(
+    G,
+    fs,
+    inst,
+    rp,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        ∃ vb : List[Value],
+          vs == APPEND(vs0, vb) && EL(i, ls, vb, lc, gs, ms, h),
+    [Br(i)],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      false,
+    ls)
 ```
 
 lemma `sl_return_g`
 
 ```
 ∀ (G : Specs) (fs : List[Cl]) (inst : Inst) (rp : SAssn) (ls : List[SAssn]),
-  sl_triple_g(G, fs, inst, rp, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], ∃ vb : List[Value], vs == APPEND(vs0, vb) && rp(vb, lc, gs, ms, h), [Return], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => false, ls)
+  sl_triple_g(
+    G,
+    fs,
+    inst,
+    rp,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        ∃ vb : List[Value], vs == APPEND(vs0, vb) && rp(vb, lc, gs, ms, h),
+    [Return],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      false,
+    ls)
 ```
 
 definition `in_mod`
 
 ```
-in_mod((fs : List[Cl]), (inst : Inst), (s : Wstore), (f : Wframe)) == (s_funcs(s) == fs && f_inst(f) == inst)
+in_mod((fs : List[Cl]), (inst : Inst), (s : Wstore), (f : Wframe))
+  == (s_funcs(s) == fs && f_inst(f) == inst)
 ```
 
 lemma `keep_in_mod`
@@ -4145,9 +6118,25 @@ lemma `sl_br_if_g`
   (i : Num) (c : W32)
 if
   1. !(c == word(0)) → sl_triple_g(G, fs, inst, rp, p, [Br(i)], q, ls)
-  2. c == word(0) → (∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, p(vs, lc, gs, ms, h) → q(vs, lc, gs, ms, h))
+  2. c == word(0) → (
+       ∀ vs : List[Value],
+         ∀ lc : List[Value],
+           ∀ gs : List[Value],
+             ∀ ms : Num,
+               ∀ h : Heap, p(vs, lc, gs, ms, h) → q(vs, lc, gs, ms, h))
 then
-  sl_triple_g(G, fs, inst, rp, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(c))]) && p(vs0, lc, gs, ms, h), [Br_if(i)], q, ls)
+  sl_triple_g(
+    G,
+    fs,
+    inst,
+    rp,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(ConstInt32(c))]) && p(vs0, lc, gs, ms, h),
+    [Br_if(i)],
+    q,
+    ls)
 ```
 
 lemma `sl_if_g`
@@ -4159,7 +6148,18 @@ if
   1. !(c == word(0)) → sl_triple_g(G, fs, inst, rp, p, [Block(tb, bs1)], q, ls)
   2. c == word(0) → sl_triple_g(G, fs, inst, rp, p, [Block(tb, bs2)], q, ls)
 then
-  sl_triple_g(G, fs, inst, rp, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(c))]) && p(vs0, lc, gs, ms, h), [If(tb, bs1, bs2)], q, ls)
+  sl_triple_g(
+    G,
+    fs,
+    inst,
+    rp,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(ConstInt32(c))]) && p(vs0, lc, gs, ms, h),
+    [If(tb, bs1, bs2)],
+    q,
+    ls)
 ```
 
 lemma `sl_block_g`
@@ -4168,10 +6168,28 @@ lemma `sl_block_g`
 ∀ (G : Specs) (fs : List[Cl]) (inst : Inst) (rp pb qb lb : SAssn)
   (ot : Option[Valtype]) (bs : List[B_e]) (ls : List[SAssn]) (vs0 : List[Value])
 if
-  1. ∀ r : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, lb(r, lc, gs, ms, h) → LENGTH(r) == LENGTH(tbv_results(ot))
+  1. ∀ r : List[Value],
+       ∀ lc : List[Value],
+         ∀ gs : List[Value],
+           ∀ ms : Num,
+             ∀ h : Heap,
+               lb(r, lc, gs, ms, h) → LENGTH(r) == LENGTH(tbv_results(ot))
   2. sl_triple_g(G, fs, inst, rp, pb, bs, qb, CONS(lb, ls))
 then
-  sl_triple_g(G, fs, inst, rp, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == vs0 && pb(NIL, lc, gs, ms, h), [Block(Tbv(ot), bs)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ r : List[Value], vs == APPEND(vs0, r) && (qb(r, lc, gs, ms, h) || lb(r, lc, gs, ms, h)), ls)
+  sl_triple_g(
+    G,
+    fs,
+    inst,
+    rp,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == vs0 && pb(NIL, lc, gs, ms, h),
+    [Block(Tbv(ot), bs)],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ r : List[Value],
+        vs == APPEND(vs0, r) && (qb(r, lc, gs, ms, h) || lb(r, lc, gs, ms, h)),
+    ls)
 ```
 
 lemma `sl_loop_g`
@@ -4181,9 +6199,35 @@ lemma `sl_loop_g`
   (ot : Option[Valtype]) (bs : List[B_e]) (linv : FProp) (ls : List[SAssn])
   (vs0 : List[Value])
 if
-  1. sl_triple_g(G, fs, inst, rp, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == NIL && linv(lc, gs, ms, h), bs, qb, CONS((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == NIL && linv(lc, gs, ms, h), ls))
+  1. sl_triple_g(
+       G,
+       fs,
+       inst,
+       rp,
+       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+       (ms : Num) => (h : Heap) =>
+         vs == NIL && linv(lc, gs, ms, h),
+       bs,
+       qb,
+       CONS(
+         (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+         (ms : Num) => (h : Heap) =>
+           vs == NIL && linv(lc, gs, ms, h),
+         ls))
 then
-  sl_triple_g(G, fs, inst, rp, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == vs0 && linv(lc, gs, ms, h), [Loop(Tbv(ot), bs)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ r : List[Value], vs == APPEND(vs0, r) && qb(r, lc, gs, ms, h), ls)
+  sl_triple_g(
+    G,
+    fs,
+    inst,
+    rp,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == vs0 && linv(lc, gs, ms, h),
+    [Loop(Tbv(ot), bs)],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ r : List[Value], vs == APPEND(vs0, r) && qb(r, lc, gs, ms, h),
+    ls)
 ```
 
 lemma `sl_call_g`
@@ -4194,7 +6238,21 @@ lemma `sl_call_g`
 if
   1. G(sfunc_ind(inst, j), P, Q)
 then
-  sl_triple_g(G, fs, inst, rp, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ args : List[Value], vs == APPEND(vs0, args) && lc == lc0 && P(args, gs, ms, h), [Call(j)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ res : List[Value], vs == APPEND(vs0, res) && lc == lc0 && Q(res, gs, ms, h), ls)
+  sl_triple_g(
+    G,
+    fs,
+    inst,
+    rp,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ args : List[Value],
+        vs == APPEND(vs0, args) && lc == lc0 && P(args, gs, ms, h),
+    [Call(j)],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ res : List[Value],
+        vs == APPEND(vs0, res) && lc == lc0 && Q(res, gs, ms, h),
+    ls)
 ```
 
 lemma `sl_funs_g`
@@ -4202,7 +6260,58 @@ lemma `sl_funs_g`
 ```
 ∀ (G : Specs) (fs : List[Cl]) (inst : Inst) (n : Num)
 if
-  1. ∀ a : Num, ∀ P : FProp, ∀ Q : FProp, G(a, P, Q) → (∃ t1s : List[Valtype], ∃ t2s : List[Valtype], ∃ ts : List[Valtype], ∃ es : List[B_e], ∃ zs : List[Value], EL(a, fs) == Func_native(inst, Tf(t1s, t2s), ts, es) && n_zeros(ts) == SOME(zs) && (∀ args : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, P(args, gs, ms, h) → LENGTH(args) == LENGTH(t1s)) && (∀ res : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, Q(res, gs, ms, h) → LENGTH(res) == LENGTH(t2s)) && (∀ args : List[Value], sl_triple_g(G, fs, inst, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => Q(vs, gs, ms, h), (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == NIL && lc == APPEND(args, zs) && P(args, gs, ms, h), es, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => Q(vs, gs, ms, h), [(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => Q(vs, gs, ms, h)])))
+  1. ∀ a : Num,
+       ∀ P : FProp,
+         ∀ Q : FProp,
+           G(a, P, Q) → (
+             ∃ t1s : List[Valtype],
+               ∃ t2s : List[Valtype],
+                 ∃ ts : List[Valtype],
+                   ∃ es : List[B_e],
+                     ∃ zs : List[Value],
+                       EL(a, fs) == Func_native(inst, Tf(t1s, t2s), ts, es)
+                       && n_zeros(ts) == SOME(zs)
+                       && (
+                            ∀ args : List[Value],
+                              ∀ gs : List[Value],
+                                ∀ ms : Num,
+                                  ∀ h : Heap,
+                                    P(args, gs, ms, h) → LENGTH(args)
+                                      == LENGTH(t1s))
+                       && (
+                            ∀ res : List[Value],
+                              ∀ gs : List[Value],
+                                ∀ ms : Num,
+                                  ∀ h : Heap,
+                                    Q(res, gs, ms, h) → LENGTH(res)
+                                      == LENGTH(t2s))
+                       && (
+                            ∀ args : List[Value],
+                              sl_triple_g(
+                                G,
+                                fs,
+                                inst,
+                                (vs : List[Value]) => (lc : List[Value]) =>
+                                (gs : List[Value]) => (ms : Num) =>
+                                (h : Heap) =>
+                                  Q(vs, gs, ms, h),
+                                (vs : List[Value]) => (lc : List[Value]) =>
+                                (gs : List[Value]) => (ms : Num) =>
+                                (h : Heap) =>
+                                  vs == NIL
+                                  && lc == APPEND(args, zs)
+                                  && P(args, gs, ms, h),
+                                es,
+                                (vs : List[Value]) => (lc : List[Value]) =>
+                                (gs : List[Value]) => (ms : Num) =>
+                                (h : Heap) =>
+                                  Q(vs, gs, ms, h),
+                                [
+                                  (vs : List[Value]) =>
+                                  (lc : List[Value]) =>
+                                  (gs : List[Value]) => (ms : Num) =>
+                                  (h : Heap) =>
+                                    Q(vs, gs, ms, h)])))
 then
   specs_ok(n, G, fs, inst)
 ```
@@ -4226,7 +6335,10 @@ lemma `sl_pre_g`
 ∀ (G : Specs) (fs : List[Cl]) (inst : Inst) (rp p p2 q : SAssn) (bs : List[B_e])
   (ls : List[SAssn])
 if
-  1. ∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, p2(vs, lc, gs, ms, h) → p(vs, lc, gs, ms, h)
+  1. ∀ vs : List[Value],
+       ∀ lc : List[Value],
+         ∀ gs : List[Value],
+           ∀ ms : Num, ∀ h : Heap, p2(vs, lc, gs, ms, h) → p(vs, lc, gs, ms, h)
   2. sl_triple_g(G, fs, inst, rp, p, bs, q, ls)
 then
   sl_triple_g(G, fs, inst, rp, p2, bs, q, ls)
@@ -4250,7 +6362,8 @@ lemma `sl_nil_st_g`
 ∀ (G : Specs) (fs : List[Cl]) (inst : Inst) (rp r : SAssn) (v l : List[Value])
   (R : GProp) (ls : List[SAssn])
 if
-  1. ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → r(v, l, gs, ms, h)
+  1. ∀ gs : List[Value],
+       ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → r(v, l, gs, ms, h)
 then
   sl_triple_g(G, fs, inst, rp, st(v, l, R), NIL, r, ls)
 ```
@@ -4262,7 +6375,13 @@ lemma `sl_br_st_g`
   (R : GProp) (i : Num) (ls : List[SAssn])
 if
   1. i < LENGTH(ls)
-  2. ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → (∃ vs0 : List[Value], ∃ vb : List[Value], v == APPEND(vs0, vb) && EL(i, ls, vb, l, gs, ms, h))
+  2. ∀ gs : List[Value],
+       ∀ ms : Num,
+         ∀ h : Heap,
+           R(gs, ms, h) → (
+             ∃ vs0 : List[Value],
+               ∃ vb : List[Value],
+                 v == APPEND(vs0, vb) && EL(i, ls, vb, l, gs, ms, h))
 then
   sl_triple_g(G, fs, inst, rp, st(v, l, R), [Br(i)], r, ls)
 ```
@@ -4273,10 +6392,28 @@ lemma `sl_br_if_st_g`
 ∀ (G : Specs) (fs : List[Cl]) (inst : Inst) (rp r : SAssn) (v l : List[Value])
   (R : GProp) (c : W32) (i : Num) (rest : List[B_e]) (ls : List[SAssn])
 if
-  1. !(c == word(0)) → sl_triple_g(G, fs, inst, rp, st(v, l, R), [Br(i)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => false, ls)
+  1. !(c == word(0)) → sl_triple_g(
+       G,
+       fs,
+       inst,
+       rp,
+       st(v, l, R),
+       [Br(i)],
+       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+       (ms : Num) => (h : Heap) =>
+         false,
+       ls)
   2. c == word(0) → sl_triple_g(G, fs, inst, rp, st(v, l, R), rest, r, ls)
 then
-  sl_triple_g(G, fs, inst, rp, st(APPEND(v, [V_num(ConstInt32(c))]), l, R), CONS(Br_if(i), rest), r, ls)
+  sl_triple_g(
+    G,
+    fs,
+    inst,
+    rp,
+    st(APPEND(v, [V_num(ConstInt32(c))]), l, R),
+    CONS(Br_if(i), rest),
+    r,
+    ls)
 ```
 
 lemma `sl_if_st_g`
@@ -4285,10 +6422,34 @@ lemma `sl_if_st_g`
 ∀ (G : Specs) (fs : List[Cl]) (inst : Inst) (rp r : SAssn) (v l : List[Value])
   (R : GProp) (c : W32) (tb : Tb) (bs1 bs2 : List[B_e]) (ls : List[SAssn])
 if
-  1. !(c == word(0)) → sl_triple_g(G, fs, inst, rp, st(v, l, R), [Block(tb, bs1)], r, ls)
-  2. c == word(0) → sl_triple_g(G, fs, inst, rp, st(v, l, R), [Block(tb, bs2)], r, ls)
+  1. !(c == word(0)) → sl_triple_g(
+       G,
+       fs,
+       inst,
+       rp,
+       st(v, l, R),
+       [Block(tb, bs1)],
+       r,
+       ls)
+  2. c == word(0) → sl_triple_g(
+       G,
+       fs,
+       inst,
+       rp,
+       st(v, l, R),
+       [Block(tb, bs2)],
+       r,
+       ls)
 then
-  sl_triple_g(G, fs, inst, rp, st(APPEND(v, [V_num(ConstInt32(c))]), l, R), [If(tb, bs1, bs2)], r, ls)
+  sl_triple_g(
+    G,
+    fs,
+    inst,
+    rp,
+    st(APPEND(v, [V_num(ConstInt32(c))]), l, R),
+    [If(tb, bs1, bs2)],
+    r,
+    ls)
 ```
 
 lemma `sl_block_st_g`
@@ -4297,7 +6458,22 @@ lemma `sl_block_st_g`
 ∀ (G : Specs) (fs : List[Cl]) (inst : Inst) (rp r : SAssn) (v l : List[Value])
   (R : GProp) (ot : Option[Valtype]) (bs : List[B_e]) (ls : List[SAssn])
 if
-  1. sl_triple_g(G, fs, inst, rp, st(NIL, l, R), bs, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => r(APPEND(v, vs), lc, gs, ms, h), CONS((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => LENGTH(vs) == LENGTH(tbv_results(ot)) && r(APPEND(v, vs), lc, gs, ms, h), ls))
+  1. sl_triple_g(
+       G,
+       fs,
+       inst,
+       rp,
+       st(NIL, l, R),
+       bs,
+       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+       (ms : Num) => (h : Heap) =>
+         r(APPEND(v, vs), lc, gs, ms, h),
+       CONS(
+         (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+         (ms : Num) => (h : Heap) =>
+           LENGTH(vs) == LENGTH(tbv_results(ot))
+           && r(APPEND(v, vs), lc, gs, ms, h),
+         ls))
 then
   sl_triple_g(G, fs, inst, rp, st(v, l, R), [Block(Tbv(ot), bs)], r, ls)
 ```
@@ -4309,8 +6485,25 @@ lemma `sl_loop_st_g`
   (v l : List[Value]) (R : GProp) (ot : Option[Valtype]) (bs : List[B_e])
   (ls : List[SAssn])
 if
-  1. ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → linv(l, gs, ms, h)
-  2. sl_triple_g(G, fs, inst, rp, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == NIL && linv(lc, gs, ms, h), bs, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => r(APPEND(v, vs), lc, gs, ms, h), CONS((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == NIL && linv(lc, gs, ms, h), ls))
+  1. ∀ gs : List[Value],
+       ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → linv(l, gs, ms, h)
+  2. sl_triple_g(
+       G,
+       fs,
+       inst,
+       rp,
+       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+       (ms : Num) => (h : Heap) =>
+         vs == NIL && linv(lc, gs, ms, h),
+       bs,
+       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+       (ms : Num) => (h : Heap) =>
+         r(APPEND(v, vs), lc, gs, ms, h),
+       CONS(
+         (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+         (ms : Num) => (h : Heap) =>
+           vs == NIL && linv(lc, gs, ms, h),
+         ls))
 then
   sl_triple_g(G, fs, inst, rp, st(v, l, R), [Loop(Tbv(ot), bs)], r, ls)
 ```
@@ -4322,11 +6515,24 @@ lemma `sl_call_st_g`
   (aout v0 ain l : List[Value]) (Rout R : GProp) (rest : List[B_e])
   (ls : List[SAssn])
 if
-  1. G(sfunc_ind(inst, j), P, (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => res == aout && Rout(gs, ms, h))
-  2. ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → P(ain, gs, ms, h)
+  1. G(
+       sfunc_ind(inst, j),
+       P,
+       (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+         res == aout && Rout(gs, ms, h))
+  2. ∀ gs : List[Value],
+       ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → P(ain, gs, ms, h)
   3. sl_triple_g(G, fs, inst, rp, st(APPEND(v0, aout), l, Rout), rest, r, ls)
 then
-  sl_triple_g(G, fs, inst, rp, st(APPEND(v0, ain), l, R), CONS(Call(j), rest), r, ls)
+  sl_triple_g(
+    G,
+    fs,
+    inst,
+    rp,
+    st(APPEND(v0, ain), l, R),
+    CONS(Call(j), rest),
+    r,
+    ls)
 ```
 
 lemma `sl_call_spec_g`
@@ -4337,10 +6543,30 @@ lemma `sl_call_spec_g`
   (ls : List[SAssn])
 if
   1. G(sfunc_ind(inst, j), P, Q)
-  2. ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → P(ain, gs, ms, h)
-  3. sl_triple_g(G, fs, inst, rp, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ res : List[Value], vs == APPEND(v0, res) && lc == l && Q(res, gs, ms, h), rest, r, ls)
+  2. ∀ gs : List[Value],
+       ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → P(ain, gs, ms, h)
+  3. sl_triple_g(
+       G,
+       fs,
+       inst,
+       rp,
+       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+       (ms : Num) => (h : Heap) =>
+         ∃ res : List[Value],
+           vs == APPEND(v0, res) && lc == l && Q(res, gs, ms, h),
+       rest,
+       r,
+       ls)
 then
-  sl_triple_g(G, fs, inst, rp, st(APPEND(v0, ain), l, R), CONS(Call(j), rest), r, ls)
+  sl_triple_g(
+    G,
+    fs,
+    inst,
+    rp,
+    st(APPEND(v0, ain), l, R),
+    CONS(Call(j), rest),
+    r,
+    ls)
 ```
 
 lemma `sl_return_st_g`
@@ -4349,7 +6575,12 @@ lemma `sl_return_st_g`
 ∀ (G : Specs) (fs : List[Cl]) (inst : Inst) (rp r : SAssn) (v l : List[Value])
   (R : GProp) (rest : List[B_e]) (ls : List[SAssn])
 if
-  1. ∀ gs : List[Value], ∀ ms : Num, ∀ h : Heap, R(gs, ms, h) → (∃ vs0 : List[Value], ∃ vb : List[Value], v == APPEND(vs0, vb) && rp(vb, l, gs, ms, h))
+  1. ∀ gs : List[Value],
+       ∀ ms : Num,
+         ∀ h : Heap,
+           R(gs, ms, h) → (
+             ∃ vs0 : List[Value],
+               ∃ vb : List[Value], v == APPEND(vs0, vb) && rp(vb, l, gs, ms, h))
 then
   sl_triple_g(G, fs, inst, rp, st(v, l, R), CONS(Return, rest), r, ls)
 ```
@@ -4363,7 +6594,18 @@ example `example_store_load`
 if
   1. LENGTH(bs) == 4
 then
-  sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => star(pts(val(k) + off, bs), p(vs, ls, gs, ms), h), [EConstNum(ConstInt32(k)), EConstNum(ConstInt32(v)), Store(T_i32, NONE, a, off), EConstNum(ConstInt32(k)), Load(T_i32, NONE, a, off)], (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(v))]) && star(pts(val(k) + off, serialise_i32(v)), p(vs0, ls, gs, ms), h))
+  sl_triple(
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      star(pts(val(k) + off, bs), p(vs, ls, gs, ms), h),
+    [EConstNum(ConstInt32(k)), EConstNum(ConstInt32(v)),
+     Store(T_i32, NONE, a, off), EConstNum(ConstInt32(k)),
+     Load(T_i32, NONE, a, off)],
+    (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ vs0 : List[Value],
+        vs == APPEND(vs0, [V_num(ConstInt32(v))])
+        && star(pts(val(k) + off, serialise_i32(v)), p(vs0, ls, gs, ms), h))
 ```
 
 program `sum_code`
@@ -4402,7 +6644,14 @@ example `example_sum`
 
 ```
 ∀ (vs0 : List[Value]) (acc0 n0 : W32) (R : GProp),
-  sl_triple(st(vs0, [V_num(ConstInt32(n0)), V_num(ConstInt32(acc0))], R), sum_code, st(vs0, [V_num(ConstInt32(word(0))), V_num(ConstInt32(word_add(acc0, word(sum_to(val(n0))))))], R))
+  sl_triple(
+    st(vs0, [V_num(ConstInt32(n0)), V_num(ConstInt32(acc0))], R),
+    sum_code,
+    st(
+      vs0,
+      [V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word_add(acc0, word(sum_to(val(n0))))))],
+      R))
 ```
 
 lemma `word_add_val`
@@ -4442,10 +6691,12 @@ if
 then
   ∃ (y2 : W32) (zs2 : List[W32]),
     zs == CONS(y2, zs2)
-    && val(word_add(p, word(4))) == val(p0) + 4 * (val(m) - val(word_sub(c, word(1))))
+    && val(word_add(p, word(4)))
+         == val(p0) + 4 * (val(m) - val(word_sub(c, word(1))))
     && val(word_sub(c, word(1))) <= val(m)
     && SUC(LENGTH(zs2)) == val(word_sub(c, word(1)))
-    && APPEND(REPLICATE(val(m) - val(word_sub(c, word(1))), x), CONS(y2, zs2)) == APPEND(REPLICATE(val(m) - val(c), x), CONS(x, zs))
+    && APPEND(REPLICATE(val(m) - val(word_sub(c, word(1))), x), CONS(y2, zs2))
+         == APPEND(REPLICATE(val(m) - val(c), x), CONS(x, zs))
 ```
 
 lemma `fill_exit`
@@ -4494,7 +6745,18 @@ if
   1. LENGTH(ys) == val(m)
   2. val(p0) + 4 * val(m) < 4294967296
 then
-  sl_triple(st(vs0, [V_num(ConstInt32(p0)), V_num(ConstInt32(m))], (gs : List[Value]) => (ms : Num) => star(arr(val(p0), ys), fp(gs, ms))), fill_code(x), st(vs0, [V_num(ConstInt32(word_add(p0, word(4 * val(m))))), V_num(ConstInt32(word(0)))], (gs : List[Value]) => (ms : Num) => star(arr(val(p0), REPLICATE(val(m), x)), fp(gs, ms))))
+  sl_triple(
+    st(
+      vs0,
+      [V_num(ConstInt32(p0)), V_num(ConstInt32(m))],
+      (gs : List[Value]) => (ms : Num) => star(arr(val(p0), ys), fp(gs, ms))),
+    fill_code(x),
+    st(
+      vs0,
+      [V_num(ConstInt32(word_add(p0, word(4 * val(m))))),
+       V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) =>
+        star(arr(val(p0), REPLICATE(val(m), x)), fp(gs, ms))))
 ```
 
 definition `wsum`
@@ -4613,19 +6875,34 @@ if
   1. LENGTH(xs) == val(n)
   2. val(p) + 4 * val(n) < 4294967296
 then
-  sl_triple(st(vs0, [V_num(ConstInt32(p)), V_num(ConstInt32(n)), V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))], (gs : List[Value]) => (ms : Num) => star(arr(val(p), xs), fp(gs, ms))), array_sum_code, st(vs0, [V_num(ConstInt32(p)), V_num(ConstInt32(n)), V_num(ConstInt32(n)), V_num(ConstInt32(wsum(xs)))], (gs : List[Value]) => (ms : Num) => star(arr(val(p), xs), fp(gs, ms))))
+  sl_triple(
+    st(
+      vs0,
+      [V_num(ConstInt32(p)), V_num(ConstInt32(n)), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => star(arr(val(p), xs), fp(gs, ms))),
+    array_sum_code,
+    st(
+      vs0,
+      [V_num(ConstInt32(p)), V_num(ConstInt32(n)), V_num(ConstInt32(n)),
+       V_num(ConstInt32(wsum(xs)))],
+      (gs : List[Value]) => (ms : Num) => star(arr(val(p), xs), fp(gs, ms))))
 ```
 
 definition `sorted`
 
 ```
-sorted((xs : List[W32])) == PAIRWISE((a : W32) => (b : W32) => val(a) <= val(b), xs)
+sorted((xs : List[W32]))
+  == PAIRWISE((a : W32) => (b : W32) => val(a) <= val(b), xs)
 ```
 
 definition `perm`
 
 ```
-perm((xs : List[W32]), (ys : List[W32])) == (∀ y : W32, LENGTH(FILTER((z : W32) => z == y, xs)) == LENGTH(FILTER((z : W32) => z == y, ys)))
+perm((xs : List[W32]), (ys : List[W32])) == (
+  ∀ y : W32,
+    LENGTH(FILTER((z : W32) => z == y, xs))
+      == LENGTH(FILTER((z : W32) => z == y, ys)))
 ```
 
 lemma `perm_refl`
@@ -4671,7 +6948,8 @@ lemma `list_update_snoc`
 
 ```
 ∀ (l2 r : List[A]) (e d x : A),
-  list_update(APPEND(l2, CONS(e, CONS(d, r))), SUC(LENGTH(l2)), x) == APPEND(l2, CONS(e, CONS(x, r)))
+  list_update(APPEND(l2, CONS(e, CONS(d, r))), SUC(LENGTH(l2)), x)
+    == APPEND(l2, CONS(e, CONS(x, r)))
 ```
 
 lemma `isort_bound`
@@ -4731,7 +7009,9 @@ lemma `isort_shift`
 ∀ (L G rest xs : List[W32]) (d j x i n : W32)
 if
   1. !(j == word(0))
-  2. !word_ule(EL(val(word_sub(j, word(1))), APPEND(L, CONS(d, APPEND(G, rest)))), x)
+  2. !word_ule(
+       EL(val(word_sub(j, word(1))), APPEND(L, CONS(d, APPEND(G, rest)))),
+       x)
   3. LENGTH(L) == val(j)
   4. sorted(APPEND(L, G))
   5. ALL((g : W32) => val(x) < val(g), G)
@@ -4747,7 +7027,11 @@ then
     && LENGTH(APPEND(l2, CONS(e, G))) == val(i)
     && LENGTH(APPEND(l2, CONS(e, APPEND(CONS(e, G), rest)))) == val(n)
     && perm(APPEND(l2, CONS(x, APPEND(CONS(e, G), rest))), xs)
-    && list_update(APPEND(L, CONS(d, APPEND(G, rest))), val(j), EL(val(word_sub(j, word(1))), APPEND(L, CONS(d, APPEND(G, rest))))) == APPEND(l2, CONS(e, APPEND(CONS(e, G), rest)))
+    && list_update(
+         APPEND(L, CONS(d, APPEND(G, rest))),
+         val(j),
+         EL(val(word_sub(j, word(1))), APPEND(L, CONS(d, APPEND(G, rest)))))
+         == APPEND(l2, CONS(e, APPEND(CONS(e, G), rest)))
 ```
 
 lemma `isort_next`
@@ -4770,7 +7054,8 @@ then
   && val(word_add(i, word(1))) < val(n)
   && LENGTH(APPEND(APPEND(L, CONS(x, G)), rest)) == val(n)
   && perm(APPEND(APPEND(L, CONS(x, G)), rest), xs)
-  && list_update(APPEND(L, CONS(d, APPEND(G, rest))), val(j), x) == APPEND(APPEND(L, CONS(x, G)), rest)
+  && list_update(APPEND(L, CONS(d, APPEND(G, rest))), val(j), x)
+       == APPEND(APPEND(L, CONS(x, G)), rest)
 ```
 
 lemma `isort_done`
@@ -4803,7 +7088,8 @@ then
   ∃ (y : W32) (zs : List[W32]),
     xs == CONS(y, zs)
     && sorted([y])
-    && (LENGTH : (List[W32]) -> Num)([y]) == (val : (W32) -> Num)((word : (Num) -> W32)(1))
+    && (LENGTH : (List[W32]) -> Num)([y])
+         == (val : (W32) -> Num)((word : (Num) -> W32)(1))
     && (val : (W32) -> Num)((word : (Num) -> W32)(1)) < (val : (W32) -> Num)(n)
 ```
 
@@ -4902,7 +7188,26 @@ if
   1. LENGTH(xs) == val(n)
   2. val(p) + 4 * val(n) < 4294967296
 then
-  sl_triple(st(vs0, [V_num(ConstInt32(p)), V_num(ConstInt32(n)), V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))], (gs : List[Value]) => (ms : Num) => star(arr(val(p), xs), fp(gs, ms))), insertion_sort_code, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ ys : List[W32], ∃ i : W32, ∃ j : W32, ∃ x : W32, vs == vs0 && lc == [V_num(ConstInt32(p)), V_num(ConstInt32(n)), V_num(ConstInt32(i)), V_num(ConstInt32(j)), V_num(ConstInt32(x))] && sorted(ys) && perm(ys, xs) && star(arr(val(p), ys), fp(gs, ms), h))
+  sl_triple(
+    st(
+      vs0,
+      [V_num(ConstInt32(p)), V_num(ConstInt32(n)), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => star(arr(val(p), xs), fp(gs, ms))),
+    insertion_sort_code,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ ys : List[W32],
+        ∃ i : W32,
+          ∃ j : W32,
+            ∃ x : W32,
+              vs == vs0
+              && lc == [V_num(ConstInt32(p)), V_num(ConstInt32(n)),
+                  V_num(ConstInt32(i)), V_num(ConstInt32(j)),
+                  V_num(ConstInt32(x))]
+              && sorted(ys)
+              && perm(ys, xs)
+              && star(arr(val(p), ys), fp(gs, ms), h))
 ```
 
 program `double_code`
@@ -4918,7 +7223,14 @@ lemma `double_body`
 
 ```
 ∀ (x : W32) (R : GProp),
-  sl_triple((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == NIL && lc == [V_num(ConstInt32(x))] && R(gs, ms, h), double_code, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == [V_num(ConstInt32(word_add(x, x)))] && R(gs, ms, h))
+  sl_triple(
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL && lc == [V_num(ConstInt32(x))] && R(gs, ms, h),
+    double_code,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == [V_num(ConstInt32(word_add(x, x)))] && R(gs, ms, h))
 ```
 
 example `example_call`
@@ -4926,9 +7238,25 @@ example `example_call`
 ```
 ∀ (fs : List[Cl]) (inst : Inst) (x : W32) (R : GProp) (vs0 lc0 : List[Value])
 if
-  1. EL(sfunc_ind(inst, 0), fs) == Func_native(inst, Tf([T_num(T_i32)], [T_num(T_i32)]), NIL, double_code)
+  1. EL(sfunc_ind(inst, 0), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       NIL,
+       double_code)
 then
-  sl_triple_m(fs, inst, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == APPEND(vs0, [V_num(ConstInt32(x))]) && lc == lc0 && R(gs, ms, h), [Call(0)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == APPEND(vs0, [V_num(ConstInt32(word_add(x, x)))]) && lc == lc0 && R(gs, ms, h), NIL)
+  sl_triple_m(
+    fs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == APPEND(vs0, [V_num(ConstInt32(x))]) && lc == lc0 && R(gs, ms, h),
+    [Call(0)],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == APPEND(vs0, [V_num(ConstInt32(word_add(x, x)))])
+      && lc == lc0
+      && R(gs, ms, h),
+    NIL)
 ```
 
 definition `fact_w`
@@ -4961,14 +7289,32 @@ then
 definition `fact_spec`
 
 ```
-fact_spec((inst : Inst), (a : Num), (P : FProp), (Q : FProp)) == (a == sfunc_ind(inst, 0) && (∃ x : W32, ∃ R : GProp, P == ((args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => args == [V_num(ConstInt32(x))] && R(gs, ms, h)) && Q == ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => res == [V_num(ConstInt32(fact_w(val(x))))] && R(gs, ms, h))))
+fact_spec((inst : Inst), (a : Num), (P : FProp), (Q : FProp)) == (
+  a == sfunc_ind(inst, 0)
+  && (
+       ∃ x : W32,
+         ∃ R : GProp,
+           P == (
+             (args : List[Value]) => (gs : List[Value]) => (ms : Num) =>
+             (h : Heap) =>
+               args == [V_num(ConstInt32(x))] && R(gs, ms, h))
+           && Q == (
+                (res : List[Value]) => (gs : List[Value]) => (ms : Num) =>
+                (h : Heap) =>
+                  res == [V_num(ConstInt32(fact_w(val(x))))] && R(gs, ms, h))))
 ```
 
 lemma `fact_call`
 
 ```
 ∀ (inst : Inst) (x : W32) (R : GProp),
-  fact_spec(inst, sfunc_ind(inst, 0), (args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => args == [V_num(ConstInt32(x))] && R(gs, ms, h), (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => res == [V_num(ConstInt32(fact_w(val(x))))] && R(gs, ms, h))
+  fact_spec(
+    inst,
+    sfunc_ind(inst, 0),
+    (args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+      args == [V_num(ConstInt32(x))] && R(gs, ms, h),
+    (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+      res == [V_num(ConstInt32(fact_w(val(x))))] && R(gs, ms, h))
 ```
 
 program `fact_code`
@@ -4993,7 +7339,50 @@ lemma `fact_body`
 
 ```
 ∀ (fs : List[Cl]) (inst : Inst) (x : W32) (R : GProp) (args : List[Value]),
-  sl_triple_g(fact_spec(inst), fs, inst, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => res == [V_num(ConstInt32(fact_w(val(x))))] && R(gs, ms, h))(vs, gs, ms, h), (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == NIL && lc == APPEND(args, NIL) && ((args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => args == [V_num(ConstInt32(x))] && R(gs, ms, h))(args, gs, ms, h), fact_code, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => res == [V_num(ConstInt32(fact_w(val(x))))] && R(gs, ms, h))(vs, gs, ms, h), [(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => res == [V_num(ConstInt32(fact_w(val(x))))] && R(gs, ms, h))(vs, gs, ms, h)])
+  sl_triple_g(
+    fact_spec(inst),
+    fs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      (
+        (res : List[Value]) => (gs : List[Value]) => (ms : Num) =>
+        (h : Heap) =>
+          res == [V_num(ConstInt32(fact_w(val(x))))] && R(gs, ms, h))(
+        vs,
+        gs,
+        ms,
+        h),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL
+      && lc == APPEND(args, NIL)
+      && (
+           (args : List[Value]) => (gs : List[Value]) => (ms : Num) =>
+           (h : Heap) =>
+             args == [V_num(ConstInt32(x))] && R(gs, ms, h))(args, gs, ms, h),
+    fact_code,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      (
+        (res : List[Value]) => (gs : List[Value]) => (ms : Num) =>
+        (h : Heap) =>
+          res == [V_num(ConstInt32(fact_w(val(x))))] && R(gs, ms, h))(
+        vs,
+        gs,
+        ms,
+        h),
+    [
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        (
+          (res : List[Value]) => (gs : List[Value]) => (ms : Num) =>
+          (h : Heap) =>
+            res == [V_num(ConstInt32(fact_w(val(x))))] && R(gs, ms, h))(
+          vs,
+          gs,
+          ms,
+          h)])
 ```
 
 lemma `fact_specs`
@@ -5001,7 +7390,8 @@ lemma `fact_specs`
 ```
 ∀ (fs : List[Cl]) (inst : Inst) (n : Num)
 if
-  1. EL(sfunc_ind(inst, 0), fs) == Func_native(inst, Tf([T_num(T_i32)], [T_num(T_i32)]), NIL, fact_code)
+  1. EL(sfunc_ind(inst, 0), fs)
+       == Func_native(inst, Tf([T_num(T_i32)], [T_num(T_i32)]), NIL, fact_code)
 then
   specs_ok(n, fact_spec(inst), fs, inst)
 ```
@@ -5011,9 +7401,22 @@ example `example_fact`
 ```
 ∀ (fs : List[Cl]) (inst : Inst) (x : W32) (R : GProp) (vs0 lc0 : List[Value])
 if
-  1. EL(sfunc_ind(inst, 0), fs) == Func_native(inst, Tf([T_num(T_i32)], [T_num(T_i32)]), NIL, fact_code)
+  1. EL(sfunc_ind(inst, 0), fs)
+       == Func_native(inst, Tf([T_num(T_i32)], [T_num(T_i32)]), NIL, fact_code)
 then
-  sl_triple_m(fs, inst, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == APPEND(vs0, [V_num(ConstInt32(x))]) && lc == lc0 && R(gs, ms, h), [Call(0)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == APPEND(vs0, [V_num(ConstInt32(fact_w(val(x))))]) && lc == lc0 && R(gs, ms, h), NIL)
+  sl_triple_m(
+    fs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == APPEND(vs0, [V_num(ConstInt32(x))]) && lc == lc0 && R(gs, ms, h),
+    [Call(0)],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == APPEND(vs0, [V_num(ConstInt32(fact_w(val(x))))])
+      && lc == lc0
+      && R(gs, ms, h),
+    NIL)
 ```
 
 theorem `fact_closed`
@@ -5022,13 +7425,21 @@ theorem `fact_closed`
 ∀ (fs : List[Cl]) (inst : Inst) (s s2 : Wstore) (f f2 : Wframe) (j : Num)
   (x : W32) (vs0 : List[Value]) (es2 : List[Einstr])
 if
-  1. EL(sfunc_ind(inst, 0), fs) == Func_native(inst, Tf([T_num(T_i32)], [T_num(T_i32)]), NIL, fact_code)
+  1. EL(sfunc_ind(inst, 0), fs)
+       == Func_native(inst, Tf([T_num(T_i32)], [T_num(T_i32)]), NIL, fact_code)
   2. s_funcs(s) == fs
   3. f_inst(f) == inst
   4. smem_ind(inst) == SOME(j)
   5. j < LENGTH(s_mems(s))
   6. globs_ok(s, f)
-  7. reduce_trans((s, f, APPEND(MAP(v_to_e, APPEND(vs0, [V_num(ConstInt32(x))])), [Basic(Call(0))])), (s2, f2, es2))
+  7. reduce_trans(
+       (
+         s,
+         f,
+         APPEND(
+           MAP(v_to_e, APPEND(vs0, [V_num(ConstInt32(x))])),
+           [Basic(Call(0))])),
+       (s2, f2, es2))
 then
   es2 == MAP(v_to_e, APPEND(vs0, [V_num(ConstInt32(fact_w(val(x))))]))
   && s_funcs(s2) == fs
@@ -5037,7 +7448,8 @@ then
   && gvals(s2, f2) == gvals(s, f)
   && heap_of(EL(j, s_mems(s2))) == heap_of(EL(j, s_mems(s)))
 or
-  ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]), reduce(s2, f2, es2, s3, f3, es3)
+  ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]),
+    reduce(s2, f2, es2, s3, f3, es3)
 ```
 
 definition `rot`
@@ -5051,26 +7463,38 @@ lemma `el_mid`
 
 ```
 ∀ (A L G R : List[W32]) (u : W32),
-  EL(LENGTH(A) + LENGTH(L) + LENGTH(G), APPEND(A, APPEND(L, APPEND(G, CONS(u, R))))) == u
+  EL(
+    LENGTH(A) + LENGTH(L) + LENGTH(G),
+    APPEND(A, APPEND(L, APPEND(G, CONS(u, R)))))
+    == u
 ```
 
 lemma `el_mid2`
 
 ```
-∀ (A L R : List[W32]) (u : W32), EL(LENGTH(A) + LENGTH(L), APPEND(A, APPEND(L, CONS(u, R)))) == u
+∀ (A L R : List[W32]) (u : W32),
+  EL(LENGTH(A) + LENGTH(L), APPEND(A, APPEND(L, CONS(u, R)))) == u
 ```
 
 lemma `part_swap`
 
 ```
 ∀ (A L G R : List[W32]) (u : W32),
-  list_update(list_update(APPEND(A, APPEND(L, APPEND(G, CONS(u, R)))), LENGTH(A) + LENGTH(L), u), LENGTH(A) + LENGTH(L) + LENGTH(G), EL(LENGTH(A) + LENGTH(L), APPEND(A, APPEND(L, APPEND(G, CONS(u, R)))))) == APPEND(A, APPEND(L, CONS(u, APPEND(rot(G), R))))
+  list_update(
+    list_update(
+      APPEND(A, APPEND(L, APPEND(G, CONS(u, R)))),
+      LENGTH(A) + LENGTH(L),
+      u),
+    LENGTH(A) + LENGTH(L) + LENGTH(G),
+    EL(LENGTH(A) + LENGTH(L), APPEND(A, APPEND(L, APPEND(G, CONS(u, R))))))
+    == APPEND(A, APPEND(L, CONS(u, APPEND(rot(G), R))))
 ```
 
 lemma `count_rot`
 
 ```
-∀ (P : (W32) -> Bool) (G : List[W32]), LENGTH(FILTER(P, rot(G))) == LENGTH(FILTER(P, G))
+∀ (P : (W32) -> Bool) (G : List[W32]),
+  LENGTH(FILTER(P, rot(G))) == LENGTH(FILTER(P, G))
 ```
 
 lemma `length_rot`
@@ -5212,27 +7636,176 @@ if
   2. LENGTH(A) + LENGTH(Bt) + 1 == val(hi)
   3. val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296
 then
-  sl_triple(st(NIL, [V_num(ConstInt32(p)), V_num(ConstInt32(lo)), V_num(ConstInt32(hi)), V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))], (gs : List[Value]) => (ms : Num) => (h : Heap) => star(arr(val(p), APPEND(A, APPEND(Bt, CONS(pv, Cs)))), fp(gs, ms), h)), partition_code, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ i : W32, ∃ L : List[W32], ∃ G : List[W32], vs == [V_num(ConstInt32(i))] && LENGTH(A) + LENGTH(L) == val(i) && ALL((x : W32) => val(x) < val(pv), L) && ALL((x : W32) => val(pv) <= val(x), G) && perm(APPEND(L, G), Bt) && LENGTH(L) + LENGTH(G) == LENGTH(Bt) && star(arr(val(p), APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))), fp(gs, ms), h))
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), V_num(ConstInt32(lo)), V_num(ConstInt32(hi)),
+       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(arr(val(p), APPEND(A, APPEND(Bt, CONS(pv, Cs)))), fp(gs, ms), h)),
+    partition_code,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ i : W32,
+        ∃ L : List[W32],
+          ∃ G : List[W32],
+            vs == [V_num(ConstInt32(i))]
+            && LENGTH(A) + LENGTH(L) == val(i)
+            && ALL((x : W32) => val(x) < val(pv), L)
+            && ALL((x : W32) => val(pv) <= val(x), G)
+            && perm(APPEND(L, G), Bt)
+            && LENGTH(L) + LENGTH(G) == LENGTH(Bt)
+            && star(
+                 arr(val(p), APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))),
+                 fp(gs, ms),
+                 h))
 ```
 
 definition `qs_spec`
 
 ```
-qs_spec((inst : Inst), (a : Num), (P : FProp), (Q : FProp)) == (a == sfunc_ind(inst, 0) && (∃ p : W32, ∃ lo : W32, ∃ hi : W32, ∃ A : List[W32], ∃ B : List[W32], ∃ Cs : List[W32], ∃ fp : GProp, P == ((args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => args == [V_num(ConstInt32(p)), V_num(ConstInt32(lo)), V_num(ConstInt32(hi))] && LENGTH(A) == val(lo) && LENGTH(A) + LENGTH(B) == val(hi) && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296 && star(arr(val(p), APPEND(A, APPEND(B, Cs))), fp(gs, ms), h)) && Q == ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => res == NIL && (∃ ys : List[W32], sorted(ys) && perm(ys, B) && LENGTH(ys) == LENGTH(B) && star(arr(val(p), APPEND(A, APPEND(ys, Cs))), fp(gs, ms), h)))) || a == sfunc_ind(inst, 1) && (∃ p : W32, ∃ lo : W32, ∃ hi : W32, ∃ A : List[W32], ∃ Bt : List[W32], ∃ pv : W32, ∃ Cs : List[W32], ∃ fp : GProp, P == ((args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => args == [V_num(ConstInt32(p)), V_num(ConstInt32(lo)), V_num(ConstInt32(hi))] && LENGTH(A) == val(lo) && LENGTH(A) + LENGTH(Bt) + 1 == val(hi) && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296 && star(arr(val(p), APPEND(A, APPEND(Bt, CONS(pv, Cs)))), fp(gs, ms), h)) && Q == ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ i : W32, ∃ L : List[W32], ∃ G : List[W32], res == [V_num(ConstInt32(i))] && LENGTH(A) + LENGTH(L) == val(i) && ALL((x : W32) => val(x) < val(pv), L) && ALL((x : W32) => val(pv) <= val(x), G) && perm(APPEND(L, G), Bt) && LENGTH(L) + LENGTH(G) == LENGTH(Bt) && star(arr(val(p), APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))), fp(gs, ms), h))))
+qs_spec((inst : Inst), (a : Num), (P : FProp), (Q : FProp)) == (
+  a == sfunc_ind(inst, 0)
+  && (
+       ∃ p : W32,
+         ∃ lo : W32,
+           ∃ hi : W32,
+             ∃ A : List[W32],
+               ∃ B : List[W32],
+                 ∃ Cs : List[W32],
+                   ∃ fp : GProp,
+                     P == (
+                       (args : List[Value]) => (gs : List[Value]) =>
+                       (ms : Num) => (h : Heap) =>
+                         args == [V_num(ConstInt32(p)),
+                          V_num(ConstInt32(lo)), V_num(ConstInt32(hi))]
+                         && LENGTH(A) == val(lo)
+                         && LENGTH(A) + LENGTH(B) == val(hi)
+                         && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296
+                         && star(
+                              arr(val(p), APPEND(A, APPEND(B, Cs))),
+                              fp(gs, ms),
+                              h))
+                     && Q == (
+                          (res : List[Value]) => (gs : List[Value]) =>
+                          (ms : Num) => (h : Heap) =>
+                            res == NIL
+                            && (
+                                 ∃ ys : List[W32],
+                                   sorted(ys)
+                                   && perm(ys, B)
+                                   && LENGTH(ys) == LENGTH(B)
+                                   && star(
+                                        arr(
+                                          val(p),
+                                          APPEND(A, APPEND(ys, Cs))),
+                                        fp(gs, ms),
+                                        h))))
+  || a == sfunc_ind(inst, 1)
+     && (
+          ∃ p : W32,
+            ∃ lo : W32,
+              ∃ hi : W32,
+                ∃ A : List[W32],
+                  ∃ Bt : List[W32],
+                    ∃ pv : W32,
+                      ∃ Cs : List[W32],
+                        ∃ fp : GProp,
+                          P == (
+                            (args : List[Value]) => (gs : List[Value]) =>
+                            (ms : Num) => (h : Heap) =>
+                              args == [V_num(ConstInt32(p)),
+                               V_num(ConstInt32(lo)), V_num(ConstInt32(hi))]
+                              && LENGTH(A) == val(lo)
+                              && LENGTH(A) + LENGTH(Bt) + 1 == val(hi)
+                              && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296
+                              && star(
+                                   arr(
+                                     val(p),
+                                     APPEND(A, APPEND(Bt, CONS(pv, Cs)))),
+                                   fp(gs, ms),
+                                   h))
+                          && Q == (
+                               (res : List[Value]) => (gs : List[Value]) =>
+                               (ms : Num) => (h : Heap) =>
+                                 ∃ i : W32,
+                                   ∃ L : List[W32],
+                                     ∃ G : List[W32],
+                                       res == [V_num(ConstInt32(i))]
+                                       && LENGTH(A) + LENGTH(L) == val(i)
+                                       && ALL(
+                                            (x : W32) => val(x) < val(pv),
+                                            L)
+                                       && ALL(
+                                            (x : W32) => val(pv) <= val(x),
+                                            G)
+                                       && perm(APPEND(L, G), Bt)
+                                       && LENGTH(L) + LENGTH(G) == LENGTH(Bt)
+                                       && star(
+                                            arr(
+                                              val(p),
+                                              APPEND(
+                                                A,
+                                                APPEND(
+                                                  L,
+                                                  CONS(pv, APPEND(G, Cs))))),
+                                            fp(gs, ms),
+                                            h))))
 ```
 
 lemma `qs_call`
 
 ```
 ∀ (inst : Inst) (p lo hi : W32) (A B Cs : List[W32]) (fp : GProp),
-  qs_spec(inst, sfunc_ind(inst, 0), (args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => args == [V_num(ConstInt32(p)), V_num(ConstInt32(lo)), V_num(ConstInt32(hi))] && LENGTH(A) == val(lo) && LENGTH(A) + LENGTH(B) == val(hi) && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296 && star(arr(val(p), APPEND(A, APPEND(B, Cs))), fp(gs, ms), h), (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => res == NIL && (∃ ys : List[W32], sorted(ys) && perm(ys, B) && LENGTH(ys) == LENGTH(B) && star(arr(val(p), APPEND(A, APPEND(ys, Cs))), fp(gs, ms), h)))
+  qs_spec(
+    inst,
+    sfunc_ind(inst, 0),
+    (args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+      args
+        == [V_num(ConstInt32(p)), V_num(ConstInt32(lo)), V_num(ConstInt32(hi))]
+      && LENGTH(A) == val(lo)
+      && LENGTH(A) + LENGTH(B) == val(hi)
+      && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296
+      && star(arr(val(p), APPEND(A, APPEND(B, Cs))), fp(gs, ms), h),
+    (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+      res == NIL
+      && (
+           ∃ ys : List[W32],
+             sorted(ys)
+             && perm(ys, B)
+             && LENGTH(ys) == LENGTH(B)
+             && star(arr(val(p), APPEND(A, APPEND(ys, Cs))), fp(gs, ms), h)))
 ```
 
 lemma `partition_call`
 
 ```
 ∀ (inst : Inst) (p lo hi pv : W32) (A Bt Cs : List[W32]) (fp : GProp),
-  qs_spec(inst, sfunc_ind(inst, 1), (args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => args == [V_num(ConstInt32(p)), V_num(ConstInt32(lo)), V_num(ConstInt32(hi))] && LENGTH(A) == val(lo) && LENGTH(A) + LENGTH(Bt) + 1 == val(hi) && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296 && star(arr(val(p), APPEND(A, APPEND(Bt, CONS(pv, Cs)))), fp(gs, ms), h), (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ i : W32, ∃ L : List[W32], ∃ G : List[W32], res == [V_num(ConstInt32(i))] && LENGTH(A) + LENGTH(L) == val(i) && ALL((x : W32) => val(x) < val(pv), L) && ALL((x : W32) => val(pv) <= val(x), G) && perm(APPEND(L, G), Bt) && LENGTH(L) + LENGTH(G) == LENGTH(Bt) && star(arr(val(p), APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))), fp(gs, ms), h))
+  qs_spec(
+    inst,
+    sfunc_ind(inst, 1),
+    (args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+      args
+        == [V_num(ConstInt32(p)), V_num(ConstInt32(lo)), V_num(ConstInt32(hi))]
+      && LENGTH(A) == val(lo)
+      && LENGTH(A) + LENGTH(Bt) + 1 == val(hi)
+      && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296
+      && star(arr(val(p), APPEND(A, APPEND(Bt, CONS(pv, Cs)))), fp(gs, ms), h),
+    (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+      ∃ i : W32,
+        ∃ L : List[W32],
+          ∃ G : List[W32],
+            res == [V_num(ConstInt32(i))]
+            && LENGTH(A) + LENGTH(L) == val(i)
+            && ALL((x : W32) => val(x) < val(pv), L)
+            && ALL((x : W32) => val(pv) <= val(x), G)
+            && perm(APPEND(L, G), Bt)
+            && LENGTH(L) + LENGTH(G) == LENGTH(Bt)
+            && star(
+                 arr(val(p), APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))),
+                 fp(gs, ms),
+                 h))
 ```
 
 lemma `qs_split`
@@ -5259,7 +7832,8 @@ then
 lemma `mem_count`
 
 ```
-∀ (x : W32) (l : List[W32]), MEM(x, l) == (0 < LENGTH(FILTER((z : W32) => z == x, l)))
+∀ (x : W32) (l : List[W32]),
+  MEM(x, l) == (0 < LENGTH(FILTER((z : W32) => z == x, l)))
 ```
 
 lemma `perm_all`
@@ -5344,7 +7918,74 @@ lemma `quicksort_body`
 ```
 ∀ (fs : List[Cl]) (inst : Inst) (p lo hi : W32) (A B Cs : List[W32])
   (fp : GProp) (args : List[Value]),
-  sl_triple_g(qs_spec(inst), fs, inst, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => res == NIL && (∃ ys : List[W32], sorted(ys) && perm(ys, B) && LENGTH(ys) == LENGTH(B) && star(arr(val(p), APPEND(A, APPEND(ys, Cs))), fp(gs, ms), h)))(vs, gs, ms, h), (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == NIL && lc == APPEND(args, [V_num(ConstInt32(word(0)))]) && ((args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => args == [V_num(ConstInt32(p)), V_num(ConstInt32(lo)), V_num(ConstInt32(hi))] && LENGTH(A) == val(lo) && LENGTH(A) + LENGTH(B) == val(hi) && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296 && star(arr(val(p), APPEND(A, APPEND(B, Cs))), fp(gs, ms), h))(args, gs, ms, h), quicksort_code, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => res == NIL && (∃ ys : List[W32], sorted(ys) && perm(ys, B) && LENGTH(ys) == LENGTH(B) && star(arr(val(p), APPEND(A, APPEND(ys, Cs))), fp(gs, ms), h)))(vs, gs, ms, h), [(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => res == NIL && (∃ ys : List[W32], sorted(ys) && perm(ys, B) && LENGTH(ys) == LENGTH(B) && star(arr(val(p), APPEND(A, APPEND(ys, Cs))), fp(gs, ms), h)))(vs, gs, ms, h)])
+  sl_triple_g(
+    qs_spec(inst),
+    fs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      (
+        (res : List[Value]) => (gs : List[Value]) => (ms : Num) =>
+        (h : Heap) =>
+          res == NIL
+          && (
+               ∃ ys : List[W32],
+                 sorted(ys)
+                 && perm(ys, B)
+                 && LENGTH(ys) == LENGTH(B)
+                 && star(
+                      arr(val(p), APPEND(A, APPEND(ys, Cs))),
+                      fp(gs, ms),
+                      h)))(vs, gs, ms, h),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL
+      && lc == APPEND(args, [V_num(ConstInt32(word(0)))])
+      && (
+           (args : List[Value]) => (gs : List[Value]) => (ms : Num) =>
+           (h : Heap) =>
+             args == [V_num(ConstInt32(p)), V_num(ConstInt32(lo)),
+              V_num(ConstInt32(hi))]
+             && LENGTH(A) == val(lo)
+             && LENGTH(A) + LENGTH(B) == val(hi)
+             && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296
+             && star(arr(val(p), APPEND(A, APPEND(B, Cs))), fp(gs, ms), h))(
+           args,
+           gs,
+           ms,
+           h),
+    quicksort_code,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      (
+        (res : List[Value]) => (gs : List[Value]) => (ms : Num) =>
+        (h : Heap) =>
+          res == NIL
+          && (
+               ∃ ys : List[W32],
+                 sorted(ys)
+                 && perm(ys, B)
+                 && LENGTH(ys) == LENGTH(B)
+                 && star(
+                      arr(val(p), APPEND(A, APPEND(ys, Cs))),
+                      fp(gs, ms),
+                      h)))(vs, gs, ms, h),
+    [
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        (
+          (res : List[Value]) => (gs : List[Value]) => (ms : Num) =>
+          (h : Heap) =>
+            res == NIL
+            && (
+                 ∃ ys : List[W32],
+                   sorted(ys)
+                   && perm(ys, B)
+                   && LENGTH(ys) == LENGTH(B)
+                   && star(
+                        arr(val(p), APPEND(A, APPEND(ys, Cs))),
+                        fp(gs, ms),
+                        h)))(vs, gs, ms, h)])
 ```
 
 lemma `partition_fn`
@@ -5352,7 +7993,91 @@ lemma `partition_fn`
 ```
 ∀ (fs : List[Cl]) (inst : Inst) (p lo hi pv : W32) (A Bt Cs : List[W32])
   (fp : GProp) (args : List[Value]),
-  sl_triple_g(qs_spec(inst), fs, inst, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ i : W32, ∃ L : List[W32], ∃ G : List[W32], res == [V_num(ConstInt32(i))] && LENGTH(A) + LENGTH(L) == val(i) && ALL((x : W32) => val(x) < val(pv), L) && ALL((x : W32) => val(pv) <= val(x), G) && perm(APPEND(L, G), Bt) && LENGTH(L) + LENGTH(G) == LENGTH(Bt) && star(arr(val(p), APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))), fp(gs, ms), h))(vs, gs, ms, h), (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == NIL && lc == APPEND(args, [V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))]) && ((args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => args == [V_num(ConstInt32(p)), V_num(ConstInt32(lo)), V_num(ConstInt32(hi))] && LENGTH(A) == val(lo) && LENGTH(A) + LENGTH(Bt) + 1 == val(hi) && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296 && star(arr(val(p), APPEND(A, APPEND(Bt, CONS(pv, Cs)))), fp(gs, ms), h))(args, gs, ms, h), partition_code, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ i : W32, ∃ L : List[W32], ∃ G : List[W32], res == [V_num(ConstInt32(i))] && LENGTH(A) + LENGTH(L) == val(i) && ALL((x : W32) => val(x) < val(pv), L) && ALL((x : W32) => val(pv) <= val(x), G) && perm(APPEND(L, G), Bt) && LENGTH(L) + LENGTH(G) == LENGTH(Bt) && star(arr(val(p), APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))), fp(gs, ms), h))(vs, gs, ms, h), [(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ((res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ i : W32, ∃ L : List[W32], ∃ G : List[W32], res == [V_num(ConstInt32(i))] && LENGTH(A) + LENGTH(L) == val(i) && ALL((x : W32) => val(x) < val(pv), L) && ALL((x : W32) => val(pv) <= val(x), G) && perm(APPEND(L, G), Bt) && LENGTH(L) + LENGTH(G) == LENGTH(Bt) && star(arr(val(p), APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))), fp(gs, ms), h))(vs, gs, ms, h)])
+  sl_triple_g(
+    qs_spec(inst),
+    fs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      (
+        (res : List[Value]) => (gs : List[Value]) => (ms : Num) =>
+        (h : Heap) =>
+          ∃ i : W32,
+            ∃ L : List[W32],
+              ∃ G : List[W32],
+                res == [V_num(ConstInt32(i))]
+                && LENGTH(A) + LENGTH(L) == val(i)
+                && ALL((x : W32) => val(x) < val(pv), L)
+                && ALL((x : W32) => val(pv) <= val(x), G)
+                && perm(APPEND(L, G), Bt)
+                && LENGTH(L) + LENGTH(G) == LENGTH(Bt)
+                && star(
+                     arr(
+                       val(p),
+                       APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))),
+                     fp(gs, ms),
+                     h))(vs, gs, ms, h),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL
+      && lc == APPEND(
+           args,
+           [V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))),
+            V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))])
+      && (
+           (args : List[Value]) => (gs : List[Value]) => (ms : Num) =>
+           (h : Heap) =>
+             args == [V_num(ConstInt32(p)), V_num(ConstInt32(lo)),
+              V_num(ConstInt32(hi))]
+             && LENGTH(A) == val(lo)
+             && LENGTH(A) + LENGTH(Bt) + 1 == val(hi)
+             && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296
+             && star(
+                  arr(val(p), APPEND(A, APPEND(Bt, CONS(pv, Cs)))),
+                  fp(gs, ms),
+                  h))(args, gs, ms, h),
+    partition_code,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      (
+        (res : List[Value]) => (gs : List[Value]) => (ms : Num) =>
+        (h : Heap) =>
+          ∃ i : W32,
+            ∃ L : List[W32],
+              ∃ G : List[W32],
+                res == [V_num(ConstInt32(i))]
+                && LENGTH(A) + LENGTH(L) == val(i)
+                && ALL((x : W32) => val(x) < val(pv), L)
+                && ALL((x : W32) => val(pv) <= val(x), G)
+                && perm(APPEND(L, G), Bt)
+                && LENGTH(L) + LENGTH(G) == LENGTH(Bt)
+                && star(
+                     arr(
+                       val(p),
+                       APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))),
+                     fp(gs, ms),
+                     h))(vs, gs, ms, h),
+    [
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        (
+          (res : List[Value]) => (gs : List[Value]) => (ms : Num) =>
+          (h : Heap) =>
+            ∃ i : W32,
+              ∃ L : List[W32],
+                ∃ G : List[W32],
+                  res == [V_num(ConstInt32(i))]
+                  && LENGTH(A) + LENGTH(L) == val(i)
+                  && ALL((x : W32) => val(x) < val(pv), L)
+                  && ALL((x : W32) => val(pv) <= val(x), G)
+                  && perm(APPEND(L, G), Bt)
+                  && LENGTH(L) + LENGTH(G) == LENGTH(Bt)
+                  && star(
+                       arr(
+                         val(p),
+                         APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))),
+                       fp(gs, ms),
+                       h))(vs, gs, ms, h)])
 ```
 
 lemma `quicksort_specs`
@@ -5360,8 +8085,16 @@ lemma `quicksort_specs`
 ```
 ∀ (fs : List[Cl]) (inst : Inst) (n : Num)
 if
-  1. EL(sfunc_ind(inst, 0), fs) == Func_native(inst, Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL), [T_num(T_i32)], quicksort_code)
-  2. EL(sfunc_ind(inst, 1), fs) == Func_native(inst, Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], [T_num(T_i32)]), [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)], partition_code)
+  1. EL(sfunc_ind(inst, 0), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL),
+       [T_num(T_i32)],
+       quicksort_code)
+  2. EL(sfunc_ind(inst, 1), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       partition_code)
 then
   specs_ok(n, qs_spec(inst), fs, inst)
 ```
@@ -5372,12 +8105,41 @@ example `example_quicksort`
 ∀ (fs : List[Cl]) (inst : Inst) (p n : W32) (xs : List[W32]) (fp : GProp)
   (vs0 lc0 : List[Value])
 if
-  1. EL(sfunc_ind(inst, 0), fs) == Func_native(inst, Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL), [T_num(T_i32)], quicksort_code)
-  2. EL(sfunc_ind(inst, 1), fs) == Func_native(inst, Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], [T_num(T_i32)]), [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)], partition_code)
+  1. EL(sfunc_ind(inst, 0), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL),
+       [T_num(T_i32)],
+       quicksort_code)
+  2. EL(sfunc_ind(inst, 1), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       partition_code)
   3. LENGTH(xs) == val(n)
   4. val(p) + 4 * val(n) < 4294967296
 then
-  sl_triple_m(fs, inst, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == APPEND(vs0, [V_num(ConstInt32(p)), V_num(ConstInt32(word(0))), V_num(ConstInt32(n))]) && lc == lc0 && star(arr(val(p), xs), fp(gs, ms), h), [Call(0)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ ys : List[W32], vs == vs0 && lc == lc0 && sorted(ys) && perm(ys, xs) && LENGTH(ys) == LENGTH(xs) && star(arr(val(p), ys), fp(gs, ms), h), NIL)
+  sl_triple_m(
+    fs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == APPEND(
+        vs0,
+        [V_num(ConstInt32(p)), V_num(ConstInt32(word(0))),
+         V_num(ConstInt32(n))])
+      && lc == lc0
+      && star(arr(val(p), xs), fp(gs, ms), h),
+    [Call(0)],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ ys : List[W32],
+        vs == vs0
+        && lc == lc0
+        && sorted(ys)
+        && perm(ys, xs)
+        && LENGTH(ys) == LENGTH(xs)
+        && star(arr(val(p), ys), fp(gs, ms), h),
+    NIL)
 ```
 
 theorem `quicksort_closed`
@@ -5387,8 +8149,16 @@ theorem `quicksort_closed`
   (p n : W32) (xs : List[W32]) (before after : List[Byte]) (vs0 : List[Value])
   (es2 : List[Einstr])
 if
-  1. EL(sfunc_ind(inst, 0), fs) == Func_native(inst, Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL), [T_num(T_i32)], quicksort_code)
-  2. EL(sfunc_ind(inst, 1), fs) == Func_native(inst, Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], [T_num(T_i32)]), [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)], partition_code)
+  1. EL(sfunc_ind(inst, 0), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL),
+       [T_num(T_i32)],
+       quicksort_code)
+  2. EL(sfunc_ind(inst, 1), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       partition_code)
   3. s_funcs(s) == fs
   4. f_inst(f) == inst
   5. smem_ind(inst) == SOME(j)
@@ -5398,7 +8168,19 @@ if
   9. val(p) + 4 * val(n) < 4294967296
   10. SND(EL(j, s_mems(s))) == APPEND(before, APPEND(words_bytes(xs), after))
   11. LENGTH(before) == val(p)
-  12. reduce_trans((s, f, APPEND(MAP(v_to_e, APPEND(vs0, [V_num(ConstInt32(p)), V_num(ConstInt32(word(0))), V_num(ConstInt32(n))])), [Basic(Call(0))])), (s2, f2, es2))
+  12. reduce_trans(
+        (
+          s,
+          f,
+          APPEND(
+            MAP(
+              v_to_e,
+              APPEND(
+                vs0,
+                [V_num(ConstInt32(p)), V_num(ConstInt32(word(0))),
+                 V_num(ConstInt32(n))])),
+            [Basic(Call(0))])),
+        (s2, f2, es2))
 then
   ∃ (ys : List[W32]),
     sorted(ys)
@@ -5410,5 +8192,6 @@ then
     && gvals(s2, f2) == gvals(s, f)
     && SND(EL(j, s_mems(s2))) == APPEND(before, APPEND(words_bytes(ys), after))
 or
-  ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]), reduce(s2, f2, es2, s3, f3, es3)
+  ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]),
+    reduce(s2, f2, es2, s3, f3, es3)
 ```

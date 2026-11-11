@@ -269,11 +269,14 @@ say so.
    (`wasm/wat.mbt`: printed from the definition and read back, so a
    misprint fails the load rather than misleading a reader). The
    function-spec types print as `FProp` and `Specs`. No statement writes
-   code out any more: the closed theorems' lines are at most 190
-   characters (`quicksort_closed` is 28 lines, its twelve hypotheses one
-   per line). The examples' triples still have long lines, up to 2,238
-   characters in `partition_fn`: their assertions are lambdas, which the
-   layout prints on one line.
+   code out any more (`quicksort_closed` has twelve hypotheses, one per
+   line, and is 49 lines with the breaking below). A line still over 80
+   characters, such as a triple whose assertions are lambdas (2,238
+   characters in `partition_fn`), is broken by its structure
+   (`break_line` in `wasm/layout.mbt`): an argument, conjunct or `match`
+   case per line, a lambda's body under its binders, changing only
+   whitespace. No statement line in package `logic` is now longer than
+   81 characters.
 
 3. **A review document.** Done: `tools/review_site.py` builds a site
    from the listings' `theory.json`, its front page the closed theorems

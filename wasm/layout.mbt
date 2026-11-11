@@ -350,14 +350,15 @@ fn layout_conjuncts(
 
 ///|
 /// `t` for a listing: laid out with its variables and hypotheses (see the
-/// top of this file), or else as `print_term` prints it. `abbreviate`
-/// shortens the printed types (it is applied before lines are measured).
+/// top of this file), or else as `print_term` prints it, with its long
+/// lines broken (see "Long lines"). `abbreviate` shortens the printed
+/// types (it is applied before lines are measured).
 pub fn layout_statement(
   t : @kernel.Term,
   abbreviate? : (String) -> String = abbreviate_types,
 ) -> String {
   let laid = layout_sequent(t, abbreviate) catch { _ => None }
-  match laid {
+  let text = match laid {
     Some(s) => s
     None =>
       abbreviate(
@@ -366,4 +367,444 @@ pub fn layout_statement(
         },
       )
   }
+  break_lines(text)
+}
+
+// Long lines. A line longer than 80 characters is broken by the structure
+// of its text: a call or list that does not fit gets an argument per line,
+// indented by two, its closing bracket after the last (and a `match` a
+// case per line); a lambda that does
+// not fit gets its body on the lines after its binders, indented by two; a
+// chain of `&&` (or `||`) a conjunct per line, `&&` first; an equation
+// its right side on the next line, `==` first and indented by two, if it
+// fits there; a list as many elements to a line as fit; a binder
+// (`∃ x : T,`) its body on the next line. Only whitespace changes: a space
+// becomes a line break and indentation, or a break follows an opening
+// bracket. `break_line` checks that the text is the same without its
+// whitespace, and keeps a line it cannot break as it was.
+
+///|
+/// A token of a printed line: text, an operator with the spaces around it
+/// (`&&`, `||`, `=>`, `==`), a comma, a semicolon (between a `match`'s cases), or
+/// a bracketed group.
+priv enum Tok {
+  TWord(String)
+  TSep(String)
+  TComma
+  TSemi
+  TGroup(Char, Array[Tok], Char)
+}
+
+///|
+/// A line's structure, as `break_line` reads it.
+priv enum Doc {
+  DText(String)
+  DCat(Array[Doc])
+  DGroup(String, Array[Doc], String, String)
+  DOps(String, Array[Doc])
+  DLam(Array[String], Doc)
+  DBind(String, Doc)
+}
+
+///|
+fn closer(c : Char) -> Char? {
+  match c {
+    '(' => Some(')')
+    '[' => Some(']')
+    '{' => Some('}')
+    _ => None
+  }
+}
+
+///|
+/// Whether `cs` has `s` at `i`.
+fn chars_at(cs : Array[Char], i : Int32, s : String) -> Bool {
+  let mut k = i
+  for c in s {
+    if k >= cs.length() || cs[k] != c {
+      return false
+    }
+    k = k + 1
+  }
+  true
+}
+
+///|
+/// The tokens of `cs` from `i` to the bracket `close` (or the end), and
+/// where they stop.
+fn tokens(
+  cs : Array[Char],
+  i : Int32,
+  close : Char?,
+) -> (Array[Tok], Int32) raise {
+  let toks = []
+  let word = StringBuilder()
+  let flush = () => {
+    if word.to_string() != "" {
+      toks.push(TWord(word.to_string()))
+      word.reset()
+    }
+  }
+  let mut i = i
+  while i < cs.length() {
+    let c = cs[i]
+    if closer(c) is Some(cl) {
+      flush()
+      let (inner, j) = tokens(cs, i + 1, Some(cl))
+      toks.push(TGroup(c, inner, cl))
+      i = j + 1
+    } else if c == ')' || c == ']' || c == '}' {
+      flush()
+      guard close == Some(c) else { raise Failure("tokens: unbalanced") }
+      return (toks, i)
+    } else if c == ',' || c == ';' {
+      flush()
+      toks.push(if c == ',' { TComma } else { TSemi })
+      i = i + 1
+    } else if chars_at(cs, i, " && ") ||
+      chars_at(cs, i, " || ") ||
+      chars_at(cs, i, " => ") ||
+      chars_at(cs, i, " == ") {
+      flush()
+      toks.push(TSep(String::from_array([cs[i + 1], cs[i + 2]])))
+      i = i + 4
+    } else {
+      word.write_char(c)
+      i = i + 1
+    }
+  }
+  flush()
+  guard close is None else { raise Failure("tokens: unbalanced") }
+  (toks, i)
+}
+
+///|
+/// The text of `toks`, as it was.
+fn toks_text(toks : Array[Tok]) -> String {
+  let buf = StringBuilder()
+  for t in toks {
+    match t {
+      TWord(s) => buf.write_string(s)
+      TSep(op) => buf.write_string(" " + op + " ")
+      TComma => buf.write_string(",")
+      TSemi => buf.write_string(";")
+      TGroup(o, inner, c) => {
+        buf.write_char(o)
+        buf.write_string(toks_text(inner))
+        buf.write_char(c)
+      }
+    }
+  }
+  buf.to_string()
+}
+
+///|
+/// `toks` without the spaces at either end.
+fn trim_toks(toks : Array[Tok]) -> Array[Tok] {
+  let out = toks.copy()
+  if out is [TWord(s), ..] {
+    let t = s.trim_start(chars=" ").to_owned()
+    if t == "" {
+      out.remove(0) |> ignore
+    } else {
+      out[0] = TWord(t)
+    }
+  }
+  if out is [.., TWord(s)] {
+    let t = s.trim_end(chars=" ").to_owned()
+    if t == "" {
+      out.pop() |> ignore
+    } else {
+      out[out.length() - 1] = TWord(t)
+    }
+  }
+  out
+}
+
+///|
+/// `toks` split where `at` holds, outside brackets.
+fn split_toks(toks : Array[Tok], at : (Tok) -> Bool) -> Array[Array[Tok]] {
+  let parts = [[]]
+  for t in toks {
+    if at(t) {
+      parts.push([])
+    } else {
+      parts[parts.length() - 1].push(t)
+    }
+  }
+  parts
+}
+
+///|
+/// The number of binders (`∀`, `∃`, `ε`) in `toks` outside brackets: each
+/// takes the next comma for itself.
+fn binders_in(t : Tok) -> Int32 {
+  match t {
+    TWord(s) => {
+      let mut n = 0
+      for c in s {
+        if c == '∀' || c == '∃' || c == 'ε' {
+          n = n + 1
+        }
+      }
+      n
+    }
+    _ => 0
+  }
+}
+
+///|
+/// The arguments of a group: split at its commas, except those of binders;
+/// a `match`'s cases (in braces) at its semicolons.
+fn group_args(open : Char, inner : Array[Tok]) -> Array[Doc] raise {
+  if trim_toks(inner).is_empty() {
+    return []
+  }
+  if open == '{' {
+    return split_toks(inner, t => t is TSemi).map(doc_of)
+  }
+  let args = [[]]
+  let mut pending = 0
+  for t in inner {
+    if t is TComma && pending == 0 {
+      args.push([])
+    } else {
+      if t is TComma {
+        pending = pending - 1
+      }
+      pending = pending + binders_in(t)
+      args[args.length() - 1].push(t)
+    }
+  }
+  args.map(doc_of)
+}
+
+///|
+/// The structure of a segment of a line (a whole line, or an argument).
+fn doc_of(toks : Array[Tok]) -> Doc raise {
+  let toks = trim_toks(toks)
+  // a binder: its variables to the first comma, then its body
+  if toks is [TWord(w), ..] &&
+    (w.has_prefix("∀") || w.has_prefix("∃") || w.has_prefix("ε")) {
+    match toks.search_by(t => t is TComma) {
+      Some(k) => {
+        let rest = Array::makei(toks.length() - k - 1, i => toks[k + 1 + i])
+        return DBind(
+          toks_text(Array::makei(k, i => toks[i])) + ",",
+          doc_of(rest),
+        )
+      }
+      None => ()
+    }
+  }
+  let lams = split_toks(toks, t => t is TSep("=>"))
+  if lams.length() > 1 {
+    let binders = lams[:lams.length() - 1].to_owned().map(trim_toks)
+    if binders.iter().all(b => b is [TGroup('(', _, _)]) {
+      return DLam(binders.map(toks_text), doc_of(lams[lams.length() - 1]))
+    }
+    return DText(toks_text(toks))
+  }
+  for op in ["||", "&&", "=="] {
+    let parts = split_toks(toks, t => t is TSep(o) && o == op)
+    if parts.length() > 1 {
+      return DOps(op, parts.map(doc_of))
+    }
+  }
+  DCat(
+    toks.map(t => {
+      match t {
+        TGroup('{', inner, _) => DGroup("{ ", group_args('{', inner), ";", " }")
+        TGroup(o, inner, c) =>
+          DGroup(o.to_string(), group_args(o, inner), ",", c.to_string())
+        t => DText(toks_text([t]))
+      }
+    }),
+  )
+}
+
+///|
+/// `d` on one line.
+fn flat(d : Doc) -> String {
+  match d {
+    DText(s) => s
+    DCat(ds) => ds.map(flat).join("")
+    DGroup(o, args, sep, c) => o + args.map(flat).join(sep + " ") + c
+    DOps(op, parts) => parts.map(flat).join(" " + op + " ")
+    DLam(bs, body) => bs.join(" => ") + " => " + flat(body)
+    DBind(head, body) => head + " " + flat(body)
+  }
+}
+
+///|
+/// The column after `s` is written from column `col`.
+fn col_after(s : String, col : Int32) -> Int32 {
+  match s.rev_find("\n") {
+    Some(k) => s.length() - k - 1
+    None => col + s.length()
+  }
+}
+
+///|
+/// `d` written from column `col`, in lines of at most `width` characters
+/// where it can be broken; its lines after the first are indented by at
+/// least `indent`.
+fn render(d : Doc, indent : Int32, col : Int32, width : Int32) -> String {
+  let one = flat(d)
+  if col + one.length() <= width {
+    return one
+  }
+  let nl = (n : Int32) => "\n" + " ".repeat(n)
+  match d {
+    DText(s) => s
+    DCat(ds) => {
+      let buf = StringBuilder()
+      let mut c = col
+      for x in ds {
+        let s = render(x, indent, c, width)
+        buf.write_string(s)
+        c = col_after(s, c)
+      }
+      buf.to_string()
+    }
+    DGroup("[", args, sep, c) if args.length() > 1 &&
+      args.iter().all(a => indent + 2 + flat(a).length() <= width) => {
+      // a list whose elements each fit on a line: as many to a line as
+      // fit, the lines after the first under the first element
+      let buf = StringBuilder()
+      buf.write_string("[")
+      let mut k = col + 1
+      for i, a in args {
+        let piece = flat(a) + (if i < args.length() - 1 { sep } else { c })
+        if i > 0 && k + 1 + piece.length() > width {
+          buf.write_string(nl(indent + 1))
+          k = indent + 1
+        } else if i > 0 {
+          buf.write_string(" ")
+          k = k + 1
+        }
+        buf.write_string(piece)
+        k = k + piece.length()
+      }
+      buf.to_string()
+    }
+    DGroup(o, args, sep, c) => {
+      if args.is_empty() {
+        return one
+      }
+      let buf = StringBuilder()
+      buf.write_string(o.trim_end(chars=" ").to_owned())
+      for i, a in args {
+        // (less one for the comma or the closing bracket after it)
+        buf.write_string(
+          nl(indent + 2) + render(a, indent + 2, indent + 2, width - 1),
+        )
+        if i < args.length() - 1 {
+          buf.write_string(sep)
+        }
+      }
+      buf.write_string(c)
+      buf.to_string()
+    }
+    DOps("==", [l, r]) if indent + 5 + flat(r).length() > width => {
+      // an equation whose right side would not fit on a line of its own
+      // keeps it after the left side, to break as it needs
+      let left = render(l, indent, col, width)
+      let c = col_after(left, col) + 4
+      left + " == " + render(r, indent, c, width)
+    }
+    DOps(op, parts) => {
+      // an equation's right side under its left, indented by two
+      let at = if op == "==" { indent + 2 } else { indent }
+      let buf = StringBuilder()
+      buf.write_string(render(parts[0], indent, col, width))
+      let k = at + op.length() + 1
+      for p in parts[1:] {
+        buf.write_string(nl(at) + op + " " + render(p, k, k, width))
+      }
+      buf.to_string()
+    }
+    DLam(bs, body) => {
+      let buf = StringBuilder()
+      let mut c = col
+      for i, b in bs {
+        let piece = b + " =>"
+        if i > 0 && c + 1 + piece.length() > width {
+          buf.write_string(nl(indent))
+          c = indent
+        } else if i > 0 {
+          buf.write_string(" ")
+          c = c + 1
+        }
+        buf.write_string(piece)
+        c = c + piece.length()
+      }
+      buf.write_string(
+        nl(indent + 2) + render(body, indent + 2, indent + 2, width),
+      )
+      buf.to_string()
+    }
+    DBind(head, body) =>
+      head + nl(indent + 2) + render(body, indent + 2, indent + 2, width)
+  }
+}
+
+///|
+/// `s` without its whitespace.
+fn squeeze(s : String) -> String {
+  let buf = StringBuilder()
+  for c in s {
+    if c != ' ' && c != '\n' {
+      buf.write_char(c)
+    }
+  }
+  buf.to_string()
+}
+
+///|
+/// `line` broken into lines of at most `width` characters where its
+/// structure allows (see above). What starts it, its indentation and a
+/// hypothesis's number or a conjunct's `&&`, stays, and the lines after
+/// the first are indented past it.
+fn break_line(line : String, width~ : Int32 = 80) -> String {
+  if line.length() <= width || line.contains("\"") {
+    return line
+  }
+  let cs = line.to_array()
+  let mut p = 0
+  while p < cs.length() && cs[p] == ' ' {
+    p = p + 1
+  }
+  let mut q = p
+  while q < cs.length() && cs[q] >= '0' && cs[q] <= '9' {
+    q = q + 1
+  }
+  if q > p && chars_at(cs, q, ". ") {
+    p = q + 2
+  } else if chars_at(cs, p, "&& ") || chars_at(cs, p, "|| ") {
+    p = p + 3
+  }
+  let head = String::from_array(cs[:p].to_owned())
+  let body = String::from_array(cs[p:].to_owned())
+  let broken = try {
+    let (toks, _) = tokens(body.to_array(), 0, None)
+    head + render(doc_of(toks), p, p, width)
+  } catch {
+    _ => line
+  }
+  if squeeze(broken) == squeeze(line) {
+    broken
+  } else {
+    line
+  }
+}
+
+///|
+/// `text` with each long line broken (`break_line`).
+fn break_lines(text : String) -> String {
+  let lines : Array[String] = text
+    .split("\n")
+    .map(l => break_line(l.to_owned()))
+    .collect()
+  lines.join("\n")
 }

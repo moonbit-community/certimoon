@@ -63,3 +63,50 @@ test "a definition's equations, a line each" {
     ),
   )
 }
+
+///|
+test "a long line is broken by its structure, and only its whitespace changes" {
+  let concl = "  sl_triple_m(fs, inst, (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => vs == APPEND(vs0, [V_num(ConstInt32(p)), V_num(ConstInt32(word(0))), V_num(ConstInt32(n))]) && lc == lc0 && star(arr(val(p), xs), fp(gs, ms), h), [Call(0)], (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) => ∃ ys : List[W32], vs == vs0 && lc == lc0 && sorted(ys) && perm(ys, xs) && LENGTH(ys) == LENGTH(xs) && star(arr(val(p), ys), fp(gs, ms), h), NIL)"
+  inspect(
+    break_line(concl),
+    content=(
+      #|  sl_triple_m(
+      #|    fs,
+      #|    inst,
+      #|    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      #|    (ms : Num) => (h : Heap) =>
+      #|      vs == APPEND(
+      #|        vs0,
+      #|        [V_num(ConstInt32(p)), V_num(ConstInt32(word(0))),
+      #|         V_num(ConstInt32(n))])
+      #|      && lc == lc0
+      #|      && star(arr(val(p), xs), fp(gs, ms), h),
+      #|    [Call(0)],
+      #|    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      #|    (ms : Num) => (h : Heap) =>
+      #|      ∃ ys : List[W32],
+      #|        vs == vs0
+      #|        && lc == lc0
+      #|        && sorted(ys)
+      #|        && perm(ys, xs)
+      #|        && LENGTH(ys) == LENGTH(xs)
+      #|        && star(arr(val(p), ys), fp(gs, ms), h),
+      #|    NIL)
+    ),
+  )
+  let hyp = "  2. EL(sfunc_ind(inst, 1), fs) == Func_native(inst, Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], [T_num(T_i32)]), [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)], partition_code)"
+  inspect(
+    break_line(hyp),
+    content=(
+      #|  2. EL(sfunc_ind(inst, 1), fs) == Func_native(
+      #|       inst,
+      #|       Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], [T_num(T_i32)]),
+      #|       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+      #|       partition_code)
+    ),
+  )
+  // a short line stays as it is, and so does one with a string in it
+  inspect(break_line("  f(x, y)"), content="  f(x, y)")
+  let s = "  f(\"" + "a, ".repeat(40) + "\")"
+  inspect(break_line(s) == s, content="true")
+}
