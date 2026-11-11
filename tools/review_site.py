@@ -10,7 +10,8 @@ logic/__snapshot__/theory.json, kept by the packages' tests):
 - <package>/<file>.html for each source file: its entries in order under
   the listing's headings, definitions in full and lemmas folded;
 - review/<name>.html for each closed theorem and example: its statement,
-  then every definition it depends on. Package logic computes that list
+  the programs it is about, then every other definition it depends on,
+  with links to entries on the page staying on it. Package logic computes that list
   (`depends` in its theory.json, also kept in
   logic/__snapshot__/dependencies.md): the entries defining the constants
   of the statement, and those defining the constants of theirs, through
@@ -199,10 +200,14 @@ class Site:
         self.examples = [e for e in self.entries if e["kind"] == "example"]
         self.reviewed = self.theorems + self.examples
 
-    def href(self, e, depth):
+    def href(self, e, depth, here=()):
+        """A link to entry `e`: within this page when `e` is on it (`here`
+        holds the ids of the entries on a review page), else to its file's page."""
+        if id(e) in here:
+            return "#" + anchor(e["name"])
         return "../" * depth + e["page"] + "#" + anchor(e["name"])
 
-    def linked(self, e, depth):
+    def linked(self, e, depth, here=()):
         """The statement of `e` with the constants it uses linked to the
         entries that define them."""
         text = e["statement"]
@@ -213,7 +218,7 @@ class Site:
             out.append(esc(text[k:m.start()]))
             d = self.definer.get(name) if name in uses else None
             if d is not None and d is not e:
-                out.append(f'<a href="{self.href(d, depth)}" title="{esc(d["kind"])} {esc(d["name"])}">{esc(name)}</a>')
+                out.append(f'<a href="{self.href(d, depth, here)}" title="{esc(d["kind"])} {esc(d["name"])}">{esc(name)}</a>')
             else:
                 out.append(esc(name))
             k = m.end()
@@ -226,14 +231,14 @@ class Site:
         return (f'<a class="src" href="{esc(self.source_url + e["file"])}#L{e["line"]}">'
                 f'{esc(e["file"])}:{e["line"]}</a>')
 
-    def entry_html(self, e, depth, fold_lemmas=True):
+    def entry_html(self, e, depth, fold_lemmas=True, here=()):
         kind_cls = "k-" + e["kind"].replace(" ", "-")
         head = (f'<span class="kind {kind_cls}">{esc(e["kind"])}</span> '
                 f'<span class="name">{esc(e["name"])}</span> {self.source_link(e)}')
-        body = f'<pre>{self.linked(e, depth)}</pre>' if e["statement"] else ""
+        body = f'<pre>{self.linked(e, depth, here)}</pre>' if e["statement"] else ""
         users = self.used_by.get(id(e), [])
         if users:
-            links = ", ".join(f'<a href="{self.href(u, depth)}">{esc(u["name"])}</a>' for u in users[:60])
+            links = ", ".join(f'<a href="{self.href(u, depth, here)}">{esc(u["name"])}</a>' for u in users[:60])
             more = f" and {len(users) - 60} more" if len(users) > 60 else ""
             body += (f'<details class="usedby"><summary>used by {len(users)}</summary>'
                      f'{links}{more}</details>')
@@ -323,20 +328,28 @@ class Site:
         depth = 1
         page = f"review/{e['name']}.html"
         deps, outside = self.closure(e)
+        here = {id(d) for d in deps} | {id(e)}
         out = [f'<h1>{esc(e["name"])}</h1>',
                '<div class="note">To trust this theorem, read its statement and every definition '
                'below: they are all it depends on, found by following the constants of the '
                'statement to the entries that define them. The proofs need no reading: the '
                'kernel checks them, and no axioms are added.</div>',
-               self.entry_html(e, depth, fold_lemmas=False),
-               f'<h2 class="section">What it depends on: {self.depends_summary(deps)}</h2>']
+               self.entry_html(e, depth, fold_lemmas=False, here=here)]
+        # the code the statement is about first, then the rest in listing order
+        programs = [d for d in deps if d["kind"] == "program"]
+        if programs:
+            out.append('<h2 class="section">The code</h2>')
+            out.extend(self.entry_html(d, depth, here=here) for d in programs)
+        out.append(f'<h2 class="section">What it depends on: {self.depends_summary(deps)}</h2>')
         section = None
         for d in deps:
+            if d["kind"] == "program":
+                continue
             key = (d["package"], d["section"])
             if key != section:
                 section = key
                 out.append(f'<h2 class="section">{esc(d["package"])}: {esc(d["section"])}</h2>')
-            out.append(self.entry_html(d, depth))
+            out.append(self.entry_html(d, depth, here=here))
         if outside:
             out.append('<h2 class="section">From hol_light</h2>'
                        '<p class="muted">Constants of hol_light\'s libraries, trusted as hol_light '

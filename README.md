@@ -95,8 +95,8 @@ program's runs, with no assertion or triple: `fact_closed` and
 statement, its constants linked to the entries that define them, what
 uses it, and a link to its source; lemmas are folded, since the kernel
 checks them. For each closed theorem and example, a page
-(`review/fact_closed.html`, ...) shows its statement and then every
-definition it depends on: what a reviewer must read to trust it. Open
+(`review/fact_closed.html`, ...) shows its statement, then the code it
+is about, then every other definition it depends on: what a reviewer must read to trust it. Open
 `_site/index.html` through a local server (`python3 -m http.server -d
 _site`), since the pages load a stylesheet and a search index.
 
