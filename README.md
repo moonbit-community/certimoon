@@ -96,7 +96,8 @@ statement, its constants linked to the entries that define them, what
 uses it, and a link to its source; lemmas are folded, since the kernel
 checks them. For each closed theorem and example, a page
 (`review/fact_closed.html`, ...) shows its statement, then the code it
-is about, then every other definition it depends on: what a reviewer must read to trust it. Open
+is about, then every other definition it depends on: what a reviewer
+must read to trust it. Open
 `_site/index.html` through a local server (`python3 -m http.server -d
 _site`), since the pages load a stylesheet and a search index.
 
@@ -106,6 +107,15 @@ constants of theirs, through `logic` and into `wasm`, until only
 hol_light's constants are left. `logic/__snapshot__/dependencies.md`
 keeps the list for each closed theorem and the count for each example,
 so a change to what a theorem trusts shows in a diff.
+
+A closed theorem would hold trivially if nothing satisfied its
+hypotheses together. Tests in `logic/logic_test.mbt` rule that out: for
+each closed theorem, one builds a concrete store (with factorial's input
+5, or quicksort's array [3, 1, 2] between other bytes), proves every
+hypothesis about it in the kernel (the run by the evaluator, the rest by
+computation), and so derives the conclusion for it; then it proves the
+conclusion's first alternative for the run's result (120 on the stack;
+the array sorted, the other bytes kept).
 
 ## Proving a program
 
@@ -446,7 +456,11 @@ let th = @wasm.outcome(cfg)
 `config` runs the instructions in any store `s` and instance `i` (it
 takes `locals~`, and `store~`/`inst~` to fix them), so the theorem holds
 for all of them. `computes_stmt` and `traps_stmt` state an expected
-result to compare with.
+result to compare with. `compute_conv(defs)` is the conversion the
+evaluator decides side conditions with (rewriting with the port's
+definitions and `defs`, and word and numeral arithmetic), for proving
+facts about a written-out store; the closed theorems' non-vacuity checks
+in `logic/logic_test.mbt` prove their hypotheses with it.
 
 The evaluator covers integer instructions (const, unary, binary, `eqz`,
 comparisons, `i32.wrap_i64`, `i64.extend_i32_s/u`, `extend8_s` and the

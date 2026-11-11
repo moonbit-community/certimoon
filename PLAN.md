@@ -104,7 +104,7 @@ good order to read it in:
 | returns.mbt | `safer`: safety with returns; its seq, label and frame lemmas |
 | specs.mbt | function specs, `sl_triple_g` and its rules, `sl_call_g`, `sl_funs_g`, and sym's rules for it |
 | examples.mbt, example_*.mbt | the verified programs |
-| logic_test.mbt | the listing's snapshot, the theorems' list, the public API's test |
+| logic_test.mbt | the listing's snapshot, the theorems' list, the public API's test, the closed theorems' non-vacuity checks |
 
 Package `wasm`: ast.mbt, numeric.mbt, store.mbt, typing.mbt, reduction.mbt
 (the port; the header comments say where it differs from Isabelle),
@@ -291,14 +291,24 @@ say so.
    vectors included, though left unspecified), so a smaller trusted base
    would mean stating the closed theorems over a fragment of `reduce`.
 
-4. **Non-vacuity checks.** A triple whose precondition nothing satisfies
-   proves nothing, and several conjuncts could make one unsatisfiable
-   without anyone noticing (`globs_ok`, `smem_ind` being `SOME`, `n_zeros`
-   of the locals, the body's type). For each closed theorem, a test
-   applies it to a concrete store built with `@wasm.store` and a small
-   array, proves its hypotheses by computation, and checks that the
-   evaluator's run (`@wasm.outcome`) gives a result the conclusion allows.
-   Done when each closed theorem has such a test.
+4. **Non-vacuity checks.** Done. A theorem whose hypotheses nothing
+   satisfies together proves nothing, and several could make one
+   unsatisfiable without anyone noticing (`globs_ok`, `smem_ind` being
+   `SOME`, the memory's bytes, the body's type). For each closed theorem,
+   a test in `logic_test.mbt` applies it to a concrete store (its
+   functions the programs' bodies, written out) and proves every
+   hypothesis in the kernel: the run by the evaluator (`@wasm.run`, which
+   proves each step), the rest by computation (`@wasm.compute_conv`, the
+   evaluator's rewriting with the logic's definitions added). That
+   derives the conclusion for that store; the test then proves its first
+   alternative, the run ending normally, for the result: `fact_closed`
+   with x = 5 (the stack holds 120), `quicksort_closed` with [3, 1, 2] at
+   address 4 between other bytes (they become [1, 2, 3], the others
+   unchanged; `perm` by `perm_swap`s). The stores' memories are not whole
+   pages, which the hypotheses do not ask for, to keep the evaluator
+   fast; the package's tests still take about 75 s in all. A new
+   closed theorem gets such a test the same way (`apply_closed`,
+   `first_alternative`).
 
 ### Features
 

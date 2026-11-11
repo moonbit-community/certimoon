@@ -101,6 +101,10 @@ let rules : Map[String, @kernel.Thm] = Map([])
 let eval_rewrite : Ref[@equal.Conv?] = Ref::{ val: None }
 
 ///|
+/// The theorems `eval_rewrite` rewrites with (set up by `setup`).
+let eval_thms : Array[@kernel.Thm] = []
+
+///|
 let list_rewrite : Ref[@equal.Conv?] = Ref::{ val: None }
 
 ///|
@@ -168,10 +172,21 @@ fn setup() -> Unit raise {
       _ => ()
     }
   }
-  // One rewrite at a time, everywhere (as rewrite_conv), and numeral and
-  // word arithmetic at each subterm, so a condition is decided before
-  // the branches of its `if` grow; definitions by SUC patterns apply to
-  // numerals through suc_arg_conv.
+  for th in ths {
+    eval_thms.push(th)
+  }
+  eval_rewrite.val = Some(rewrite_with(ths, suc_args))
+}
+
+///|
+/// One rewrite at a time with `ths`, everywhere (as rewrite_conv), and
+/// numeral and word arithmetic at each subterm, so a condition is decided
+/// before the branches of its `if` grow; the definitions by SUC patterns
+/// `suc` apply to numerals through suc_arg_conv.
+fn rewrite_with(
+  ths : Array[@kernel.Thm],
+  suc : Array[(String, Int, Int)],
+) -> @equal.Conv raise {
   let rewrite_step = @simp.general_rewrite_conv(
     true,
     c => c,
@@ -180,12 +195,12 @@ fn setup() -> Unit raise {
   )
   let step = @equal.first_conv(@list.List([
     rewrite_step,
-    @equal.thenc(suc_arg_conv, rewrite_step),
+    @equal.thenc(t => suc_arg_conv(t, suc), rewrite_step),
     // a branch an `if` does not take may divide by zero
     t => @calc_num.num_red_conv(t) catch { _ => raise Failure("num_red_conv") },
     t => @words.word_red_conv(t) catch { _ => raise Failure("word_red_conv") },
   ]))
-  eval_rewrite.val = Some(@equal.top_depth_conv(step))
+  @equal.top_depth_conv(step)
 }
 
 ///|
@@ -209,9 +224,12 @@ let replicate_limit : Int64 = 64
 ///|
 /// `f(.., n, ..) == f(.., SUC(n - 1), ..)` for a definition by SUC
 /// patterns applied to a numeral n > 0.
-fn suc_arg_conv(t : @kernel.Term) -> @kernel.Thm raise {
+fn suc_arg_conv(
+  t : @kernel.Term,
+  suc : Array[(String, Int, Int)],
+) -> @kernel.Thm raise {
   let (name, args) = head_args(t)
-  for e in suc_args {
+  for e in suc {
     let (fname, arity, pos) = e
     if fname == name && args.length() == arity && @nums.is_numeral(args[pos]) {
       let n = @nums.dest_small_numeral(args[pos]) catch { _ => replicate_limit + 1 }
@@ -251,6 +269,30 @@ fn eval_conv(t : @kernel.Term) -> @kernel.Thm raise {
   guard eval_rewrite.val is Some(rw) else {
     raise Failure("certimoon/wasm eval: not set up")
   }
+  settle(rw, t)
+}
+
+///|
+/// A conversion that computes as the evaluator's side conditions do
+/// (`eval_conv`): rewriting with the port's definitions and `defs`, and
+/// evaluating word and numeral arithmetic, until nothing changes. `suc`
+/// names the definitions among `defs` by SUC patterns, as (name, number
+/// of arguments, the argument with the pattern), so that they apply to
+/// numerals. For proving facts about written-out stores, such as a
+/// theorem's hypotheses about a concrete one.
+pub fn compute_conv(
+  defs : Array[@kernel.Thm],
+  suc? : Array[(String, Int, Int)] = [],
+) -> @equal.Conv raise {
+  setup()
+  let rw = rewrite_with(eval_thms + defs, suc_args + suc)
+  t => settle(rw, t)
+}
+
+///|
+/// `t == t'`, rewriting with `rw` and computing arithmetic until nothing
+/// changes.
+fn settle(rw : @equal.Conv, t : @kernel.Term) -> @kernel.Thm raise {
   let once = @equal.thenc(
     rw,
     @equal.thenc(@words.word_reduce_conv, @calc_num.num_reduce_conv),

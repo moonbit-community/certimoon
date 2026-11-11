@@ -151,3 +151,268 @@ test "a program proved through the public API" {
   // a user's theorem is not in the package's theory listing
   assert_false(@logic.listing().contains("api_max"))
 }
+
+// Non-vacuity checks for the closed theorems. A theorem `if H1 ... Hn
+// then C` holds trivially when nothing satisfies its hypotheses together,
+// and the kernel would not notice. For each closed theorem, a test picks a
+// concrete store, frame and arguments, proves every hypothesis about them
+// in the kernel (by computation, and the run by the evaluator, which
+// proves each step from the reduction rules), and so derives the
+// conclusion for them. It then proves the conclusion's first alternative
+// (the run ended normally, as the theorem describes) for the result the
+// run gave.
+
+///|
+/// The definitions the computations here use, besides the port's.
+fn closed_defs() -> Array[@kernel.Thm] raise {
+  [
+    @logic.thm("globs_ok"),
+    @logic.thm("gvals"),
+    @logic.thm("words_bytes"),
+    @logic.thm("sorted"),
+    @logic.thm("fact_w"),
+    @pair.snd(),
+    @lists.pairwise(),
+    @lists.all(),
+    // i < 0 is false (for globs_ok with no globals)
+    @bool.conjunct1(@arith.lt()),
+  ] +
+  @logic.program_defs()
+}
+
+///|
+/// `t`, proved by computing it to true with `conv`.
+fn computed(conv : @equal.Conv, t : @kernel.Term) -> @kernel.Thm raise {
+  let th = conv(t)
+  @bool.eqt_elim(th) catch {
+    _ =>
+      raise Failure(
+        "not true by computation: " +
+        @logic.show(t) +
+        "\ncomputes to: " +
+        @logic.show(@equal.rhs(@kernel.concl(th))),
+      )
+  }
+}
+
+///|
+/// The parts of `t` along its right-nested `&&`.
+fn right_conjuncts(t : @kernel.Term) -> Array[@kernel.Term] raise {
+  let parts = []
+  let mut t = t
+  while @basics.is_conj(t) {
+    let (a, b) = @basics.dest_conj(t)
+    parts.push(a)
+    t = b
+  }
+  parts.push(t)
+  parts
+}
+
+///|
+/// The conjunction of `ths`' statements, nested to the right.
+fn conj_all(ths : Array[@kernel.Thm]) -> @kernel.Thm raise {
+  let mut acc = ths[ths.length() - 1]
+  for i = ths.length() - 2; i >= 0; i = i - 1 {
+    acc = @bool.conj(ths[i], acc)
+  }
+  acc
+}
+
+///|
+/// `th`, a statement `∀ xs, ...`, for the values `vals` of its variables
+/// by name (a variable with no value stays).
+fn instantiate(
+  th : @kernel.Thm,
+  vals : Map[String, @kernel.Term],
+) -> @kernel.Thm raise {
+  let (vars, _) = @basics.strip_forall(@kernel.concl(th))
+  let args = vars
+    .to_array()
+    .map(fn(v) raise {
+      match vals.get(@kernel.dest_var(v).0) {
+        Some(t) => t
+        None => v
+      }
+    })
+  @bool.specl(@list.List(args), th)
+}
+
+///|
+/// The closed theorem `name` for the values `vals`: each hypothesis but the
+/// last proved by computing with `conv`, and the last, the run
+/// `reduce_trans(cfg, (s2, f2, es2))`, by the evaluator, which also gives
+/// the final configuration s2, f2, es2. The conclusion for these values,
+/// and the final configuration.
+fn apply_closed(
+  name : String,
+  vals : Map[String, @kernel.Term],
+  conv : @equal.Conv,
+) -> (@kernel.Thm, @kernel.Term) raise {
+  let closed = @logic.thm(name)
+  // the run, from the configuration in the last hypothesis
+  let (ante, _) = @basics.dest_imp(@kernel.concl(instantiate(closed, vals)))
+  let hyps = right_conjuncts(ante)
+  let cfg = @kernel.rand(@kernel.rator(hyps[hyps.length() - 1]))
+  let run = @wasm.run(cfg)
+  let fin = @kernel.rand(@kernel.concl(run))
+  let (s2, rest) = @pair.dest_pair(fin)
+  let (f2, es2) = @pair.dest_pair(rest)
+  vals["s2"] = s2
+  vals["f2"] = f2
+  vals["es2"] = es2
+  let th = instantiate(closed, vals)
+  let (ante, _) = @basics.dest_imp(@kernel.concl(th))
+  let hyps = right_conjuncts(ante)
+  let proved = hyps.mapi(fn(i, h) raise {
+    if i == hyps.length() - 1 {
+      run
+    } else {
+      computed(conv, h)
+    }
+  })
+  (@bool.mp(th, conj_all(proved)), fin)
+}
+
+///|
+/// The first alternative of `concl`'s statement `A || B`, proved: A's
+/// conjuncts by `given` (by statement) or by computing with `conv`, with
+/// `witness` for its `∃` if it has one.
+fn first_alternative(
+  concl : @kernel.Thm,
+  witness : @kernel.Term?,
+  given : Array[@kernel.Thm],
+  conv : @equal.Conv,
+) -> @kernel.Thm raise {
+  let (a, _) = @basics.dest_disj(@kernel.concl(concl))
+  let prove_body = fn(body : @kernel.Term) raise {
+    let parts = right_conjuncts(body).map(fn(c) raise {
+      match given.search_by(g => @basics.aconv(@kernel.concl(g), c)) {
+        Some(k) => given[k]
+        None => computed(conv, c)
+      }
+    })
+    conj_all(parts)
+  }
+  match witness {
+    Some(w) => {
+      let (v, body) = @basics.dest_exists(a)
+      let b = @kernel.vsubst(@list.List([(w, v)]), body)
+      @bool.exists_rule(a, w, prove_body(b))
+    }
+    None => prove_body(a)
+  }
+}
+
+///|
+/// `perm(ys, xs)` for written-out lists, `ys` a reordering of `xs`: from
+/// `perm_refl` by `perm_swap`s, moving each element of ys into its place.
+fn perm_by_swaps(
+  ys : Array[@kernel.Term],
+  xs : Array[@kernel.Term],
+) -> @kernel.Thm raise {
+  let ty = @kernel.type_of(xs[0])
+  let list = (items : Array[@kernel.Term]) => @lists.mk_list(@list.List(items), ty)
+  let append = @simp.pure_rewrite_conv(@list.List([@lists.append()]))
+  let cur = xs.copy()
+  let mut th = @bool.spec(list(xs), @logic.thm("perm_refl"))
+  for i in 0..<ys.length() {
+    let mut k = i
+    while !@basics.aconv(cur[k], ys[i]) {
+      k = k + 1
+    }
+    // swap ys[i] down from k to i
+    for m = k - 1; m >= i; m = m - 1 {
+      let vals : Map[String, @kernel.Term] = {
+        "A": list(cur[:m].to_owned()),
+        "e": cur[m],
+        "x": cur[m + 1],
+        "ts": list(cur[m + 2:].to_owned()),
+        "ys": list(xs),
+      }
+      let swap = @equal.conv_rule(append, instantiate(@logic.thm("perm_swap"), vals))
+      th = @bool.mp(swap, th)
+      let e = cur[m]
+      cur[m] = cur[m + 1]
+      cur[m + 1] = e
+    }
+  }
+  th
+}
+
+///|
+test "fact_closed's hypotheses hold together: fact(5) runs to 120" {
+  @logic.load()
+  let conv = @wasm.compute_conv(closed_defs(), suc=[("fact_w", 1, 0)])
+  let value = (t : String) => @equal.rhs(@kernel.concl(conv(@logic.tm(t))))
+  let inst = value("Inst([Tf([T_num(T_i32)], [T_num(T_i32)])], [0], NIL, [0], NIL, NIL, NIL)")
+  let i = @logic.show(inst)
+  // a store with fact_code as function 0, and a memory (empty)
+  let s = value(
+    "Wstore([Func_native(\{i}, Tf([T_num(T_i32)], [T_num(T_i32)]), NIL, fact_code)], NIL, [(Limit_t(0, NONE), NIL)], NIL, NIL, NIL)",
+  )
+  let vals : Map[String, @kernel.Term] = {
+    "fs": value("s_funcs(\{@logic.show(s)})"),
+    "inst": inst,
+    "s": s,
+    "f": value("Wframe(NIL, \{i})"),
+    "j": @logic.tm("0"),
+    "x": @logic.tm("(word(5) : Word[32])"),
+    "vs0": @logic.tm("(NIL : List[Value])"),
+  }
+  let (concl, fin) = apply_closed("fact_closed", vals, conv)
+  inspect(@kernel.hyp(concl).is_empty(), content="true")
+  inspect(
+    @logic.show(@pair.dest_pair(@pair.dest_pair(fin).1).1),
+    content="[Basic(EConstNum(ConstInt32(word(120))))]",
+  )
+  // the run ended normally, with fact_w(5) on the stack
+  let alt = first_alternative(concl, None, [], conv)
+  inspect(@kernel.hyp(alt).is_empty(), content="true")
+}
+
+///|
+test "quicksort_closed's hypotheses hold together: [3, 1, 2] is sorted in place" {
+  @logic.load()
+  let conv = @wasm.compute_conv(closed_defs())
+  let value = (t : String) => @equal.rhs(@kernel.concl(conv(@logic.tm(t))))
+  let inst = value(
+    "Inst([Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL), Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], [T_num(T_i32)])], [0, 1], NIL, [0], NIL, NIL, NIL)",
+  )
+  let i = @logic.show(inst)
+  // the array [3, 1, 2] at address 4, between 4 bytes before and 2 after
+  let before = "[(word(170) : Word[8]), word(187), word(204), word(221)]"
+  let xs = "[(word(3) : Word[32]), word(1), word(2)]"
+  let after = "[(word(238) : Word[8]), word(255)]"
+  let s = value(
+    "Wstore([Func_native(\{i}, Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], NIL), [T_num(T_i32)], quicksort_code), Func_native(\{i}, Tf([T_num(T_i32), T_num(T_i32), T_num(T_i32)], [T_num(T_i32)]), [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)], partition_code)], NIL, [(Limit_t(0, NONE), APPEND(\{before}, APPEND(words_bytes(\{xs}), \{after})))], NIL, NIL, NIL)",
+  )
+  let vals : Map[String, @kernel.Term] = {
+    "fs": value("s_funcs(\{@logic.show(s)})"),
+    "inst": inst,
+    "s": s,
+    "f": value("Wframe(NIL, \{i})"),
+    "j": @logic.tm("0"),
+    "p": @logic.tm("(word(4) : Word[32])"),
+    "n": @logic.tm("(word(3) : Word[32])"),
+    "xs": @logic.tm(xs),
+    "before": @logic.tm(before),
+    "after": @logic.tm(after),
+    "vs0": @logic.tm("(NIL : List[Value])"),
+  }
+  let (concl, fin) = apply_closed("quicksort_closed", vals, conv)
+  inspect(@kernel.hyp(concl).is_empty(), content="true")
+  // the memory's bytes after the run: the array holds 1, 2, 3 (as
+  // little-endian words), the bytes around it as they were
+  let s2 = @logic.show(@pair.dest_pair(fin).0)
+  inspect(
+    @logic.show(value("MAP(val, SND(EL(0, s_mems(\{s2}))))")),
+    content="[170, 187, 204, 221, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 238, 255]",
+  )
+  // the run ended normally, with [1, 2, 3] in the array's place
+  let ys = @basics.dest_list(@logic.tm("[(word(1) : Word[32]), word(2), word(3)]")).to_array()
+  let perm = perm_by_swaps(ys, @basics.dest_list(@logic.tm(xs)).to_array())
+  let witness = @lists.mk_list(@list.List(ys), @kernel.type_of(ys[0]))
+  let alt = first_alternative(concl, Some(witness), [perm], conv)
+  inspect(@kernel.hyp(alt).is_empty(), content="true")
+}

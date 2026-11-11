@@ -11,6 +11,8 @@ pub fn abbreviate_types(String) -> String
 
 pub fn code_of_wat(String) -> @kernel.Term raise
 
+pub fn compute_conv(Array[@kernel.Thm], suc? : Array[(String, Int32, Int32)]) -> ((@kernel.Term) -> @kernel.Thm raise) raise
+
 pub fn computes_stmt(@kernel.Term, Array[Value]) -> @kernel.Term raise
 
 pub fn config(Array[Instr], locals? : Array[Value], store? : @kernel.Term, inst? : @kernel.Term) -> @kernel.Term raise
