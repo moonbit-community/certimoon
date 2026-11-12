@@ -424,8 +424,8 @@ fn fresh_spec(th : @kernel.Thm, avoid : @list.List[@kernel.Term]) -> @kernel.Thm
 ///|
 /// The st_ rules sym_tac runs straight-line code with.
 pub let step_rules : Array[String] = [
-  "st_const", "st_binop", "st_testop", "st_relop", "st_local_get", "st_local_set",
-  "st_arr_store", "st_arr_load", "st_arr_load_at", "st_arr_store_at",
+  "st_const", "st_binop", "st_unop", "st_testop", "st_relop", "st_local_get", "st_local_set",
+  "st_local_tee", "st_drop", "st_arr_store", "st_arr_load", "st_arr_load_at", "st_arr_store_at",
 ]
 
 ///|
@@ -567,7 +567,7 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
           @tactics.match_mp_tac(rule_of(g.1, "sl_br_if_st")),
           @tactics.conj_tac,
           fact_tac(),
-          sym_tac(sym),
+          @tactics.first(@list.List([contra_tac(), sym_tac(sym)])),
         ])(g)
       "If" => {
         need_last("if")
@@ -577,7 +577,7 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
           @tactics.match_mp_tac(rule_of(g.1, "sl_if_st")),
           @tactics.conj_tac,
           fact_tac(),
-          sym_tac(sym),
+          @tactics.first(@list.List([contra_tac(), sym_tac(sym)])),
         ])(g)
       }
       "Block" => {
@@ -631,6 +631,7 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
           @list.List([vc_tac(sym), sym_tac(sym)]),
         )(g)
       }
+      _ if cell_step(sym, instr, p, g.1) is Some(tac) => seq([renorm, tac, sym_tac(sym)])(g)
       _ => {
         let th = step_rule(sym.rules, instr, p)
         let c = @kernel.concl(th)
@@ -646,6 +647,121 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
       }
     }
   }
+}
+
+///|
+/// Closes a branch whose fact contradicts an assumption: some assumption
+/// is ~t and another t (a branch the triple's hypotheses rule out).
+fn contra_tac() -> @tactics.Tactic {
+  g => {
+    let asl = g.0.to_array()
+    for a in asl {
+      let c = @kernel.concl(a.1)
+      if @basics.is_neg(c) {
+        let t = @basics.dest_neg(c)
+        for b in asl {
+          if @basics.aconv(@kernel.concl(b.1), t) {
+            return @tactics.accept_tac(@bool.contr(g.1, @bool.mp(@bool.not_elim(a.1), b.1)))(g)
+          }
+        }
+      }
+    }
+    raise Failure("contra_tac")
+  }
+}
+
+///|
+/// An i32.load or i32.store when the state's R is a separating conjunction
+/// of parts, among them word cells pts(a, serialise_i32(x)): the tactic
+/// that brings the cell at the instruction's address to the front of R
+/// (by star's associativity and commutativity) and steps by st_cell_load
+/// or st_cell_store. The cell is the first whose address a has
+/// val(k) + off == a by rewriting (with sym's rws), k the address on the
+/// stack; None if no cell has it.
+fn cell_step(
+  sym : Sym,
+  instr : @kernel.Term,
+  p : @kernel.Term,
+  goal : @kernel.Term,
+) -> @tactics.Tactic? raise {
+  let (store, iargs) = match (args_of(instr, "Load", 4), args_of(instr, "Store", 4)) {
+    (Some(a), _) => (false, a)
+    (_, Some(a)) => (true, a)
+    _ => return None
+  }
+  if head_name(iargs[0]) != "T_i32" || head_name(iargs[1]) != "NONE" {
+    return None
+  }
+  guard args_of(p, "st", 3) is Some([s, l, r]) else { return None }
+  let (bvs, body) = @basics.strip_abs(r)
+  let bvs = bvs.to_array()
+  guard bvs.length() >= 2 else { return None }
+  let (first, rest0) = match args_of(body, "star", 3) {
+    Some([c, x, _]) => (c, x)
+    _ =>
+      match args_of(body, "star", 2) {
+        Some([c, x]) => (c, x)
+        _ => return None
+      }
+  }
+  let star_c = @basics.strip_comb(body).0
+  let mk_star = (a : @kernel.Term, b : @kernel.Term) => @basics.list_mk_comb(star_c, @list.List([a, b]))
+  let parts = [first]
+  let mut rest = rest0
+  while args_of(rest, "star", 2) is Some([c, x]) {
+    parts.push(c)
+    rest = x
+  }
+  let n = if store { 2 } else { 1 }
+  guard (try Some(split_stack(s, n)) catch { _ => None }) is Some((prefix, top)) else { return None }
+  guard args_of(top[0], "V_num", 1) is Some([c]) && args_of(c, "ConstInt32", 1) is Some([k]) else {
+    return None
+  }
+  let rule = thm(if store { "st_cell_store" } else { "st_cell_load" })
+  let addr_rws = ths([@arith.add_clauses()] + sym.rws)
+  for i, part in parts {
+    guard args_of(part, "pts", 2) is Some([a, bs]) && args_of(bs, "serialise_i32", 1) is Some([x0]) else {
+      continue
+    }
+    // the other parts, in order, then the last
+    let mut others = rest
+    for j = parts.length() - 1; j >= 0; j = j - 1 {
+      if j != i {
+        others = mk_star(parts[j], others)
+      }
+    }
+    let fp = @kernel.mk_abs(bvs[0], @kernel.mk_abs(bvs[1], others))
+    let terms = [prefix, l, a, x0, fp, k, iargs[2], iargs[3]]
+    if store {
+      guard args_of(top[1], "V_num", 1) is Some([cx]) && args_of(cx, "ConstInt32", 1) is Some([x]) else {
+        return None
+      }
+      terms.push(x)
+    }
+    let inst = @bool.ispecl(@list.List(terms), rule)
+    let (hyp, _) = @basics.dest_imp(@kernel.concl(inst))
+    guard (try Some(@tactics.prove(hyp, @simp.rewrite_tac(addr_rws))) catch { _ => None }) is Some(hth) else {
+      continue
+    }
+    let th = norm(@bool.mp(inst, hth))
+    // R with the cell first
+    let eq = @tactics.prove(
+      @basics.mk_eq(mk_star(first, rest0), mk_star(part, others)),
+      @simp.rewrite_tac(ths([thm("star_assoc"), thm("star_comm"), thm("star_left_comm")])),
+    )
+    // at that term only (bound variables as in R)
+    let lhs = @equal.lhs(@kernel.concl(eq))
+    let rotate = @equal.once_depth_conv(t => if @basics.aconv(t, lhs) { eq } else { raise Failure("rotate") })
+    let p2 = @equal.rhs(@kernel.concl(norm_conv()(@equal.rhs(@kernel.concl(rotate(p))))))
+    return Some(
+      seq([
+        @tactics.conv_tac(pre_conv(rotate)),
+        @tactics.conv_tac(pre_conv(norm_conv())),
+        step_tac(th, p2, goal),
+      ]),
+    )
+  }
+  None
 }
 
 ///|

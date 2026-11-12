@@ -100,6 +100,8 @@ pub fn load() -> Unit {
     prove_examples()
     section("TLSF size classes (tlsf.mbt)")
     prove_tlsf_classes()
+    section("TLSF free lists: push and pop (tlsf.mbt)")
+    prove_tlsf_push_pop()
   })() catch {
     e => {
       let msg = match e {

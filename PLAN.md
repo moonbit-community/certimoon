@@ -97,7 +97,7 @@ good order to read it in:
 | labels.mbt, block.mbt, loop.mbt | `safel`, `sl_triple_l`; br, label steps, `label_safe`, block and loop rules |
 | globals.mbt, memsize.mbt, locals.mbt, conditionals.mbt | globals, memory size and grow, locals, `br_if` and `if` |
 | state.mbt, arrays.mbt | exact states `st` and the `st_` rules; `arr` and the array rules |
-| sym.mbt | `sym_prove` and its rules (`prove_sym_derived`) |
+| sym.mbt | `sym_prove` and its rules (`prove_sym_derived`); word cells found by address (`cell_step`), branches the hypotheses rule out (`contra_tac`) |
 | calls.mbt | call-free code (`has_call`, `call_free_step`), module triples (`sl_triple_m`, `keep`) |
 | indirect.mbt | `call_indirect`: its step, `sl_call_indirect_g` and sym's rule for it |
 | adequacy.mbt | what triples say about runs (`reduce_trans`): `sl_triple_adequate`, `sl_triple_m_adequate` |
@@ -105,7 +105,7 @@ good order to read it in:
 | returns.mbt | `safer`: safety with returns; its seq, label and frame lemmas |
 | specs.mbt | function specs, `sl_triple_g` and its rules, `sl_call_g`, `sl_funs_g`, and sym's rules for it |
 | examples.mbt, example_*.mbt | the verified programs |
-| tlsf.mbt | MoonBit's TLSF allocator: its size classes (`tlsf_fli`, `tlsf_sli`, `tlsf_round`), `tlsf_find_sound`, `tlsf_class_mono` |
+| tlsf.mbt | MoonBit's TLSF allocator: its size classes (`tlsf_fli`, `tlsf_sli`, `tlsf_round`), `tlsf_find_sound`, `tlsf_class_mono`; its compiled push and pop (`tlsf_push_code`, `tlsf_pop_code`) and a triple for each path |
 | logic_test.mbt | the listing's snapshot, the theorems' list, the public API's test, the closed theorems' non-vacuity checks |
 
 Package `wasm`: ast.mbt, numeric.mbt, store.mbt, typing.mbt, reduction.mbt
@@ -135,7 +135,8 @@ eval.mbt and builder.mbt (the evaluator), and the tests.
 | Functions of other modules or the host; writing tables | not started |
 | An importer for `.wat` / `.wasm`, and a compiled program | not started |
 | MoonBit's TLSF allocator: the size-class arithmetic | done (Features 4, step 1) |
-| MoonBit's TLSF allocator: its code | not started |
+| MoonBit's TLSF allocator: push and pop, each path from the words it touches | done (Features 4, step 2a) |
+| MoonBit's TLSF allocator: bins as lists, the other functions | not started |
 
 Known limits of what exists:
 
@@ -143,9 +144,11 @@ Known limits of what exists:
 - `sl_global_set`, `sl_local_set` and `sl_local_tee` take a number (`V_num`),
   not a reference, as their operand. Triples assume
   `globs_ok`, so a module that imports one global twice is not covered.
-- sym_prove has no `st_` rules yet for `local.tee`, `global.get`/`set`,
-  `drop`, `select` and the loads and stores other than i32 (`step_rules`
-  lists what it has); a `br` to a block with results is not handled.
+- sym_prove has no `st_` rules yet for `global.get`/`set`, `select` and
+  the loads and stores other than i32 (`step_rules` lists what it has); a
+  `br` to a block with results is not handled. It finds a cell for a load
+  or store only by an address that rewrites to the cell's, so a cell's
+  address must be written as the code computes it.
 - A call's spec in sym_prove is matched only when its P is `args == [...]
   && R(gs, ms, h)`; otherwise give it in `calls`. Loops containing calls
   are untested in sym_prove (`sl_loop_st_g` is proved; no example uses it).
@@ -374,9 +377,23 @@ say so.
    1. The size classes. Done: `logic/tlsf.mbt` defines them as the
       compiled code computes them, and proves `tlsf_round_bounds`,
       `tlsf_find_sound` and `tlsf_class_mono` (see the README).
-   2. `push` and `pop` against an abstract map from bins to address lists,
-      with the bitmaps kept in sync. `find`'s bitmap masks (a `ctz` of the
-      bitmap masked from fli up) go here too.
+   2. `push` and `pop`.
+      a. Done: `tlsf_push_code` and `tlsf_pop_code` are the embedded
+         functions (tools/tlsf_wat_check.py compares them with the
+         compiler's tlsf-mbt.wat; pop's second wasm-opt pass dropped its
+         result), and there is a triple for each path, from the words it
+         reads and writes: `tlsf_push_cons`, `tlsf_push_nil`,
+         `tlsf_pop_mid`, `tlsf_pop_last`, `tlsf_pop_head`, `tlsf_pop_only`.
+         For them, sym_prove gained `st_unop`, `st_local_tee`, `st_drop`,
+         word cells anywhere in R (`st_cell_load`, `st_cell_store`, found
+         by address and brought to the front), and closing a branch that
+         contradicts the hypotheses.
+      b. Next: an abstract map from bins to address lists, with a heap
+         predicate for it (the bitmaps, the bins' heads, and each listed
+         memory's two link words, which are apart from its size word), and
+         push and pop against it: the path triples are its unfolded cases.
+         `find`'s bitmap masks (a `ctz` of the bitmap masked from fli up)
+         go here too.
    3. The large-allocation invariant: one predicate over the whole heap
       (the free lists run through the physical chain's headers, so it is
       not a separating conjunction), with the allocated regions, preserved

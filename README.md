@@ -229,6 +229,18 @@ LENGTH(xs) < 2^32 && val(j) < LENGTH(xs)`. The state's R must then be
 `example_array_sum`, `example_insertion_sort` and the partition in
 `example_quicksort`.
 
+Words at unrelated addresses are cells: R is
+`(gs) (ms) (h) => star(pts(val(a1), serialise_i32(x1)), star(..., fp(gs, ms)), h)`,
+with the cells in any order. For an i32 `load` or `store`, sym_prove finds
+the cell whose address is the instruction's (`val(k) + off == a` by
+rewriting, with `rws`), brings it to the front and steps by
+`st_cell_load` or `st_cell_store`. So write a cell's address as the code
+computes it. Its ending compares states up to the order of the cells
+when `rws` has `star_assoc`, `star_comm` and `star_left_comm`. A branch
+whose test contradicts the statement's hypotheses (`c == word(0)` against
+`!(c == word(0))`) is closed without running it, so a triple can be about
+one path. See `tlsf_push_cons` and the other cases in logic/tlsf.mbt.
+
 ### Functions, calls and recursion
 
 A module's functions are proved together, each from a spec:
@@ -322,7 +334,7 @@ definition and read back to check it (`wasm/wat.mbt`).
 | `example_quicksort` | example_qsort.mbt | recursive quicksort with a partition function: sorted, a permutation |
 | `quicksort_closed` | example_qsort.mbt | the same about runs, with no assertion: the memory's bytes are `before ++ words_bytes(xs) ++ after`, and every run of the call ends with `before ++ words_bytes(ys) ++ after` for some sorted permutation ys of xs, or can step |
 
-## MoonBit's allocator: size classes
+## MoonBit's allocator
 
 [logic/tlsf.mbt](logic/tlsf.mbt) starts on MoonBit's TLSF allocator
 (moonbitlang/malloc, which the compiler embeds for linear-memory wasm).
@@ -341,8 +353,25 @@ Then it proves three things:
 | `tlsf_find_sound` | every size in round(s)'s class, or in a class above it (what `find` searches), is at least s |
 | `tlsf_class_mono` | a larger size is never in a lower class, so a free block of at least round(s) bytes is in a class `find` searches |
 
-The allocator's code itself isn't verified yet: PLAN.md, Features 4, has
-the steps.
+Then it verifies two of the allocator's functions, `Memory::push` and
+`Memory::pop`, as the compiler embeds them: `tlsf_push_code` and
+`tlsf_pop_code` are the compiled code instruction for instruction, with
+`DATA_SECTION_END` as the constant d it is linked as.
+`python3 tools/tlsf_wat_check.py PATH/TO/tlsf-mbt.wat` compares them with
+the compiler's file (it needs `wasm-tools`). Each triple is about one path
+through the code, from exactly the words that path reads and writes:
+
+| Example | The path |
+|---|---|
+| `tlsf_push_cons`, `tlsf_push_nil` | push m into its bin, ahead of the bin's first memory nx (whose back link becomes m), or into an empty bin; the bin's bit and its level's bit are set |
+| `tlsf_pop_mid`, `tlsf_pop_last` | pop m with a previous free memory pf: pf's next becomes m's next nf, and nf's back link (if nf isn't 0) pf |
+| `tlsf_pop_head` | pop the first memory of a bin: the bin starts at nf, and nf's back link is 0 |
+| `tlsf_pop_only` | pop a bin's only memory: the bin is empty, its bit is cleared, and the level's bit too if it was the level's last |
+
+The bin's address comes from the code's own `27 - clz(size)`;
+`tlsf_code_fli` and `tlsf_code_sli` say that is `tlsf_fli - 4` and the bin
+`tlsf_sli`. Not yet proved: that these keep a whole bin a doubly linked
+list and the bitmaps in step with the bins (PLAN.md, Features 4).
 
 ## Reference: the program logic
 
@@ -434,8 +463,10 @@ PLAN.md, "Adding an instruction rule").
 ### Exact states and symbolic execution
 
 `logic/state.mbt` has the rules on exact states (`st_const`, `st_binop`,
-`st_local_get`, ..., `st_arr_load_at`): each steps from one written-out
-state to the next, computed by `norm`. `logic/sym.mbt` has sym_prove: it
+`st_unop`, `st_local_get`, `st_local_tee`, `st_drop`, ..., and in
+arrays.mbt `st_arr_load_at` and the cell rules `st_cell_load` and
+`st_cell_store`): each steps from one written-out state to the next,
+computed by `norm`. `logic/sym.mbt` has sym_prove: it
 takes the code's first instruction, applies its `st_` rule (or goes into a
 block, loop or if), and leaves entailments for the ends of the code, the
 `br`s and the side conditions. Its rules are `sl_step_l`, `sl_cons_l`,

@@ -126,6 +126,48 @@ fn prove_array_rules() -> Unit raise {
     [frame, "(k : \{w})", "(al : Num)", "(off : Num)", "serialise_i32((x0 : \{w}))"],
   )
   prove_array_at_rules()
+  prove_cell_rules()
+}
+
+///|
+/// The rules for one word, a cell pts(a, serialise_i32(x)) at the front of
+/// R: st_arr_load and st_arr_store for the array [x]. sym_prove brings the
+/// cell an i32.load or i32.store reads or writes to the front first
+/// (`cell_step`), so the cells may be anywhere, in any order.
+fn prove_cell_rules() -> Unit raise {
+  let w = w32
+  let i = (x : String) => "V_num(ConstInt32(\{x}))"
+  let cell = (x : String) => "(gs : List[Value]) => (ms : Num) => (h : \{heap}) => star(pts(a, serialise_i32(\{x})), fp(gs, ms), h)"
+  let vars = "∀ v : List[Value], ∀ l : List[Value], ∀ a : Num, ∀ x0 : \{w}, ∀ fp : \{rty}, ∀ k : \{w}, ∀ al : Num, ∀ off : Num"
+  let args = (x : String) => [
+    "(v : List[Value])", "(l : List[Value])", "(a : Num)", "(NIL : List[\{w}])", "(x0 : \{w})", "(NIL : List[\{w}])",
+    "(fp : \{rty})", "(k : \{w})", "(al : Num)", "(off : Num)", x,
+  ].filter(t => t != "")
+  let one = (base : String, x : String) => seq([
+    @tactics.repeat_tac(@tactics.gen_tac),
+    @tactics.mp_tac(@bool.ispecl(@list.List(args(x).map(tm)), thm(base))),
+    @simp.rewrite_tac(
+      ths([
+        @lists.append(),
+        @lists.length(),
+        thm("arr"),
+        thm("words_bytes"),
+        @lists.append_nil(),
+        @arith.mult_clauses(),
+        @arith.add_clauses(),
+      ]),
+    ),
+  ])
+  let _ = lemma(
+    "st_cell_load",
+    "\{vars}, val(k) + off == a → sl_triple(st(APPEND(v, [\{i("k")}]), l, \{cell("x0")}), [Load(T_i32, NONE, al, off)], st(APPEND(v, [\{i("x0")}]), l, \{cell("x0")}))",
+    one("st_arr_load", ""),
+  )
+  let _ = lemma(
+    "st_cell_store",
+    "\{vars}, ∀ x : \{w}, val(k) + off == a → sl_triple(st(APPEND(v, [\{i("k")}, \{i("x")}]), l, \{cell("x0")}), [Store(T_i32, NONE, al, off)], st(v, l, \{cell("x")}))",
+    one("st_arr_store", "(x : \{w})"),
+  )
 }
 
 ///|

@@ -100,6 +100,12 @@ fn prove_state_rules() -> Unit raise {
     [frame, "(t : T_num)", "(op : Testop)", "(c : V_num)"],
   )
   let _ = st_rule(
+    "st_unop",
+    "\{vars}, ∀ t : T_num, ∀ op : Unop, ∀ c : V_num, sl_triple(\{state("APPEND(v, [V_num(c)])", "l")}, [Unop(t, op)], \{state("APPEND(v, [V_num(app_unop(op, c))])", "l")})",
+    "sl_unop",
+    [frame, "(t : T_num)", "(op : Unop)", "(c : V_num)"],
+  )
+  let _ = st_rule(
     "st_relop",
     "\{vars}, ∀ t : T_num, ∀ op : Relop, ∀ c1 : V_num, ∀ c2 : V_num, sl_triple(\{state("APPEND(v, [V_num(c1), V_num(c2)])", "l")}, [Relop(t, op)], \{state("APPEND(v, [V_num(app_relop(op, c1, c2))])", "l")})",
     "sl_relop",
@@ -115,6 +121,18 @@ fn prove_state_rules() -> Unit raise {
     "st_local_set",
     "\{vars}, ∀ k : Num, ∀ c : V_num, k < LENGTH(l) → sl_triple(\{state("APPEND(v, [V_num(c)])", "l")}, [Local_set(k)], \{state("v", "list_update(l, k, V_num(c))")})",
     "sl_local_set",
+    [frame, "(k : Num)", "(c : V_num)"],
+  )
+  let _ = st_rule(
+    "st_drop",
+    "\{vars}, ∀ x : Value, sl_triple(\{state("APPEND(v, [x])", "l")}, [Drop], \{state("v", "l")})",
+    "sl_drop",
+    [frame, "(x : Value)"],
+  )
+  let _ = st_rule(
+    "st_local_tee",
+    "\{vars}, ∀ k : Num, ∀ c : V_num, k < LENGTH(l) → sl_triple(\{state("APPEND(v, [V_num(c)])", "l")}, [Local_tee(k)], \{state("APPEND(v, [V_num(c)])", "list_update(l, k, V_num(c))")})",
+    "sl_local_tee",
     [frame, "(k : Num)", "(c : V_num)"],
   )
   // 1 + ... + n, and its steps as words
@@ -184,6 +202,11 @@ fn norm_thms() -> Array[@kernel.Thm] raise {
     @wasm.thm("app_testop"),
     @wasm.thm("app_testop_i"),
     @wasm.thm("int_eqz"),
+    @wasm.thm("app_unop"),
+    @wasm.thm("app_unop_i_v"),
+    @wasm.thm("app_unop_i"),
+    @wasm.thm("int_clz"),
+    @wasm.thm("int_ctz"),
     thm("st_snoc_ex"),
     @class.eta_ax(),
   ]

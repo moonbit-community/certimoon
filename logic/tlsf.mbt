@@ -488,3 +488,214 @@ fn prove_tlsf_classes() -> Unit raise {
     ]),
   )
 }
+
+///|
+/// TLSF's free lists: push and pop as the compiler embeds them
+/// (moonbitlang/malloc's Memory::push and Memory::pop in the compiler's
+/// lib/xml/wasm_linear/tlsf-mbt.wat, after both its wasm-opt passes; the
+/// call of DATA_SECTION_END is the constant d it is linked as).
+/// tools/tlsf_wat_check.py compares the programs with that file. A free
+/// memory m has its size word at m and its free-list links at m + 8 (the
+/// previous free memory) and m + 12 (the next). Level f's bitmap and bins
+/// follow the first-level bitmap at base(d) = (d + 15) & ~15: at base + 4
+/// + 68 (fli - 4), its bitmap, then a word for each of its 16 bins.
+/// Each triple is about one path through the code, from exactly the words
+/// it reads and writes (cells pts(a, serialise_i32(x)), framed by fp), the
+/// other paths ruled out by its hypotheses. The code computes fli - 4 as
+/// 27 - clz(s) (tlsf_code_fli) and the bin as tlsf_sli (tlsf_code_sli).
+fn prove_tlsf_push_pop() -> Unit raise {
+  let code_fli = lemma(
+    "tlsf_code_fli",
+    "∀ x : \{w32}, word_sub(word(27), word(word_clz(x))) == word_sub(tlsf_fli(x), word(4))",
+    seq([
+      @tactics.gen_tac,
+      @simp.rewrite_tac(ths([thm("tlsf_fli"), @wasm.thm("int_clz")])),
+      g => @tactics.accept_tac(@words.word_rule(g.1))(g),
+    ]),
+  )
+  let _ = lemma(
+    "tlsf_code_sli",
+    "∀ x : \{w32}, word_and(word_jushr(x, word_sub(word(27), word(word_clz(x)))), word(15)) == tlsf_sli(x, tlsf_fli(x))",
+    seq([@tactics.gen_tac, @simp.rewrite_tac(ths([thm("tlsf_sli"), @equal.gsym(code_fli)]))]),
+  )
+  let w = w32
+  let i = (x : String) => "V_num(ConstInt32(\{x}))"
+  let c = (n : String) => "EConstNum(ConstInt32(word(\{n})))"
+  let bin = (op : String) => "Binop(T_i32, Binop_i(\{op}))"
+  let ld = "Load(T_i32, NONE, 2, 0)"
+  let sto = "Store(T_i32, NONE, 2, 0)"
+  let base_code = "EConstNum(ConstInt32(d)), \{c("15")}, \{bin("Add")}, \{c("4294967280")}, \{bin("And")}"
+  // the bin of the memory at local 0: its size, fli - 4 and sli
+  let index_code = (sz : Int, f : Int, j : Int) => [
+    "Local_get(0)", ld, c("4294967292"), bin("And"), "Local_tee(\{sz})", c("27"), "Local_get(\{sz})",
+    "Unop(T_i32, Unop_i(Clz))", bin("Sub"), "Local_tee(\{f})", bin("Shr(U)"), c("15"), bin("And"), "Local_set(\{j})",
+  ].join(", ")
+  let list = (xs : Array[String]) => "[" + xs.join(", ") + "]"
+  let push_code = list([
+    index_code(2, 1, 2),
+    base_code, ld, c("1"), "Local_get(1)", bin("Shl"), bin("Or"), "Local_set(3)",
+    base_code, "Local_get(3)", sto,
+    base_code, c("4"), bin("Add"), "Local_get(1)", c("68"), bin("Mul"), bin("Add"), "Local_tee(1)",
+    "Local_get(1)", ld, c("1"), "Local_get(2)", bin("Shl"), bin("Or"), sto,
+    "Local_get(0)", c("12"), bin("Add"), "Local_get(1)", c("4"), bin("Add"), "Local_get(2)", c("2"), bin("Shl"),
+    bin("Add"), ld, "Local_tee(3)", sto,
+    "Local_get(3)", "If(Tbv(NONE), [Local_get(3), \{c("8")}, \{bin("Add")}, Local_get(0), \{sto}], NIL)",
+    "Local_get(1)", c("4"), bin("Add"), "Local_get(2)", c("2"), bin("Shl"), bin("Add"), "Local_get(0)", sto,
+    "Local_get(0)", "If(Tbv(NONE), [Local_get(0), \{c("8")}, \{bin("Add")}, \{c("0")}, \{sto}], NIL)",
+    c("0"),
+  ])
+  let res = "Tbv(SOME(T_num(T_i32)))"
+  let pop_then = list([
+    "Local_get(1)", ld, "Local_tee(1)", c("12"), bin("Add"), "Local_get(0)", c("12"), bin("Add"), ld, "Local_tee(0)", sto,
+    "Local_get(0)", "If(Tbv(NONE), [Local_get(0), \{c("8")}, \{bin("Add")}, Local_get(1), \{sto}], NIL)",
+    c("0"),
+  ])
+  // as the compiler embeds it: after its second wasm-opt pass, pop has no
+  // result (the outer if's 0 is dropped), and its bin's test is i32.eqz
+  let pop_inner = list([
+    "Local_get(3)", "Local_get(3)", ld, c("1"), "Local_get(2)", bin("Shl"), bin("Xor"), "Local_tee(0)", sto,
+    "Local_get(0)", "Testop(T_i32, Eqz)",
+    "If(Tbv(NONE), [\{base_code}, \{ld}, \{c("1")}, Local_get(1), \{bin("Shl")}, \{bin("Xor")}, Local_set(0), \{base_code}, Local_get(0), \{sto}], NIL)",
+  ])
+  let pop_else = list([
+    index_code(1, 1, 2),
+    base_code, c("4"), bin("Add"), "Local_get(1)", c("68"), bin("Mul"), bin("Add"), "Local_tee(3)",
+    c("4"), bin("Add"), "Local_get(2)", c("2"), bin("Shl"), bin("Add"),
+    "Local_get(0)", c("12"), bin("Add"), ld, "Local_tee(4)", sto,
+    "Local_get(4)", "If(Tbv(NONE), [Local_get(4), \{c("8")}, \{bin("Add")}, \{c("0")}, \{sto}], NIL)",
+    "Local_get(0)", c("12"), bin("Add"), ld, "Testop(T_i32, Eqz)",
+    "If(Tbv(NONE), \{pop_inner}, NIL)",
+    c("0"),
+  ])
+  let pop_code = list([
+    "Local_get(0)", c("8"), bin("Add"), "Local_tee(1)", ld,
+    "If(\{res}, \{pop_then}, \{pop_else})",
+    "Drop",
+  ])
+  let push = program("tlsf_push_code", push_code, params=["(d : \{w})"])
+  let pop = program("tlsf_pop_code", pop_code, params=["(d : \{w})"])
+  // what the code computes
+  let sz = "word_and(hd, word(4294967292))"
+  let f4 = "word_sub(word(27), word(word_clz(\{sz})))"
+  let sli = "word_and(word_jushr(\{sz}, \{f4}), word(15))"
+  let base = "word_and(word_add(d, word(15)), word(4294967280))"
+  let sl = "word_add(word_add(\{base}, word(4)), word_mul(\{f4}, word(68)))"
+  let slot = "word_add(word_add(\{sl}, word(4)), word_jshl(\{sli}, word(2)))"
+  let bit = (j : String) => "word_jshl(word(1), \{j})"
+  let cell = (a : String, x : String) => "pts(val((\{a} : \{w})), serialise_i32((\{x} : \{w})))"
+  let rstate = (cells : Array[String]) => {
+    let mut acc = "fp(gs, ms)"
+    for k = cells.length() - 1; k >= 1; k = k - 1 {
+      acc = "star(\{cells[k]}, \{acc})"
+    }
+    "(gs : List[Value]) => (ms : Num) => (h : \{heap}) => star(\{cells[0]}, \{acc}, h)"
+  }
+  let state = (v : String, l : String, cells : Array[String]) => "st(\{v}, \{l}, \{rstate(cells)})"
+  let nil = "(NIL : List[Value])"
+  let z = i("word(0)")
+  let ws = (xs : Array[String]) => xs.map(x => "∀ \{x} : \{w}").join(", ")
+  let fpv = "∀ fp : \{rty}"
+  let rws = [thm("star_assoc"), thm("star_comm"), thm("star_left_comm")]
+  let at = (a : String, k : String) => "word_add(\{a}, word(\{k}))"
+  // push, when the bin has a first memory nx, and when it is empty
+  let fl2 = "word_or(fl, \{bit(f4)})"
+  let slb2 = "word_or(slb, \{bit(sli)})"
+  let push_locals = "[\{i("m")}, \{i(sl)}, \{i(sli)}, \{i("nx")}]"
+  let push_case = (name : String, cons : Bool) => {
+    let link = if cons { [cell(at("nx", "8"), "npf")] } else { [] }
+    let link2 = if cons { [cell(at("nx", "8"), "m")] } else { [] }
+    let pre = [cell("m", "hd"), cell(at("m", "8"), "pf0"), cell(at("m", "12"), "nf0"), cell(base, "fl"), cell(sl, "slb"), cell(slot, "nx")] + link
+    let mid = [cell("m", "hd"), cell(at("m", "8"), "pf0"), cell(at("m", "12"), "nx"), cell(base, fl2), cell(sl, slb2), cell(slot, "nx")] + link2
+    let post = [cell("m", "hd"), cell(at("m", "8"), "word(0)"), cell(at("m", "12"), "nx"), cell(base, fl2), cell(sl, slb2), cell(slot, "m")] + link2
+    let hyp = if cons { "!(nx == word(0))" } else { "nx == word(0)" }
+    let _ = sym_prove(
+      name,
+      "\{ws(["d", "m", "hd", "pf0", "nf0", "fl", "slb", "nx", "npf"])}, \{fpv}, !(m == word(0)) && \{hyp} → sl_triple(\{state(nil, "[\{i("m")}, \{z}, \{z}, \{z}]", pre)}, \{push}, \{state("[\{z}]", push_locals, post)})",
+      [],
+      [],
+      afters=[state(nil, push_locals, mid), state(nil, push_locals, post)],
+      rws~,
+      kind="example",
+    )
+  }
+  push_case("tlsf_push_cons", true)
+  push_case("tlsf_push_nil", false)
+  // pop: with a previous free memory pf (then nf, if not 0, links back to
+  // it), or as its bin's first (then its bin starts at nf; if nf is 0 the
+  // bin's bit goes, and if that was the level's last bit, the level's)
+  let pop_pre = state(nil, "[\{i("m")}, \{z}, \{z}, \{z}, \{z}]", [cell(at("m", "8"), "pf")])
+  let pop_mid = (pf_case : Bool, cons : Bool) => {
+    let start = "[\{i("m")}, \{z}, \{z}, \{z}, \{z}]"
+    let _ = start
+    if pf_case {
+      let link = if cons { [cell(at("nf", "8"), "pf")] } else { [] }
+      let cells = [cell(at("m", "8"), "pf"), cell(at("m", "12"), "nf"), cell(at("pf", "12"), "nf")] + link
+      [state(nil, "[\{i("nf")}, \{i("pf")}, \{z}, \{z}, \{z}]", cells), pop_pre, pop_pre]
+    } else {
+      let link = if cons { [cell(at("nf", "8"), "word(0)")] } else { [] }
+      let cells = [cell("m", "hd"), cell(at("m", "8"), "pf"), cell(at("m", "12"), "nf"), cell(slot, "nf")] + link
+      let cells = if cons { cells } else { cells + [cell(sl, "slb"), cell(base, "fl")] }
+      let locals = "[\{i("m")}, \{i(f4)}, \{i(sli)}, \{i(sl)}, \{i("nf")}]"
+      let slb3 = "word_xor(slb, \{bit(sli)})"
+      let fl3 = "(if \{slb3} == word(0) { word_xor(fl, \{bit(f4)}) } else { fl })"
+      let l0 = "(if \{slb3} == word(0) { word_xor(fl, \{bit(f4)}) } else { \{slb3} })"
+      let inner = state(
+        nil,
+        "[\{i(l0)}, \{i(f4)}, \{i(sli)}, \{i(sl)}, \{i("nf")}]",
+        [cell("m", "hd"), cell(at("m", "8"), "pf"), cell(at("m", "12"), "nf"), cell(slot, "nf"), cell(sl, slb3), cell(base, fl3)],
+      )
+      [pop_pre, state(nil, locals, cells), if cons { state(nil, locals, cells) } else { inner }]
+    }
+  }
+  let pop_case = (name : String, pf_case : Bool, cons : Bool) => {
+    let hyps = (if pf_case { "!(pf == word(0))" } else { "pf == word(0)" }) + " && " +
+      (if cons { "!(nf == word(0))" } else { "nf == word(0)" })
+    let (pre, post, locals) = if pf_case {
+      let link = if cons { [cell(at("nf", "8"), "nn")] } else { [] }
+      let link2 = if cons { [cell(at("nf", "8"), "pf")] } else { [] }
+      (
+        [cell(at("m", "8"), "pf"), cell(at("m", "12"), "nf"), cell(at("pf", "12"), "pn")] + link,
+        [cell(at("m", "8"), "pf"), cell(at("m", "12"), "nf"), cell(at("pf", "12"), "nf")] + link2,
+        "[\{i("nf")}, \{i("pf")}, \{z}, \{z}, \{z}]",
+      )
+    } else if cons {
+      (
+        [cell("m", "hd"), cell(at("m", "8"), "pf"), cell(at("m", "12"), "nf"), cell(slot, "sv"), cell(at("nf", "8"), "nn")],
+        [cell("m", "hd"), cell(at("m", "8"), "pf"), cell(at("m", "12"), "nf"), cell(slot, "nf"), cell(at("nf", "8"), "word(0)")],
+        "[\{i("m")}, \{i(f4)}, \{i(sli)}, \{i(sl)}, \{i("nf")}]",
+      )
+    } else {
+      let slb3 = "word_xor(slb, \{bit(sli)})"
+      let fl3 = "(if \{slb3} == word(0) { word_xor(fl, \{bit(f4)}) } else { fl })"
+      let l0 = "(if \{slb3} == word(0) { word_xor(fl, \{bit(f4)}) } else { \{slb3} })"
+      (
+        [cell("m", "hd"), cell(at("m", "8"), "pf"), cell(at("m", "12"), "nf"), cell(slot, "sv"), cell(sl, "slb"), cell(base, "fl")],
+        [cell("m", "hd"), cell(at("m", "8"), "pf"), cell(at("m", "12"), "nf"), cell(slot, "nf"), cell(sl, slb3), cell(base, fl3)],
+        "[\{i(l0)}, \{i(f4)}, \{i(sli)}, \{i(sl)}, \{i("nf")}]",
+      )
+    }
+    // the state, rewritten with the branch's equations as the goal is
+    let same = seq([
+      @tactics.first_x_assum(th => if head_name(@kernel.concl(th)) == "star" {
+        @tactics.mp_tac(th)
+      } else {
+        @tactics.no_tac
+      }),
+      @simp.asm_rewrite_tac(ths(rws)),
+    ])
+    let vcs = if pf_case || cons { [] } else { [same, same] }
+    let _ = sym_prove(
+      name,
+      "\{ws(["d", "m", "hd", "pf", "nf", "pn", "nn", "sv", "fl", "slb"])}, \{fpv}, \{hyps} → sl_triple(\{state(nil, "[\{i("m")}, \{z}, \{z}, \{z}, \{z}]", pre)}, \{pop}, \{state(nil, locals, post)})",
+      [],
+      vcs,
+      afters=[state("[\{z}]", locals, post)] + pop_mid(pf_case, cons),
+      rws~,
+      kind="example",
+    )
+  }
+  pop_case("tlsf_pop_mid", true, true)
+  pop_case("tlsf_pop_last", true, false)
+  pop_case("tlsf_pop_head", false, true)
+  pop_case("tlsf_pop_only", false, false)
+}

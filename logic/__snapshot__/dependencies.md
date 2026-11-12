@@ -1017,3 +1017,9 @@ Triples of verified programs, with what their statements depend on.
 | `example_fact` | 248 | 235 | 13 |
 | `example_quicksort` | 254 | 235 | 19 |
 | `example_indirect` | 248 | 235 | 13 |
+| `tlsf_push_cons` | 247 | 233 | 14 |
+| `tlsf_push_nil` | 247 | 233 | 14 |
+| `tlsf_pop_mid` | 247 | 233 | 14 |
+| `tlsf_pop_last` | 247 | 233 | 14 |
+| `tlsf_pop_head` | 247 | 233 | 14 |
+| `tlsf_pop_only` | 247 | 233 | 14 |
