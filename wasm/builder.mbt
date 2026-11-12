@@ -387,14 +387,15 @@ fn indices_term(n : Int) -> @kernel.Term raise {
 /// instance; `types` are the instance's types after those, for blocks:
 /// `TypeIndex(funcs.length() + k)` is `types[k]`), a memory with the
 /// bytes `memory` (if given; at most `max_pages` pages after growing),
-/// mutable globals with the values `globals` and, if `table` is given, a
-/// table of function references (an entry is a function's index, or None
-/// for a null reference). The memory is not rounded to pages: the
-/// evaluator computes on its bytes one by one, so keep it small.
+/// mutable globals with the values `globals` and the tables `tables` of
+/// function references (table t is the instance's table t; an entry is a
+/// function's index, or None for a null reference). The memory is not
+/// rounded to pages: the evaluator computes on its bytes one by one, so
+/// keep it small.
 pub fn store(
   funcs? : Array[Func] = [],
   types? : Array[(Array[NumType], Array[NumType])] = [],
-  table? : Array[Int?],
+  tables? : Array[Array[Int?]] = [],
   memory? : Array[Byte],
   max_pages? : Int,
   globals? : Array[Value] = [],
@@ -411,14 +412,10 @@ pub fn store(
     Some(_) => [0]
     None => []
   }
-  let tabs = match table {
-    Some(_) => [0]
-    None => []
-  }
   let inst = call("Inst", [
     list_term(tfs + block_tfs, hol_type("tf")),
     indices_term(funcs.length()),
-    list_term(tabs.map(small_num), num),
+    indices_term(tables.length()),
     list_term(mems.map(small_num), num),
     indices_term(globals.length()),
     list_term([], num),
@@ -443,20 +440,17 @@ pub fn store(
     None => []
   }
   let globs = globals.map(v => call("Global", [con("T_mut"), v.to_term()]))
-  let tab_items = match table {
-    Some(entries) => {
-      let refs = entries.map(fn(e) raise {
-        match e {
-          Some(j) => call("ConstRefFunc", [small_num(j)])
-          None => call("ConstNull", [con("T_func_ref")])
-        }
-      })
-      let lim = call("Limit_t", [small_num(entries.length()), none_term(num)])
-      let tab_t = call("T_tab", [lim, con("T_func_ref")])
-      [@pair.mk_pair((tab_t, list_term(refs, hol_type("v_ref"))))]
-    }
-    None => []
-  }
+  let tab_items = tables.map(fn(entries) raise {
+    let refs = entries.map(fn(e) raise {
+      match e {
+        Some(j) => call("ConstRefFunc", [small_num(j)])
+        None => call("ConstNull", [con("T_func_ref")])
+      }
+    })
+    let lim = call("Limit_t", [small_num(entries.length()), none_term(num)])
+    let tab_t = call("T_tab", [lim, con("T_func_ref")])
+    @pair.mk_pair((tab_t, list_term(refs, hol_type("v_ref"))))
+  })
   let s = call("Wstore", [
     list_term(cls, hol_type("cl")),
     list_term(tab_items, ty(tabinst_ty)),

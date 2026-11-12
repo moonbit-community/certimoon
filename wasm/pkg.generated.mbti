@@ -47,7 +47,7 @@ pub fn run(@kernel.Term, max_steps? : Int32) -> @kernel.Thm raise
 
 pub fn step_cases(@kernel.Term, @kernel.Term, @kernel.Term, compute? : Bool) -> @kernel.Thm raise
 
-pub fn store(funcs? : Array[Func], types? : Array[(Array[NumType], Array[NumType])], table? : Array[Int32?], memory? : Array[Byte], max_pages? : Int32, globals? : Array[Value]) -> (@kernel.Term, @kernel.Term) raise
+pub fn store(funcs? : Array[Func], types? : Array[(Array[NumType], Array[NumType])], tables? : Array[Array[Int32?]], memory? : Array[Byte], max_pages? : Int32, globals? : Array[Value]) -> (@kernel.Term, @kernel.Term) raise
 
 pub fn term_constants(@kernel.Term) -> Array[String]
 

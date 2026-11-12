@@ -6,7 +6,7 @@ cases for wasm/spec_test.mbt.
 
     python3 tools/spec_cases.py <testsuite commit> i32.wast i64.wast address.wast \
       block.wast loop.wast br.wast br_if.wast br_table.wast call.wast return.wast \
-      > wasm/spec_cases_test.mbt
+      call_indirect.wast > wasm/spec_cases_test.mbt
 
 Each exported function of i32.wast and i64.wast applies one operator to its
 parameters; a case is (operator, operands, result), or a trap.
@@ -23,15 +23,23 @@ and a case calls an exported function with constant arguments in a store
 of the module's functions, globals and memory. A module's assertions run
 in order, each in the store the one before left, as the file runs them.
 
+A module's tables of functions are written out as its element segments
+leave them, and call_indirect calls through them.
+
 What the builder cannot write is left out, and the comment before each
 file's cases counts it (why each assertion is left out goes to stderr):
-a function that uses floats, tables, indirect calls, references, or
-memory.size and memory.grow (a module's memory is a few zero bytes,
-MEMORY or MEMORY_OF, not a page), or a br_table of more than 1000 labels
-(br_table.wast has one of 16148: too long a list to write out as a term),
-is replaced by `unreachable`, and an assertion is kept only if its
-function and every function it can call were translated and its
-arguments and results are integers. An assertion left out does not run,
+a function that uses floats, references, the table instructions, a table
+that does not hold functions, or memory.size and memory.grow (a module's
+memory is a few zero bytes, MEMORY or MEMORY_OF, not a page), or a
+br_table of more than 1000 labels (br_table.wast has one of 16148: too
+long a list to write out as a term), is replaced by `unreachable`, and
+an assertion is kept only if its arguments and results are integers and
+its function and every function it can call were translated. For an
+assertion of a result, "can call" means directly: a function it reaches
+only through a table may be one left out, since running into its
+`unreachable`, or calling it with its type changed, traps and so fails
+the case rather than passing it. For an assertion of a trap, it includes
+every function of the tables it can reach. An assertion left out does not run,
 so the next one sees the store without its changes. `assert_exhaustion`
 is left out (the evaluator stops after a number of steps, not at a stack
 depth). The assertions in SLOW take too long to prove one step at a time;
@@ -155,7 +163,7 @@ def load_cases(path):
 # the bytes of memory a module gets (zeros), if it has a memory: as far as
 # its loads and stores reach
 MEMORY = 64
-MEMORY_OF = {"call.wast": 320}  # it loads and stores at 0x132
+MEMORY_OF = {"call.wast": 320, "call_indirect.wast": 320}  # they load and store at 0x132
 
 # assertions whose runs take too many steps to prove one by one, run only
 # by the skipped test: (file, function, its first argument). A step's
@@ -168,6 +176,13 @@ SLOW = {
     ("call.wast", "fib", "20"),
     ("call.wast", "even", "100"), ("call.wast", "even", "77"),
     ("call.wast", "odd", "200"), ("call.wast", "odd", "77"),
+    ("call_indirect.wast", "fac-i64", "25"),
+    ("call_indirect.wast", "fib-i64", "20"), ("call_indirect.wast", "fib-i32", "20"),
+    ("call_indirect.wast", "even", "100"), ("call_indirect.wast", "even", "77"),
+    ("call_indirect.wast", "odd", "200"), ("call_indirect.wast", "odd", "77"),
+    # fib 9, through the table
+    ("call_indirect.wast", "dispatch-structural-i64", "13"),
+    ("call_indirect.wast", "dispatch-structural-i32", "26"),
 }
 
 
@@ -267,6 +282,8 @@ class Module:
         self.globals = []    # (name, type, value)
         self.memory = False
         self.block_types = []
+        self.tables = []     # (name, entries: function refs or None) or (name, None)
+        segments = []        # (table ref, offset, function refs)
         ntypes = 0
         for x in items:
             if is_list(x, "type"):
@@ -296,15 +313,96 @@ class Module:
                 if is_list(ty, "mut"):
                     ty = ty[1]
                 init = rest[1]
-                if is_list(ty) or not is_list(init) or init[0] != ty + ".const":
+                if ty not in NUMTYPES or not is_list(init) or init[0] != ty + ".const":
                     self.globals.append((name, None, None))
                 else:
                     self.globals.append((name, ty, literal(ty, init[1])))
+            elif is_list(x, "table"):
+                self.add_table(x[1:])
+            elif is_list(x, "elem"):
+                seg = self.elem_segment(x[1:])
+                if seg is not None:
+                    segments.append(seg)
             elif is_list(x, "func"):
                 self.add_func(x[1:])
             elif is_list(x, "export"):
                 if is_list(x[2], "func"):
                     self.exports[x[1][1:-1]] = self.func_index(x[2][1])
+        # the tables' entries, as functions' indices, after the segments
+        self.table_entries = []
+        for name, entries in self.tables:
+            self.table_entries.append(
+                None if entries is None
+                else [None if e is None else self.func_index(e) for e in entries])
+        for t, off, refs in segments:
+            k = self.table_index(t)
+            entries = self.table_entries[k]
+            if entries is None or off + len(refs) > len(entries):
+                raise Unsupported("elem")
+            for i, r in enumerate(refs):
+                entries[off + i] = self.func_index(r)
+
+    def add_table(self, rest):
+        name = None
+        if rest and isinstance(rest[0], str) and rest[0].startswith("$"):
+            name, rest = rest[0], rest[1:]
+        while rest and is_list(rest[0], "export"):
+            rest = rest[1:]
+        if rest and is_list(rest[0], "import"):
+            raise Unsupported("import")
+        if "funcref" not in rest:
+            # a table of other references: a call through it is left out
+            self.tables.append((name, None))
+            return
+        k = rest.index("funcref")
+        if k + 1 < len(rest) and is_list(rest[k + 1], "elem"):
+            refs = [self.elem_ref(r) for r in rest[k + 1][1:]]
+            self.tables.append((name, refs))
+        else:
+            self.tables.append((name, [None] * int(rest[0], 0)))
+
+    def elem_ref(self, r):
+        if isinstance(r, str):
+            return r
+        if is_list(r, "ref.func"):
+            return r[1]
+        if is_list(r, "item") and len(r) == 2 and is_list(r[1], "ref.func"):
+            return r[1][1]
+        raise Unsupported("elem")
+
+    def elem_segment(self, rest):
+        """An active segment as (table, offset, function refs); None for a
+        passive or declared one."""
+        if rest and isinstance(rest[0], str) and rest[0].startswith("$"):
+            rest = rest[1:]
+        table = "0"
+        if rest and is_list(rest[0], "table"):
+            table, rest = rest[0][1], rest[1:]
+        if not rest or not is_list(rest[0]):
+            return None
+        off = rest[0]
+        if is_list(off, "offset"):
+            off = off[1]
+        if not is_list(off, "i32.const"):
+            raise Unsupported("elem")
+        rest = rest[1:]
+        if rest and rest[0] == "func":
+            rest = rest[1:]
+        elif rest and rest[0] == "funcref":
+            rest = rest[1:]
+        return table, int(off[1], 0), [self.elem_ref(r) for r in rest]
+
+    def table_index(self, ref):
+        if ref.isdigit():
+            k = int(ref)
+        else:
+            names = [t[0] for t in self.tables]
+            if ref not in names:
+                raise Unsupported("table " + ref)
+            k = names.index(ref)
+        if k >= len(self.tables):
+            raise Unsupported("table " + ref)
+        return k
 
     def add_func(self, rest):
         name = None
@@ -378,6 +476,7 @@ class Module:
         for t in results:
             numtype(t)
         self.calls = set()
+        self.tables_used = set()
         code, rest = self.seq(body, 0, [], ())
         assert not rest, rest
         return code
@@ -435,6 +534,9 @@ class Module:
             if items and lab is not None and items[0] == lab:
                 items = items[1:]
             return [self.block(op, bt, body, else_)], items
+        if op == "call_indirect":
+            ins, items = self.call_indirect(items)
+            return [ins], items
         imms = []
         while items and isinstance(items[0], str) and (
             is_index(items[0]) or items[0].startswith("offset=")
@@ -460,7 +562,11 @@ class Module:
     def folded(self, x, labels):
         op, rest = x[0], x[1:]
         if op == "call_indirect":
-            raise Unsupported(op)
+            ins, rest = self.call_indirect(rest)
+            code = []
+            for y in rest:
+                code += self.folded(y, labels)
+            return code + [ins]
         if op in ("block", "loop"):
             lab, rest = self.take_label(rest)
             bt, rest = self.block_type(rest)
@@ -491,6 +597,38 @@ class Module:
         for y in rest:
             code += self.folded(y, labels)
         return code + [self.plain(op, imms, labels)]
+
+    def call_indirect(self, items):
+        """call_indirect's table and type use at the head of `items`: (the
+        instruction, the rest of items). Its type is an instance type after
+        the functions' types, as a block type's."""
+        table = "0"
+        if items and isinstance(items[0], str) and is_index(items[0]):
+            table, items = items[0], items[1:]
+        ref, params, results = None, [], []
+        while items and (is_list(items[0], "type") or is_list(items[0], "param")
+                         or is_list(items[0], "result")):
+            x = items[0]
+            if x[0] == "type":
+                ref = x[1]
+            elif x[0] == "param":
+                params += [t for _, t in type_list([x], "param")]
+            else:
+                results += x[1:]
+            items = items[1:]
+        if ref is not None:
+            params, results = self.types[ref]
+        for t in params + results:
+            numtype(t)
+        k = self.table_index(table)
+        if self.table_entries[k] is None:
+            raise Unsupported("a table of references")
+        self.tables_used.add(k)
+        sig = (tuple(params), tuple(results))
+        if sig not in self.block_types:
+            self.block_types.append(sig)
+        j = len(self.funcs) + self.block_types.index(sig)
+        return f"CallIndirect({k}, {j})", items
 
     def plain(self, op, imms, labels):
         if op in SIMPLE:
@@ -559,9 +697,11 @@ def control_cases(path):
                 continue
             try:
                 mod = Module(top[1:])
-            except Unsupported:
+            except Unsupported as e:
+                # its assertions are left out, and counted
+                current = ("module", str(e))
                 continue
-            funcs, ok, deps, why = [], [], [], {}
+            funcs, ok, deps, tdeps, why = [], [], [], [], {}
             for j, f in enumerate(mod.funcs):
                 try:
                     code = mod.translate(j)
@@ -572,15 +712,17 @@ def control_cases(path):
                                  f"locals: [{', '.join(ls)}], body: [{', '.join(code)}] }}")
                     ok.append(True)
                     deps.append(set(mod.calls))
+                    tdeps.append(set(mod.tables_used))
                 except Unsupported as e:
                     why[j] = str(e)
                     funcs.append("{ params: [], results: [], locals: [], body: [Unreachable] }")
                     ok.append(False)
                     deps.append(set())
+                    tdeps.append(set())
                     left["functions"] += 1
-            # a function can run if it and every function it can call were translated
-            runs = []
-            for j in range(len(mod.funcs)):
+            # why a function cannot run: a function it can call directly (for
+            # a result), or through tables too (for a trap), was not translated
+            def left_out(j, tables):
                 seen, todo, bad = set(), [j], []
                 while todo:
                     k = todo.pop()
@@ -590,7 +732,11 @@ def control_cases(path):
                     if not ok[k]:
                         bad.append(why[k])
                     todo += list(deps[k])
-                runs.append(bad)
+                    if tables:
+                        for t in tdeps[k]:
+                            todo += [e for e in mod.table_entries[t] if e is not None]
+                return bad
+            runs = [(left_out(j, False), left_out(j, True)) for j in range(len(mod.funcs))]
             # a global the builder cannot write keeps its index, as a 0 that
             # nothing reads (global_index refuses it)
             globs = [value(t, v) if t is not None else "I32Val(0)" for _, t, v in mod.globals]
@@ -598,17 +744,25 @@ def control_cases(path):
                      for ps, rs in mod.block_types]
             current = (len(modules), mod, runs, why)
             mem = f"Some({MEMORY_OF.get(file, MEMORY)})" if mod.memory else "None"
+            tables = ", ".join(
+                "[" + ", ".join("None" if e is None else f"Some({e})" for e in (es or [])) + "]"
+                for es in mod.table_entries)
             modules.append(
                 f'  {{ funcs: [  // {file}\n    ' + ",\n    ".join(funcs) +
-                f'\n  ], types: [{", ".join(types)}], globals: [{", ".join(globs)}], memory: {mem} }},')
+                f'\n  ], types: [{", ".join(types)}], tables: [{tables}], '
+                f'globals: [{", ".join(globs)}], memory: {mem} }},')
             continue
         if top[0] not in ("assert_return", "assert_trap"):
             continue
         action = top[1]
         if not is_list(action, "invoke") or current is None:
             continue
-        index, mod, runs, why = current
         name = action[1][1:-1]
+        if current[0] == "module":
+            left["assertions"] += 1
+            print(f"{file}: left out {name}: its module uses {current[1]}", file=sys.stderr)
+            continue
+        index, mod, runs, why = current
         try:
             j = mod.exports[name]
             args = [value_of(a) for a in action[2:]]
@@ -616,8 +770,9 @@ def control_cases(path):
                 expected = "Some([" + ", ".join(value_of(r) for r in top[2:]) + "])"
             else:
                 expected = "None"
-            if runs[j]:
-                raise Unsupported("uses " + ", ".join(sorted(set(runs[j]))))
+            bad = runs[j][0] if top[0] == "assert_return" else runs[j][1]
+            if bad:
+                raise Unsupported("uses " + ", ".join(sorted(set(bad))))
         except (Unsupported, KeyError) as e:
             left["assertions"] += 1
             print(f"{file}: left out {name}: {e}", file=sys.stderr)

@@ -5,11 +5,14 @@
 
 ///|
 /// A module of the control-flow files, written out for `@wasm.store`: its
-/// functions, the block types after the functions' types, its globals and
-/// the bytes of its memory (zeros), if it has one.
+/// functions, the block types (and call_indirect's types) after the
+/// functions' types, its tables of functions, as its element segments
+/// leave them, its globals and the bytes of its memory (zeros), if it
+/// has one.
 struct SpecModule {
   funcs : Array[@wasm.Func]
   types : Array[(Array[@wasm.NumType], Array[@wasm.NumType])]
+  tables : Array[Array[Int?]]
   globals : Array[@wasm.Value]
   memory : Int?
 }
@@ -66,15 +69,37 @@ test "the spec testsuite's loads at address 0 hold" {
 }
 
 ///|
-/// The functions `code` calls, directly.
-fn calls_in(code : Array[@wasm.Instr], out : Array[Int]) -> Unit {
+fn same_types(a : Array[@wasm.NumType], b : Array[@wasm.NumType]) -> Bool {
+  a.length() == b.length() &&
+  a.iter().zip(b.iter()).all(p => match p {
+    (I32, I32) | (I64, I64) => true
+    _ => false
+  })
+}
+
+///|
+/// The functions `code` calls: directly, or through a table (an entry of
+/// the call's type: an entry of another type traps).
+fn calls_in(m : SpecModule, code : Array[@wasm.Instr], out : Array[Int]) -> Unit {
+  let n = m.funcs.length()
   for ins in code {
     match ins {
       Call(j) => if !out.contains(j) { out.push(j) }
-      Block(_, b) | Loop(_, b) => calls_in(b, out)
+      CallIndirect(t, ty) => {
+        let (ps, rs) = m.types[ty - n]
+        for e in m.tables[t] {
+          if e is Some(j) &&
+            !out.contains(j) &&
+            same_types(m.funcs[j].params, ps) &&
+            same_types(m.funcs[j].results, rs) {
+            out.push(j)
+          }
+        }
+      }
+      Block(_, b) | Loop(_, b) => calls_in(m, b, out)
       If(_, a, b) => {
-        calls_in(a, out)
-        calls_in(b, out)
+        calls_in(m, a, out)
+        calls_in(m, b, out)
       }
       _ => ()
     }
@@ -87,15 +112,16 @@ fn reachable(m : SpecModule, j : Int) -> Array[Int] {
   let seen = [j]
   let mut i = 0
   while i < seen.length() {
-    calls_in(m.funcs[seen[i]].body, seen)
+    calls_in(m, m.funcs[seen[i]].body, seen)
     i += 1
   }
   seen
 }
 
 ///|
-/// `code` with function `used[i]` renumbered i, and the block types (after
-/// the module's n functions' types) after the `used.length()` ones.
+/// `code` with function `used[i]` renumbered i, and the block types and
+/// call_indirect's types (after the module's n functions' types) after
+/// the `used.length()` ones.
 fn renumber(
   code : Array[@wasm.Instr],
   used : Array[Int],
@@ -107,6 +133,7 @@ fn renumber(
   }
   code.map(ins => match ins {
     Call(j) => @wasm.Instr::Call(used.search(j).unwrap())
+    CallIndirect(t, ty) => CallIndirect(t, ty - n + used.length())
     Block(t, b) => Block(bt(t), renumber(b, used, n))
     Loop(t, b) => Loop(bt(t), renumber(b, used, n))
     If(t, a, b) => If(bt(t), renumber(a, used, n), renumber(b, used, n))
@@ -119,9 +146,12 @@ fn renumber(
 /// with the ones whose theorem is not the expected one. A module's
 /// assertions run in order, each in the memory and globals the one before
 /// left (as the file runs them). Each runs in a store of only the
-/// functions its call can reach, renumbered from 0 (calls and block types
-/// to match): the evaluator's steps cost more with each function of the
-/// store, used or not.
+/// functions its call can reach (through tables too), renumbered from 0
+/// (calls, block types and table entries to match): the evaluator's steps
+/// cost more with each function of the store, used or not. A table entry
+/// it cannot reach becomes null: a call_indirect reaches the entries of
+/// its type, and calling any other entry traps, as calling a null one
+/// does, so the case's outcome is the same.
 fn check_call_cases(slow~ : Bool) -> Unit raise {
   let state : Map[Int, (@kernel.Term, @kernel.Term)] = Map([])
   let failures = []
@@ -137,7 +167,11 @@ fn check_call_cases(slow~ : Bool) -> Unit raise {
     let n = m.funcs.length()
     let funcs = used.map(i => { ..m.funcs[i], body: renumber(m.funcs[i].body, used, n) })
     let memory = m.memory.map(n => Array::make(n, b'\x00'))
-    let (s0, inst) = @wasm.store(funcs~, types=m.types, globals=m.globals, memory?)
+    let tables = m.tables.map(t => t.map(e => match e {
+      Some(i) => used.search(i)
+      None => None
+    }))
+    let (s0, inst) = @wasm.store(funcs~, types=m.types, tables~, globals=m.globals, memory?)
     // this store's functions, with the memories and globals left before
     let s = match state.get(k) {
       None => s0

@@ -306,7 +306,7 @@ test "indirect calls" {
     locals: [],
     body: [LocalGet(0), LocalGet(1), Binop(I32, Sub)],
   }
-  let st = @wasm.store(funcs=[double, sub], table=[Some(0), Some(1), None])
+  let st = @wasm.store(funcs=[double, sub], tables=[[Some(0), Some(1), None]])
   // type 0 is double's, type 1 sub's
   computes_in(st, [I32Const(21), I32Const(0), CallIndirect(0, 0)], [I32Val(42)])
   |> ignore

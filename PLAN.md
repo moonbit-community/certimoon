@@ -120,7 +120,7 @@ eval.mbt and builder.mbt (the evaluator), and the tests.
 |---|---|
 | Semantics, typing relations (ported from WasmCert-Isabelle) | done |
 | Evaluator: integers, control, locals, globals, calls (`call_indirect` too), memory | done |
-| Spec checks: `i32.wast`, `i64.wast`, loads of `address.wast` at address 0; the integer assertions of `block`, `loop`, `br`, `br_if`, `br_table`, `call` and `return.wast` | done |
+| Spec checks: `i32.wast`, `i64.wast`, loads of `address.wast` at address 0; the integer assertions of `block`, `loop`, `br`, `br_if`, `br_table`, `call`, `return` and `call_indirect.wast` | done |
 | Memory model: heaps, points-to, arrays | done |
 | Instruction rules: consts, unop, binop, testop, relop, cvtop, nop, drop, select, loads and stores (i32, i64, packed), memory.size and grow, globals, locals | done |
 | Control: br, br_if, if, block and loop (no parameters), return | done |
@@ -149,7 +149,7 @@ Known limits of what exists:
 - The evaluator computes on memory byte by byte, so it suits small memories.
   The spec cases that test the end of a 64 KiB page are not covered.
 - The control-flow spec cases leave out what the builder cannot write
-  (floats, references, tables and `call_indirect`, and `memory.size` and `grow`, since
+  (floats, references and the table instructions, and `memory.size` and `grow`, since
   a module's memory is a few bytes, not a page), `assert_exhaustion` and a
   `br_table` of 16148 labels. Deep recursions (`fac 25`, `even 100`, ...,
   `SLOW` in `tools/spec_cases.py`) run only in a skipped test: the
@@ -333,9 +333,11 @@ say so.
    entry, an index past the table's end or the wrong type), so
    `apply_closed` states the example about runs, from apply's body in a
    frame whose locals are x and k, and its non-vacuity test runs it.
+   The spec cases of `call_indirect.wast` run too (66 of its integer
+   assertions, and 9 deep recursions in the skipped test;
+   tools/spec_cases.py writes out each module's tables).
    Not yet: code that writes tables (a rule for `table.set` would update
-   tabs), and the spec cases of `call_indirect.wast` (tools/spec_cases.py
-   does not translate tables).
+   tabs).
 
 2. **Real programs.** An untrusted `.wat` or `.wasm` importer that makes
    programs through the builder, then verify a function from a compiled

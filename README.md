@@ -485,7 +485,7 @@ other sign extensions), `ref.null`,
 `call` (of native functions), `call_indirect` and `return`, loads and
 stores (packed too), `memory.size`, `memory.grow`, `memory.fill`,
 `memory.copy`, and traps; these are the builder's instructions (`store`
-takes a `table` of function indices for `call_indirect`). Floating
+takes `tables` of function indices for `call_indirect`). Floating
 point (left unspecified, as in Isabelle), host functions, vector
 instructions and the table instructions (`table.get`, `table.set`, ...)
 are not covered: a term written out with them
@@ -513,20 +513,22 @@ the evaluator suits small memories; `store` does not round them to pages.
 `wasm/spec_test.mbt` checks the evaluator against the WebAssembly spec
 testsuite: the 758 integer assertions of `i32.wast` and `i64.wast`, the 60
 integer loads of `address.wast` at address 0 (in a memory of its data and
-zeros: the other addresses test the end of a 64 KiB page), and 451
+zeros: the other addresses test the end of a 64 KiB page), and 543
 integer assertions of `block.wast`, `loop.wast`, `br.wast`, `br_if.wast`,
-`br_table.wast`, `call.wast` and `return.wast`, which test the reduction
-rules of control flow, labels, frames and calls. Each holds as a theorem.
+`br_table.wast`, `call.wast`, `return.wast` and `call_indirect.wast`,
+which test the reduction rules of control flow, labels, frames and calls,
+direct and through tables. Each holds as a theorem.
 
 For the control-flow files, `tools/spec_cases.py` translates each module's
-functions to `Func`s, and a case calls an exported function in a store of
-them; a module's assertions run in order, each in the memory and globals
-the one before left. What the script does not translate (floats,
-references, tables and `call_indirect`, `memory.size` and `grow`) is left out, and so is
+functions to `Func`s and its tables to the tables its element segments
+leave, and a case calls an exported function in a store of them; a
+module's assertions run in order, each in the memory and globals the one
+before left. What the script does not translate (floats, references and
+the table instructions, `memory.size` and `grow`) is left out, and so is
 `assert_exhaustion`; the generated file counts what each file leaves out.
-Seven deep recursions of `call.wast` (`fac 25`, `fib 20`, `even 100`, ...:
-`SLOW` in the script) take minutes to hours to prove step by step, so only
-a skipped test runs them:
+Sixteen deep recursions of `call.wast` and `call_indirect.wast` (`fac
+25`, `fib 20`, `even 100`, ...: `SLOW` in the script) take minutes to
+hours to prove step by step, so only a skipped test runs them:
 
 ```bash
 ulimit -s 65520 && moon test -p moonbit-community/certimoon/wasm --target wasm-gc --release --include-skipped -f '*slow ones too*'
