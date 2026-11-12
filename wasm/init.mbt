@@ -7,12 +7,19 @@
 let loaded : Ref[Bool] = Ref::{ val: false }
 
 ///|
-/// Load the WasmCert definitions (once), after Library/words.
+/// Load the WasmCert definitions (once), after Library/words. It first
+/// turns off hol_light's progress output: MESON's search depths
+/// (`@lib.verbose`) and the parser's "inventing type variables" warning
+/// (`@preterm.type_invention_warning`). Both only report, and the few
+/// thousand proofs of a load printed pages of them. Set them back to true
+/// after load() to see them.
 pub fn load() -> Unit {
   if loaded.val {
     return
   }
   loaded.val = true
+  @lib.verbose.val = false
+  @preterm.type_invention_warning.val = false
   @words.load()
   @theory.begin_theory("WasmCert")
   (fn() raise {
