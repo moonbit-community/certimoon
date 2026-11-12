@@ -8696,3 +8696,221 @@ or
   ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]),
     reduce(s2, f2, es2, s3, f3, es3)
 ```
+
+## TLSF size classes (tlsf.mbt)
+
+definition `tlsf_fli`
+
+```
+tlsf_fli((s : W32)) == word_sub(word(31), int_clz(s))
+```
+
+definition `tlsf_sli`
+
+```
+tlsf_sli((s : W32), (f : W32))
+  == word_and(word_jushr(s, word_sub(f, word(4))), word(15))
+```
+
+definition `tlsf_mask`
+
+```
+tlsf_mask((s : W32))
+  == word_sub(word_jshl(word(1), word_sub(tlsf_fli(s), word(4))), word(1))
+```
+
+definition `tlsf_round`
+
+```
+tlsf_round((s : W32))
+  == word_and(word_add(s, tlsf_mask(s)), word_not(tlsf_mask(s)))
+```
+
+lemma `tlsf_exp_le`
+
+```
+∀ (m n : Num), (EXP(2, m) <= EXP(2, n)) == (m <= n)
+```
+
+lemma `tlsf_exp_lt`
+
+```
+∀ (m n : Num), (EXP(2, m) < EXP(2, n)) == (m < n)
+```
+
+lemma `tlsf_exp_nz`
+
+```
+∀ (n : Num), !(EXP(2, n) == 0)
+```
+
+lemma `tlsf_exp_fli`
+
+```
+∀ (f : Num)
+if
+  1. 4 <= f
+then
+  EXP(2, f) == 16 * EXP(2, f - 4)
+  && EXP(2, f + 1) == 32 * EXP(2, f - 4)
+  && EXP(2, f + 2) == 64 * EXP(2, f - 4)
+  && EXP(2, f + 1 - 4) == 2 * EXP(2, f - 4)
+```
+
+lemma `tlsf_fli_clz`
+
+```
+∀ (s : W32)
+if
+  1. !(s == word(0))
+then
+  val(tlsf_fli(s)) == 31 - word_clz(s)
+```
+
+lemma `tlsf_fli_bounds`
+
+```
+∀ (s : W32)
+if
+  1. !(s == word(0))
+then
+  val(tlsf_fli(s)) <= 31
+  && EXP(2, val(tlsf_fli(s))) <= val(s)
+  && val(s) < EXP(2, val(tlsf_fli(s)) + 1)
+```
+
+lemma `tlsf_fli_val`
+
+```
+∀ (s : W32) (f : Num)
+if
+  1. EXP(2, f) <= val(s)
+  2. val(s) < EXP(2, f + 1)
+then
+  val(tlsf_fli(s)) == f
+```
+
+lemma `tlsf_sli_val`
+
+```
+∀ (s : W32)
+if
+  1. 16 <= val(s)
+then
+  4 <= val(tlsf_fli(s))
+  && val(tlsf_fli(s)) <= 31
+  && val(tlsf_sli(s, tlsf_fli(s)))
+       == MOD(DIV(val(s), EXP(2, val(tlsf_fli(s)) - 4)), 16)
+```
+
+lemma `tlsf_class_num`
+
+```
+∀ (v k : Num)
+if
+  1. EXP(2, k + 4) <= v
+  2. v < EXP(2, k + 5)
+then
+  16 <= DIV(v, EXP(2, k))
+  && DIV(v, EXP(2, k)) < 32
+  && MOD(DIV(v, EXP(2, k)), 16) == DIV(v, EXP(2, k)) - 16
+  && DIV(v, EXP(2, k)) * EXP(2, k) <= v
+  && v < DIV(v, EXP(2, k)) * EXP(2, k) + EXP(2, k)
+```
+
+lemma `tlsf_class`
+
+```
+∀ (s : W32)
+if
+  1. 16 <= val(s)
+then
+  4 <= val(tlsf_fli(s))
+  && val(tlsf_fli(s)) <= 31
+  && val(tlsf_sli(s, tlsf_fli(s))) < 16
+  && (16 + val(tlsf_sli(s, tlsf_fli(s)))) * EXP(2, val(tlsf_fli(s)) - 4) <= val(
+       s)
+  && val(s) < (17 + val(tlsf_sli(s, tlsf_fli(s)))) * EXP(
+       2,
+       val(tlsf_fli(s)) - 4)
+```
+
+lemma `tlsf_mask_word`
+
+```
+∀ (s : W32)
+if
+  1. 16 <= val(s)
+then
+  tlsf_mask(s) == word(EXP(2, val(tlsf_fli(s)) - 4) - 1)
+```
+
+lemma `tlsf_round_val`
+
+```
+∀ (s : W32)
+if
+  1. 16 <= val(s)
+  2. val(s) <= 4160749568
+then
+  val(tlsf_round(s)) == EXP(2, val(tlsf_fli(s)) - 4) * DIV(
+    val(s) + (EXP(2, val(tlsf_fli(s)) - 4) - 1),
+    EXP(2, val(tlsf_fli(s)) - 4))
+```
+
+lemma `tlsf_class_exact`
+
+```
+∀ (x : W32)
+if
+  1. 16 <= val(x)
+  2. MOD(val(x), EXP(2, val(tlsf_fli(x)) - 4)) == 0
+then
+  (16 + val(tlsf_sli(x, tlsf_fli(x)))) * EXP(2, val(tlsf_fli(x)) - 4) == val(x)
+```
+
+lemma `tlsf_round_bounds`
+
+```
+∀ (s : W32)
+if
+  1. 16 <= val(s)
+  2. val(s) <= 4160749568
+then
+  val(s) <= val(tlsf_round(s))
+  && val(tlsf_round(s)) < val(s) + EXP(2, val(tlsf_fli(s)) - 4)
+  && (16 + val(tlsf_sli(tlsf_round(s), tlsf_fli(tlsf_round(s))))) * EXP(
+       2,
+       val(tlsf_fli(tlsf_round(s))) - 4)
+       == val(tlsf_round(s))
+```
+
+lemma `tlsf_find_sound`
+
+```
+∀ (s t : W32)
+if
+  1. 16 <= val(s)
+  2. val(s) <= 4160749568
+  3. 16 <= val(t)
+  4. val(tlsf_fli(tlsf_round(s))) < val(tlsf_fli(t))
+     || val(tlsf_fli(t)) == val(tlsf_fli(tlsf_round(s)))
+        && val(tlsf_sli(tlsf_round(s), tlsf_fli(tlsf_round(s)))) <= val(
+             tlsf_sli(t, tlsf_fli(t)))
+then
+  val(s) <= val(t)
+```
+
+lemma `tlsf_class_mono`
+
+```
+∀ (x y : W32)
+if
+  1. 16 <= val(x)
+  2. val(x) <= val(y)
+then
+  val(tlsf_fli(x)) < val(tlsf_fli(y))
+or
+  val(tlsf_fli(y)) == val(tlsf_fli(x))
+  && val(tlsf_sli(x, tlsf_fli(x))) <= val(tlsf_sli(y, tlsf_fli(y)))
+```

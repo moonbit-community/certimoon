@@ -98,6 +98,8 @@ pub fn load() -> Unit {
     prove_call_indirect_g()
     section("Examples (examples.mbt)")
     prove_examples()
+    section("TLSF size classes (tlsf.mbt)")
+    prove_tlsf_classes()
   })() catch {
     e => {
       let msg = match e {

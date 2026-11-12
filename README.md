@@ -322,6 +322,28 @@ definition and read back to check it (`wasm/wat.mbt`).
 | `example_quicksort` | example_qsort.mbt | recursive quicksort with a partition function: sorted, a permutation |
 | `quicksort_closed` | example_qsort.mbt | the same about runs, with no assertion: the memory's bytes are `before ++ words_bytes(xs) ++ after`, and every run of the call ends with `before ++ words_bytes(ys) ++ after` for some sorted permutation ys of xs, or can step |
 
+## MoonBit's allocator: size classes
+
+[logic/tlsf.mbt](logic/tlsf.mbt) starts on MoonBit's TLSF allocator
+(moonbitlang/malloc, which the compiler embeds for linear-memory wasm).
+It defines the size classes as the compiled code computes them, with
+`i32.clz`, and shifts that take the count modulo 32:
+
+- `tlsf_fli(s) = 31 - clz(s)`, the first-level index;
+- `tlsf_sli(s, f) = (s >> (f - 4)) & 15`, the second-level index;
+- `tlsf_round(s)`, which rounds a request up to the next multiple of its class's width before `find` searches the bitmaps.
+
+Then it proves three things:
+
+| Lemma | Says |
+|---|---|
+| `tlsf_round_bounds` | for 16 ≤ s ≤ 0xF8000000 (`MAX_REQUEST_SIZE`), rounding doesn't wrap: s ≤ round(s) < s + 2^(fli(s) − 4), and round(s) is the least size of its class |
+| `tlsf_find_sound` | every size in round(s)'s class, or in a class above it (what `find` searches), is at least s |
+| `tlsf_class_mono` | a larger size is never in a lower class, so a free block of at least round(s) bytes is in a class `find` searches |
+
+The allocator's code itself isn't verified yet: PLAN.md, Features 4, has
+the steps.
+
 ## Reference: the program logic
 
 The rules' statements are in

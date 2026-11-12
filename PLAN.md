@@ -105,6 +105,7 @@ good order to read it in:
 | returns.mbt | `safer`: safety with returns; its seq, label and frame lemmas |
 | specs.mbt | function specs, `sl_triple_g` and its rules, `sl_call_g`, `sl_funs_g`, and sym's rules for it |
 | examples.mbt, example_*.mbt | the verified programs |
+| tlsf.mbt | MoonBit's TLSF allocator: its size classes (`tlsf_fli`, `tlsf_sli`, `tlsf_round`), `tlsf_find_sound`, `tlsf_class_mono` |
 | logic_test.mbt | the listing's snapshot, the theorems' list, the public API's test, the closed theorems' non-vacuity checks |
 
 Package `wasm`: ast.mbt, numeric.mbt, store.mbt, typing.mbt, reduction.mbt
@@ -133,6 +134,8 @@ eval.mbt and builder.mbt (the evaluator), and the tests.
 | `call_indirect` (tables kept by module triples) | done |
 | Functions of other modules or the host; writing tables | not started |
 | An importer for `.wat` / `.wasm`, and a compiled program | not started |
+| MoonBit's TLSF allocator: the size-class arithmetic | done (Features 4, step 1) |
+| MoonBit's TLSF allocator: its code | not started |
 
 Known limits of what exists:
 
@@ -356,6 +359,36 @@ say so.
    `frame_safe_r` beside `frame_safe`, the `_g` block, loop and
    conditional rules) and half of sym's rules. The listing's statements
    would stay; the proofs move.
+
+4. **MoonBit's TLSF allocator.** The compiler embeds it
+   (`lib/xml/wasm_linear/memory/tlsf-mbt` in the compiler's repository,
+   source in `vendor/src/memory.mbt`) as `malloc` and `free` for
+   linear-memory wasm. Compiled, it is 16 functions of i32 code only:
+   loads and stores, `clz` and `ctz`, blocks, loops and branches, direct
+   calls with no recursion, and `memory.size` and `memory.grow`. Its one
+   import, `DATA_SECTION_END`, is replaced by a constant at link time, so
+   it is a parameter here. Its history has fixes for the very properties a
+   proof would check (exact bins, splitting, the memory32 limit), and its
+   `invariant_wbtest.mbt` lists the invariant, though it only tests the
+   wasm-gc model. Steps:
+   1. The size classes. Done: `logic/tlsf.mbt` defines them as the
+      compiled code computes them, and proves `tlsf_round_bounds`,
+      `tlsf_find_sound` and `tlsf_class_mono` (see the README).
+   2. `push` and `pop` against an abstract map from bins to address lists,
+      with the bitmaps kept in sync. `find`'s bitmap masks (a `ctz` of the
+      bitmap masked from fli up) go here too.
+   3. The large-allocation invariant: one predicate over the whole heap
+      (the free lists run through the physical chain's headers, so it is
+      not a separating conjunction), with the allocated regions, preserved
+      by `split`, `take`, `ensure`, `Memory::free` and
+      `initialize_memory`. Sizes wrap at 65,536 pages (`global_size` is 0
+      there).
+   4. The small-block pages (a page's `used` counts the blocks handed to
+      the heap's free list; a page is on the partial list exactly when
+      `used < total`), then closed theorems for `try_malloc`,
+      `full_malloc` and `free`. This needs the importer (Features 2): the
+      module is 1,975 lines of WAT. Verify the module the compiler embeds,
+      after its second `wasm-opt` pass, not the vendored `output.wat`.
 
 Not planned yet, with what they need:
 
