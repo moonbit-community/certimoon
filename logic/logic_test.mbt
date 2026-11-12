@@ -57,6 +57,12 @@ test "the logic's lemmas are theorems, with no new axioms" {
     "tlsf_round_bounds", "tlsf_find_sound", "tlsf_class_mono", "st_unop", "st_local_tee", "st_drop",
     "st_cell_load", "st_cell_store", "tlsf_code_fli", "tlsf_code_sli", "tlsf_push_cons",
     "tlsf_push_nil", "tlsf_pop_mid", "tlsf_pop_last", "tlsf_pop_head", "tlsf_pop_only",
+    "tlsf_dll_cons", "star_pure_hr", "star_pure_hl", "star_ex_hr", "star_ex_hl", "star_emp_hr",
+    "star_emp_hl", "sl_pure", "sl_ex", "tlsf_push_bin_nil", "tlsf_push_bin_cons", "tlsf_dll_append",
+    "tlsf_pop_bin_only", "tlsf_pop_bin_head", "tlsf_pop_bin_last", "tlsf_pop_bin_mid",
+    "tlsf_prev_snoc", "tlsf_hd_append", "tlsf_push_u_nil", "tlsf_push_u_cons", "tlsf_push",
+    "tlsf_pop_u_only", "tlsf_pop_u_head", "tlsf_pop_u_last", "tlsf_pop_u_mid", "tlsf_pop",
+    "tlsf_sync_set", "tlsf_sync_clear", "tlsf_sync_zero", "tlsf_code_bounds",
   ] {
     assert_true(@kernel.hyp(@logic.thm(name)).is_empty(), msg=name)
   }

@@ -10076,3 +10076,2465 @@ then
                     fp(gs, ms)))))),
           h)))
 ```
+
+## TLSF bins as doubly linked lists (tlsf.mbt)
+
+definition `tlsf_dll`
+
+```
+tlsf_dll((p : W32), (x : W32), NIL) == ((h : Heap) => x == word(0) && emp(h))
+&& tlsf_dll((p : W32), (x : W32), CONS((a : W32), (xs : List[W32]))) == (
+     (h : Heap) =>
+       x == a
+       && !(a == word(0))
+       && star(
+            pts(val(word_add(a, word(8))), serialise_i32(p)),
+            (h1 : Heap) =>
+              ∃ n : W32,
+                star(
+                  pts(val(word_add(a, word(12))), serialise_i32(n)),
+                  tlsf_dll(a, n, xs),
+                  h1),
+            h))
+```
+
+definition `tlsf_dll_next`
+
+```
+tlsf_dll_next((a : W32), (xs : List[W32])) == (
+  (h : Heap) =>
+    ∃ n : W32,
+      star(
+        pts(val(word_add(a, word(12))), serialise_i32(n)),
+        tlsf_dll(a, n, xs),
+        h))
+```
+
+lemma `tlsf_dll_cons`
+
+```
+∀ (p x a : W32) (xs : List[W32]),
+  tlsf_dll(p, x, CONS(a, xs)) == (
+    (h : Heap) =>
+      x == a
+      && !(a == word(0))
+      && star(
+           pts(val(word_add(a, word(8))), serialise_i32(p)),
+           tlsf_dll_next(a, xs),
+           h))
+```
+
+definition `tlsf_hd`
+
+```
+tlsf_hd(NIL) == word(0)
+&& tlsf_hd(CONS((a : W32), (xs : List[W32]))) == a
+```
+
+definition `tlsf_bin`
+
+```
+tlsf_bin((xs : List[W32])) == tlsf_dll(word(0), tlsf_hd(xs), xs)
+```
+
+lemma `star_pure_hr`
+
+```
+∀ (c : Bool) (p q : HProp),
+  star(p, (h : Heap) => c && q(h)) == ((h : Heap) => c && star(p, q, h))
+```
+
+lemma `star_pure_hl`
+
+```
+∀ (c : Bool) (p q : HProp),
+  star((h : Heap) => c && p(h), q) == ((h : Heap) => c && star(p, q, h))
+```
+
+lemma `star_ex_hr`
+
+```
+∀ (p : HProp) (qq : (A, Heap) -> Bool),
+  star(p, (h : Heap) => ∃ x : A, qq(x, h))
+    == ((h : Heap) => ∃ x : A, star(p, qq(x), h))
+```
+
+lemma `star_ex_hl`
+
+```
+∀ (pp : (A, Heap) -> Bool) (q : HProp),
+  star((h : Heap) => ∃ x : A, pp(x, h), q)
+    == ((h : Heap) => ∃ x : A, star(pp(x), q, h))
+```
+
+lemma `star_emp_hr`
+
+```
+∀ (p : HProp), star(p, emp) == p
+```
+
+lemma `star_emp_hl`
+
+```
+∀ (p : HProp), star(emp, p) == p
+```
+
+lemma `sl_pure`
+
+```
+∀ (c : Bool) (p q : SAssn) (bs : List[B_e])
+if
+  1. c → sl_triple(p, bs, q)
+then
+  sl_triple(
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      c && p(vs, lc, gs, ms, h),
+    bs,
+    q)
+```
+
+lemma `sl_ex`
+
+```
+∀ (pp : (A, List[Value], List[Value], List[Value], Num, Heap) -> Bool)
+  (bs : List[B_e]) (q : SAssn)
+if
+  1. ∀ x : A, sl_triple(pp(x), bs, q)
+then
+  sl_triple(
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ x : A, pp(x, vs, lc, gs, ms, h),
+    bs,
+    q)
+```
+
+lemma `tlsf_push_bin_nil`
+
+```
+∀ (d m hd pf0 nf0 fl slb : W32) (fp : GProp)
+if
+  1. !(m == word(0))
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(m)), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(
+          pts(val(m), serialise_i32(hd)),
+          star(
+            pts(val(word_add(m, word(8))), serialise_i32(pf0)),
+            star(
+              pts(val(word_add(m, word(12))), serialise_i32(nf0)),
+              star(
+                pts(
+                  val(word_and(word_add(d, word(15)), word(4294967280))),
+                  serialise_i32(fl)),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(4)),
+                        word_mul(
+                          word_sub(
+                            word(27),
+                            word(
+                              word_clz(
+                                word_and(hd, word(4294967292))))),
+                          word(68)))),
+                    serialise_i32(slb)),
+                  star(
+                    pts(
+                      val(
+                        word_add(
+                          word_add(
+                            word_add(
+                              word_add(
+                                word_and(
+                                  word_add(d, word(15)),
+                                  word(4294967280)),
+                                word(4)),
+                              word_mul(
+                                word_sub(
+                                  word(27),
+                                  word(
+                                    word_clz(
+                                      word_and(
+                                        hd,
+                                        word(4294967292))))),
+                                word(68))),
+                            word(4)),
+                          word_jshl(
+                            word_and(
+                              word_jushr(
+                                word_and(hd, word(4294967292)),
+                                word_sub(
+                                  word(27),
+                                  word(
+                                    word_clz(
+                                      word_and(
+                                        hd,
+                                        word(4294967292)))))),
+                              word(15)),
+                            word(2)))),
+                      serialise_i32(word(0))),
+                    star(tlsf_dll(word(0), word(0), NIL), fp(gs, ms))))))),
+          h)),
+    tlsf_push_code(d),
+    st(
+      [V_num(ConstInt32(word(0)))],
+      [
+        V_num(ConstInt32(m)),
+        V_num(
+          ConstInt32(
+            word_add(
+              word_add(
+                word_and(word_add(d, word(15)), word(4294967280)),
+                word(4)),
+              word_mul(
+                word_sub(
+                  word(27),
+                  word(word_clz(word_and(hd, word(4294967292))))),
+                word(68))))),
+        V_num(
+          ConstInt32(
+            word_and(
+              word_jushr(
+                word_and(hd, word(4294967292)),
+                word_sub(
+                  word(27),
+                  word(word_clz(word_and(hd, word(4294967292)))))),
+              word(15)))),
+        V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(
+          pts(val(m), serialise_i32(hd)),
+          star(
+            pts(
+              val(word_and(word_add(d, word(15)), word(4294967280))),
+              serialise_i32(
+                word_or(
+                  fl,
+                  word_jshl(
+                    word(1),
+                    word_sub(
+                      word(27),
+                      word(word_clz(word_and(hd, word(4294967292))))))))),
+            star(
+              pts(
+                val(
+                  word_add(
+                    word_add(
+                      word_and(word_add(d, word(15)), word(4294967280)),
+                      word(4)),
+                    word_mul(
+                      word_sub(
+                        word(27),
+                        word(word_clz(word_and(hd, word(4294967292))))),
+                      word(68)))),
+                serialise_i32(
+                  word_or(
+                    slb,
+                    word_jshl(
+                      word(1),
+                      word_and(
+                        word_jushr(
+                          word_and(hd, word(4294967292)),
+                          word_sub(
+                            word(27),
+                            word(
+                              word_clz(
+                                word_and(hd, word(4294967292)))))),
+                        word(15)))))),
+              star(
+                pts(
+                  val(
+                    word_add(
+                      word_add(
+                        word_add(
+                          word_add(
+                            word_and(
+                              word_add(d, word(15)),
+                              word(4294967280)),
+                            word(4)),
+                          word_mul(
+                            word_sub(
+                              word(27),
+                              word(
+                                word_clz(
+                                  word_and(hd, word(4294967292))))),
+                            word(68))),
+                        word(4)),
+                      word_jshl(
+                        word_and(
+                          word_jushr(
+                            word_and(hd, word(4294967292)),
+                            word_sub(
+                              word(27),
+                              word(
+                                word_clz(
+                                  word_and(hd, word(4294967292)))))),
+                          word(15)),
+                        word(2)))),
+                  serialise_i32(m)),
+                star(tlsf_dll(word(0), m, [m]), fp(gs, ms))))),
+          h)))
+```
+
+lemma `tlsf_push_bin_cons`
+
+```
+∀ (d m hd pf0 nf0 fl slb a : W32) (ys : List[W32]) (fp : GProp)
+if
+  1. !(m == word(0))
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(m)), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(
+          pts(val(m), serialise_i32(hd)),
+          star(
+            pts(val(word_add(m, word(8))), serialise_i32(pf0)),
+            star(
+              pts(val(word_add(m, word(12))), serialise_i32(nf0)),
+              star(
+                pts(
+                  val(word_and(word_add(d, word(15)), word(4294967280))),
+                  serialise_i32(fl)),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(4)),
+                        word_mul(
+                          word_sub(
+                            word(27),
+                            word(
+                              word_clz(
+                                word_and(hd, word(4294967292))))),
+                          word(68)))),
+                    serialise_i32(slb)),
+                  star(
+                    pts(
+                      val(
+                        word_add(
+                          word_add(
+                            word_add(
+                              word_add(
+                                word_and(
+                                  word_add(d, word(15)),
+                                  word(4294967280)),
+                                word(4)),
+                              word_mul(
+                                word_sub(
+                                  word(27),
+                                  word(
+                                    word_clz(
+                                      word_and(
+                                        hd,
+                                        word(4294967292))))),
+                                word(68))),
+                            word(4)),
+                          word_jshl(
+                            word_and(
+                              word_jushr(
+                                word_and(hd, word(4294967292)),
+                                word_sub(
+                                  word(27),
+                                  word(
+                                    word_clz(
+                                      word_and(
+                                        hd,
+                                        word(4294967292)))))),
+                              word(15)),
+                            word(2)))),
+                      serialise_i32(a)),
+                    star(tlsf_dll(word(0), a, CONS(a, ys)), fp(gs, ms))))))),
+          h)),
+    tlsf_push_code(d),
+    st(
+      [V_num(ConstInt32(word(0)))],
+      [
+        V_num(ConstInt32(m)),
+        V_num(
+          ConstInt32(
+            word_add(
+              word_add(
+                word_and(word_add(d, word(15)), word(4294967280)),
+                word(4)),
+              word_mul(
+                word_sub(
+                  word(27),
+                  word(word_clz(word_and(hd, word(4294967292))))),
+                word(68))))),
+        V_num(
+          ConstInt32(
+            word_and(
+              word_jushr(
+                word_and(hd, word(4294967292)),
+                word_sub(
+                  word(27),
+                  word(word_clz(word_and(hd, word(4294967292)))))),
+              word(15)))),
+        V_num(ConstInt32(a))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(
+          pts(val(m), serialise_i32(hd)),
+          star(
+            pts(
+              val(word_and(word_add(d, word(15)), word(4294967280))),
+              serialise_i32(
+                word_or(
+                  fl,
+                  word_jshl(
+                    word(1),
+                    word_sub(
+                      word(27),
+                      word(word_clz(word_and(hd, word(4294967292))))))))),
+            star(
+              pts(
+                val(
+                  word_add(
+                    word_add(
+                      word_and(word_add(d, word(15)), word(4294967280)),
+                      word(4)),
+                    word_mul(
+                      word_sub(
+                        word(27),
+                        word(word_clz(word_and(hd, word(4294967292))))),
+                      word(68)))),
+                serialise_i32(
+                  word_or(
+                    slb,
+                    word_jshl(
+                      word(1),
+                      word_and(
+                        word_jushr(
+                          word_and(hd, word(4294967292)),
+                          word_sub(
+                            word(27),
+                            word(
+                              word_clz(
+                                word_and(hd, word(4294967292)))))),
+                        word(15)))))),
+              star(
+                pts(
+                  val(
+                    word_add(
+                      word_add(
+                        word_add(
+                          word_add(
+                            word_and(
+                              word_add(d, word(15)),
+                              word(4294967280)),
+                            word(4)),
+                          word_mul(
+                            word_sub(
+                              word(27),
+                              word(
+                                word_clz(
+                                  word_and(hd, word(4294967292))))),
+                            word(68))),
+                        word(4)),
+                      word_jshl(
+                        word_and(
+                          word_jushr(
+                            word_and(hd, word(4294967292)),
+                            word_sub(
+                              word(27),
+                              word(
+                                word_clz(
+                                  word_and(hd, word(4294967292)))))),
+                          word(15)),
+                        word(2)))),
+                  serialise_i32(m)),
+                star(
+                  tlsf_dll(word(0), m, CONS(m, CONS(a, ys))),
+                  fp(gs, ms))))),
+          h)))
+```
+
+definition `tlsf_seg`
+
+```
+tlsf_seg((p : W32), (x : W32), NIL, (q : W32), (y : W32))
+  == ((h : Heap) => x == y && q == p && emp(h))
+&& tlsf_seg(
+     (p : W32),
+     (x : W32),
+     CONS((a : W32), (xs : List[W32])),
+     (q : W32),
+     (y : W32)) == (
+     (h : Heap) =>
+       x == a
+       && !(a == word(0))
+       && star(
+            pts(val(word_add(a, word(8))), serialise_i32(p)),
+            (h1 : Heap) =>
+              ∃ n : W32,
+                star(
+                  pts(val(word_add(a, word(12))), serialise_i32(n)),
+                  tlsf_seg(a, n, xs, q, y),
+                  h1),
+            h))
+```
+
+lemma `tlsf_dll_append`
+
+```
+∀ (ys zs : List[W32]) (p x : W32),
+  tlsf_dll(p, x, APPEND(ys, zs)) == (
+    (h : Heap) =>
+      ∃ q : W32,
+        ∃ y : W32, star(tlsf_seg(p, x, ys, q, y), tlsf_dll(q, y, zs), h))
+```
+
+lemma `tlsf_pop_bin_only`
+
+```
+∀ (d m hd fl slb : W32) (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(m)), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(
+          pts(val(m), serialise_i32(hd)),
+          star(
+            pts(
+              val(
+                word_add(
+                  word_add(
+                    word_add(
+                      word_add(
+                        word_and(
+                          word_add(d, word(15)),
+                          word(4294967280)),
+                        word(4)),
+                      word_mul(
+                        word_sub(
+                          word(27),
+                          word(
+                            word_clz(word_and(hd, word(4294967292))))),
+                        word(68))),
+                    word(4)),
+                  word_jshl(
+                    word_and(
+                      word_jushr(
+                        word_and(hd, word(4294967292)),
+                        word_sub(
+                          word(27),
+                          word(
+                            word_clz(word_and(hd, word(4294967292)))))),
+                      word(15)),
+                    word(2)))),
+              serialise_i32(m)),
+            star(
+              pts(
+                val(
+                  word_add(
+                    word_add(
+                      word_and(word_add(d, word(15)), word(4294967280)),
+                      word(4)),
+                    word_mul(
+                      word_sub(
+                        word(27),
+                        word(word_clz(word_and(hd, word(4294967292))))),
+                      word(68)))),
+                serialise_i32(slb)),
+              star(
+                pts(
+                  val(word_and(word_add(d, word(15)), word(4294967280))),
+                  serialise_i32(fl)),
+                star(tlsf_dll(word(0), m, [m]), fp(gs, ms))))),
+          h)),
+    tlsf_pop_code(d),
+    st(
+      NIL,
+      [
+        V_num(
+          ConstInt32(
+            if word_xor(
+              slb,
+              word_jshl(
+                word(1),
+                word_and(
+                  word_jushr(
+                    word_and(hd, word(4294967292)),
+                    word_sub(
+                      word(27),
+                      word(word_clz(word_and(hd, word(4294967292)))))),
+                  word(15)))) == word(0) {
+              word_xor(
+                fl,
+                word_jshl(
+                  word(1),
+                  word_sub(
+                    word(27),
+                    word(word_clz(word_and(hd, word(4294967292))))))) } else {
+              word_xor(
+                slb,
+                word_jshl(
+                  word(1),
+                  word_and(
+                    word_jushr(
+                      word_and(hd, word(4294967292)),
+                      word_sub(
+                        word(27),
+                        word(
+                          word_clz(word_and(hd, word(4294967292)))))),
+                    word(15)))) })),
+        V_num(
+          ConstInt32(
+            word_sub(
+              word(27),
+              word(word_clz(word_and(hd, word(4294967292))))))),
+        V_num(
+          ConstInt32(
+            word_and(
+              word_jushr(
+                word_and(hd, word(4294967292)),
+                word_sub(
+                  word(27),
+                  word(word_clz(word_and(hd, word(4294967292)))))),
+              word(15)))),
+        V_num(
+          ConstInt32(
+            word_add(
+              word_add(
+                word_and(word_add(d, word(15)), word(4294967280)),
+                word(4)),
+              word_mul(
+                word_sub(
+                  word(27),
+                  word(word_clz(word_and(hd, word(4294967292))))),
+                word(68))))),
+        V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(
+          pts(val(m), serialise_i32(hd)),
+          star(
+            pts(val(word_add(m, word(8))), serialise_i32(word(0))),
+            star(
+              pts(val(word_add(m, word(12))), serialise_i32(word(0))),
+              star(
+                pts(
+                  val(
+                    word_add(
+                      word_add(
+                        word_add(
+                          word_add(
+                            word_and(
+                              word_add(d, word(15)),
+                              word(4294967280)),
+                            word(4)),
+                          word_mul(
+                            word_sub(
+                              word(27),
+                              word(
+                                word_clz(
+                                  word_and(hd, word(4294967292))))),
+                            word(68))),
+                        word(4)),
+                      word_jshl(
+                        word_and(
+                          word_jushr(
+                            word_and(hd, word(4294967292)),
+                            word_sub(
+                              word(27),
+                              word(
+                                word_clz(
+                                  word_and(hd, word(4294967292)))))),
+                          word(15)),
+                        word(2)))),
+                  serialise_i32(word(0))),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(4)),
+                        word_mul(
+                          word_sub(
+                            word(27),
+                            word(
+                              word_clz(
+                                word_and(hd, word(4294967292))))),
+                          word(68)))),
+                    serialise_i32(
+                      word_xor(
+                        slb,
+                        word_jshl(
+                          word(1),
+                          word_and(
+                            word_jushr(
+                              word_and(hd, word(4294967292)),
+                              word_sub(
+                                word(27),
+                                word(
+                                  word_clz(
+                                    word_and(
+                                      hd,
+                                      word(4294967292)))))),
+                            word(15)))))),
+                  star(
+                    pts(
+                      val(
+                        word_and(
+                          word_add(d, word(15)),
+                          word(4294967280))),
+                      serialise_i32(
+                        if word_xor(
+                          slb,
+                          word_jshl(
+                            word(1),
+                            word_and(
+                              word_jushr(
+                                word_and(hd, word(4294967292)),
+                                word_sub(
+                                  word(27),
+                                  word(
+                                    word_clz(
+                                      word_and(
+                                        hd,
+                                        word(4294967292)))))),
+                              word(15)))) == word(0) {
+                          word_xor(
+                            fl,
+                            word_jshl(
+                              word(1),
+                              word_sub(
+                                word(27),
+                                word(
+                                  word_clz(
+                                    word_and(
+                                      hd,
+                                      word(4294967292))))))) } else {
+                          fl })),
+                    star(tlsf_dll(word(0), word(0), NIL), fp(gs, ms))))))),
+          h)))
+```
+
+lemma `tlsf_pop_bin_head`
+
+```
+∀ (d m hd fl slb b : W32) (zs : List[W32]) (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(m)), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(
+          pts(val(m), serialise_i32(hd)),
+          star(
+            pts(
+              val(
+                word_add(
+                  word_add(
+                    word_add(
+                      word_add(
+                        word_and(
+                          word_add(d, word(15)),
+                          word(4294967280)),
+                        word(4)),
+                      word_mul(
+                        word_sub(
+                          word(27),
+                          word(
+                            word_clz(word_and(hd, word(4294967292))))),
+                        word(68))),
+                    word(4)),
+                  word_jshl(
+                    word_and(
+                      word_jushr(
+                        word_and(hd, word(4294967292)),
+                        word_sub(
+                          word(27),
+                          word(
+                            word_clz(word_and(hd, word(4294967292)))))),
+                      word(15)),
+                    word(2)))),
+              serialise_i32(m)),
+            star(tlsf_dll(word(0), m, CONS(m, CONS(b, zs))), fp(gs, ms))),
+          h)),
+    tlsf_pop_code(d),
+    st(
+      NIL,
+      [
+        V_num(ConstInt32(m)),
+        V_num(
+          ConstInt32(
+            word_sub(
+              word(27),
+              word(word_clz(word_and(hd, word(4294967292))))))),
+        V_num(
+          ConstInt32(
+            word_and(
+              word_jushr(
+                word_and(hd, word(4294967292)),
+                word_sub(
+                  word(27),
+                  word(word_clz(word_and(hd, word(4294967292)))))),
+              word(15)))),
+        V_num(
+          ConstInt32(
+            word_add(
+              word_add(
+                word_and(word_add(d, word(15)), word(4294967280)),
+                word(4)),
+              word_mul(
+                word_sub(
+                  word(27),
+                  word(word_clz(word_and(hd, word(4294967292))))),
+                word(68))))),
+        V_num(ConstInt32(b))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(
+          pts(val(m), serialise_i32(hd)),
+          star(
+            pts(val(word_add(m, word(8))), serialise_i32(word(0))),
+            star(
+              pts(val(word_add(m, word(12))), serialise_i32(b)),
+              star(
+                pts(
+                  val(
+                    word_add(
+                      word_add(
+                        word_add(
+                          word_add(
+                            word_and(
+                              word_add(d, word(15)),
+                              word(4294967280)),
+                            word(4)),
+                          word_mul(
+                            word_sub(
+                              word(27),
+                              word(
+                                word_clz(
+                                  word_and(hd, word(4294967292))))),
+                            word(68))),
+                        word(4)),
+                      word_jshl(
+                        word_and(
+                          word_jushr(
+                            word_and(hd, word(4294967292)),
+                            word_sub(
+                              word(27),
+                              word(
+                                word_clz(
+                                  word_and(hd, word(4294967292)))))),
+                          word(15)),
+                        word(2)))),
+                  serialise_i32(b)),
+                star(tlsf_dll(word(0), b, CONS(b, zs)), fp(gs, ms))))),
+          h)))
+```
+
+lemma `tlsf_pop_bin_last`
+
+```
+∀ (d m hd fl slb x pf : W32) (ys : List[W32]) (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(m)), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(tlsf_dll(word(0), x, APPEND(ys, [pf, m])), fp(gs, ms), h)),
+    tlsf_pop_code(d),
+    st(
+      NIL,
+      [V_num(ConstInt32(word(0))), V_num(ConstInt32(pf)),
+       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(
+          pts(val(word_add(m, word(8))), serialise_i32(pf)),
+          star(
+            pts(val(word_add(m, word(12))), serialise_i32(word(0))),
+            star(tlsf_dll(word(0), x, APPEND(ys, [pf])), fp(gs, ms))),
+          h)))
+```
+
+lemma `tlsf_pop_bin_mid`
+
+```
+∀ (d m hd fl slb x pf b : W32) (ys zs : List[W32]) (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(m)), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(
+          tlsf_dll(word(0), x, APPEND(ys, CONS(pf, CONS(m, CONS(b, zs))))),
+          fp(gs, ms),
+          h)),
+    tlsf_pop_code(d),
+    st(
+      NIL,
+      [V_num(ConstInt32(b)), V_num(ConstInt32(pf)),
+       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(
+          pts(val(word_add(m, word(8))), serialise_i32(pf)),
+          star(
+            pts(val(word_add(m, word(12))), serialise_i32(b)),
+            star(
+              tlsf_dll(word(0), x, APPEND(ys, CONS(pf, CONS(b, zs)))),
+              fp(gs, ms))),
+          h)))
+```
+
+definition `tlsf_prev`
+
+```
+tlsf_prev(NIL) == word(0)
+&& tlsf_prev(CONS((a : W32), (t : List[W32])))
+     == (if t == NIL { a } else { tlsf_prev(t) })
+```
+
+lemma `tlsf_prev_snoc`
+
+```
+∀ (l : List[W32]) (a : W32), tlsf_prev(APPEND(l, [a])) == a
+```
+
+lemma `tlsf_hd_append`
+
+```
+∀ (ys l : List[W32]) (a : W32),
+  tlsf_hd(APPEND(ys, CONS(a, l))) == (if ys == NIL { a } else { tlsf_hd(ys) })
+```
+
+lemma `tlsf_push_u_nil`
+
+```
+∀ (d m hd pf0 nf0 fl slb : W32) (fp : GProp)
+if
+  1. !(m == word(0))
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(m)), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(
+          pts(val(m), serialise_i32(hd)),
+          star(
+            pts(val(word_add(m, word(8))), serialise_i32(pf0)),
+            star(
+              pts(val(word_add(m, word(12))), serialise_i32(nf0)),
+              star(
+                pts(
+                  val(word_and(word_add(d, word(15)), word(4294967280))),
+                  serialise_i32(fl)),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(4)),
+                        word_mul(
+                          word_sub(
+                            word(27),
+                            word(
+                              word_clz(
+                                word_and(hd, word(4294967292))))),
+                          word(68)))),
+                    serialise_i32(slb)),
+                  star(
+                    pts(
+                      val(
+                        word_add(
+                          word_add(
+                            word_add(
+                              word_add(
+                                word_and(
+                                  word_add(d, word(15)),
+                                  word(4294967280)),
+                                word(4)),
+                              word_mul(
+                                word_sub(
+                                  word(27),
+                                  word(
+                                    word_clz(
+                                      word_and(
+                                        hd,
+                                        word(4294967292))))),
+                                word(68))),
+                            word(4)),
+                          word_jshl(
+                            word_and(
+                              word_jushr(
+                                word_and(hd, word(4294967292)),
+                                word_sub(
+                                  word(27),
+                                  word(
+                                    word_clz(
+                                      word_and(
+                                        hd,
+                                        word(4294967292)))))),
+                              word(15)),
+                            word(2)))),
+                      serialise_i32(tlsf_hd(NIL))),
+                    star(tlsf_bin(NIL), fp(gs, ms))))))),
+          h)),
+    tlsf_push_code(d),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == [V_num(ConstInt32(word(0)))]
+      && star(
+           pts(val(m), serialise_i32(hd)),
+           star(
+             pts(
+               val(word_and(word_add(d, word(15)), word(4294967280))),
+               serialise_i32(
+                 word_or(
+                   fl,
+                   word_jshl(
+                     word(1),
+                     word_sub(
+                       word(27),
+                       word(word_clz(word_and(hd, word(4294967292))))))))),
+             star(
+               pts(
+                 val(
+                   word_add(
+                     word_add(
+                       word_and(word_add(d, word(15)), word(4294967280)),
+                       word(4)),
+                     word_mul(
+                       word_sub(
+                         word(27),
+                         word(word_clz(word_and(hd, word(4294967292))))),
+                       word(68)))),
+                 serialise_i32(
+                   word_or(
+                     slb,
+                     word_jshl(
+                       word(1),
+                       word_and(
+                         word_jushr(
+                           word_and(hd, word(4294967292)),
+                           word_sub(
+                             word(27),
+                             word(
+                               word_clz(
+                                 word_and(hd, word(4294967292)))))),
+                         word(15)))))),
+               star(
+                 pts(
+                   val(
+                     word_add(
+                       word_add(
+                         word_add(
+                           word_add(
+                             word_and(
+                               word_add(d, word(15)),
+                               word(4294967280)),
+                             word(4)),
+                           word_mul(
+                             word_sub(
+                               word(27),
+                               word(
+                                 word_clz(
+                                   word_and(hd, word(4294967292))))),
+                             word(68))),
+                         word(4)),
+                       word_jshl(
+                         word_and(
+                           word_jushr(
+                             word_and(hd, word(4294967292)),
+                             word_sub(
+                               word(27),
+                               word(
+                                 word_clz(
+                                   word_and(hd, word(4294967292)))))),
+                           word(15)),
+                         word(2)))),
+                   serialise_i32(m)),
+                 star(tlsf_bin([m]), fp(gs, ms))))),
+           h))
+```
+
+lemma `tlsf_push_u_cons`
+
+```
+∀ (d m hd pf0 nf0 fl slb a : W32) (ys : List[W32]) (fp : GProp)
+if
+  1. !(m == word(0))
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(m)), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(
+          pts(val(m), serialise_i32(hd)),
+          star(
+            pts(val(word_add(m, word(8))), serialise_i32(pf0)),
+            star(
+              pts(val(word_add(m, word(12))), serialise_i32(nf0)),
+              star(
+                pts(
+                  val(word_and(word_add(d, word(15)), word(4294967280))),
+                  serialise_i32(fl)),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(4)),
+                        word_mul(
+                          word_sub(
+                            word(27),
+                            word(
+                              word_clz(
+                                word_and(hd, word(4294967292))))),
+                          word(68)))),
+                    serialise_i32(slb)),
+                  star(
+                    pts(
+                      val(
+                        word_add(
+                          word_add(
+                            word_add(
+                              word_add(
+                                word_and(
+                                  word_add(d, word(15)),
+                                  word(4294967280)),
+                                word(4)),
+                              word_mul(
+                                word_sub(
+                                  word(27),
+                                  word(
+                                    word_clz(
+                                      word_and(
+                                        hd,
+                                        word(4294967292))))),
+                                word(68))),
+                            word(4)),
+                          word_jshl(
+                            word_and(
+                              word_jushr(
+                                word_and(hd, word(4294967292)),
+                                word_sub(
+                                  word(27),
+                                  word(
+                                    word_clz(
+                                      word_and(
+                                        hd,
+                                        word(4294967292)))))),
+                              word(15)),
+                            word(2)))),
+                      serialise_i32(tlsf_hd(CONS(a, ys)))),
+                    star(tlsf_bin(CONS(a, ys)), fp(gs, ms))))))),
+          h)),
+    tlsf_push_code(d),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == [V_num(ConstInt32(word(0)))]
+      && star(
+           pts(val(m), serialise_i32(hd)),
+           star(
+             pts(
+               val(word_and(word_add(d, word(15)), word(4294967280))),
+               serialise_i32(
+                 word_or(
+                   fl,
+                   word_jshl(
+                     word(1),
+                     word_sub(
+                       word(27),
+                       word(word_clz(word_and(hd, word(4294967292))))))))),
+             star(
+               pts(
+                 val(
+                   word_add(
+                     word_add(
+                       word_and(word_add(d, word(15)), word(4294967280)),
+                       word(4)),
+                     word_mul(
+                       word_sub(
+                         word(27),
+                         word(word_clz(word_and(hd, word(4294967292))))),
+                       word(68)))),
+                 serialise_i32(
+                   word_or(
+                     slb,
+                     word_jshl(
+                       word(1),
+                       word_and(
+                         word_jushr(
+                           word_and(hd, word(4294967292)),
+                           word_sub(
+                             word(27),
+                             word(
+                               word_clz(
+                                 word_and(hd, word(4294967292)))))),
+                         word(15)))))),
+               star(
+                 pts(
+                   val(
+                     word_add(
+                       word_add(
+                         word_add(
+                           word_add(
+                             word_and(
+                               word_add(d, word(15)),
+                               word(4294967280)),
+                             word(4)),
+                           word_mul(
+                             word_sub(
+                               word(27),
+                               word(
+                                 word_clz(
+                                   word_and(hd, word(4294967292))))),
+                             word(68))),
+                         word(4)),
+                       word_jshl(
+                         word_and(
+                           word_jushr(
+                             word_and(hd, word(4294967292)),
+                             word_sub(
+                               word(27),
+                               word(
+                                 word_clz(
+                                   word_and(hd, word(4294967292)))))),
+                           word(15)),
+                         word(2)))),
+                   serialise_i32(m)),
+                 star(tlsf_bin(CONS(m, CONS(a, ys))), fp(gs, ms))))),
+           h))
+```
+
+example `tlsf_push`
+
+```
+∀ (d m hd pf0 nf0 fl slb : W32) (xs : List[W32]) (fp : GProp)
+if
+  1. !(m == word(0))
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(m)), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(
+          pts(val(m), serialise_i32(hd)),
+          star(
+            pts(val(word_add(m, word(8))), serialise_i32(pf0)),
+            star(
+              pts(val(word_add(m, word(12))), serialise_i32(nf0)),
+              star(
+                pts(
+                  val(word_and(word_add(d, word(15)), word(4294967280))),
+                  serialise_i32(fl)),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(4)),
+                        word_mul(
+                          word_sub(
+                            word(27),
+                            word(
+                              word_clz(
+                                word_and(hd, word(4294967292))))),
+                          word(68)))),
+                    serialise_i32(slb)),
+                  star(
+                    pts(
+                      val(
+                        word_add(
+                          word_add(
+                            word_add(
+                              word_add(
+                                word_and(
+                                  word_add(d, word(15)),
+                                  word(4294967280)),
+                                word(4)),
+                              word_mul(
+                                word_sub(
+                                  word(27),
+                                  word(
+                                    word_clz(
+                                      word_and(
+                                        hd,
+                                        word(4294967292))))),
+                                word(68))),
+                            word(4)),
+                          word_jshl(
+                            word_and(
+                              word_jushr(
+                                word_and(hd, word(4294967292)),
+                                word_sub(
+                                  word(27),
+                                  word(
+                                    word_clz(
+                                      word_and(
+                                        hd,
+                                        word(4294967292)))))),
+                              word(15)),
+                            word(2)))),
+                      serialise_i32(tlsf_hd(xs))),
+                    star(tlsf_bin(xs), fp(gs, ms))))))),
+          h)),
+    tlsf_push_code(d),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == [V_num(ConstInt32(word(0)))]
+      && star(
+           pts(val(m), serialise_i32(hd)),
+           star(
+             pts(
+               val(word_and(word_add(d, word(15)), word(4294967280))),
+               serialise_i32(
+                 word_or(
+                   fl,
+                   word_jshl(
+                     word(1),
+                     word_sub(
+                       word(27),
+                       word(word_clz(word_and(hd, word(4294967292))))))))),
+             star(
+               pts(
+                 val(
+                   word_add(
+                     word_add(
+                       word_and(word_add(d, word(15)), word(4294967280)),
+                       word(4)),
+                     word_mul(
+                       word_sub(
+                         word(27),
+                         word(word_clz(word_and(hd, word(4294967292))))),
+                       word(68)))),
+                 serialise_i32(
+                   word_or(
+                     slb,
+                     word_jshl(
+                       word(1),
+                       word_and(
+                         word_jushr(
+                           word_and(hd, word(4294967292)),
+                           word_sub(
+                             word(27),
+                             word(
+                               word_clz(
+                                 word_and(hd, word(4294967292)))))),
+                         word(15)))))),
+               star(
+                 pts(
+                   val(
+                     word_add(
+                       word_add(
+                         word_add(
+                           word_add(
+                             word_and(
+                               word_add(d, word(15)),
+                               word(4294967280)),
+                             word(4)),
+                           word_mul(
+                             word_sub(
+                               word(27),
+                               word(
+                                 word_clz(
+                                   word_and(hd, word(4294967292))))),
+                             word(68))),
+                         word(4)),
+                       word_jshl(
+                         word_and(
+                           word_jushr(
+                             word_and(hd, word(4294967292)),
+                             word_sub(
+                               word(27),
+                               word(
+                                 word_clz(
+                                   word_and(hd, word(4294967292)))))),
+                           word(15)),
+                         word(2)))),
+                   serialise_i32(m)),
+                 star(tlsf_bin(CONS(m, xs)), fp(gs, ms))))),
+           h))
+```
+
+lemma `tlsf_pop_u_only`
+
+```
+∀ (d m hd fl slb : W32) (fp : GProp),
+  sl_triple(
+    st(
+      (NIL : List[Value]),
+      [V_num(ConstInt32(m)), V_num(ConstInt32((word : (Num) -> W32)(0))),
+       V_num(ConstInt32((word : (Num) -> W32)(0))),
+       V_num(ConstInt32((word : (Num) -> W32)(0))),
+       V_num(ConstInt32((word : (Num) -> W32)(0)))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(
+          pts((val : (W32) -> Num)(m), serialise_i32(hd)),
+          star(
+            pts(
+              (val : (W32) -> Num)(
+                (word_add : (W32, W32) -> W32)(
+                  (word_add : (W32, W32) -> W32)(
+                    (word_add : (W32, W32) -> W32)(
+                      (word_add : (W32, W32) -> W32)(
+                        (word_and : (W32, W32) -> W32)(
+                          (word_add : (W32, W32) -> W32)(
+                            d,
+                            (word : (Num) -> W32)(15)),
+                          (word : (Num) -> W32)(4294967280)),
+                        (word : (Num) -> W32)(4)),
+                      (word_mul : (W32, W32) -> W32)(
+                        (word_sub : (W32, W32) -> W32)(
+                          (word : (Num) -> W32)(27),
+                          (word : (Num) -> W32)(
+                            (word_clz : (W32) -> Num)(
+                              (word_and : (W32, W32) -> W32)(
+                                hd,
+                                (word : (Num) -> W32)(4294967292))))),
+                        (word : (Num) -> W32)(68))),
+                    (word : (Num) -> W32)(4)),
+                  (word_jshl : (W32, W32) -> W32)(
+                    (word_and : (W32, W32) -> W32)(
+                      (word_jushr : (W32, W32) -> W32)(
+                        (word_and : (W32, W32) -> W32)(
+                          hd,
+                          (word : (Num) -> W32)(4294967292)),
+                        (word_sub : (W32, W32) -> W32)(
+                          (word : (Num) -> W32)(27),
+                          (word : (Num) -> W32)(
+                            (word_clz : (W32) -> Num)(
+                              (word_and : (W32, W32) -> W32)(
+                                hd,
+                                (word : (Num) -> W32)(4294967292)))))),
+                      (word : (Num) -> W32)(15)),
+                    (word : (Num) -> W32)(2)))),
+              serialise_i32(
+                tlsf_hd(
+                  (APPEND : (List[W32], List[W32]) -> List[W32])(
+                    (NIL : List[W32]),
+                    [m])))),
+            star(
+              pts(
+                (val : (W32) -> Num)(
+                  (word_add : (W32, W32) -> W32)(
+                    (word_add : (W32, W32) -> W32)(
+                      (word_and : (W32, W32) -> W32)(
+                        (word_add : (W32, W32) -> W32)(
+                          d,
+                          (word : (Num) -> W32)(15)),
+                        (word : (Num) -> W32)(4294967280)),
+                      (word : (Num) -> W32)(4)),
+                    (word_mul : (W32, W32) -> W32)(
+                      (word_sub : (W32, W32) -> W32)(
+                        (word : (Num) -> W32)(27),
+                        (word : (Num) -> W32)(
+                          (word_clz : (W32) -> Num)(
+                            (word_and : (W32, W32) -> W32)(
+                              hd,
+                              (word : (Num) -> W32)(4294967292))))),
+                      (word : (Num) -> W32)(68)))),
+                serialise_i32(slb)),
+              star(
+                pts(
+                  (val : (W32) -> Num)(
+                    (word_and : (W32, W32) -> W32)(
+                      (word_add : (W32, W32) -> W32)(
+                        d,
+                        (word : (Num) -> W32)(15)),
+                      (word : (Num) -> W32)(4294967280))),
+                  serialise_i32(fl)),
+                star(
+                  tlsf_bin(
+                    (APPEND : (List[W32], List[W32]) -> List[W32])(
+                      (NIL : List[W32]),
+                      [m])),
+                  fp(gs, ms))))),
+          h)),
+    tlsf_pop_code(d),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == (NIL : List[Value])
+      && star(
+           pts((val : (W32) -> Num)(m), serialise_i32(hd)),
+           star(
+             pts(
+               (val : (W32) -> Num)(
+                 (word_add : (W32, W32) -> W32)(
+                   m,
+                   (word : (Num) -> W32)(8))),
+               serialise_i32(tlsf_prev((NIL : List[W32])))),
+             star(
+               pts(
+                 (val : (W32) -> Num)(
+                   (word_add : (W32, W32) -> W32)(
+                     m,
+                     (word : (Num) -> W32)(12))),
+                 serialise_i32(tlsf_hd((NIL : List[W32])))),
+               star(
+                 pts(
+                   (val : (W32) -> Num)(
+                     (word_add : (W32, W32) -> W32)(
+                       (word_add : (W32, W32) -> W32)(
+                         (word_add : (W32, W32) -> W32)(
+                           (word_add : (W32, W32) -> W32)(
+                             (word_and : (W32, W32) -> W32)(
+                               (word_add : (W32, W32) -> W32)(
+                                 d,
+                                 (word : (Num) -> W32)(15)),
+                               (word : (Num) -> W32)(4294967280)),
+                             (word : (Num) -> W32)(4)),
+                           (word_mul : (W32, W32) -> W32)(
+                             (word_sub : (W32, W32) -> W32)(
+                               (word : (Num) -> W32)(27),
+                               (word : (Num) -> W32)(
+                                 (word_clz : (W32) -> Num)(
+                                   (word_and : (W32, W32) -> W32)(
+                                     hd,
+                                     (word : (Num) -> W32)(
+                                       4294967292))))),
+                             (word : (Num) -> W32)(68))),
+                         (word : (Num) -> W32)(4)),
+                       (word_jshl : (W32, W32) -> W32)(
+                         (word_and : (W32, W32) -> W32)(
+                           (word_jushr : (W32, W32) -> W32)(
+                             (word_and : (W32, W32) -> W32)(
+                               hd,
+                               (word : (Num) -> W32)(4294967292)),
+                             (word_sub : (W32, W32) -> W32)(
+                               (word : (Num) -> W32)(27),
+                               (word : (Num) -> W32)(
+                                 (word_clz : (W32) -> Num)(
+                                   (word_and : (W32, W32) -> W32)(
+                                     hd,
+                                     (word : (Num) -> W32)(
+                                       4294967292)))))),
+                           (word : (Num) -> W32)(15)),
+                         (word : (Num) -> W32)(2)))),
+                   serialise_i32(
+                     tlsf_hd(
+                       (APPEND : (List[W32], List[W32]) -> List[W32])(
+                         (NIL : List[W32]),
+                         (NIL : List[W32]))))),
+                 star(
+                   pts(
+                     (val : (W32) -> Num)(
+                       (word_add : (W32, W32) -> W32)(
+                         (word_add : (W32, W32) -> W32)(
+                           (word_and : (W32, W32) -> W32)(
+                             (word_add : (W32, W32) -> W32)(
+                               d,
+                               (word : (Num) -> W32)(15)),
+                             (word : (Num) -> W32)(4294967280)),
+                           (word : (Num) -> W32)(4)),
+                         (word_mul : (W32, W32) -> W32)(
+                           (word_sub : (W32, W32) -> W32)(
+                             (word : (Num) -> W32)(27),
+                             (word : (Num) -> W32)(
+                               (word_clz : (W32) -> Num)(
+                                 (word_and : (W32, W32) -> W32)(
+                                   hd,
+                                   (word : (Num) -> W32)(
+                                     4294967292))))),
+                           (word : (Num) -> W32)(68)))),
+                     serialise_i32(
+                       if (APPEND : (List[W32], List[W32]) -> List[W32])(
+                         (NIL : List[W32]),
+                         (NIL : List[W32])) == (NIL : List[W32]) {
+                         (word_xor : (W32, W32) -> W32)(
+                           slb,
+                           (word_jshl : (W32, W32) -> W32)(
+                             (word : (Num) -> W32)(1),
+                             (word_and : (W32, W32) -> W32)(
+                               (word_jushr : (W32, W32) -> W32)(
+                                 (word_and : (W32, W32) -> W32)(
+                                   hd,
+                                   (word : (Num) -> W32)(
+                                     4294967292)),
+                                 (word_sub : (W32, W32) -> W32)(
+                                   (word : (Num) -> W32)(27),
+                                   (word : (Num) -> W32)(
+                                     (word_clz : (W32) -> Num)(
+                                       (
+                                         word_and : (W32, W32) -> W32)(
+                                         hd,
+                                         (word : (Num) -> W32)(
+                                           4294967292)))))),
+                               (word : (Num) -> W32)(15)))) } else {
+                         slb })),
+                   star(
+                     pts(
+                       (val : (W32) -> Num)(
+                         (word_and : (W32, W32) -> W32)(
+                           (word_add : (W32, W32) -> W32)(
+                             d,
+                             (word : (Num) -> W32)(15)),
+                           (word : (Num) -> W32)(4294967280))),
+                       serialise_i32(
+                         if (
+                           APPEND : (List[W32], List[W32]) -> List[
+                             W32])(
+                           (NIL : List[W32]),
+                           (NIL : List[W32])) == (NIL : List[W32]) {
+                           if (word_xor : (W32, W32) -> W32)(
+                             slb,
+                             (word_jshl : (W32, W32) -> W32)(
+                               (word : (Num) -> W32)(1),
+                               (word_and : (W32, W32) -> W32)(
+                                 (word_jushr : (W32, W32) -> W32)(
+                                   (word_and : (W32, W32) -> W32)(
+                                     hd,
+                                     (word : (Num) -> W32)(
+                                       4294967292)),
+                                   (word_sub : (W32, W32) -> W32)(
+                                     (word : (Num) -> W32)(27),
+                                     (word : (Num) -> W32)(
+                                       (word_clz : (W32) -> Num)(
+                                         (
+                                           word_and : (
+                                             W32,
+                                             W32) -> W32)(
+                                           hd,
+                                           (
+                                             word : (Num) -> W32)(
+                                             4294967292)))))),
+                                 (word : (Num) -> W32)(15)))) == (
+                             word : (Num) -> W32)(0) {
+                             (word_xor : (W32, W32) -> W32)(
+                               fl,
+                               (word_jshl : (W32, W32) -> W32)(
+                                 (word : (Num) -> W32)(1),
+                                 (word_sub : (W32, W32) -> W32)(
+                                   (word : (Num) -> W32)(27),
+                                   (word : (Num) -> W32)(
+                                     (word_clz : (W32) -> Num)(
+                                       (
+                                         word_and : (W32, W32) -> W32)(
+                                         hd,
+                                         (word : (Num) -> W32)(
+                                           4294967292))))))) } else {
+                             fl } } else { fl })),
+                     star(
+                       tlsf_bin(
+                         (APPEND : (List[W32], List[W32]) -> List[W32])(
+                           (NIL : List[W32]),
+                           (NIL : List[W32]))),
+                       fp(gs, ms))))))),
+           h))
+```
+
+lemma `tlsf_pop_u_head`
+
+```
+∀ (d m hd fl slb b : W32) (zs : List[W32]) (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(m)), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(
+          pts(val(m), serialise_i32(hd)),
+          star(
+            pts(
+              val(
+                word_add(
+                  word_add(
+                    word_add(
+                      word_add(
+                        word_and(
+                          word_add(d, word(15)),
+                          word(4294967280)),
+                        word(4)),
+                      word_mul(
+                        word_sub(
+                          word(27),
+                          word(
+                            word_clz(word_and(hd, word(4294967292))))),
+                        word(68))),
+                    word(4)),
+                  word_jshl(
+                    word_and(
+                      word_jushr(
+                        word_and(hd, word(4294967292)),
+                        word_sub(
+                          word(27),
+                          word(
+                            word_clz(word_and(hd, word(4294967292)))))),
+                      word(15)),
+                    word(2)))),
+              serialise_i32(tlsf_hd(APPEND(NIL, CONS(m, CONS(b, zs)))))),
+            star(
+              pts(
+                val(
+                  word_add(
+                    word_add(
+                      word_and(word_add(d, word(15)), word(4294967280)),
+                      word(4)),
+                    word_mul(
+                      word_sub(
+                        word(27),
+                        word(word_clz(word_and(hd, word(4294967292))))),
+                      word(68)))),
+                serialise_i32(slb)),
+              star(
+                pts(
+                  val(word_and(word_add(d, word(15)), word(4294967280))),
+                  serialise_i32(fl)),
+                star(
+                  tlsf_bin(APPEND(NIL, CONS(m, CONS(b, zs)))),
+                  fp(gs, ms))))),
+          h)),
+    tlsf_pop_code(d),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL
+      && star(
+           pts(val(m), serialise_i32(hd)),
+           star(
+             pts(val(word_add(m, word(8))), serialise_i32(tlsf_prev(NIL))),
+             star(
+               pts(
+                 val(word_add(m, word(12))),
+                 serialise_i32(tlsf_hd(CONS(b, zs)))),
+               star(
+                 pts(
+                   val(
+                     word_add(
+                       word_add(
+                         word_add(
+                           word_add(
+                             word_and(
+                               word_add(d, word(15)),
+                               word(4294967280)),
+                             word(4)),
+                           word_mul(
+                             word_sub(
+                               word(27),
+                               word(
+                                 word_clz(
+                                   word_and(hd, word(4294967292))))),
+                             word(68))),
+                         word(4)),
+                       word_jshl(
+                         word_and(
+                           word_jushr(
+                             word_and(hd, word(4294967292)),
+                             word_sub(
+                               word(27),
+                               word(
+                                 word_clz(
+                                   word_and(hd, word(4294967292)))))),
+                           word(15)),
+                         word(2)))),
+                   serialise_i32(tlsf_hd(APPEND(NIL, CONS(b, zs))))),
+                 star(
+                   pts(
+                     val(
+                       word_add(
+                         word_add(
+                           word_and(
+                             word_add(d, word(15)),
+                             word(4294967280)),
+                           word(4)),
+                         word_mul(
+                           word_sub(
+                             word(27),
+                             word(
+                               word_clz(
+                                 word_and(hd, word(4294967292))))),
+                           word(68)))),
+                     serialise_i32(
+                       if APPEND(NIL, CONS(b, zs)) == NIL {
+                         word_xor(
+                           slb,
+                           word_jshl(
+                             word(1),
+                             word_and(
+                               word_jushr(
+                                 word_and(hd, word(4294967292)),
+                                 word_sub(
+                                   word(27),
+                                   word(
+                                     word_clz(
+                                       word_and(
+                                         hd,
+                                         word(4294967292)))))),
+                               word(15)))) } else { slb })),
+                   star(
+                     pts(
+                       val(
+                         word_and(
+                           word_add(d, word(15)),
+                           word(4294967280))),
+                       serialise_i32(
+                         if APPEND(NIL, CONS(b, zs)) == NIL {
+                           if word_xor(
+                             slb,
+                             word_jshl(
+                               word(1),
+                               word_and(
+                                 word_jushr(
+                                   word_and(hd, word(4294967292)),
+                                   word_sub(
+                                     word(27),
+                                     word(
+                                       word_clz(
+                                         word_and(
+                                           hd,
+                                           word(4294967292)))))),
+                                 word(15)))) == word(0) {
+                             word_xor(
+                               fl,
+                               word_jshl(
+                                 word(1),
+                                 word_sub(
+                                   word(27),
+                                   word(
+                                     word_clz(
+                                       word_and(
+                                         hd,
+                                         word(4294967292))))))) } else {
+                             fl } } else { fl })),
+                     star(tlsf_bin(APPEND(NIL, CONS(b, zs))), fp(gs, ms))))))),
+           h))
+```
+
+lemma `tlsf_pop_u_last`
+
+```
+∀ (d m hd fl slb pf : W32) (ys : List[W32]) (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(m)), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(
+          pts(val(m), serialise_i32(hd)),
+          star(
+            pts(
+              val(
+                word_add(
+                  word_add(
+                    word_add(
+                      word_add(
+                        word_and(
+                          word_add(d, word(15)),
+                          word(4294967280)),
+                        word(4)),
+                      word_mul(
+                        word_sub(
+                          word(27),
+                          word(
+                            word_clz(word_and(hd, word(4294967292))))),
+                        word(68))),
+                    word(4)),
+                  word_jshl(
+                    word_and(
+                      word_jushr(
+                        word_and(hd, word(4294967292)),
+                        word_sub(
+                          word(27),
+                          word(
+                            word_clz(word_and(hd, word(4294967292)))))),
+                      word(15)),
+                    word(2)))),
+              serialise_i32(tlsf_hd(APPEND(APPEND(ys, [pf]), [m])))),
+            star(
+              pts(
+                val(
+                  word_add(
+                    word_add(
+                      word_and(word_add(d, word(15)), word(4294967280)),
+                      word(4)),
+                    word_mul(
+                      word_sub(
+                        word(27),
+                        word(word_clz(word_and(hd, word(4294967292))))),
+                      word(68)))),
+                serialise_i32(slb)),
+              star(
+                pts(
+                  val(word_and(word_add(d, word(15)), word(4294967280))),
+                  serialise_i32(fl)),
+                star(tlsf_bin(APPEND(APPEND(ys, [pf]), [m])), fp(gs, ms))))),
+          h)),
+    tlsf_pop_code(d),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL
+      && star(
+           pts(val(m), serialise_i32(hd)),
+           star(
+             pts(
+               val(word_add(m, word(8))),
+               serialise_i32(tlsf_prev(APPEND(ys, [pf])))),
+             star(
+               pts(val(word_add(m, word(12))), serialise_i32(tlsf_hd(NIL))),
+               star(
+                 pts(
+                   val(
+                     word_add(
+                       word_add(
+                         word_add(
+                           word_add(
+                             word_and(
+                               word_add(d, word(15)),
+                               word(4294967280)),
+                             word(4)),
+                           word_mul(
+                             word_sub(
+                               word(27),
+                               word(
+                                 word_clz(
+                                   word_and(hd, word(4294967292))))),
+                             word(68))),
+                         word(4)),
+                       word_jshl(
+                         word_and(
+                           word_jushr(
+                             word_and(hd, word(4294967292)),
+                             word_sub(
+                               word(27),
+                               word(
+                                 word_clz(
+                                   word_and(hd, word(4294967292)))))),
+                           word(15)),
+                         word(2)))),
+                   serialise_i32(tlsf_hd(APPEND(APPEND(ys, [pf]), NIL)))),
+                 star(
+                   pts(
+                     val(
+                       word_add(
+                         word_add(
+                           word_and(
+                             word_add(d, word(15)),
+                             word(4294967280)),
+                           word(4)),
+                         word_mul(
+                           word_sub(
+                             word(27),
+                             word(
+                               word_clz(
+                                 word_and(hd, word(4294967292))))),
+                           word(68)))),
+                     serialise_i32(
+                       if APPEND(APPEND(ys, [pf]), NIL) == NIL {
+                         word_xor(
+                           slb,
+                           word_jshl(
+                             word(1),
+                             word_and(
+                               word_jushr(
+                                 word_and(hd, word(4294967292)),
+                                 word_sub(
+                                   word(27),
+                                   word(
+                                     word_clz(
+                                       word_and(
+                                         hd,
+                                         word(4294967292)))))),
+                               word(15)))) } else { slb })),
+                   star(
+                     pts(
+                       val(
+                         word_and(
+                           word_add(d, word(15)),
+                           word(4294967280))),
+                       serialise_i32(
+                         if APPEND(APPEND(ys, [pf]), NIL) == NIL {
+                           if word_xor(
+                             slb,
+                             word_jshl(
+                               word(1),
+                               word_and(
+                                 word_jushr(
+                                   word_and(hd, word(4294967292)),
+                                   word_sub(
+                                     word(27),
+                                     word(
+                                       word_clz(
+                                         word_and(
+                                           hd,
+                                           word(4294967292)))))),
+                                 word(15)))) == word(0) {
+                             word_xor(
+                               fl,
+                               word_jshl(
+                                 word(1),
+                                 word_sub(
+                                   word(27),
+                                   word(
+                                     word_clz(
+                                       word_and(
+                                         hd,
+                                         word(4294967292))))))) } else {
+                             fl } } else { fl })),
+                     star(
+                       tlsf_bin(APPEND(APPEND(ys, [pf]), NIL)),
+                       fp(gs, ms))))))),
+           h))
+```
+
+lemma `tlsf_pop_u_mid`
+
+```
+∀ (d m hd fl slb pf b : W32) (ys zs : List[W32]) (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(m)), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(
+          pts(val(m), serialise_i32(hd)),
+          star(
+            pts(
+              val(
+                word_add(
+                  word_add(
+                    word_add(
+                      word_add(
+                        word_and(
+                          word_add(d, word(15)),
+                          word(4294967280)),
+                        word(4)),
+                      word_mul(
+                        word_sub(
+                          word(27),
+                          word(
+                            word_clz(word_and(hd, word(4294967292))))),
+                        word(68))),
+                    word(4)),
+                  word_jshl(
+                    word_and(
+                      word_jushr(
+                        word_and(hd, word(4294967292)),
+                        word_sub(
+                          word(27),
+                          word(
+                            word_clz(word_and(hd, word(4294967292)))))),
+                      word(15)),
+                    word(2)))),
+              serialise_i32(
+                tlsf_hd(APPEND(APPEND(ys, [pf]), CONS(m, CONS(b, zs)))))),
+            star(
+              pts(
+                val(
+                  word_add(
+                    word_add(
+                      word_and(word_add(d, word(15)), word(4294967280)),
+                      word(4)),
+                    word_mul(
+                      word_sub(
+                        word(27),
+                        word(word_clz(word_and(hd, word(4294967292))))),
+                      word(68)))),
+                serialise_i32(slb)),
+              star(
+                pts(
+                  val(word_and(word_add(d, word(15)), word(4294967280))),
+                  serialise_i32(fl)),
+                star(
+                  tlsf_bin(
+                    APPEND(APPEND(ys, [pf]), CONS(m, CONS(b, zs)))),
+                  fp(gs, ms))))),
+          h)),
+    tlsf_pop_code(d),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL
+      && star(
+           pts(val(m), serialise_i32(hd)),
+           star(
+             pts(
+               val(word_add(m, word(8))),
+               serialise_i32(tlsf_prev(APPEND(ys, [pf])))),
+             star(
+               pts(
+                 val(word_add(m, word(12))),
+                 serialise_i32(tlsf_hd(CONS(b, zs)))),
+               star(
+                 pts(
+                   val(
+                     word_add(
+                       word_add(
+                         word_add(
+                           word_add(
+                             word_and(
+                               word_add(d, word(15)),
+                               word(4294967280)),
+                             word(4)),
+                           word_mul(
+                             word_sub(
+                               word(27),
+                               word(
+                                 word_clz(
+                                   word_and(hd, word(4294967292))))),
+                             word(68))),
+                         word(4)),
+                       word_jshl(
+                         word_and(
+                           word_jushr(
+                             word_and(hd, word(4294967292)),
+                             word_sub(
+                               word(27),
+                               word(
+                                 word_clz(
+                                   word_and(hd, word(4294967292)))))),
+                           word(15)),
+                         word(2)))),
+                   serialise_i32(
+                     tlsf_hd(APPEND(APPEND(ys, [pf]), CONS(b, zs))))),
+                 star(
+                   pts(
+                     val(
+                       word_add(
+                         word_add(
+                           word_and(
+                             word_add(d, word(15)),
+                             word(4294967280)),
+                           word(4)),
+                         word_mul(
+                           word_sub(
+                             word(27),
+                             word(
+                               word_clz(
+                                 word_and(hd, word(4294967292))))),
+                           word(68)))),
+                     serialise_i32(
+                       if APPEND(APPEND(ys, [pf]), CONS(b, zs)) == NIL {
+                         word_xor(
+                           slb,
+                           word_jshl(
+                             word(1),
+                             word_and(
+                               word_jushr(
+                                 word_and(hd, word(4294967292)),
+                                 word_sub(
+                                   word(27),
+                                   word(
+                                     word_clz(
+                                       word_and(
+                                         hd,
+                                         word(4294967292)))))),
+                               word(15)))) } else { slb })),
+                   star(
+                     pts(
+                       val(
+                         word_and(
+                           word_add(d, word(15)),
+                           word(4294967280))),
+                       serialise_i32(
+                         if APPEND(APPEND(ys, [pf]), CONS(b, zs)) == NIL {
+                           if word_xor(
+                             slb,
+                             word_jshl(
+                               word(1),
+                               word_and(
+                                 word_jushr(
+                                   word_and(hd, word(4294967292)),
+                                   word_sub(
+                                     word(27),
+                                     word(
+                                       word_clz(
+                                         word_and(
+                                           hd,
+                                           word(4294967292)))))),
+                                 word(15)))) == word(0) {
+                             word_xor(
+                               fl,
+                               word_jshl(
+                                 word(1),
+                                 word_sub(
+                                   word(27),
+                                   word(
+                                     word_clz(
+                                       word_and(
+                                         hd,
+                                         word(4294967292))))))) } else {
+                             fl } } else { fl })),
+                     star(
+                       tlsf_bin(APPEND(APPEND(ys, [pf]), CONS(b, zs))),
+                       fp(gs, ms))))))),
+           h))
+```
+
+example `tlsf_pop`
+
+```
+∀ (d m hd fl slb : W32) (ys zs : List[W32]) (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(m)), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word(0)))],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        star(
+          pts(val(m), serialise_i32(hd)),
+          star(
+            pts(
+              val(
+                word_add(
+                  word_add(
+                    word_add(
+                      word_add(
+                        word_and(
+                          word_add(d, word(15)),
+                          word(4294967280)),
+                        word(4)),
+                      word_mul(
+                        word_sub(
+                          word(27),
+                          word(
+                            word_clz(word_and(hd, word(4294967292))))),
+                        word(68))),
+                    word(4)),
+                  word_jshl(
+                    word_and(
+                      word_jushr(
+                        word_and(hd, word(4294967292)),
+                        word_sub(
+                          word(27),
+                          word(
+                            word_clz(word_and(hd, word(4294967292)))))),
+                      word(15)),
+                    word(2)))),
+              serialise_i32(tlsf_hd(APPEND(ys, CONS(m, zs))))),
+            star(
+              pts(
+                val(
+                  word_add(
+                    word_add(
+                      word_and(word_add(d, word(15)), word(4294967280)),
+                      word(4)),
+                    word_mul(
+                      word_sub(
+                        word(27),
+                        word(word_clz(word_and(hd, word(4294967292))))),
+                      word(68)))),
+                serialise_i32(slb)),
+              star(
+                pts(
+                  val(word_and(word_add(d, word(15)), word(4294967280))),
+                  serialise_i32(fl)),
+                star(tlsf_bin(APPEND(ys, CONS(m, zs))), fp(gs, ms))))),
+          h)),
+    tlsf_pop_code(d),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL
+      && star(
+           pts(val(m), serialise_i32(hd)),
+           star(
+             pts(val(word_add(m, word(8))), serialise_i32(tlsf_prev(ys))),
+             star(
+               pts(val(word_add(m, word(12))), serialise_i32(tlsf_hd(zs))),
+               star(
+                 pts(
+                   val(
+                     word_add(
+                       word_add(
+                         word_add(
+                           word_add(
+                             word_and(
+                               word_add(d, word(15)),
+                               word(4294967280)),
+                             word(4)),
+                           word_mul(
+                             word_sub(
+                               word(27),
+                               word(
+                                 word_clz(
+                                   word_and(hd, word(4294967292))))),
+                             word(68))),
+                         word(4)),
+                       word_jshl(
+                         word_and(
+                           word_jushr(
+                             word_and(hd, word(4294967292)),
+                             word_sub(
+                               word(27),
+                               word(
+                                 word_clz(
+                                   word_and(hd, word(4294967292)))))),
+                           word(15)),
+                         word(2)))),
+                   serialise_i32(tlsf_hd(APPEND(ys, zs)))),
+                 star(
+                   pts(
+                     val(
+                       word_add(
+                         word_add(
+                           word_and(
+                             word_add(d, word(15)),
+                             word(4294967280)),
+                           word(4)),
+                         word_mul(
+                           word_sub(
+                             word(27),
+                             word(
+                               word_clz(
+                                 word_and(hd, word(4294967292))))),
+                           word(68)))),
+                     serialise_i32(
+                       if APPEND(ys, zs) == NIL {
+                         word_xor(
+                           slb,
+                           word_jshl(
+                             word(1),
+                             word_and(
+                               word_jushr(
+                                 word_and(hd, word(4294967292)),
+                                 word_sub(
+                                   word(27),
+                                   word(
+                                     word_clz(
+                                       word_and(
+                                         hd,
+                                         word(4294967292)))))),
+                               word(15)))) } else { slb })),
+                   star(
+                     pts(
+                       val(
+                         word_and(
+                           word_add(d, word(15)),
+                           word(4294967280))),
+                       serialise_i32(
+                         if APPEND(ys, zs) == NIL {
+                           if word_xor(
+                             slb,
+                             word_jshl(
+                               word(1),
+                               word_and(
+                                 word_jushr(
+                                   word_and(hd, word(4294967292)),
+                                   word_sub(
+                                     word(27),
+                                     word(
+                                       word_clz(
+                                         word_and(
+                                           hd,
+                                           word(4294967292)))))),
+                                 word(15)))) == word(0) {
+                             word_xor(
+                               fl,
+                               word_jshl(
+                                 word(1),
+                                 word_sub(
+                                   word(27),
+                                   word(
+                                     word_clz(
+                                       word_and(
+                                         hd,
+                                         word(4294967292))))))) } else {
+                             fl } } else { fl })),
+                     star(tlsf_bin(APPEND(ys, zs)), fp(gs, ms))))))),
+           h))
+```
+
+definition `tlsf_sync`
+
+```
+tlsf_sync((s : W32), (n : Num), (ne : (Num) -> Bool))
+  == (∀ k : Num, bit(k, s) == (k < n && ne(k)))
+```
+
+lemma `tlsf_sync_set`
+
+```
+∀ (s j : W32) (n : Num) (ne : (Num) -> Bool)
+if
+  1. val(j) < n
+  2. n <= 32
+  3. tlsf_sync(s, n, ne)
+then
+  tlsf_sync(
+    word_or(s, word_jshl(word(1), j)),
+    n,
+    (k : Num) => k == val(j) || ne(k))
+```
+
+lemma `tlsf_sync_clear`
+
+```
+∀ (s j : W32) (n : Num) (ne : (Num) -> Bool)
+if
+  1. val(j) < n
+  2. n <= 32
+  3. tlsf_sync(s, n, ne)
+  4. ne(val(j))
+then
+  tlsf_sync(
+    word_xor(s, word_jshl(word(1), j)),
+    n,
+    (k : Num) => !(k == val(j)) && ne(k))
+```
+
+lemma `tlsf_sync_zero`
+
+```
+∀ (s : W32) (n : Num) (ne : (Num) -> Bool)
+if
+  1. tlsf_sync(s, n, ne)
+then
+  (s == word(0)) == (∀ k : Num, k < n → !ne(k))
+```
+
+lemma `tlsf_code_bounds`
+
+```
+∀ (x : W32)
+if
+  1. 16 <= val(x)
+then
+  val(word_and(word_jushr(x, word_sub(word(27), word(word_clz(x)))), word(15))) < 16
+  && (val : (W32) -> Num)(
+       (word_sub : (W32, W32) -> W32)(
+         (word : (Num) -> W32)(27),
+         (word : (Num) -> W32)((word_clz : (W32) -> Num)(x)))) < 28
+```

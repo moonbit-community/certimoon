@@ -102,6 +102,8 @@ pub fn load() -> Unit {
     prove_tlsf_classes()
     section("TLSF free lists: push and pop (tlsf.mbt)")
     prove_tlsf_push_pop()
+    section("TLSF bins as doubly linked lists (tlsf.mbt)")
+    prove_tlsf_bins()
   })() catch {
     e => {
       let msg = match e {

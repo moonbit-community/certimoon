@@ -72,7 +72,7 @@ ulimit -s 65520 && moon test -p moonbit-community/certimoon/logic
 ```
 
 Loading the logic proves all of it again (there is no theorem cache):
-about a minute, most of the logic's test time.
+under two minutes, most of the logic's test time.
 
 ## Reviewing what is proved
 
@@ -370,8 +370,35 @@ through the code, from exactly the words that path reads and writes:
 
 The bin's address comes from the code's own `27 - clz(size)`;
 `tlsf_code_fli` and `tlsf_code_sli` say that is `tlsf_fli - 4` and the bin
-`tlsf_sli`. Not yet proved: that these keep a whole bin a doubly linked
-list and the bitmaps in step with the bins (PLAN.md, Features 4).
+`tlsf_sli`.
+
+Then push and pop on a bin as a whole. `tlsf_bin(xs)` is a bin holding the
+free memories xs: its head word is the first, or 0, and each memory's
+links at m + 8 and m + 12 point to its neighbours in xs, or 0 at the ends
+(`tlsf_dll`). The memories' link words belong to the bin, so the
+separating conjunction makes them distinct.
+
+| Example | Says |
+|---|---|
+| `tlsf_push` | from bin `xs`, with m's header and two link words beside it, push(m) leaves bin `m :: xs`, its head m, and the bin's and level's bits set |
+| `tlsf_pop` | from bin `ys ++ [m] ++ zs`, pop(m) leaves bin `ys ++ zs` and m's two link words outside it, holding its old neighbours (`tlsf_prev(ys)`, `tlsf_hd(zs)`), and the bin's bit, and if that empties the level the level's bit, cleared exactly when `ys ++ zs` is empty |
+
+Each is proved from the path triples (`tlsf_push_bin_cons`, ...,
+`tlsf_pop_bin_mid`) by unfolding the list as far as that path reads it.
+`tlsf_dll_append` splits a list at any member, for the pops in the middle
+or at the end.
+
+`tlsf_sync(s, n, ne)` says what a bitmap means: bit k of s is set exactly
+when k < n and `ne(k)` (bin or level k is not empty). `tlsf_sync_set` and
+`tlsf_sync_clear` say push's `|` and pop's `^` keep it, and `tlsf_sync_zero`
+that the bitmap is 0 exactly when no bin is non-empty, which is what pop's
+test for clearing the level's bit relies on. `tlsf_code_bounds`: for sizes
+of at least 16 the code's bin is below 16 and its level below 28, so the
+indices fit the bitmaps.
+
+Not yet proved: one predicate for all 448 bins with their bitmaps, so that
+push and pop are stated as keeping the whole free-list structure (PLAN.md,
+Features 4, step 3).
 
 ## Reference: the program logic
 

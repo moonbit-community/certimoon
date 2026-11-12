@@ -699,3 +699,528 @@ fn prove_tlsf_push_pop() -> Unit raise {
   pop_case("tlsf_pop_head", false, true)
   pop_case("tlsf_pop_only", false, false)
 }
+
+///|
+/// TLSF's bins as doubly linked lists, and push and pop against them.
+/// tlsf_dll(p, x, xs) is a list of free memories xs from the pointer x, p
+/// the first's back link: each memory a holds its back link at a + 8 and
+/// its next at a + 12 (and is not 0); x is 0 when xs is empty. The next
+/// link stays inside tlsf_dll_next(a, xs), so a path triple needs only the
+/// words it touches. tlsf_bin(xs) is a bin: its list from the head
+/// tlsf_hd(xs), with no back link. tlsf_push and tlsf_pop are push and pop
+/// on a bin, from the path triples (`by_path`: sl_conseq, the list
+/// unfolded and its facts and ∃s lifted out of the separating conjunction,
+/// sl_pure and sl_ex). tlsf_sync says what a bitmap means; setting and
+/// clearing a bit, as push and pop do, keep it.
+fn prove_tlsf_bins() -> Unit raise {
+  let w = w32
+  let i = (x : String) => "V_num(ConstInt32(\{x}))"
+  let rw = (xs : Array[@kernel.Thm]) => @simp.rewrite_tac(ths(xs))
+  let gen = @tactics.repeat_tac(@tactics.gen_tac)
+  let cell = (a : String, x : String) => "pts(val((\{a} : \{w})), serialise_i32((\{x} : \{w})))"
+  let at = (a : String, k : String) => "word_add(\{a}, word(\{k}))"
+  // the bins as doubly linked lists
+  def(
+    "tlsf_dll",
+    "tlsf_dll((p : \{w}), (x : \{w}), (NIL : List[\{w}])) == ((h : \{heap}) => x == word(0) && emp(h)) && tlsf_dll(p, x, CONS((a : \{w}), xs)) == ((h : \{heap}) => x == a && !(a == word(0)) && star(\{cell(at("a", "8"), "p")}, (h1 : \{heap}) => ∃ n : \{w}, star(\{cell(at("a", "12"), "n")}, tlsf_dll(a, n, xs), h1), h))",
+  )
+  def(
+    "tlsf_dll_next",
+    "tlsf_dll_next((a : \{w}), (xs : List[\{w}])) == ((h : \{heap}) => ∃ n : \{w}, star(\{cell(at("a", "12"), "n")}, tlsf_dll(a, n, xs), h))",
+  )
+  let dll = thm("tlsf_dll")
+  let dll_next = @bool.gen_all(thm("tlsf_dll_next"))
+  let dll_cons = lemma(
+    "tlsf_dll_cons",
+    "∀ p : \{w}, ∀ x : \{w}, ∀ a : \{w}, ∀ xs : List[\{w}], tlsf_dll(p, x, CONS(a, xs)) == ((h : \{heap}) => x == a && !(a == word(0)) && star(\{cell(at("a", "8"), "p")}, tlsf_dll_next(a, xs), h))",
+    seq([gen, rw([dll, dll_next])]),
+  )
+  def("tlsf_hd", "tlsf_hd((NIL : List[\{w}])) == word(0) && tlsf_hd(CONS((a : \{w}), xs)) == a")
+  def("tlsf_bin", "tlsf_bin((xs : List[\{w}])) == tlsf_dll(word(0), tlsf_hd(xs), xs)")
+  // pure facts and ∃s out of a separating conjunction, as hprops
+  let semantic = seq([
+    gen,
+    rw([@class.fun_eq_thm(), thm("star")]),
+    @meson.meson_tac(ths([])),
+  ])
+  let lifts = [
+    lemma(
+      "star_pure_hr",
+      "∀ c : Bool, ∀ p : \{hprop}, ∀ q : \{hprop}, star(p, (h : \{heap}) => c && q(h)) == ((h : \{heap}) => c && star(p, q, h))",
+      semantic,
+    ),
+    lemma(
+      "star_pure_hl",
+      "∀ c : Bool, ∀ p : \{hprop}, ∀ q : \{hprop}, star((h : \{heap}) => c && p(h), q) == ((h : \{heap}) => c && star(p, q, h))",
+      semantic,
+    ),
+    lemma(
+      "star_ex_hr",
+      "∀ p : \{hprop}, ∀ qq : (A) -> \{hprop}, star(p, (h : \{heap}) => ∃ x : A, qq(x, h)) == ((h : \{heap}) => ∃ x : A, star(p, qq(x), h))",
+      semantic,
+    ),
+    lemma(
+      "star_ex_hl",
+      "∀ pp : (A) -> \{hprop}, ∀ q : \{hprop}, star((h : \{heap}) => ∃ x : A, pp(x, h), q) == ((h : \{heap}) => ∃ x : A, star(pp(x), q, h))",
+      semantic,
+    ),
+    lemma(
+      "star_emp_hr",
+      "∀ p : \{hprop}, star(p, emp) == p",
+      seq([gen, rw([@class.fun_eq_thm(), thm("star_emp_r")])]),
+    ),
+  ]
+  let emp_l = lemma(
+    "star_emp_hl",
+    "∀ p : \{hprop}, star(emp, p) == p",
+    seq([gen, @simp.once_rewrite_tac(ths([thm("star_comm")])), rw([lifts[4]])]),
+  )
+  let lifts = lifts + [emp_l, @theorems.right_and_exists_thm(), @theorems.left_and_exists_thm(), @class.eta_ax()]
+  let sl_pure = lemma(
+    "sl_pure",
+    "∀ c : Bool, ∀ p : \{sassn}, ∀ q : \{sassn}, ∀ bs : List[B_e], (c → sl_triple(p, bs, q)) → sl_triple((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => c && p(vs, lc, gs, ms, h), bs, q)",
+    seq([
+      gen,
+      @tactics.disch_tac,
+      @tactics.match_mp_tac(thm("sl_triple_of_l")),
+      @tactics.match_mp_tac(thm("sl_pure_l")),
+      @tactics.disch_tac,
+      @tactics.match_mp_tac(thm("sl_triple_l_of")),
+      @tactics.first_x_assum(th => @tactics.match_mp_tac(th)),
+      @tactics.first_assum(th => @tactics.accept_tac(th)),
+    ]),
+  )
+  let sl_ex = lemma(
+    "sl_ex",
+    "∀ pp : (A, List[Value], List[Value], List[Value], Num, \{heap}) -> Bool, ∀ bs : List[B_e], ∀ q : \{sassn}, (∀ x : A, sl_triple(pp(x), bs, q)) → sl_triple((vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => ∃ x : A, pp(x, vs, lc, gs, ms, h), bs, q)",
+    seq([
+      gen,
+      @tactics.disch_tac,
+      @tactics.match_mp_tac(thm("sl_triple_of_l")),
+      @tactics.match_mp_tac(thm("sl_ex_l")),
+      @tactics.gen_tac,
+      @tactics.match_mp_tac(thm("sl_triple_l_of")),
+      @simp.asm_rewrite_tac(ths([])),
+    ]),
+  )
+  let ac = [thm("star_assoc"), thm("star_comm"), thm("star_left_comm")]
+  // an entailment between states: both written out (rws, then pure facts
+  // and ∃s lifted), the left's assumed, the right's ∃s given `ws`, and the
+  // separating conjunctions compared up to order
+  let ent = (rws : Array[@kernel.Thm], ws : Array[String]) => seq([
+    gen,
+    rw([thm("st")] + rws + lifts),
+    beta_goal(),
+    rw(rws + lifts),
+    @tactics.try_tac(@tactics.conv_tac(@equal.top_depth_conv(@ind_types.unwind_conv))),
+    @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+    seq(ws.map(x => @tactics.exists_tac(tm(x)))),
+    @tactics.first_x_assum(th => if head_name(@kernel.concl(th)) == "star" {
+      @tactics.mp_tac(th)
+    } else {
+      @tactics.no_tac
+    }),
+    @tactics.try_tac(@tactics.conv_tac(@equal.top_depth_conv(@ind_types.unwind_conv))),
+    @simp.asm_rewrite_tac(ths(ac + rws + lifts)),
+  ])
+  let same = seq([gen, beta_goal(), @tactics.disch_tac, @tactics.first_assum(th => @tactics.accept_tac(th))])
+  let sassn = sassn
+  // the goal sl_triple(P, code, Q) from a path triple: P gives the fact c
+  // and the path's precondition, and the path's postcondition gives Q
+  let by_path = (path : @kernel.Thm, c : String, pre_rws : Array[@kernel.Thm], ws : Array[String], post_rws : Array[@kernel.Thm], exs : Array[String]) => {
+    let concl = @kernel.concl(path)
+    let triple = if @basics.is_imp(concl) { @basics.dest_imp(concl).1 } else { concl }
+    guard args_of(triple, "sl_triple", 3) is Some([pp, _, qq]) else { raise Failure("by_path") }
+    let ppv = tm("(PP : \{sassn})")
+    let body = @kernel.vsubst(
+      @list.List([(pp, ppv)]),
+      tm("(\{c}) && (PP : \{sassn})((vs : List[Value]), (lc : List[Value]), (gs : List[Value]), (ms : Num), (h : \{heap}))"),
+    )
+    let mut body = body
+    for k = exs.length() - 1; k >= 0; k = k - 1 {
+      body = @bool.mk_exists(tm(exs[k]), body)
+    }
+    let mut pc = body
+    for v in ["(h : \{heap})", "(ms : Num)", "(gs : List[Value])", "(lc : List[Value])", "(vs : List[Value])"] {
+      pc = @kernel.mk_abs(tm(v), pc)
+    }
+    let ex_names = exs.map(x => x)
+    let elim = seq(ex_names.map(x => seq([@tactics.match_mp_tac(sl_ex), beta_goal(), @tactics.x_gen_tac(tm(x))])))
+    let use_path = if @basics.is_imp(concl) {
+      seq([@tactics.match_mp_tac(path), @simp.asm_rewrite_tac(ths([]))])
+    } else {
+      @tactics.accept_tac(path)
+    }
+    let tac : @tactics.Tactic = g => {
+      guard args_of(g.1, "sl_triple", 3) is Some([_, _, q_abs]) else { raise Failure("by_path: goal") }
+      seq([
+        @tactics.match_mp_tac(thm("sl_conseq")),
+        @tactics.exists_tac(pc),
+        @tactics.exists_tac(q_abs),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            ent(pre_rws, ex_names),
+            @tactics.thenl(
+              @tactics.conj_tac,
+              @list.List([
+                seq([
+                  elim,
+                  @tactics.match_mp_tac(sl_pure),
+                  @tactics.disch_tac,
+                  @tactics.match_mp_tac(thm("sl_conseq")),
+                  @tactics.exists_tac(pp),
+                  @tactics.exists_tac(qq),
+                  @tactics.thenl(
+                    @tactics.conj_tac,
+                    @list.List([same, @tactics.thenl(@tactics.conj_tac, @list.List([use_path, ent(post_rws, ws)]))]),
+                  ),
+                ]),
+                same,
+              ]),
+            ),
+          ]),
+        ),
+      ])(g)
+    }
+    tac
+  }
+  // the code's terms (as in prove_tlsf_push_pop)
+  let sz = "word_and((hd : \{w}), word(4294967292))"
+  let f4 = "word_sub(word(27), word(word_clz(\{sz})))"
+  let sli = "word_and(word_jushr(\{sz}, \{f4}), word(15))"
+  let base = "word_and(word_add(d, word(15)), word(4294967280))"
+  let sl = "word_add(word_add(\{base}, word(4)), word_mul(\{f4}, word(68)))"
+  let slot = "word_add(word_add(\{sl}, word(4)), word_jshl(\{sli}, word(2)))"
+  let bit = (j : String) => "word_jshl(word(1), \{j})"
+  let rstate = (cells : Array[String]) => {
+    let mut acc = "fp(gs, ms)"
+    for k = cells.length() - 1; k >= 1; k = k - 1 {
+      acc = "star(\{cells[k]}, \{acc})"
+    }
+    "(gs : List[Value]) => (ms : Num) => (h : \{heap}) => star(\{cells[0]}, \{acc}, h)"
+  }
+  let state = (v : String, l : String, cells : Array[String]) => "st(\{v}, \{l}, \{rstate(cells)})"
+  let nil = "(NIL : List[Value])"
+  let z = i("word(0)")
+  let ws = (xs : Array[String]) => xs.map(x => "∀ \{x} : \{w}").join(", ")
+  let fpv = "∀ fp : \{rty}"
+  let fl2 = "word_or(fl, \{bit(f4)})"
+  let slb2 = "word_or(slb, \{bit(sli)})"
+  let push = "tlsf_push_code(d)"
+  // push
+  let push_abs = (name : String, head : String, xs : String, path : @kernel.Thm, c : String, pre_rws : Array[@kernel.Thm], wit : Array[String], post_rws : Array[@kernel.Thm], extra : String) => {
+    let pre = [cell("m", "hd"), cell(at("m", "8"), "pf0"), cell(at("m", "12"), "nf0"), cell(base, "fl"), cell(sl, "slb"), cell(slot, head), "tlsf_dll(word(0), \{head}, \{xs})"]
+    let post = [cell("m", "hd"), cell(base, fl2), cell(sl, slb2), cell(slot, "m"), "tlsf_dll(word(0), m, CONS(m, \{xs}))"]
+    lemma(
+      name,
+      "\{ws(["d", "m", "hd", "pf0", "nf0", "fl", "slb"])}\{extra}, \{fpv}, !(m == word(0)) → sl_triple(\{state(nil, "[\{i("m")}, \{z}, \{z}, \{z}]", pre)}, \{push}, \{state("[\{z}]", "[\{i("m")}, \{i(sl)}, \{i(sli)}, \{i(head)}]", post)})",
+      seq([gen, @tactics.disch_tac, by_path(path, c, pre_rws, wit, post_rws, [])]),
+    )
+  }
+  let push_nil = push_abs(
+    "tlsf_push_bin_nil",
+    "word(0)",
+    "(NIL : List[\{w}])",
+    inst(thm("tlsf_push_nil"), ["(d : \{w})", "(m : \{w})", "(hd : \{w})", "(pf0 : \{w})", "(nf0 : \{w})", "(fl : \{w})", "(slb : \{w})", "(word(0) : \{w})", "(word(0) : \{w})", "(fp : \{rty})"]),
+    "T",
+    [dll],
+    [],
+    [dll],
+    "",
+  )
+  let push_cons = push_abs(
+    "tlsf_push_bin_cons",
+    "a",
+    "CONS(a, ys)",
+    inst(thm("tlsf_push_cons"), [
+      "(d : \{w})", "(m : \{w})", "(hd : \{w})", "(pf0 : \{w})", "(nf0 : \{w})", "(fl : \{w})", "(slb : \{w})", "(a : \{w})", "(word(0) : \{w})",
+      "(gs : List[Value]) => (ms : Num) => star(tlsf_dll_next((a : \{w}), (ys : List[\{w}])), (fp : \{rty})(gs, ms))",
+    ]),
+    "!((a : \{w}) == word(0))",
+    [dll_cons],
+    [],
+    [dll_cons, inst(dll_next, ["(m : \{w})", "CONS((a : \{w}), (ys : List[\{w}]))"])],
+    ", ∀ a : \{w}, ∀ ys : List[\{w}]",
+  )
+  ignore(push_nil)
+  ignore(push_cons)
+  // segments, and a list as a segment then a list
+  def(
+    "tlsf_seg",
+    "tlsf_seg((p : \{w}), (x : \{w}), (NIL : List[\{w}]), (q : \{w}), (y : \{w})) == ((h : \{heap}) => x == y && q == p && emp(h)) && tlsf_seg(p, x, CONS((a : \{w}), xs), q, y) == ((h : \{heap}) => x == a && !(a == word(0)) && star(\{cell(at("a", "8"), "p")}, (h1 : \{heap}) => ∃ n : \{w}, star(\{cell(at("a", "12"), "n")}, tlsf_seg(a, n, xs, q, y), h1), h))",
+  )
+  let seg = thm("tlsf_seg")
+  let dll_nil = @bool.conjunct1(dll)
+  let dll_append = lemma(
+    "tlsf_dll_append",
+    "∀ ys : List[\{w}], ∀ p : \{w}, ∀ x : \{w}, ∀ zs : List[\{w}], tlsf_dll(p, x, APPEND(ys, zs)) == ((h : \{heap}) => ∃ q : \{w}, ∃ y : \{w}, star(tlsf_seg(p, x, ys, q, y), tlsf_dll(q, y, zs), h))",
+    @tactics.thenl(
+      @lists.list_induct_tac,
+      @list.List([
+        seq([gen, rw([@lists.append(), seg] + lifts), rw([@class.fun_eq_thm()]), beta_goal(), @meson.meson_tac(ths([]))]),
+        seq([
+          gen,
+          rw([@lists.append(), dll, seg]),
+          @simp.asm_rewrite_tac(ths([])),
+          rw(lifts),
+          rw(ac),
+          rw([@class.fun_eq_thm()]),
+          beta_goal(),
+          @meson.meson_tac(ths([])),
+        ]),
+      ]),
+    ),
+  )
+  // pop, by where m is in its bin
+  let pop = "tlsf_pop_code(d)"
+  let slb3 = "word_xor(slb, \{bit(sli)})"
+  let fl3 = "(if \{slb3} == word(0) { word_xor(fl, \{bit(f4)}) } else { fl })"
+  let l0 = "(if \{slb3} == word(0) { word_xor(fl, \{bit(f4)}) } else { \{slb3} })"
+  let wv = (x : String) => "(\{x} : \{w})"
+  let pop_path = (name : String, args : Array[String], fp : String) => inst(
+    thm(name),
+    args.map(wv) + ["(gs : List[Value]) => (ms : Num) => " + fp],
+  )
+  let fpv2 = "(fp : \{rty})(gs, ms)"
+  let pop_abs = (name : String, vars : String, pre : Array[String], post : Array[String], locals : String, tac : @tactics.Tactic) => lemma(
+    name,
+    "\{ws(["d", "m", "hd", "fl", "slb"])}\{vars}, \{fpv}, sl_triple(\{state(nil, "[\{i("m")}, \{z}, \{z}, \{z}, \{z}]", pre)}, \{pop}, \{state(nil, locals, post)})",
+    seq([gen, tac]),
+  )
+  let _ = pop_abs(
+    "tlsf_pop_bin_only",
+    "",
+    [cell("m", "hd"), cell(slot, "m"), cell(sl, "slb"), cell(base, "fl"), "tlsf_dll(word(0), m, CONS(m, NIL))"],
+    [cell("m", "hd"), cell(at("m", "8"), "word(0)"), cell(at("m", "12"), "word(0)"), cell(slot, "word(0)"), cell(sl, slb3), cell(base, fl3), "tlsf_dll(word(0), word(0), NIL)"],
+    "[\{i(l0)}, \{i(f4)}, \{i(sli)}, \{i(sl)}, \{z}]",
+    by_path(
+      pop_path("tlsf_pop_only", ["d", "m", "hd", "word(0)", "word(0)", "word(0)", "word(0)", "m", "fl", "slb"], fpv2),
+      "T",
+      [dll_cons, dll_next, dll_nil],
+      [],
+      [dll_nil],
+      [],
+    ),
+  )
+  let _ = pop_abs(
+    "tlsf_pop_bin_head",
+    ", ∀ b : \{w}, ∀ zs : List[\{w}]",
+    [cell("m", "hd"), cell(slot, "m"), "tlsf_dll(word(0), m, CONS(m, CONS(b, zs)))"],
+    [cell("m", "hd"), cell(at("m", "8"), "word(0)"), cell(at("m", "12"), "b"), cell(slot, "b"), "tlsf_dll(word(0), b, CONS(b, zs))"],
+    "[\{i("m")}, \{i(f4)}, \{i(sli)}, \{i(sl)}, \{i("b")}]",
+    by_path(
+      pop_path("tlsf_pop_head", ["d", "m", "hd", "word(0)", "b", "word(0)", "m", "m", "word(0)", "word(0)"], "star(tlsf_dll_next((b : \{w}), (zs : List[\{w}])), \{fpv2})"),
+      "!((b : \{w}) == word(0))",
+      [dll_cons, inst(dll_next, ["(m : \{w})", "CONS((b : \{w}), (zs : List[\{w}]))"])],
+      [],
+      [dll_cons],
+      [],
+    ),
+  )
+  let seg_q = "tlsf_seg(word(0), (x : \{w}), (ys : List[\{w}]), (q : \{w}), (pf : \{w}))"
+  let _ = pop_abs(
+    "tlsf_pop_bin_last",
+    ", ∀ x : \{w}, ∀ pf : \{w}, ∀ ys : List[\{w}]",
+    ["tlsf_dll(word(0), x, APPEND(ys, CONS(pf, CONS(m, NIL))))"],
+    [cell(at("m", "8"), "pf"), cell(at("m", "12"), "word(0)"), "tlsf_dll(word(0), x, APPEND(ys, CONS(pf, NIL)))"],
+    "[\{z}, \{i("pf")}, \{z}, \{z}, \{z}]",
+    by_path(
+      pop_path("tlsf_pop_last", ["d", "m", "word(0)", "pf", "word(0)", "m", "word(0)", "word(0)", "word(0)", "word(0)"], "star(\{seg_q}, star(\{cell(at("pf", "8"), "q")}, \{fpv2}))"),
+      "!((pf : \{w}) == word(0))",
+      [dll_append, dll_cons, inst(dll_next, ["(pf : \{w})", "CONS((m : \{w}), NIL)"]), inst(dll_next, ["(m : \{w})", "(NIL : List[\{w}])"]), dll_nil],
+      ["(q : \{w})"],
+      [dll_append, dll_cons, inst(dll_next, ["(pf : \{w})", "(NIL : List[\{w}])"]), dll_nil],
+      ["(q : \{w})"],
+    ),
+  )
+  let _ = pop_abs(
+    "tlsf_pop_bin_mid",
+    ", ∀ x : \{w}, ∀ pf : \{w}, ∀ b : \{w}, ∀ ys : List[\{w}], ∀ zs : List[\{w}]",
+    ["tlsf_dll(word(0), x, APPEND(ys, CONS(pf, CONS(m, CONS(b, zs)))))"],
+    [cell(at("m", "8"), "pf"), cell(at("m", "12"), "b"), "tlsf_dll(word(0), x, APPEND(ys, CONS(pf, CONS(b, zs))))"],
+    "[\{i("b")}, \{i("pf")}, \{z}, \{z}, \{z}]",
+    by_path(
+      pop_path("tlsf_pop_mid", ["d", "m", "word(0)", "pf", "b", "m", "m", "word(0)", "word(0)", "word(0)"], "star(\{seg_q}, star(\{cell(at("pf", "8"), "q")}, star(tlsf_dll_next((b : \{w}), (zs : List[\{w}])), \{fpv2})))"),
+      "!((pf : \{w}) == word(0)) && !((b : \{w}) == word(0))",
+      [dll_append, dll_cons, inst(dll_next, ["(pf : \{w})", "CONS((m : \{w}), CONS((b : \{w}), (zs : List[\{w}])))"]), inst(dll_next, ["(m : \{w})", "CONS((b : \{w}), (zs : List[\{w}]))"])],
+      ["(q : \{w})"],
+      [dll_append, dll_cons, inst(dll_next, ["(pf : \{w})", "CONS((b : \{w}), (zs : List[\{w}]))"])],
+      ["(q : \{w})"],
+    ),
+  )
+  // push and pop on a bin as a whole, the locals left out
+  def(
+    "tlsf_prev",
+    "tlsf_prev((NIL : List[\{w}])) == word(0) && tlsf_prev(CONS((a : \{w}), t)) == (if t == NIL { a } else { tlsf_prev(t) })",
+  )
+  let prev_snoc = lemma(
+    "tlsf_prev_snoc",
+    "∀ l : List[\{w}], ∀ a : \{w}, tlsf_prev(APPEND(l, [a])) == a",
+    seq([
+      @lists.list_induct_tac,
+      @simp.asm_rewrite_tac(ths([@lists.append(), thm("tlsf_prev"), @lists.append_eq_nil(), @lists.not_cons_nil()])),
+    ]),
+  )
+  let hd_append = lemma(
+    "tlsf_hd_append",
+    "∀ ys : List[\{w}], ∀ a : \{w}, ∀ l : List[\{w}], tlsf_hd(APPEND(ys, CONS(a, l))) == (if ys == NIL { a } else { tlsf_hd(ys) })",
+    seq([
+      @tactics.gen_tac,
+      @tactics.struct_cases_tac(@bool.ispec(tm("(ys : List[\{w}])"), @lists.list_cases())),
+      rw([@lists.append(), thm("tlsf_hd"), @lists.not_cons_nil()]),
+    ]),
+  )
+  let list_rws = [
+    thm("tlsf_bin"), thm("tlsf_hd"), thm("tlsf_prev"), prev_snoc, hd_append, @equal.gsym(@lists.append_assoc()), @lists.append(),
+    @lists.append_nil(), @lists.append_eq_nil(), @lists.not_cons_nil(),
+  ]
+  let anyl = (v : String, cells : Array[String]) => {
+    let mut acc = "fp(gs, ms)"
+    for k = cells.length() - 1; k >= 1; k = k - 1 {
+      acc = "star(\{cells[k]}, \{acc})"
+    }
+    "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => vs == \{v} && star(\{cells[0]}, \{acc}, h)"
+  }
+  let push_stmt = (xs : String, vars : String) => "\{ws(["d", "m", "hd", "pf0", "nf0", "fl", "slb"])}\{vars}, \{fpv}, !(m == word(0)) → sl_triple(\{state(nil, "[\{i("m")}, \{z}, \{z}, \{z}]", [cell("m", "hd"), cell(at("m", "8"), "pf0"), cell(at("m", "12"), "nf0"), cell(base, "fl"), cell(sl, "slb"), cell(slot, "tlsf_hd(\{xs})"), "tlsf_bin(\{xs})"])}, \{push}, \{anyl("[\{z}]", [cell("m", "hd"), cell(base, fl2), cell(sl, slb2), cell(slot, "m"), "tlsf_bin(CONS(m, \{xs}))"])})"
+  let wargs = (xs : Array[String]) => xs.map(x => if x.contains("(") { x } else { wv(x) })
+  let fpt = "(gs : List[Value]) => (ms : Num) => \{fpv2}"
+  let push_u_nil = lemma(
+    "tlsf_push_u_nil",
+    push_stmt("(NIL : List[\{w}])", ""),
+    seq([gen, @tactics.disch_tac, by_path(inst(push_nil, wargs(["d", "m", "hd", "pf0", "nf0", "fl", "slb"]) + [fpt]), "T", list_rws, [], list_rws, [])]),
+  )
+  let push_u_cons = lemma(
+    "tlsf_push_u_cons",
+    push_stmt("CONS(a, ys)", ", ∀ a : \{w}, ∀ ys : List[\{w}]"),
+    seq([gen, @tactics.disch_tac, by_path(inst(push_cons, wargs(["d", "m", "hd", "pf0", "nf0", "fl", "slb", "a"]) + ["(ys : List[\{w}])", fpt]), "T", list_rws, [], list_rws, [])]),
+  )
+  // the whole-bin theorems are examples: verified code, with review pages
+  record(
+    "tlsf_push",
+    @tactics.prove(
+      tm(push_stmt("xs", ", ∀ xs : List[\{w}]")),
+      seq([
+        gen,
+        @tactics.disch_tac,
+        @tactics.struct_cases_tac(@bool.ispec(tm("(xs : List[\{w}])"), @lists.list_cases())),
+        @tactics.first(
+          @list.List(
+            [push_u_nil, push_u_cons].map(u => solve(
+              seq([@tactics.match_mp_tac(u), @tactics.first_assum(th => @tactics.accept_tac(th))]),
+            )),
+          ),
+        ),
+      ]),
+    ),
+    kind="example",
+  )
+  let pop_stmt = (ys : String, zs : String, vars : String) => {
+    let xs = "APPEND(\{ys}, CONS(m, \{zs}))"
+    let rest = "APPEND(\{ys}, \{zs})"
+    "\{ws(["d", "m", "hd", "fl", "slb"])}\{vars}, \{fpv}, sl_triple(\{state(nil, "[\{i("m")}, \{z}, \{z}, \{z}, \{z}]", [cell("m", "hd"), cell(slot, "tlsf_hd(\{xs})"), cell(sl, "slb"), cell(base, "fl"), "tlsf_bin(\{xs})"])}, \{pop}, \{anyl(nil, [cell("m", "hd"), cell(at("m", "8"), "tlsf_prev(\{ys})"), cell(at("m", "12"), "tlsf_hd(\{zs})"), cell(slot, "tlsf_hd(\{rest})"), cell(sl, "(if \{rest} == NIL { \{slb3} } else { slb })"), cell(base, "(if \{rest} == NIL { \{fl3} } else { fl })"), "tlsf_bin(\{rest})"])})"
+  }
+  let lnil = "(NIL : List[\{w}])"
+  let snoc = "APPEND(ys, [pf])"
+  let frame_sb = "(gs : List[Value]) => (ms : Num) => star(\{cell(sl, "slb")}, star(\{cell(base, "fl")}, \{fpv2}))"
+  let frame_all = (x : String) => "(gs : List[Value]) => (ms : Num) => star(\{cell("m", "hd")}, star(\{cell(slot, x)}, star(\{cell(sl, "slb")}, star(\{cell(base, "fl")}, \{fpv2}))))"
+  let x_last = "tlsf_hd(APPEND((ys : List[\{w}]), CONS((pf : \{w}), CONS((m : \{w}), NIL))))"
+  let x_mid = "tlsf_hd(APPEND((ys : List[\{w}]), CONS((pf : \{w}), CONS((m : \{w}), CONS((b : \{w}), (zs : List[\{w}]))))))"
+  let pop_us = [
+    lemma(
+      "tlsf_pop_u_only",
+      pop_stmt(lnil, lnil, ""),
+      seq([gen, by_path(inst(thm("tlsf_pop_bin_only"), wargs(["d", "m", "hd", "fl", "slb"]) + [fpt]), "T", list_rws, [], list_rws, [])]),
+    ),
+    lemma(
+      "tlsf_pop_u_head",
+      pop_stmt(lnil, "CONS(b, zs)", ", ∀ b : \{w}, ∀ zs : List[\{w}]"),
+      seq([gen, by_path(inst(thm("tlsf_pop_bin_head"), wargs(["d", "m", "hd", "fl", "slb", "b"]) + ["(zs : List[\{w}])", frame_sb]), "T", list_rws, [], list_rws, [])]),
+    ),
+    lemma(
+      "tlsf_pop_u_last",
+      pop_stmt(snoc, lnil, ", ∀ pf : \{w}, ∀ ys : List[\{w}]"),
+      seq([gen, by_path(inst(thm("tlsf_pop_bin_last"), wargs(["d", "m", "hd", "fl", "slb", x_last, "pf"]) + ["(ys : List[\{w}])", frame_all(x_last)]), "T", list_rws, [], list_rws, [])]),
+    ),
+    lemma(
+      "tlsf_pop_u_mid",
+      pop_stmt(snoc, "CONS(b, zs)", ", ∀ pf : \{w}, ∀ b : \{w}, ∀ ys : List[\{w}], ∀ zs : List[\{w}]"),
+      seq([gen, by_path(inst(thm("tlsf_pop_bin_mid"), wargs(["d", "m", "hd", "fl", "slb", x_mid, "pf", "b"]) + ["(ys : List[\{w}])", "(zs : List[\{w}])", frame_all(x_mid)]), "T", list_rws, [], list_rws, [])]),
+    ),
+  ]
+  record(
+    "tlsf_pop",
+    @tactics.prove(
+      tm(pop_stmt("ys", "zs", ", ∀ ys : List[\{w}], ∀ zs : List[\{w}]")),
+      seq([
+        gen,
+        @tactics.struct_cases_tac(@bool.ispec(tm("(ys : List[\{w}])"), thm("snoc_cases"))),
+        @tactics.struct_cases_tac(@bool.ispec(tm("(zs : List[\{w}])"), @lists.list_cases())),
+        @tactics.first(@list.List(pop_us.map(u => solve(@tactics.match_accept_tac(u))))),
+      ]),
+    ),
+    kind="example",
+  )
+  // the bitmaps: bit k of s is set exactly when k < n and ne(k) (the bin
+  // or level k is not empty); setting and clearing a bit keep that
+  def(
+    "tlsf_sync",
+    "tlsf_sync((s : \{w}), (n : Num), (ne : (Num) -> Bool)) == (∀ k : Num, bit(k, s) == (k < n && ne(k)))",
+  )
+  let sync = thm("tlsf_sync")
+  let bits = [
+    sync, @words.bit_word_or(), @words.bit_word_xor(), @words.word_jshl(), @words.bit_word_shl(), @words.bit_word_1(),
+    @words.dimindex_32(),
+  ]
+  let mod_j = have(
+    "MOD(val((j : \{w})), 32) == val(j)",
+    seq([@tactics.match_mp_tac(@arith.mod_lt()), @int.asm_arith_tac]),
+  )
+  let by_k = seq([
+    gen,
+    @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+    mod_j,
+    @tactics.gen_tac,
+    @class.asm_cases_tac(tm("(k : Num) == val((j : \{w}))")),
+    @class.asm_cases_tac(tm("(ne : (Num) -> Bool)((k : Num))")),
+    @simp.asm_rewrite_tac(ths(bits)),
+    @tactics.first(@list.List([solve(@int.asm_arith_tac), solve(@meson.asm_meson_tac(ths([])))])),
+  ])
+  let _ = lemma(
+    "tlsf_sync_set",
+    "∀ s : \{w}, ∀ j : \{w}, ∀ n : Num, ∀ ne : (Num) -> Bool, val(j) < n && n <= 32 && tlsf_sync(s, n, ne) → tlsf_sync(word_or(s, word_jshl(word(1), j)), n, (k : Num) => k == val(j) || ne(k))",
+    seq([rw([sync]), by_k]),
+  )
+  let _ = lemma(
+    "tlsf_sync_clear",
+    "∀ s : \{w}, ∀ j : \{w}, ∀ n : Num, ∀ ne : (Num) -> Bool, val(j) < n && n <= 32 && tlsf_sync(s, n, ne) && ne(val(j)) → tlsf_sync(word_xor(s, word_jshl(word(1), j)), n, (k : Num) => !(k == val(j)) && ne(k))",
+    seq([rw([sync]), by_k]),
+  )
+  let _ = lemma(
+    "tlsf_sync_zero",
+    "∀ s : \{w}, ∀ n : Num, ∀ ne : (Num) -> Bool, tlsf_sync(s, n, ne) → ((s == word(0)) == (∀ k : Num, k < n → !ne(k)))",
+    seq([
+      gen,
+      rw([sync, @words.word_eq_bits(), @words.bit_word_0()]),
+      @tactics.disch_tac,
+      @simp.asm_rewrite_tac(ths([])),
+      @meson.meson_tac(ths([])),
+    ]),
+  )
+  let _ = lemma(
+    "tlsf_code_bounds",
+    "∀ x : \{w}, 16 <= val(x) → val(word_and(word_jushr(x, word_sub(word(27), word(word_clz(x)))), word(15))) < 16 && val((word_sub(word(27), word(word_clz(x))) : \{w})) < 28",
+    seq([
+      @tactics.gen_tac,
+      @tactics.disch_tac,
+      rw([thm("tlsf_code_sli"), thm("tlsf_code_fli")]),
+      @tactics.mp_tac(inst(thm("tlsf_class"), ["(x : \{w})"])),
+      @simp.asm_rewrite_tac(ths([])),
+      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+      rw([@words.val_word_sub_cases(), @words.val_word(), @words.dimindex_32()]),
+      @tactics.conv_tac(@calc_num.num_reduce_conv),
+      @simp.asm_rewrite_tac(ths([])),
+      @int.asm_arith_tac,
+    ]),
+  )
+}

@@ -1023,3 +1023,5 @@ Triples of verified programs, with what their statements depend on.
 | `tlsf_pop_last` | 247 | 233 | 14 |
 | `tlsf_pop_head` | 247 | 233 | 14 |
 | `tlsf_pop_only` | 247 | 233 | 14 |
+| `tlsf_push` | 251 | 233 | 18 |
+| `tlsf_pop` | 252 | 233 | 19 |

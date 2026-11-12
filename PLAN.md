@@ -105,7 +105,7 @@ good order to read it in:
 | returns.mbt | `safer`: safety with returns; its seq, label and frame lemmas |
 | specs.mbt | function specs, `sl_triple_g` and its rules, `sl_call_g`, `sl_funs_g`, and sym's rules for it |
 | examples.mbt, example_*.mbt | the verified programs |
-| tlsf.mbt | MoonBit's TLSF allocator: its size classes (`tlsf_fli`, `tlsf_sli`, `tlsf_round`), `tlsf_find_sound`, `tlsf_class_mono`; its compiled push and pop (`tlsf_push_code`, `tlsf_pop_code`) and a triple for each path |
+| tlsf.mbt | MoonBit's TLSF allocator: its size classes (`tlsf_fli`, `tlsf_sli`, `tlsf_round`), `tlsf_find_sound`, `tlsf_class_mono`; its compiled push and pop (`tlsf_push_code`, `tlsf_pop_code`) and a triple for each path; bins as doubly linked lists (`tlsf_dll`, `tlsf_bin`), `tlsf_push` and `tlsf_pop` on them (`by_path`), the bitmaps (`tlsf_sync`) |
 | logic_test.mbt | the listing's snapshot, the theorems' list, the public API's test, the closed theorems' non-vacuity checks |
 
 Package `wasm`: ast.mbt, numeric.mbt, store.mbt, typing.mbt, reduction.mbt
@@ -136,7 +136,8 @@ eval.mbt and builder.mbt (the evaluator), and the tests.
 | An importer for `.wat` / `.wasm`, and a compiled program | not started |
 | MoonBit's TLSF allocator: the size-class arithmetic | done (Features 4, step 1) |
 | MoonBit's TLSF allocator: push and pop, each path from the words it touches | done (Features 4, step 2a) |
-| MoonBit's TLSF allocator: bins as lists, the other functions | not started |
+| MoonBit's TLSF allocator: a bin as a doubly linked list, push and pop on it, the bitmaps' meaning | done (Features 4, step 2b) |
+| MoonBit's TLSF allocator: all bins at once, the other functions | not started |
 
 Known limits of what exists:
 
@@ -315,7 +316,8 @@ say so.
    unchanged; `perm` by `perm_swap`s), `apply_closed` with x = 21 and a
    table holding double_code at k = 0 (the stack holds 42). The stores' memories are not whole
    pages, which the hypotheses do not ask for, to keep the evaluator
-   fast; the package's tests still take about 75 s in all. A new
+   fast; the package's tests take about two minutes in all, most of it
+   the load. A new
    closed theorem gets such a test the same way (`run_closed`,
    `first_alternative`).
 
@@ -388,12 +390,23 @@ say so.
          word cells anywhere in R (`st_cell_load`, `st_cell_store`, found
          by address and brought to the front), and closing a branch that
          contradicts the hypotheses.
-      b. Next: an abstract map from bins to address lists, with a heap
-         predicate for it (the bitmaps, the bins' heads, and each listed
-         memory's two link words, which are apart from its size word), and
-         push and pop against it: the path triples are its unfolded cases.
-         `find`'s bitmap masks (a `ctz` of the bitmap masked from fli up)
-         go here too.
+      b. Done: a bin as a doubly linked list, `tlsf_bin(xs)` (`tlsf_dll`,
+         each memory's two link words in the list, its size word apart),
+         and push and pop against it: `tlsf_push` (bin xs to m :: xs) and
+         `tlsf_pop` (bin ys ++ [m] ++ zs to ys ++ zs, with m's links
+         returned), from the path triples by `by_path` (the list unfolded
+         as far as the path reads it; `tlsf_dll_append` splits it at a
+         member). The bitmaps: `tlsf_sync` and `tlsf_sync_set`,
+         `tlsf_sync_clear`, `tlsf_sync_zero`; `tlsf_code_bounds` keeps the
+         indices in range. General lemmas made for this, there for reuse:
+         `sl_pure` and `sl_ex` (sl_triple's), and pure facts and ∃s out of
+         a separating conjunction as hprops (`star_pure_hr`, ...,
+         `star_emp_hl`).
+      c. Not yet: one predicate for all 448 bins and both bitmap levels
+         (an iterated star over the bins, each bitmap word tlsf_sync with
+         its bins), and push and pop as keeping it; and `find`'s bitmap
+         masks (a `ctz` of the bitmap masked from fli up). Both belong
+         with step 3.
    3. The large-allocation invariant: one predicate over the whole heap
       (the free lists run through the physical chain's headers, so it is
       not a separating conjunction), with the allocated regions, preserved
