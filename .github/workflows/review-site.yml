@@ -1,5 +1,5 @@
 # Builds the review site from the committed listings
-# (wasm/__snapshot__/theory.json, logic/__snapshot__/theory.json)
+# (wasm, logic, and tlsf's __snapshot__/theory.json files)
 # and publishes it to GitHub Pages. Nothing is proved here: the
 # listings are kept up to date by the packages' tests.
 name: Review site

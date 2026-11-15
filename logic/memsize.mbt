@@ -22,7 +22,9 @@ fn prove_memory_size_rules() -> Unit raise {
   let length_append = lemma(
     "mem_length_append",
     "∀ m : \{mem_ty}, ∀ n : Num, ∀ b : \{w8}, mem_length(mem_append(m, n, b)) == mem_length(m) + n",
-    @simp.rewrite_tac(ths(mem_defs + [@lists.length_append(), @lists.length_replicate()])),
+    @simp.rewrite_tac(
+      ths(mem_defs + [@lists.length_append(), @lists.length_replicate()]),
+    ),
   )
   let heap_append = lemma(
     "heap_of_append",
@@ -31,7 +33,15 @@ fn prove_memory_size_rules() -> Unit raise {
       @simp.rewrite_tac(
         ths(
           mem_defs +
-          [@class.fun_eq_thm(), thm("heap_of"), thm("hunion"), thm("pts_heap"), @lists.length_append(), @lists.length_replicate(), @lists.el_append()],
+          [
+            @class.fun_eq_thm(),
+            thm("heap_of"),
+            thm("hunion"),
+            thm("pts_heap"),
+            @lists.length_append(),
+            @lists.length_replicate(),
+            @lists.el_append(),
+          ],
         ),
       ),
       @tactics.repeat_tac(@tactics.gen_tac),
@@ -46,7 +56,14 @@ fn prove_memory_size_rules() -> Unit raise {
     "heap_of_disj",
     "∀ m : \{mem_ty}, ∀ zs : List[\{w8}], hdisj(heap_of(m), pts_heap(mem_length(m), zs))",
     seq([
-      @simp.rewrite_tac(ths([thm("hdisj"), thm("pts_heap_none"), thm("heap_of"), @wasm.thm("mem_length")])),
+      @simp.rewrite_tac(
+        ths([
+          thm("hdisj"),
+          thm("pts_heap_none"),
+          thm("heap_of"),
+          @wasm.thm("mem_length"),
+        ]),
+      ),
       @tactics.repeat_tac(@tactics.gen_tac),
       @class.cond_cases_tac,
       @simp.asm_rewrite_tac(ths(opt)),
@@ -80,7 +97,12 @@ fn prove_memory_size_rules() -> Unit raise {
       ),
       @tactics.first_x_assum(th => @tactics.mp_tac(th)),
       @simp.rewrite_tac(ths([thm("star_assoc")])),
-      @tactics.subst1_tac(@bool.ispecl(@list.List([tm(zeros), tm("(r : \{hprop})")]), thm("star_comm"))),
+      @tactics.subst1_tac(
+        @bool.ispecl(
+          @list.List([tm(zeros), tm("(r : \{hprop})")]),
+          thm("star_comm"),
+        ),
+      ),
       @simp.rewrite_tac(ths([])),
     ]),
   )
@@ -93,6 +115,19 @@ fn prove_memory_size_rules() -> Unit raise {
       @class.cond_cases_tac,
       @simp.rewrite_tac(ths(opt)),
       @meson.meson_tac(ths([])),
+    ]),
+  )
+  let grow_limit = lemma(
+    "mem_grow_limit",
+    "∀ m : \{mem_ty}, ∀ n : Num, ∀ m2 : \{mem_ty}, mem_grow(m, n) == SOME(m2) → DIV(mem_length(m), 65536) + n <= 65536",
+    seq([
+      @tactics.repeat_tac(@tactics.gen_tac),
+      @simp.rewrite_tac(
+        ths([@wasm.thm("mem_grow"), @wasm.thm("mem_size"), @wasm.thm("Ki64")]),
+      ),
+      @class.cond_cases_tac,
+      @simp.rewrite_tac(ths(opt)),
+      @meson.asm_meson_tac(ths([])),
     ]),
   )
   let rb = @bool.conjuncts_rule(@wasm.thm("reduce_base_rules")).to_array()
@@ -153,10 +188,20 @@ fn prove_memory_size_rules() -> Unit raise {
           seq([
             @tactics.exists_tac(s),
             @tactics.exists_tac(f),
-            @tactics.exists_tac(tm("APPEND(MAP(v_to_e, (vs : List[Value])), \{size_val})")),
+            @tactics.exists_tac(
+              tm("APPEND(MAP(v_to_e, (vs : List[Value])), \{size_val})"),
+            ),
             @tactics.mp_tac(
               @bool.ispecl(
-                @list.List([s, f, tm("LBase((vs : List[Value]), NIL)"), tm("[\{size}]"), s, f, tm(size_val)]),
+                @list.List([
+                  s,
+                  f,
+                  tm("LBase((vs : List[Value]), NIL)"),
+                  tm("[\{size}]"),
+                  s,
+                  f,
+                  tm(size_val),
+                ]),
                 @wasm.thm("decomp_reduce"),
               ),
             ),
@@ -167,9 +212,15 @@ fn prove_memory_size_rules() -> Unit raise {
           ]),
           seq([
             @tactics.repeat_tac(@tactics.strip_tac),
-            @tactics.first_x_assum(th => @tactics.strip_assume_tac(@drule.match_mp(prefix)(th))),
+            @tactics.first_x_assum(th => {
+              @tactics.strip_assume_tac(@drule.match_mp(prefix)(th))
+            }),
             subst_vars(),
-            @tactics.first_x_assum(th => @tactics.mp_tac(@bool.spec(tm(jth), @drule.match_mp(size_cases)(th)))),
+            @tactics.first_x_assum(th => {
+              @tactics.mp_tac(
+                @bool.spec(tm(jth), @drule.match_mp(size_cases)(th)),
+              )
+            }),
             @simp.asm_rewrite_tac(ths([])),
             @tactics.repeat_tac(@tactics.strip_tac),
             subst_vars(),
@@ -205,7 +256,7 @@ fn prove_memory_size_rules() -> Unit raise {
       @meson.meson_tac(ths([])),
     ]),
   )
-  let post = "(vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], ∃ ms0 : Num, (vs == APPEND(vs0, [V_num(ConstInt32(word(DIV(ms0, 65536))))]) && ms == ms0 + val((c : \{w})) * 65536 && star(p(vs0, ls, gs, ms0), pts(ms0, REPLICATE(val(c) * 65536, word(0))), h)) || (vs == APPEND(vs0, [V_num(ConstInt32(int32_minus_one))]) && ms == ms0 && p(vs0, ls, gs, ms0, h)))"
+  let post = "(vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], ∃ ms0 : Num, (vs == APPEND(vs0, [V_num(ConstInt32(word(DIV(ms0, 65536))))]) && ms == ms0 + val((c : \{w})) * 65536 && DIV(ms0, 65536) + val(c) <= 65536 && star(p(vs0, ls, gs, ms0), pts(ms0, REPLICATE(val(c) * 65536, word(0))), h)) || (vs == APPEND(vs0, [V_num(ConstInt32(int32_minus_one))]) && ms == ms0 && p(vs0, ls, gs, ms0, h)))"
   let _ = lemma(
     "sl_memory_grow",
     "∀ p : \{sassn}, ∀ c : \{w}, sl_triple((vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [V_num(ConstInt32(c))]) && p(vs0, ls, gs, ms, h)), [Memory_grow], \{post})",
@@ -218,7 +269,13 @@ fn prove_memory_size_rules() -> Unit raise {
       @tactics.repeat_tac(@tactics.strip_tac),
       subst_vars(),
       @simp.rewrite_tac(
-        ths([@lists.map_append(), @lists.map(), v_to_e, @equal.gsym(@lists.append_assoc()), @lists.append()]),
+        ths([
+          @lists.map_append(),
+          @lists.map(),
+          v_to_e,
+          @equal.gsym(@lists.append_assoc()),
+          @lists.append(),
+        ]),
       ),
       @tactics.struct_cases_tac(@bool.spec(tm("(n : Num)"), @nums.num_cases())),
       @simp.rewrite_tac(ths([thm("safe")])),
@@ -230,10 +287,20 @@ fn prove_memory_size_rules() -> Unit raise {
           seq([
             @tactics.exists_tac(s),
             @tactics.exists_tac(f),
-            @tactics.exists_tac(tm("APPEND(MAP(v_to_e, (vs0 : List[Value])), \{fail_val})")),
+            @tactics.exists_tac(
+              tm("APPEND(MAP(v_to_e, (vs0 : List[Value])), \{fail_val})"),
+            ),
             @tactics.mp_tac(
               @bool.ispecl(
-                @list.List([s, f, tm("LBase((vs0 : List[Value]), NIL)"), tm(code), s, f, tm(fail_val)]),
+                @list.List([
+                  s,
+                  f,
+                  tm("LBase((vs0 : List[Value]), NIL)"),
+                  tm(code),
+                  s,
+                  f,
+                  tm(fail_val),
+                ]),
                 @wasm.thm("decomp_reduce"),
               ),
             ),
@@ -244,9 +311,13 @@ fn prove_memory_size_rules() -> Unit raise {
           ]),
           seq([
             @tactics.repeat_tac(@tactics.strip_tac),
-            @tactics.first_x_assum(th => @tactics.strip_assume_tac(@drule.match_mp(prefix)(th))),
+            @tactics.first_x_assum(th => {
+              @tactics.strip_assume_tac(@drule.match_mp(prefix)(th))
+            }),
             subst_vars(),
-            @tactics.first_x_assum(th => @tactics.mp_tac(@drule.match_mp(cases)(th))),
+            @tactics.first_x_assum(th => {
+              @tactics.mp_tac(@drule.match_mp(cases)(th))
+            }),
             @simp.asm_rewrite_tac(ths(opt)),
             unwind,
             @simp.asm_rewrite_tac(ths(opt)),
@@ -254,32 +325,61 @@ fn prove_memory_size_rules() -> Unit raise {
             subst_vars(),
             @simp.rewrite_tac(ths([@equal.gsym(v_to_e), thm("map_snoc")])),
             @tactics.match_mp_tac(thm("safe_vals")),
-            @tactics.first(@list.List([
-              // it grew
-              solve(seq([
-                @tactics.first_x_assum(th => @tactics.mp_tac(@drule.match_mp(grow_some)(th))),
-                @tactics.disch_then(th => @tactics.subst1_tac(th)),
-                @simp.rewrite_tac(ths(lift_facts() + [star_or, thm("s_mems_update_get"), thm("length_list_update"), thm("gvals_mems_update")])),
-                @tactics.exists_tac(tm(jth)),
-                @simp.asm_simp_tac(ths([thm("el_list_update")])),
-                @tactics.exists_tac(tm("(vs0 : List[Value])")),
-                @tactics.exists_tac(tm(ms)),
-                @tactics.disj1_tac,
-                @simp.rewrite_tac(ths([length_append, @wasm.thm("mem_size"), @wasm.thm("Ki64"), @wasm.thm("zero_byte")])),
-                @tactics.match_mp_tac(star_grow),
-                @simp.asm_rewrite_tac(ths([])),
-              ])),
-              // it failed
-              solve(seq([
-                @simp.rewrite_tac(ths(lift_facts() + [star_or])),
-                @tactics.exists_tac(tm(jth)),
-                @simp.asm_rewrite_tac(ths([])),
-                @tactics.exists_tac(tm("(vs0 : List[Value])")),
-                @tactics.exists_tac(tm(ms)),
-                @tactics.disj2_tac,
-                @simp.asm_rewrite_tac(ths([])),
-              ])),
-            ])),
+            @tactics.first(
+              @list.List([
+                // it grew
+                solve(
+                  seq([
+                    @tactics.first_assum(th => {
+                      @tactics.assume_tac(@drule.match_mp(grow_limit)(th))
+                    }),
+                    @tactics.first_x_assum(th => {
+                      @tactics.mp_tac(@drule.match_mp(grow_some)(th))
+                    }),
+                    @tactics.disch_then(th => @tactics.subst1_tac(th)),
+                    @simp.rewrite_tac(
+                      ths(
+                        lift_facts() +
+                        [
+                          star_or,
+                          thm("s_mems_update_get"),
+                          thm("length_list_update"),
+                          thm("gvals_mems_update"),
+                        ],
+                      ),
+                    ),
+                    @tactics.exists_tac(tm(jth)),
+                    @simp.asm_simp_tac(ths([thm("el_list_update")])),
+                    @tactics.exists_tac(tm("(vs0 : List[Value])")),
+                    @tactics.exists_tac(tm(ms)),
+                    @tactics.disj1_tac,
+                    @simp.rewrite_tac(
+                      ths([
+                        length_append,
+                        @wasm.thm("mem_size"),
+                        @wasm.thm("Ki64"),
+                        @wasm.thm("zero_byte"),
+                      ]),
+                    ),
+                    @simp.asm_rewrite_tac(ths([])),
+                    @tactics.match_mp_tac(star_grow),
+                    @simp.asm_rewrite_tac(ths([])),
+                  ]),
+                ),
+                // it failed
+                solve(
+                  seq([
+                    @simp.rewrite_tac(ths(lift_facts() + [star_or])),
+                    @tactics.exists_tac(tm(jth)),
+                    @simp.asm_rewrite_tac(ths([])),
+                    @tactics.exists_tac(tm("(vs0 : List[Value])")),
+                    @tactics.exists_tac(tm(ms)),
+                    @tactics.disj2_tac,
+                    @simp.asm_rewrite_tac(ths([])),
+                  ]),
+                ),
+              ]),
+            ),
           ]),
         ]),
       ),

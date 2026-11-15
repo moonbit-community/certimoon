@@ -1,0 +1,218 @@
+// MoonBit allocator verification, layered on the general Wasm logic.
+
+///|
+let loaded : Ref[Bool] = Ref::{ val: false, }
+
+///|
+let theory : Ref[@logic.Extension?] = Ref::{ val: None, }
+
+///|
+/// Replay the TLSF proofs once; the core logic loads first.
+pub fn load() -> Unit {
+  if loaded.val {
+    return
+  }
+  loaded.val = true
+  theory.val = Some(
+    @logic.extend_theory(
+      "tlsf",
+      fn() raise {
+        section("TLSF size classes (tlsf.mbt)")
+        prove_tlsf_classes()
+        section("TLSF free lists: push and pop (tlsf.mbt)")
+        prove_tlsf_push_pop()
+        section("TLSF bins as doubly linked lists (tlsf.mbt)")
+        prove_tlsf_bins()
+        section("TLSF all bins and bitmaps (tlsf_bins.mbt)")
+        prove_tlsf_all_bins()
+        section(
+          "TLSF physical chain and bin correspondence (tlsf_physical.mbt)",
+        )
+        prove_tlsf_physical()
+        section("Compiled TLSF search (tlsf_find_code.mbt)")
+        define_tlsf_find_code()
+        section(
+          "TLSF bitmap search (tlsf_find_bits.mbt, tlsf_find_reads.mbt, tlsf_find.mbt)",
+        )
+        prove_tlsf_find_math()
+        prove_tlsf_find_views()
+        prove_tlsf_find_query()
+        section("Physical search result (tlsf_find_spec.mbt)")
+        prove_tlsf_find_spec()
+        section("Search against the complete invariant (tlsf_find_all.mbt)")
+        prove_tlsf_find_all()
+        section("Compiled TLSF split (tlsf_split_code.mbt)")
+        define_tlsf_split_code()
+        section(
+          "TLSF split: structural lemmas and verified calls (tlsf_split_*.mbt)",
+        )
+        prove_tlsf_split_structure()
+        prove_tlsf_split_calls()
+        prove_tlsf_split_models()
+        prove_tlsf_split_push_call()
+        prove_tlsf_split_raw()
+        prove_tlsf_split_layout()
+        prove_tlsf_split_paths()
+        prove_tlsf_split_coalesced()
+        prove_tlsf_split_interior()
+        prove_tlsf_split_bins()
+        prove_tlsf_split_physical()
+        prove_tlsf_split_flags()
+        prove_tlsf_split_arithmetic()
+        prove_tlsf_split_bytes()
+        prove_tlsf_split_payload()
+        prove_tlsf_split_module()
+        prove_tlsf_split_module_ex()
+        prove_tlsf_split_mark()
+        prove_tlsf_split_focus()
+        prove_tlsf_split_bin_focus()
+        prove_tlsf_split_close()
+        prove_tlsf_split_spatial()
+        prove_tlsf_split_whole()
+        prove_tlsf_split_all()
+        section("The complete compiled Memory::take (tlsf_take_*.mbt)")
+        define_tlsf_take_code()
+        define_tlsf_take_state()
+        prove_tlsf_take_math()
+        prove_tlsf_take_pop_models()
+        prove_tlsf_take_logic()
+        prove_tlsf_take_pop_match()
+        prove_tlsf_take_pop_call()
+        prove_tlsf_take_pop_remove()
+        prove_tlsf_take_pop_invoke()
+        prove_tlsf_take_regions()
+        prove_tlsf_take_pop_detach()
+        prove_tlsf_take_control()
+        prove_tlsf_split_detached()
+        prove_tlsf_take_return()
+        prove_tlsf_take_success()
+        prove_tlsf_take_facts()
+        prove_tlsf_take_composition()
+        prove_tlsf_take_module()
+        section("Compiled TLSF ensure and memory growth (tlsf_ensure_*.mbt)")
+        define_tlsf_ensure_code()
+        define_tlsf_ensure_state()
+        prove_tlsf_ensure_logic()
+        prove_tlsf_ensure_geometry()
+        prove_tlsf_ensure_math()
+        prove_tlsf_ensure_focus()
+        prove_tlsf_ensure_pages()
+        prove_tlsf_ensure_flags()
+        prove_tlsf_ensure_metadata()
+        prove_tlsf_ensure_models()
+        prove_tlsf_ensure_bytes()
+        prove_tlsf_ensure_bins()
+        prove_tlsf_ensure_bin_models()
+        prove_tlsf_ensure_spatial()
+        prove_tlsf_ensure_parts()
+        prove_tlsf_ensure_prefix()
+        prove_tlsf_ensure_writes()
+        prove_tlsf_ensure_write_full()
+        prove_tlsf_ensure_pop_invoke()
+        prove_tlsf_ensure_pop_detach()
+        prove_tlsf_ensure_push_invoke()
+        prove_tlsf_ensure_amounts()
+        prove_tlsf_ensure_views()
+        prove_tlsf_ensure_detached_grow()
+        prove_tlsf_ensure_tails()
+        prove_tlsf_ensure_fit()
+        prove_tlsf_ensure_grow_control()
+        prove_tlsf_ensure_append_grow()
+        prove_tlsf_ensure_saved()
+        prove_tlsf_ensure_saved_parts()
+        prove_tlsf_ensure_append()
+        prove_tlsf_ensure_used_success()
+        prove_tlsf_ensure_posts()
+        prove_tlsf_ensure_resize()
+        prove_tlsf_ensure_free_success()
+        prove_tlsf_ensure_branches()
+        prove_tlsf_ensure_body()
+        prove_tlsf_ensure_focus_body()
+        prove_tlsf_ensure_module()
+        section("Compiled TLSF free and coalescing (tlsf_free_*.mbt)")
+        define_tlsf_free_code()
+        define_tlsf_free_parts()
+        define_tlsf_free_state()
+        define_tlsf_free_pair()
+        define_tlsf_free_work()
+        prove_tlsf_free_structure()
+        prove_tlsf_free_flags()
+        prove_tlsf_free_layout()
+        prove_tlsf_free_coalesced()
+        prove_tlsf_free_ready()
+        prove_tlsf_free_merge_math()
+        prove_tlsf_free_merge_flags()
+        prove_tlsf_free_begin_models()
+        prove_tlsf_free_metadata()
+        prove_tlsf_free_work_fold()
+        prove_tlsf_free_pair()
+        prove_tlsf_free_pair_geometry()
+        prove_tlsf_free_successor()
+        prove_tlsf_free_focus()
+        prove_tlsf_free_merge_bins()
+        prove_tlsf_free_pop_models()
+        prove_tlsf_free_merge_model()
+        prove_tlsf_free_merge_ready()
+        prove_tlsf_free_merge_work()
+        prove_tlsf_free_bytes()
+        prove_tlsf_free_reads()
+        prove_tlsf_free_args()
+        prove_tlsf_free_control()
+        prove_tlsf_free_tests()
+        prove_tlsf_free_arg_states()
+        prove_tlsf_free_writes()
+        prove_tlsf_free_pop_invoke()
+        prove_tlsf_free_push_invoke()
+        prove_tlsf_free_begin()
+        prove_tlsf_free_pop_pair()
+        prove_tlsf_free_merge_close()
+        prove_tlsf_free_merge_write()
+        prove_tlsf_free_merge_body()
+        prove_tlsf_free_start()
+        prove_tlsf_free_publish()
+        prove_tlsf_free_paths()
+        prove_tlsf_free_phases()
+        prove_tlsf_free_finish()
+        prove_tlsf_free_body_focused()
+        prove_tlsf_free_module()
+      },
+      title="MoonBit's TLSF allocator",
+    ) catch {
+      e => abort("certimoon/tlsf: " + e.to_string())
+    },
+  )
+}
+
+///|
+fn extension() -> @logic.Extension {
+  load()
+  theory.val.unwrap()
+}
+
+///|
+/// A TLSF theorem, or a theorem of the underlying logic.
+pub fn thm(name : String) -> @kernel.Thm {
+  load()
+  @logic.thm(name)
+}
+
+///|
+/// The names registered by the TLSF proofs, excluding the core theory.
+pub fn names() -> Array[String] {
+  extension().names()
+}
+
+///|
+pub fn listing() -> String raise {
+  extension().listing()
+}
+
+///|
+pub fn listing_json() -> String raise {
+  extension().listing_json()
+}
+
+///|
+pub fn dependencies() -> String raise {
+  extension().dependencies()
+}

@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbit-community/certimoon/tlsf"
+
+import {
+  "bobzhang/hol_light/kernel",
+}
+
+// Values
+pub fn dependencies() -> String raise
+
+pub fn listing() -> String raise
+
+pub fn listing_json() -> String raise
+
+pub fn load() -> Unit
+
+pub fn names() -> Array[String]
+
+pub fn thm(String) -> @kernel.Thm
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

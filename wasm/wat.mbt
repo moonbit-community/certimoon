@@ -168,8 +168,16 @@ fn instr_lines(
         }
         None => fallback()
       }
-    (_, 1) if index_instrs.search_by(p => p.0 == h) is Some(k) =>
-      line(index_instrs[k].1 + " " + numeral_text(args[0]))
+    (_, 1) if index_instrs.search_by(p => p.0 == h) is Some(k) => {
+      // A linked function index may be a program parameter, just as an
+      // inlined linker constant may parameterize i32.const.
+      let index = if @kernel.is_var(args[0]) {
+        @kernel.dest_var(args[0]).0
+      } else {
+        numeral_text(args[0])
+      }
+      line(index_instrs[k].1 + " " + index)
+    }
     ("EConstNum", 1) => {
       let (c, cargs) = head_args(args[0])
       let (w, wargs) = if cargs.length() == 1 { head_args(cargs[0]) } else { ("", []) }

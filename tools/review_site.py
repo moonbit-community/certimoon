@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Writes a static site for reviewing what packages wasm and logic define
+"""Writes a static site for reviewing what packages wasm, logic and tlsf define
 and prove, from their listings as data (wasm/__snapshot__/theory.json and
-logic/__snapshot__/theory.json, kept by the packages' tests):
+logic/__snapshot__/theory.json and tlsf/__snapshot__/theory.json, kept by
+the packages' tests):
 
     python3 tools/review_site.py [--out _site] [--source-url URL]
 
@@ -11,9 +12,10 @@ logic/__snapshot__/theory.json, kept by the packages' tests):
   the listing's headings, definitions in full and lemmas folded;
 - review/<name>.html for each closed theorem and example: its statement,
   the programs it is about, then every other definition it depends on,
-  with links to entries on the page staying on it. Package logic computes that list
+  with links to entries on the page staying on it. Each package computes that list
   (`depends` in its theory.json, also kept in
-  logic/__snapshot__/dependencies.md): the entries defining the constants
+  logic/__snapshot__/dependencies.md and tlsf/__snapshot__/dependencies.md):
+  the entries defining the constants
   of the statement, and those defining the constants of theirs, through
   logic and into wasm, until only hol_light's constants are left.
 
@@ -31,7 +33,7 @@ import os
 import re
 import sys
 
-PACKAGES = ["wasm", "logic"]
+PACKAGES = ["wasm", "logic", "tlsf"]
 DEFINING = {"definition", "relation", "datatype", "record", "constant",
             "type definition", "specification", "program"}
 IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_']*")
@@ -369,7 +371,8 @@ class Site:
                '<div class="note">A theorem here trusts hol_light\'s kernel, the definitions its '
                'statement depends on, and its statement; nothing else. Package <b>wasm</b> is '
                'WasmCert\'s WebAssembly semantics ported from Isabelle; package <b>logic</b> is a '
-               'separation logic proved sound against it. Neither adds an axiom. The proofs are '
+               'separation logic proved sound against it; <b>tlsf</b> verifies MoonBit\'s allocator. '
+               'These packages add no axioms. The proofs are '
                'checked by the kernel when the packages load, so a review reads definitions and '
                'statements, not proofs.</div>',
                f'<p>{n["definition"]} definitions and datatypes, {count(n["relation"], "relation")}, '

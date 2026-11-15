@@ -41,9 +41,20 @@ test "code is printed as WebAssembly text, and reads back" {
 }
 
 ///|
+test "symbolic linked indices print and read back" {
+  load()
+  let code = @term_syntax.parse_term(
+    "[Call((push : Num)), Local_get((slot : Num))]",
+  )
+  inspect(wat_of_code(code), content="call push\nlocal.get slot")
+}
+
+///|
 test "an instruction with no WebAssembly name here is kept in the term syntax" {
   load()
-  let code = @term_syntax.parse_term("[Local_get(0), EConstNum(ConstInt32((x : Word[32]))), Binop(T_f32, Binop_f(Addf)), Br_table([0, 1], 2)]")
+  let code = @term_syntax.parse_term(
+    "[Local_get(0), EConstNum(ConstInt32((x : Word[32]))), Binop(T_f32, Binop_f(Addf)), Br_table([0, 1], 2)]",
+  )
   inspect(
     wat_of_code(code, indent="  "),
     content=(

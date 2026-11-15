@@ -36,15 +36,21 @@ pub fn depends_on(Array[String]) -> (Array[(String, String)], Array[String]) rai
 
 pub fn eq_of(@kernel.Term, String) -> Bool
 
+pub fn extend_theory(String, () -> Unit raise, title? : String) -> Extension raise
+
 pub fn forward2(@kernel.Thm) -> ((@list.List[(String, @kernel.Thm)], @kernel.Term)) -> ((@list.List[@kernel.Term], (@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)])), @list.List[(@list.List[(String, @kernel.Thm)], @kernel.Term)], ((@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)]), @list.List[@kernel.Thm]) -> @kernel.Thm raise) raise
 
 pub let fprop : String
 
 pub fn have(String, ((@list.List[(String, @kernel.Thm)], @kernel.Term)) -> ((@list.List[@kernel.Term], (@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)])), @list.List[(@list.List[(String, @kernel.Thm)], @kernel.Term)], ((@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)]), @list.List[@kernel.Thm]) -> @kernel.Thm raise) raise) -> (((@list.List[(String, @kernel.Thm)], @kernel.Term)) -> ((@list.List[@kernel.Term], (@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)])), @list.List[(@list.List[(String, @kernel.Thm)], @kernel.Term)], ((@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)]), @list.List[@kernel.Thm]) -> @kernel.Thm raise) raise) raise
 
+pub fn head_name(@kernel.Term) -> String
+
 pub let heap : String
 
 pub let hprop : String
+
+pub fn intro_tac() -> ((@list.List[(String, @kernel.Thm)], @kernel.Term)) -> ((@list.List[@kernel.Term], (@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)])), @list.List[(@list.List[(String, @kernel.Thm)], @kernel.Term)], ((@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)]), @list.List[@kernel.Thm]) -> @kernel.Thm raise) raise
 
 #callsite(autofill(loc))
 pub fn lemma(String, String, ((@list.List[(String, @kernel.Thm)], @kernel.Term)) -> ((@list.List[@kernel.Term], (@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)])), @list.List[(@list.List[(String, @kernel.Thm)], @kernel.Term)], ((@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)]), @list.List[@kernel.Thm]) -> @kernel.Thm raise) raise, loc~ : SourceLoc) -> @kernel.Thm raise
@@ -56,6 +62,10 @@ pub fn listing_json() -> String raise
 pub fn load() -> Unit
 
 pub fn names() -> Array[String]
+
+pub fn norm_conv(extra? : Array[@kernel.Thm]) -> ((@kernel.Term) -> @kernel.Thm raise) raise
+
+pub fn pre_conv((@kernel.Term) -> @kernel.Thm raise) -> (@kernel.Term) -> @kernel.Thm raise
 
 #callsite(autofill(loc))
 pub fn program(String, String, params? : Array[String], loc~ : SourceLoc) -> String raise
@@ -70,6 +80,8 @@ pub let rty : String
 pub let sa_false : String
 
 pub let sassn : String
+
+pub fn section(String) -> Unit
 
 pub fn seq(Array[((@list.List[(String, @kernel.Thm)], @kernel.Term)) -> ((@list.List[@kernel.Term], (@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)])), @list.List[(@list.List[(String, @kernel.Thm)], @kernel.Term)], ((@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)]), @list.List[@kernel.Thm]) -> @kernel.Thm raise) raise]) -> ((@list.List[(String, @kernel.Thm)], @kernel.Term)) -> ((@list.List[@kernel.Term], (@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)])), @list.List[(@list.List[(String, @kernel.Thm)], @kernel.Term)], ((@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)]), @list.List[@kernel.Thm]) -> @kernel.Thm raise) raise
 
@@ -100,6 +112,8 @@ pub fn ths(Array[@kernel.Thm]) -> @list.List[@kernel.Thm]
 
 pub fn tm(String) -> @kernel.Term raise
 
+pub fn triple_l_terms(@kernel.Term) -> (@kernel.Term, @kernel.Term, @kernel.Term, @kernel.Term) raise
+
 pub fn use_eqs((@kernel.Term) -> Bool) -> ((@list.List[(String, @kernel.Thm)], @kernel.Term)) -> ((@list.List[@kernel.Term], (@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)])), @list.List[(@list.List[(String, @kernel.Thm)], @kernel.Term)], ((@list.List[(Int64, @kernel.Term)], @list.List[(@kernel.Term, @kernel.Term)], @list.List[(@kernel.HolType, @kernel.HolType)]), @list.List[@kernel.Thm]) -> @kernel.Thm raise) raise
 
 pub let w32 : String
@@ -111,6 +125,11 @@ pub let w8 : String
 // Errors
 
 // Types and methods
+type Extension
+pub fn Extension::dependencies(Self) -> String raise
+pub fn Extension::listing(Self) -> String raise
+pub fn Extension::listing_json(Self) -> String raise
+pub fn Extension::names(Self) -> Array[String]
 
 // Type aliases
 

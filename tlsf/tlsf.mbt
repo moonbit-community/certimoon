@@ -804,87 +804,6 @@ fn prove_tlsf_bins() -> Unit raise {
     ]),
   )
   let ac = [thm("star_assoc"), thm("star_comm"), thm("star_left_comm")]
-  // an entailment between states: both written out (rws, then pure facts
-  // and ∃s lifted), the left's assumed, the right's ∃s given `ws`, and the
-  // separating conjunctions compared up to order
-  let ent = (rws : Array[@kernel.Thm], ws : Array[String]) => seq([
-    gen,
-    rw([thm("st")] + rws + lifts),
-    beta_goal(),
-    rw(rws + lifts),
-    @tactics.try_tac(@tactics.conv_tac(@equal.top_depth_conv(@ind_types.unwind_conv))),
-    @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-    seq(ws.map(x => @tactics.exists_tac(tm(x)))),
-    @tactics.first_x_assum(th => if head_name(@kernel.concl(th)) == "star" {
-      @tactics.mp_tac(th)
-    } else {
-      @tactics.no_tac
-    }),
-    @tactics.try_tac(@tactics.conv_tac(@equal.top_depth_conv(@ind_types.unwind_conv))),
-    @simp.asm_rewrite_tac(ths(ac + rws + lifts)),
-  ])
-  let same = seq([gen, beta_goal(), @tactics.disch_tac, @tactics.first_assum(th => @tactics.accept_tac(th))])
-  let sassn = sassn
-  // the goal sl_triple(P, code, Q) from a path triple: P gives the fact c
-  // and the path's precondition, and the path's postcondition gives Q
-  let by_path = (path : @kernel.Thm, c : String, pre_rws : Array[@kernel.Thm], ws : Array[String], post_rws : Array[@kernel.Thm], exs : Array[String]) => {
-    let concl = @kernel.concl(path)
-    let triple = if @basics.is_imp(concl) { @basics.dest_imp(concl).1 } else { concl }
-    guard args_of(triple, "sl_triple", 3) is Some([pp, _, qq]) else { raise Failure("by_path") }
-    let ppv = tm("(PP : \{sassn})")
-    let body = @kernel.vsubst(
-      @list.List([(pp, ppv)]),
-      tm("(\{c}) && (PP : \{sassn})((vs : List[Value]), (lc : List[Value]), (gs : List[Value]), (ms : Num), (h : \{heap}))"),
-    )
-    let mut body = body
-    for k = exs.length() - 1; k >= 0; k = k - 1 {
-      body = @bool.mk_exists(tm(exs[k]), body)
-    }
-    let mut pc = body
-    for v in ["(h : \{heap})", "(ms : Num)", "(gs : List[Value])", "(lc : List[Value])", "(vs : List[Value])"] {
-      pc = @kernel.mk_abs(tm(v), pc)
-    }
-    let ex_names = exs.map(x => x)
-    let elim = seq(ex_names.map(x => seq([@tactics.match_mp_tac(sl_ex), beta_goal(), @tactics.x_gen_tac(tm(x))])))
-    let use_path = if @basics.is_imp(concl) {
-      seq([@tactics.match_mp_tac(path), @simp.asm_rewrite_tac(ths([]))])
-    } else {
-      @tactics.accept_tac(path)
-    }
-    let tac : @tactics.Tactic = g => {
-      guard args_of(g.1, "sl_triple", 3) is Some([_, _, q_abs]) else { raise Failure("by_path: goal") }
-      seq([
-        @tactics.match_mp_tac(thm("sl_conseq")),
-        @tactics.exists_tac(pc),
-        @tactics.exists_tac(q_abs),
-        @tactics.thenl(
-          @tactics.conj_tac,
-          @list.List([
-            ent(pre_rws, ex_names),
-            @tactics.thenl(
-              @tactics.conj_tac,
-              @list.List([
-                seq([
-                  elim,
-                  @tactics.match_mp_tac(sl_pure),
-                  @tactics.disch_tac,
-                  @tactics.match_mp_tac(thm("sl_conseq")),
-                  @tactics.exists_tac(pp),
-                  @tactics.exists_tac(qq),
-                  @tactics.thenl(
-                    @tactics.conj_tac,
-                    @list.List([same, @tactics.thenl(@tactics.conj_tac, @list.List([use_path, ent(post_rws, ws)]))]),
-                  ),
-                ]),
-                same,
-              ]),
-            ),
-          ]),
-        ),
-      ])(g)
-    }
-    tac
-  }
   // the code's terms (as in prove_tlsf_push_pop)
   let sz = "word_and((hd : \{w}), word(4294967292))"
   let f4 = "word_sub(word(27), word(word_clz(\{sz})))"
@@ -1223,4 +1142,132 @@ fn prove_tlsf_bins() -> Unit raise {
       @int.asm_arith_tac,
     ]),
   )
+}
+
+///|
+/// The rewrites that lift pure facts and ∃s out of a separating
+/// conjunction (proved in prove_tlsf_bins).
+fn lift_rws() -> Array[@kernel.Thm] {
+  [
+    thm("star_pure_hr"),
+    thm("star_pure_hl"),
+    thm("star_ex_hr"),
+    thm("star_ex_hl"),
+    thm("star_emp_hr"),
+    thm("star_emp_hl"),
+    @theorems.right_and_exists_thm(),
+    @theorems.left_and_exists_thm(),
+    @class.eta_ax(),
+  ]
+}
+
+///|
+/// An entailment between states: both written out (`rws`, then pure facts
+/// and ∃s lifted and ∃s with an equation solved), the left's assumed, the
+/// right's ∃s given `ws`, and the separating conjunctions compared up to
+/// order.
+fn ent_tac(rws : Array[@kernel.Thm], ws : Array[String]) -> @tactics.Tactic raise {
+  let lifts = lift_rws()
+  let ac = [thm("star_assoc"), thm("star_comm"), thm("star_left_comm")]
+  let unwind = @tactics.try_tac(@tactics.conv_tac(@equal.top_depth_conv(@ind_types.unwind_conv)))
+  let wit = ws.map(tm)
+  seq([
+    @tactics.repeat_tac(@tactics.gen_tac),
+    @simp.rewrite_tac(ths([thm("st")] + rws + lifts)),
+    beta_goal(),
+    @simp.rewrite_tac(ths(rws + lifts)),
+    unwind,
+    @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+    seq(wit.map(x => @tactics.exists_tac(x))),
+    @tactics.first_x_assum(th => if head_name(@kernel.concl(th)) == "star" {
+      @tactics.mp_tac(th)
+    } else {
+      @tactics.no_tac
+    }),
+    unwind,
+    @simp.asm_rewrite_tac(ths(ac + rws + lifts)),
+  ])
+}
+
+///|
+/// p ⊢ p, with p applied to the state (perhaps as a beta-redex).
+fn same_tac() -> @tactics.Tactic {
+  seq([
+    @tactics.repeat_tac(@tactics.gen_tac),
+    beta_goal(),
+    @tactics.disch_tac,
+    @tactics.first_assum(th => @tactics.accept_tac(th)),
+  ])
+}
+
+///|
+/// The goal sl_triple(P, code, Q) from a triple `path` about the code (a
+/// hypothesis it has is proved from the goal's assumptions and c): P
+/// entails ∃ exs. c && path's precondition (after `pre_rws`, the ∃s'
+/// witnesses P's variables of those names), and the path's postcondition
+/// entails Q (after `post_rws`, with witnesses `ws`, and c assumed). By
+/// sl_conseq, then sl_ex for each of exs, then sl_pure.
+fn by_path(
+  path : @kernel.Thm,
+  c : String,
+  pre_rws : Array[@kernel.Thm],
+  ws : Array[String],
+  post_rws : Array[@kernel.Thm],
+  exs : Array[String],
+) -> @tactics.Tactic raise {
+  let concl = @kernel.concl(path)
+  let triple = if @basics.is_imp(concl) { @basics.dest_imp(concl).1 } else { concl }
+  guard args_of(triple, "sl_triple", 3) is Some([pp, _, qq]) else { raise Failure("by_path") }
+  let ppv = tm("(PP : \{sassn})")
+  let mut body = @kernel.vsubst(
+    @list.List([(pp, ppv)]),
+    tm("(\{c}) && (PP : \{sassn})((vs : List[Value]), (lc : List[Value]), (gs : List[Value]), (ms : Num), (h : \{heap}))"),
+  )
+  for k = exs.length() - 1; k >= 0; k = k - 1 {
+    body = @bool.mk_exists(tm(exs[k]), body)
+  }
+  let mut pc = body
+  for v in ["(h : \{heap})", "(ms : Num)", "(gs : List[Value])", "(lc : List[Value])", "(vs : List[Value])"] {
+    pc = @kernel.mk_abs(tm(v), pc)
+  }
+  let elim = seq(exs.map(x => seq([@tactics.match_mp_tac(thm("sl_ex")), beta_goal(), @tactics.x_gen_tac(tm(x))])))
+  let use_path = if @basics.is_imp(concl) {
+    seq([@tactics.match_mp_tac(path), @simp.asm_rewrite_tac(ths([]))])
+  } else {
+    @tactics.accept_tac(path)
+  }
+  let pre = ent_tac(pre_rws, exs)
+  let post = ent_tac(post_rws, ws)
+  g => {
+    guard args_of(g.1, "sl_triple", 3) is Some([_, _, q_abs]) else { raise Failure("by_path: goal") }
+    seq([
+      @tactics.match_mp_tac(thm("sl_conseq")),
+      @tactics.exists_tac(pc),
+      @tactics.exists_tac(q_abs),
+      @tactics.thenl(
+        @tactics.conj_tac,
+        @list.List([
+          pre,
+          @tactics.thenl(
+            @tactics.conj_tac,
+            @list.List([
+              seq([
+                elim,
+                @tactics.match_mp_tac(thm("sl_pure")),
+                @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+                @tactics.match_mp_tac(thm("sl_conseq")),
+                @tactics.exists_tac(pp),
+                @tactics.exists_tac(qq),
+                @tactics.thenl(
+                  @tactics.conj_tac,
+                  @list.List([same_tac(), @tactics.thenl(@tactics.conj_tac, @list.List([use_path, post]))]),
+                ),
+              ]),
+              same_tac(),
+            ]),
+          ),
+        ]),
+      ),
+    ])(g)
+  }
 }

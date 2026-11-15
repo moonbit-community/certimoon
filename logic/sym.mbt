@@ -312,14 +312,14 @@ fn rule_of(goal : @kernel.Term, name : String) -> @kernel.Thm raise {
 
 ///|
 /// Rewrites `norm_thms` (and `extra`) and numeral arithmetic to the end.
-fn norm_conv(extra? : Array[@kernel.Thm] = []) -> @equal.Conv raise {
+pub fn norm_conv(extra? : Array[@kernel.Thm] = []) -> @equal.Conv raise {
   let rw = @simp.rewrite_conv(ths(norm_thms() + extra))
   @equal.repeatc(@equal.changed_conv(@equal.thenc(rw, @calc_num.num_reduce_conv)))
 }
 
 ///|
 /// A conversion at the precondition of sl_triple_l(p, bs, q, ls).
-fn pre_conv(c : @equal.Conv) -> @equal.Conv {
+pub fn pre_conv(c : @equal.Conv) -> @equal.Conv {
   @equal.rator_conv(@equal.rator_conv(@equal.rator_conv(@equal.rand_conv(c))))
 }
 
@@ -869,7 +869,7 @@ fn has_exists(t : @kernel.Term) -> Bool {
 /// the rest (about gs, ms and h): pulls the ∃s to the front, takes them as
 /// variables (sl_ex_l), writes the conjuncts as facts && st(v, l, R), and
 /// takes the facts as assumptions (sl_pure_l).
-fn intro_tac() -> @tactics.Tactic {
+pub fn intro_tac() -> @tactics.Tactic {
   g => {
     let (p, bs, q, ls) = triple_l_terms(g.1)
     let (bvs, body) = @basics.strip_abs(p)

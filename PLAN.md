@@ -2,7 +2,8 @@
 
 How this project is built, where it stands, and what to do next. The README
 says how to build it and how to prove a program with it. What is proved so
-far is listed in [logic/\_\_snapshot\_\_/theory.md](logic/__snapshot__/theory.md)
+far is listed in [logic/\_\_snapshot\_\_/theory.md](logic/__snapshot__/theory.md),
+[tlsf/\_\_snapshot\_\_/theory.md](tlsf/__snapshot__/theory.md),
 and [wasm/\_\_snapshot\_\_/theory.md](wasm/__snapshot__/theory.md).
 
 ## Goal
@@ -89,7 +90,7 @@ good order to read it in:
 
 | File | What it has |
 |---|---|
-| defs.mbt, tactics.mbt, listing.mbt | the theorem table (`thm`, `lemma`, `def`, `record`), tactic helpers, the theory listing |
+| defs.mbt, tactics.mbt, listing.mbt, extension.mbt | the theorem table (`thm`, `lemma`, `def`, `record`), tactic helpers, the theory listing |
 | facts.mbt | lists and words: EL and list_update at a split (`split_at`, `el_split`, `el_at`), lists ending in x (`snoc_eq`), a word plus or minus a small number (`val_add_small`, `val_sub_one`) |
 | heap.mbt, memory.mbt | heaps, `star`, `pts`; loads and stores against points-to |
 | triple.mbt, seq.mbt | `safe`, `triple`, `sl_triple`, `lift`; consequence, frame, sequencing |
@@ -105,8 +106,22 @@ good order to read it in:
 | returns.mbt | `safer`: safety with returns; its seq, label and frame lemmas |
 | specs.mbt | function specs, `sl_triple_g` and its rules, `sl_call_g`, `sl_funs_g`, and sym's rules for it |
 | examples.mbt, example_*.mbt | the verified programs |
-| tlsf.mbt | MoonBit's TLSF allocator: its size classes (`tlsf_fli`, `tlsf_sli`, `tlsf_round`), `tlsf_find_sound`, `tlsf_class_mono`; its compiled push and pop (`tlsf_push_code`, `tlsf_pop_code`) and a triple for each path; bins as doubly linked lists (`tlsf_dll`, `tlsf_bin`), `tlsf_push` and `tlsf_pop` on them (`by_path`), the bitmaps (`tlsf_sync`) |
+| readonly.mbt | Persistent load views preserving arbitrary assertions about the entire saved heap |
 | logic_test.mbt | the listing's snapshot, the theorems' list, the public API's test, the closed theorems' non-vacuity checks |
+
+Package `tlsf`, loaded separately by `tlsf/init.mbt` after the core logic:
+
+| File | What it has |
+|---|---|
+| init.mbt, proof.mbt | allocator proof loading, its own listing and theorem lookup, imports of core tactics |
+| tlsf.mbt | MoonBit's TLSF allocator: its size classes (`tlsf_fli`, `tlsf_sli`, `tlsf_round`), `tlsf_find_sound`, `tlsf_class_mono`; its compiled push and pop (`tlsf_push_code`, `tlsf_pop_code`) and a triple for each path; bins as doubly linked lists (`tlsf_dll`, `tlsf_bin`), `tlsf_push` and `tlsf_pop` on them (`by_path`), the bitmaps (`tlsf_sync`) |
+| tlsf_take_*.mbt, tlsf_split_detached.mbt | the complete compiled take: aligned search, closed pop, split and mark, the native function boundary, full invariant and client payload ownership |
+| tlsf_ensure_*.mbt | compiled ensure and memory growth: both top-block cases, exact failure, page bounds, full invariant, and client bytes at the old memory length |
+| tlsf_free_*.mbt | compiled large-block free: both-direction coalescing, native pop/push calls, physical contraction, exact bin correspondence, and client-byte preservation |
+| tlsf_bins.mbt | All 448 bins and both bitmap levels (`tlsf_bins`), focusing one bin (`tlsf_istar_focus`), and whole-table preservation (`tlsf_push_all`, `tlsf_pop_all`) |
+| tlsf_physical.mbt | Physical chain geometry and coalescing, field ownership (`tlsf_chain`), and exact size-class membership of free blocks (`tlsf_bins_match`, `tlsf_large`) |
+| tlsf_find*.mbt | The exact inlined search, bitmap arithmetic, table read views, and refinement against the physical-chain invariant |
+| tlsf_test.mbt | allocator regression tests, hypothesis checks, and the three TLSF snapshots |
 
 Package `wasm`: ast.mbt, numeric.mbt, store.mbt, typing.mbt, reduction.mbt
 (the port; the header comments say where it differs from Isabelle),
@@ -137,7 +152,13 @@ eval.mbt and builder.mbt (the evaluator), and the tests.
 | MoonBit's TLSF allocator: the size-class arithmetic | done (Features 4, step 1) |
 | MoonBit's TLSF allocator: push and pop, each path from the words it touches | done (Features 4, step 2a) |
 | MoonBit's TLSF allocator: a bin as a doubly linked list, push and pop on it, the bitmaps' meaning | done (Features 4, step 2b) |
-| MoonBit's TLSF allocator: all bins at once, the other functions | not started |
+| MoonBit's TLSF allocator: all bins at once, push and pop keeping both bitmap levels | done (Features 4, step 2c) |
+| MoonBit's TLSF allocator: initialized physical-chain invariant and exact correspondence with bins | done (Features 4, step 3a) |
+| MoonBit's TLSF allocator: compiled search returns a free block that fits and preserves the heap | done (Features 4, step 3b) |
+| MoonBit's TLSF allocator: compiled split and complete take preserve the invariant and client bytes | done (Features 4, steps 3c–d) |
+| MoonBit's TLSF allocator: compiled ensure and memory growth preserve the invariant and client bytes | done (Features 4, step 3e) |
+| MoonBit's TLSF allocator: compiled large-block free coalesces and preserves the invariant and other client bytes | done (Features 4, step 3f) |
+| MoonBit's TLSF allocator: preservation by free and initialization | not started |
 
 Known limits of what exists:
 
@@ -147,7 +168,8 @@ Known limits of what exists:
   `globs_ok`, so a module that imports one global twice is not covered.
 - sym_prove has no `st_` rules yet for `global.get`/`set`, `select` and
   the loads and stores other than i32 (`step_rules` lists what it has); a
-  `br` to a block with results is not handled. It finds a cell for a load
+  `br` to a block with results needs explicit stack-prefix witnesses
+  (as in the compiled TLSF search). It finds a cell for a load
   or store only by an address that rewrites to the cell's, so a cell's
   address must be written as the code computes it.
 - A call's spec in sym_prove is matched only when its P is `args == [...]
@@ -376,7 +398,7 @@ say so.
    proof would check (exact bins, splitting, the memory32 limit), and its
    `invariant_wbtest.mbt` lists the invariant, though it only tests the
    wasm-gc model. Steps:
-   1. The size classes. Done: `logic/tlsf.mbt` defines them as the
+   1. The size classes. Done: `tlsf/tlsf.mbt` defines them as the
       compiled code computes them, and proves `tlsf_round_bounds`,
       `tlsf_find_sound` and `tlsf_class_mono` (see the README).
    2. `push` and `pop`.
@@ -402,17 +424,80 @@ say so.
          `sl_pure` and `sl_ex` (sl_triple's), and pure facts and ∃s out of
          a separating conjunction as hprops (`star_pure_hr`, ...,
          `star_emp_hl`).
-      c. Not yet: one predicate for all 448 bins and both bitmap levels
-         (an iterated star over the bins, each bitmap word tlsf_sync with
-         its bins), and push and pop as keeping it; and `find`'s bitmap
-         masks (a `ctz` of the bitmap masked from fli up). Both belong
-         with step 3.
-   3. The large-allocation invariant: one predicate over the whole heap
-      (the free lists run through the physical chain's headers, so it is
-      not a separating conjunction), with the allocated regions, preserved
-      by `split`, `take`, `ensure`, `Memory::free` and
-      `initialize_memory`. Sizes wrap at 65,536 pages (`global_size` is 0
-      there).
+      c. Done: `tlsf_bins` in tlsf/tlsf_bins.mbt combines all 448 bins
+         and both bitmap levels, using an iterated star (`tlsf_istar`)
+         and `tlsf_sync` at each level. `tlsf_istar_focus` exposes the
+         selected bin, with all the others framed out. `tlsf_push_all`
+         and `tlsf_pop_all` preserve this predicate, including both
+         bitmap levels; pop returns the removed memory's link words.
+         This owns the table and links, not the size words.
+   3. The large-allocation invariant.
+      a. Done: tlsf/tlsf_physical.mbt defines `tlsf_layout` (contiguous
+         blocks, bounds/alignment, last flags and top), `tlsf_coalesced`
+         (no adjacent free blocks), and `tlsf_physical_ok` for initialized
+         states. `tlsf_chain` owns physical headers and the unused tails
+         of free payloads; bins own the links. Their shared header model
+         connects these disjoint fields without owning a header twice.
+         `tlsf_bins_match` and `tlsf_large` connect both views, with
+         `tlsf_large_free_exact` and `tlsf_large_free_once` establishing
+         exactly-once membership in the correct size class. Geometry
+         implies ordered non-overlap and distinct physical addresses.
+         The memory length is a Num through 2^32; only the code's
+         `global_size` word wraps at 65,536 pages.
+      b. Done: the 136-instruction read-only search block in compiled
+         `Memory::take`, including alignment, rounding, both masked
+         bitmap searches and early returns. `tlsf_find_query` implements
+         the pure search model and preserves a saved heap equality;
+         `tlsf_find_all` connects it to `tlsf_large`, proving that each
+         nonzero result is physical, free, and large enough.
+      c. Done: the exact 112-instruction guard/split/mark-used suffix of
+         compiled `Memory::take`, including the real native push call.
+         `tlsf_split_whole`, `tlsf_split_last_all`, and `tlsf_split_next_all`
+         restore `tlsf_large` from the focused post-pop state, separate
+         the allocated payload, and preserve the client frame and memory
+         length. Pure geometry and bin insertion prove the remainder is
+         new and occurs exactly once in its correct class. Byte-splitting
+         and serialization lemmas expose arbitrary payload words without
+         claiming them as client memory. Split alone is an intermediate
+         state with adjacent free blocks; the final mark-used store
+         restores coalescing. The checker also checks push's native type
+         and local declarations used by the module proof.
+      d. Done: the complete 256-instruction `Memory::take`, with the
+         actual native pop and push calls, five zero-initialized locals,
+         the early successful return, and the null fall-through.
+         `tlsf_take_all` closes the function spec from the composed body
+         proof. Success restores `tlsf_large` and separately owns at
+         least the requested payload; failure preserves the exact heap.
+         Both paths preserve arbitrary client bytes and memory length.
+         The checker compares the full body and all three native types.
+      e. Done: the complete 156-instruction `Memory::ensure`, closed by
+         `tlsf_ensure_all` against the real native ensure, pop, and push.
+         Growth failure returns false without changing any heap byte or
+         memory length. Success restores `tlsf_large` and leaves a free
+         top large enough for the rounded search request, either by
+         extending the free top or appending after a used top. The proof
+         accounts for new zero bytes, the memory32 page limit, zero-page
+         growth, unsigned page-count underflow, and the `2^32` endpoint.
+         Client assertions stay fixed at the old memory length. The WAT
+         checker compares the entire body and the single extra local.
+      f. Done: the complete 169-instruction `Memory::free`, closed by
+         `tlsf_free_all` against the actual native free, pop, and push
+         closures and two extra locals. The precondition relinquishes a
+         used physical block's full payload. A pending-block invariant
+         permits adjacent free neighbors while excluding the active block
+         from the bins. The two short-circuit tests compose native pops
+         and merge stores, contract the physical chain, repair previous
+         pointers or top, and publish the merged block in its size class.
+         The postcondition restores `tlsf_large`, covers the original
+         allocation by a free block, and preserves other live addresses,
+         size/flags, client bytes, and memory length. Tests cover interior
+         coalescing and skipped-neighbor paths,
+         bin-list order, and end coalescing through the model at the `2^32`
+         endpoint; the WAT checker compares
+         the complete body and signature.
+      g. Not yet: `initialize_memory`, including uninitialized states.
+         Used payloads remain outside the invariant's owned fields, to be
+         carried in the client/page frame.
    4. The small-block pages (a page's `used` counts the blocks handed to
       the heap's free list; a page is on the partial list exactly when
       `used < total`), then closed theorems for `try_malloc`,
@@ -632,3 +717,12 @@ whitebox test. On native (`ulimit -s 65520` too), a crash loses the
 buffered output: run the test executable under `lldb` (its argument is
 `logic_test.mbt:0-1`, the file and the tests' range) for a backtrace, or
 `sample` it for a profile.
+
+Allocator verification is a separate package: use `@tlsf.load()` and
+`@tlsf.thm(name)` for its results, and run
+`moon test -p moonbit-community/certimoon/tlsf` (with the stack limit above).
+Its snapshots live in `tlsf/__snapshot__`; `tools/tlsf_wat_check.py` reads
+that listing, and the review site includes wasm, logic, and tlsf. The
+shared logic `Extension` captures a client package's entries without
+changing the core listing; the kernel and named theorem/program tables
+remain shared so symbolic execution can unfold the client programs.

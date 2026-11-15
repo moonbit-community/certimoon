@@ -3,11 +3,11 @@
 // theorem proved from the reduction relation; nothing is assumed.
 
 ///|
-let loaded : Ref[Bool] = Ref::{ val: false }
+let loaded : Ref[Bool] = Ref::{ val: false, }
 
 ///|
 /// Whether load() is running: the theorems it records are the listing.
-let in_load : Ref[Bool] = Ref::{ val: false }
+let in_load : Ref[Bool] = Ref::{ val: false, }
 
 ///|
 /// Load the logic's definitions and lemmas (once), after package wasm's
@@ -98,12 +98,8 @@ pub fn load() -> Unit {
     prove_call_indirect_g()
     section("Examples (examples.mbt)")
     prove_examples()
-    section("TLSF size classes (tlsf.mbt)")
-    prove_tlsf_classes()
-    section("TLSF free lists: push and pop (tlsf.mbt)")
-    prove_tlsf_push_pop()
-    section("TLSF bins as doubly linked lists (tlsf.mbt)")
-    prove_tlsf_bins()
+    section("Loads preserving arbitrary heap assertions (readonly.mbt)")
+    prove_readonly_load()
   })() catch {
     e => {
       let msg = match e {

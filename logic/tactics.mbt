@@ -231,7 +231,7 @@ pub fn args_of(t : @kernel.Term, name : String, n : Int) -> Array[@kernel.Term]?
 
 ///|
 /// The name of the constructor at the head of `t`.
-fn head_name(t : @kernel.Term) -> String {
+pub fn head_name(t : @kernel.Term) -> String {
   match @basics.strip_comb(t).0 {
     Const(c, _) => c
     _ => ""
@@ -241,7 +241,7 @@ fn head_name(t : @kernel.Term) -> String {
 ///|
 /// The parts (p, bs, q, ls) of the term `sl_triple_l(p, bs, q, ls)`, or
 /// of `sl_triple_g(G, fs, tabs, inst, rp, p, bs, q, ls)`.
-fn triple_l_terms(
+pub fn triple_l_terms(
   t : @kernel.Term,
 ) -> (@kernel.Term, @kernel.Term, @kernel.Term, @kernel.Term) raise {
   let (_, args) = @basics.strip_comb(t)
