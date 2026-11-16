@@ -131,7 +131,7 @@ fn prove_tlsf_take_regions() -> Unit raise {
   )
   let _ = lemma(
     "tlsf_allocated_mono",
-    "∀ d : \{w}, ∀ lim : Num, ∀ m : \{w}, ∀ n : \{w}, ∀ s : \{w}, ∀ client : \{hprop}, ∀ h : \{heap}, val(s) <= val(n) && tlsf_allocated(d, lim, m, n, client, h) → tlsf_allocated(d, lim, m, s, client, h)",
+    "∀ d : \{w}, ∀ lim : Num, ∀ m : \{w}, ∀ n : \{w}, ∀ s : \{w}, ∀ oldxs : \{lw}, ∀ oldhd : \{ht}, ∀ client : \{hprop}, ∀ h : \{heap}, val(s) <= val(n) && tlsf_allocated(d, lim, m, n, oldxs, oldhd, client, h) → tlsf_allocated(d, lim, m, s, oldxs, oldhd, client, h)",
     seq([
       gen,
       rw([thm("tlsf_allocated")]),

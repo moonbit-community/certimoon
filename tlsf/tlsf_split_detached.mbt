@@ -24,7 +24,7 @@ fn prove_tlsf_split_detached() -> Unit raise {
   let i = (x : String) => "V_num(ConstInt32((\{x} : \{w})))"
   let lc = "[\{i("m")}, (l1 : Value), (l2 : Value), \{i("n")}, (l4 : Value), (l5 : Value)]"
   let p = "st(NIL, \{lc}, (gs : List[Value]) => (ms : Num) => (h : \{heap}) => ms == (lim : Num) && star(tlsf_detached((d : \{w}), lim, (top : \{w}), (ys : \{lw}), \{m}, (zs : \{lw}), \{hd}, (fl : \{w}), (sb : (Num) -> \{w}), (bl : \{bt})), (fp : \{rty})(gs, ms), h))"
-  let q = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => LENGTH(lc) == 6 && EL(0, lc) == \{i("m")} && EL(3, lc) == \{i("n")} && vs == NIL && ms == (lim : Num) && tlsf_allocated((d : \{w}), lim, \{m}, \{n}, (fp : \{rty})(gs, ms), h)"
+  let q = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => LENGTH(lc) == 6 && EL(0, lc) == \{i("m")} && EL(3, lc) == \{i("n")} && vs == NIL && ms == (lim : Num) && tlsf_allocated((d : \{w}), lim, \{m}, \{n}, \{oldxs}, \{hd}, (fp : \{rty})(gs, ms), h)"
   let native = "EL(sfunc_ind((inst : Inst), (push : Num)), (fs : List[Cl])) == Func_native(inst, Tf([T_num(T_i32)], [T_num(T_i32)]), [T_num(T_i32), T_num(T_i32), T_num(T_i32)], tlsf_push_code((d : \{w})))"
   let cond = "\{native} && tlsf_physical_ok((d : \{w}), (lim : Num), (top : \{w}), \{oldxs}, \{hd}) && !tlsf_used(\{h}) && tlsf_bins_match(\{oldxs}, \{marked}, (bl : \{bt})) && 16 <= val(\{n}) && val(n) <= 4160749568 && MOD(val(n), 16) == 0 && val(n) <= val(tlsf_size(\{h}))"
   let vars = "∀ fs : List[Cl], ∀ tabs : List[(Tab_t, List[V_ref])], ∀ inst : Inst, ∀ d : \{w}, ∀ push : Num, ∀ ys : \{lw}, ∀ zs : \{lw}, ∀ m : \{w}, ∀ n : \{w}, ∀ lim : Num, ∀ top : \{w}, ∀ hd : \{ht}, ∀ fl : \{w}, ∀ sb : (Num) -> \{w}, ∀ bl : \{bt}, ∀ l1 : Value, ∀ l2 : Value, ∀ l4 : Value, ∀ l5 : Value, ∀ fp : \{rty}"
@@ -71,27 +71,33 @@ fn prove_tlsf_split_detached() -> Unit raise {
   }
   let marksize = "tlsf_size((\{marked})(\{m})) == tlsf_size(\{h})"
   let markused = "tlsf_used((\{marked})(\{m}))"
-  let nosplit = close(
-    inst(thm("tlsf_split_whole"), args("(zs : \{lw})", "(top : \{w})")),
-    ent_tac(
-      [
-        thm("tlsf_allocated"),
-        @arith.le_refl(),
-        @kernel.assume_rule(tm(marksize)),
-        @kernel.assume_rule(tm(markused)),
-        @lists.mem_append(),
-        @lists.mem(),
-      ],
-      [
-        "(top : \{w})",
-        oldxs,
-        marked,
-        "(fl : \{w})",
-        "(sb : (Num) -> \{w})",
-        "(bl : \{bt})",
-      ],
+  let nosplit = seq([
+    free_have(
+      "tlsf_retains(\{oldxs},\{hd},\{oldxs},\{marked})",
+      seq([@tactics.match_mp_tac(thm("tlsf_retains_mark")), arw([])]),
     ),
-  )
+    close(
+      inst(thm("tlsf_split_whole"), args("(zs : \{lw})", "(top : \{w})")),
+      ent_tac(
+        [
+          thm("tlsf_allocated"),
+          @arith.le_refl(),
+          @kernel.assume_rule(tm(marksize)),
+          @kernel.assume_rule(tm(markused)),
+          @lists.mem_append(),
+          @lists.mem(),
+        ],
+        [
+          "(top : \{w})",
+          oldxs,
+          marked,
+          "(fl : \{w})",
+          "(sb : (Num) -> \{w})",
+          "(bl : \{bt})",
+        ],
+      ),
+    ),
+  ])
   let splitcase = (last : Bool) => {
     let suffix = if last {
       "(NIL : \{lw})"
@@ -142,6 +148,10 @@ fn prove_tlsf_split_detached() -> Unit raise {
       strip,
       have(nhsize, arw([])),
       have(nhused, arw([])),
+      free_have(
+        "tlsf_retains(APPEND((ys : \{lw}),CONS(\{m},\{suffix})),\{hd},\{newxs},\{nh})",
+        seq([@tactics.match_mp_tac(thm("tlsf_retains_split")), arw([])]),
+      ),
       close(
         path,
         seq([

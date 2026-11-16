@@ -51,3 +51,13 @@ Triples of verified programs, with what their statements depend on.
 | `tlsf_free_next_next_write_raw` | 247 | 233 | 13 | 1 |
 | `tlsf_free_pop_invoke_g` | 272 | 235 | 19 | 18 |
 | `tlsf_free_push_invoke_g` | 269 | 235 | 19 | 15 |
+| `tlsf_initialize_arithmetic_raw` | 247 | 233 | 11 | 3 |
+| `tlsf_initialize_mark_raw` | 249 | 233 | 13 | 3 |
+| `tlsf_initialize_size_before_raw` | 247 | 233 | 11 | 3 |
+| `tlsf_initialize_size_after_raw` | 251 | 233 | 13 | 5 |
+| `tlsf_initialize_top_raw` | 250 | 233 | 13 | 4 |
+| `tlsf_initialize_publish_get` | 269 | 233 | 14 | 22 |
+| `tlsf_initialize_check_test_raw` | 245 | 233 | 11 | 1 |
+| `tlsf_initialize_grow_test_raw` | 245 | 233 | 11 | 1 |
+| `tlsf_initialize_grow_amount_raw` | 245 | 233 | 11 | 1 |
+| `tlsf_initialize_guard_test_raw` | 245 | 233 | 11 | 1 |

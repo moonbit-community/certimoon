@@ -1017,3 +1017,7 @@ Triples of verified programs, with what their statements depend on.
 | `example_fact` | 248 | 235 | 13 |
 | `example_quicksort` | 254 | 235 | 19 |
 | `example_indirect` | 248 | 235 | 13 |
+| `example_chunks` | 244 | 233 | 11 |
+| `example_chunks_hidden_locals` | 244 | 233 | 11 |
+| `example_chunks_return` | 248 | 235 | 13 |
+| `example_false_ordinary_continuation` | 243 | 233 | 10 |

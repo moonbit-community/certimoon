@@ -2,7 +2,7 @@
 
 import unittest
 
-from tlsf_wat_check import POP_NAME, PUSH_NAME, check_push_signature, check_pop_signature, check_take_signature, check_ensure_signature, check_free_signature, full_free, full_take, full_ensure, find_prefix, instructions, split_suffix
+from tlsf_wat_check import block_free_branch, FREE_NAME, FIND_PARENT, full_page_allocate, check_page_allocate_signature, POP_NAME, PUSH_NAME, check_push_signature, check_pop_signature, check_take_signature, check_ensure_signature, check_free_signature, full_free, check_initialize_signature, full_initialize, full_take, full_ensure, find_prefix, instructions, split_suffix
 
 
 class InstructionsTest(unittest.TestCase):
@@ -21,6 +21,31 @@ class InstructionsTest(unittest.TestCase):
             ["block (result i32)", "if", "block", "br 2", "br_if 1",
              "end", "end", "end"],
         )
+
+    def test_page_allocate_preserves_full_body_and_native_locals(self):
+        body = ['i32.const 1080', 'call ' + FIND_PARENT, 'local.tee 1',
+                'if', 'i32.const 0', 'return', 'end', 'loop', 'br 0', 'end']
+        self.assertEqual(full_page_allocate(body),
+                         [body[0], 'call take_idx'] + body[2:])
+        for changed in (body[2:], body + ['call ' + FIND_PARENT]):
+            with self.assertRaises(ValueError):
+                full_page_allocate(changed)
+        check_page_allocate_signature('(func $page (param i32) (result i32) (local i32 i32 i32 i32 i32))')
+        for body in ('(func $page (param i32) (result i32) (local i32 i32 i32 i32))',
+                     '(func $page (param i32) (result i64) (local i32 i32 i32 i32 i32))'):
+            with self.assertRaisesRegex(ValueError, 'signature or locals'):
+                check_page_allocate_signature(body)
+
+    def test_inlined_block_free_keeps_nested_unlink_and_reclaim(self):
+        prefix = ['i32.load', 'i32.const 4', 'i32.and', 'if (result i32)']
+        branch = ['i32.store', 'if (result i32)', 'i32.const 0', 'else',
+                  'if', 'i32.store', 'end', 'i32.const 0', 'end',
+                  'local.get 0', 'call ' + FREE_NAME]
+        body = prefix + branch + ['else', 'call ' + FREE_NAME, 'end']
+        self.assertEqual(block_free_branch(body), branch[:-1] + ['call free_idx'])
+        for changed in (body[3:], body[:-3], prefix + branch[:-1] + body[-3:]):
+            with self.assertRaises(ValueError):
+                block_free_branch(changed)
 
     def test_numeric_branches_are_not_erased(self):
         self.assertEqual(instructions("br 2\nbr_if 4"), ["br 2", "br_if 4"])
@@ -118,6 +143,29 @@ class InstructionsTest(unittest.TestCase):
               end
             )
         ''')
+
+    def test_initialize_native_signature(self):
+        check_initialize_signature('(func $initialize (local i32 i32 i32))')
+        check_initialize_signature('(func $initialize (local $x i32) (local $y i32) (local $z i32))')
+        for changed in (
+            '(func $initialize (param i32) (local i32 i32 i32))',
+            '(func $initialize (result i32) (local i32 i32 i32))',
+            '(func $initialize (local i32 i32))',
+            '(func $initialize (local i32 i32 i64))',
+        ):
+            with self.assertRaisesRegex(ValueError, 'signature or locals'):
+                check_initialize_signature(changed)
+
+    def test_initialize_preserves_growth_traps_and_metadata_writes(self):
+        body = ['memory.size', 'if', 'unreachable', 'end', 'memory.grow',
+                'if', 'unreachable', 'end', 'i32.load', 'i32.store',
+                'call ' + PUSH_NAME, 'drop', 'i32.store']
+        expected = body.copy()
+        expected[10] = 'call push'
+        self.assertEqual(full_initialize(body), expected)
+        for changed in (body[:10] + body[11:], body + ['call ' + PUSH_NAME]):
+            with self.assertRaisesRegex(ValueError, 'exactly one'):
+                full_initialize(changed)
 
     def test_full_free_preserves_coalescing_and_stores(self):
         body = ['i32.store', 'if', 'call ' + POP_NAME, 'i32.store', 'end',

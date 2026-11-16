@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Checks that the TLSF programs are the compiler's: compares
 tlsf_push_code, tlsf_pop_code, tlsf_find_code, tlsf_split_code and
-tlsf_take_code, tlsf_ensure_code and tlsf_free_code, as
+tlsf_take_code, tlsf_ensure_code, tlsf_free_code, tlsf_initialize_code and
+tlsf_page_allocate_code and tlsf_block_free_code, as
 tlsf/__snapshot__/theory.md prints them in WebAssembly text, with
 Memory::push, Memory::pop, the initial search block and the split suffix of
-Memory::take, the complete Memory::take, Memory::ensure and Memory::free in the
+Memory::take, the complete Memory::take, Memory::ensure, Memory::free,
+initialize_memory, Page::allocate and the inline Block::free branch in the
 allocator the MoonBit compiler embeds (lib/xml/wasm_linear/tlsf-mbt.wat in
 its repository), flattened by wasm-tools:
 
@@ -32,6 +34,9 @@ PUSH_NAME = "$_M0MP211moonbitlang6malloc6Memory4push"
 POP_NAME = "$_M0MP211moonbitlang6malloc6Memory3pop"
 ENSURE_NAME = "$_M0MP211moonbitlang6malloc6Memory6ensure"
 FREE_NAME = "$_M0MP211moonbitlang6malloc6Memory4free"
+PUBLIC_FREE_NAME = "$moonbit.free"
+PAGE_ALLOCATE_NAME = "$_M0MP211moonbitlang6malloc4Page8allocate"
+INITIALIZE_NAME = "$_M0FP211moonbitlang6malloc18initialize__memory"
 
 
 def listed(md, name):
@@ -102,7 +107,7 @@ def instructions(text):
     return out
 
 
-def check_signature(body, name, nresults, nlocals):
+def check_signature(body, name, nresults, nlocals, nparams=1):
     """The native closure type and zero-initialised locals used by the call proof."""
     # wasm-tools prints the function declarations before its first instruction.
     # A block's (result ...) is a block type, not a function result.
@@ -123,7 +128,7 @@ def check_signature(body, name, nresults, nlocals):
     params = [t for k, ts in signature if k == 'param' for t in ts]
     results = [t for k, ts in signature if k == 'result' for t in ts]
     locals_ = [t for k, ts in signature if k == 'local' for t in ts]
-    if params != ['i32'] or results != ['i32'] * nresults or locals_ != ['i32'] * nlocals:
+    if params != ['i32'] * nparams or results != ['i32'] * nresults or locals_ != ['i32'] * nlocals:
         raise ValueError("Memory::%s signature or locals changed" % name)
 
 
@@ -145,6 +150,54 @@ def check_ensure_signature(body):
 
 def check_free_signature(body):
     check_signature(body, 'free', 1, 2)
+
+
+def check_initialize_signature(body):
+    check_signature(body, 'initialize_memory', 0, 3, nparams=0)
+
+
+def check_page_allocate_signature(body):
+    check_signature(body, "Page::allocate", 1, 5)
+
+
+def block_free_branch(body):
+    """The exact then arm implementing inlined Block::free and Page::free."""
+    marker = ['i32.const 4', 'i32.and', 'if (result i32)']
+    starts = [i for i in range(len(body) - 2) if body[i:i+3] == marker]
+    if len(starts) != 1:
+        raise ValueError('changed small-block dispatch boundary')
+    start = starts[0] + 3
+    depth = 1
+    for end in range(start, len(body)):
+        op = body[end].split()[0]
+        if op in ('block', 'loop', 'if'):
+            depth += 1
+        elif op == 'end':
+            depth -= 1
+        elif op == 'else' and depth == 1:
+            result = body[start:end]
+            call = 'call ' + FREE_NAME
+            if result.count(call) != 1:
+                raise ValueError('Block::free must contain exactly one ' + call)
+            return ['call free_idx' if line == call else line for line in result]
+        if depth == 0:
+            break
+    raise ValueError('missing small-block dispatch else boundary')
+
+
+def full_page_allocate(body):
+    call = "call " + FIND_PARENT
+    if body.count(call) != 1:
+        raise ValueError("Page::allocate must contain exactly one " + call)
+    return ["call take_idx" if line == call else line for line in body]
+
+
+def full_initialize(body):
+    """Keep the entire initializer, including both deliberate aborts."""
+    call = 'call ' + PUSH_NAME
+    if body.count(call) != 1:
+        raise ValueError("initialize_memory must contain exactly one " + call)
+    return ['call push' if line == call else line for line in body]
 
 
 def full_free(body):
@@ -236,6 +289,9 @@ def main():
     check_take_signature(function(wat, FIND_PARENT))
     check_ensure_signature(function(wat, ENSURE_NAME))
     check_free_signature(function(wat, FREE_NAME))
+    check_initialize_signature(function(wat, INITIALIZE_NAME))
+    check_page_allocate_signature(function(wat, PAGE_ALLOCATE_NAME))
+    check_signature(function(wat, PUBLIC_FREE_NAME), "public free", 0, 2)
     ok = True
     for prog, name in PROGRAMS:
         ours = instructions(listed(md, prog))
@@ -307,6 +363,45 @@ def main():
     if ours == theirs:
         print("%s: the same %d instructions as the complete %s" %
               (prog, len(ours), FREE_NAME))
+    else:
+        ok = False
+        n = next((k for k, (a, b) in enumerate(zip(ours, theirs)) if a != b),
+                 min(len(ours), len(theirs)))
+        print("%s differs at instruction %d:" % (prog, n))
+        print("  ours:     %s" % (ours[n] if n < len(ours) else "(end)"))
+        print("  compiled: %s" % (theirs[n] if n < len(theirs) else "(end)"))
+    prog = "tlsf_initialize_code"
+    ours = instructions(listed(md, prog))
+    theirs = full_initialize(instructions(function(wat, INITIALIZE_NAME)))
+    if ours == theirs:
+        print("%s: the same %d instructions as the complete %s" %
+              (prog, len(ours), INITIALIZE_NAME))
+    else:
+        ok = False
+        n = next((k for k, (a, b) in enumerate(zip(ours, theirs)) if a != b),
+                 min(len(ours), len(theirs)))
+        print("%s differs at instruction %d:" % (prog, n))
+        print("  ours:     %s" % (ours[n] if n < len(ours) else "(end)"))
+        print("  compiled: %s" % (theirs[n] if n < len(theirs) else "(end)"))
+    prog = "tlsf_page_allocate_code"
+    ours = instructions(listed(md, prog))
+    theirs = full_page_allocate(instructions(function(wat, PAGE_ALLOCATE_NAME)))
+    if ours == theirs:
+        print("%s: the same %d instructions as the complete %s" %
+              (prog, len(ours), PAGE_ALLOCATE_NAME))
+    else:
+        ok = False
+        n = next((k for k, (a, b) in enumerate(zip(ours, theirs)) if a != b),
+                 min(len(ours), len(theirs)))
+        print("%s differs at instruction %d:" % (prog, n))
+        print("  ours:     %s" % (ours[n] if n < len(ours) else "(end)"))
+        print("  compiled: %s" % (theirs[n] if n < len(theirs) else "(end)"))
+    prog = "tlsf_block_free_code"
+    ours = instructions(listed(md, prog))
+    theirs = block_free_branch(instructions(function(wat, PUBLIC_FREE_NAME)))
+    if ours == theirs:
+        print("%s: the same %d instructions as the Block::free branch of %s" %
+              (prog, len(ours), PUBLIC_FREE_NAME))
     else:
         ok = False
         n = next((k for k, (a, b) in enumerate(zip(ours, theirs)) if a != b),

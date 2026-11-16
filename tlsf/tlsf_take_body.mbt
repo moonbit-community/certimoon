@@ -123,12 +123,12 @@ fn prove_tlsf_take_composition() -> Unit raise {
   let result_vars = "∀ d : \{w}, ∀ s : \{w}, ∀ lim : Num, ∀ top : \{w}, ∀ xs : \{lw}, ∀ hd : \{ht}, ∀ fl : \{w}, ∀ sb : (Num) -> \{w}, ∀ bl : \{bt}, ∀ before : \{heap}, ∀ fp : \{rty}"
   let finish = lemma(
     "tlsf_take_allocated_post",
-    "\{result_vars}, ∀ m : \{w}, ∀ n : \{w}, ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, ms == (lim : Num) && \{query} == m && MEM(m,(xs : \{lw})) && !tlsf_used((hd : \{ht})(m)) && val((s : \{w})) <= val(n) && tlsf_allocated((d : \{w}),lim,m,n,(fp : \{rty})(gs,ms),h) → \{q}([\{i("m")}],gs,ms,h)",
+    "\{result_vars}, ∀ m : \{w}, ∀ n : \{w}, ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, ms == (lim : Num) && \{query} == m && MEM(m,(xs : \{lw})) && !tlsf_used((hd : \{ht})(m)) && val((s : \{w})) <= val(n) && tlsf_allocated((d : \{w}),lim,m,n,(xs : \{lw}),(hd : \{ht}),(fp : \{rty})(gs,ms),h) → \{q}([\{i("m")}],gs,ms,h)",
     seq([
       gen,
       strip,
       have(
-        "tlsf_allocated((d : \{w}),(lim : Num),(m : \{w}),(s : \{w}),(fp : \{rty})((gs : List[Value]),(ms : Num)),(h : \{heap}))",
+        "tlsf_allocated((d : \{w}),(lim : Num),(m : \{w}),(s : \{w}),(xs : \{lw}),(hd : \{ht}),(fp : \{rty})((gs : List[Value]),(ms : Num)),(h : \{heap}))",
         seq([
           @tactics.match_mp_tac(
             inst(thm("tlsf_allocated_mono"), [
@@ -137,6 +137,8 @@ fn prove_tlsf_take_composition() -> Unit raise {
               "(m : \{w})",
               "(n : \{w})",
               "(s : \{w})",
+              "(xs : \{lw})",
+              "(hd : \{ht})",
               "(fp : \{rty})((gs : List[Value]), (ms : Num))",
               "(h : \{heap})",
             ]),

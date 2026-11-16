@@ -47,7 +47,13 @@ fn prove_sym_rules() -> Unit raise {
       @tactics.gen_tac,
       @class.bool_cases_tac(tm("(b : Bool)")),
       @simp.rewrite_tac(
-        ths([@wasm.thm("wasm_bool"), @equal.gsym(@words.val_eq()), @words.val_word_1(), @words.val_word_0(), arith("!(1 == 0)")]),
+        ths([
+          @wasm.thm("wasm_bool"),
+          @equal.gsym(@words.val_eq()),
+          @words.val_word_1(),
+          @words.val_word_0(),
+          arith("!(1 == 0)"),
+        ]),
       ),
     ]),
   )
@@ -61,20 +67,30 @@ fn prove_sym_derived(g : Bool) -> Unit raise {
   let sa = sassn
   let st = thm("st")
   // the triple, the quantifiers for G, fs, tabs, inst and rp, and the names
-  let tr = (p : String, bs : String, q : String, ls : String) => if g {
-    triple_g(p, bs, q, ls)
-  } else {
-    "sl_triple_l(\{p}, \{bs}, \{q}, \{ls})"
+  let tr = (p : String, bs : String, q : String, ls : String) => {
+    if g {
+      triple_g(p, bs, q, ls)
+    } else {
+      "sl_triple_l(\{p}, \{bs}, \{q}, \{ls})"
+    }
   }
   let env = if g { env_vars() } else { "" }
   let name = (n : String) => if g { g_name(n) } else { n }
   let rule = (n : String) => thm(name(n))
   let env_terms = if g {
-    ["(G : \{specs_ty})", "(fs : List[Cl])", "(tabs : List[(Tab_t, List[V_ref])])", "(inst : Inst)", "(rp : \{sa})"].map(tm)
+    [
+      "(G : \{specs_ty})",
+      "(fs : List[Cl])",
+      "(tabs : List[(Tab_t, List[V_ref])])",
+      "(inst : Inst)",
+      "(rp : \{sa})",
+    ].map(tm)
   } else {
     []
   }
-  let spec_rule = (n : String, args : Array[String]) => @bool.ispecl(@list.List(env_terms + args.map(tm)), rule(n))
+  let spec_rule = (n : String, args : Array[String]) => {
+    @bool.ispecl(@list.List(env_terms + args.map(tm)), rule(n))
+  }
   // reasoning about pre- and postconditions that are lambdas
   let simple = seq([
     @tactics.repeat_tac(@tactics.gen_tac),
@@ -84,27 +100,36 @@ fn prove_sym_derived(g : Bool) -> Unit raise {
     @simp.asm_rewrite_tac(ths([])),
     @tactics.try_tac(@meson.asm_meson_tac(ths([]))),
   ])
-  let conseq = (p : String, q : String, ls : String, triple : @tactics.Tactic) => seq([
-    @tactics.match_mp_tac(rule("sl_conseq_l")),
-    @tactics.exists_tac(tm(p)),
-    @tactics.exists_tac(tm(q)),
-    @tactics.exists_tac(tm(ls)),
-    @tactics.repeat_tac(@tactics.conj_tac),
-    @tactics.first(@list.List([solve(triple), solve(simple)])),
-  ])
+  let conseq = (p : String, q : String, ls : String, triple : @tactics.Tactic) => {
+    seq([
+      @tactics.match_mp_tac(rule("sl_conseq_l")),
+      @tactics.exists_tac(tm(p)),
+      @tactics.exists_tac(tm(q)),
+      @tactics.exists_tac(tm(ls)),
+      @tactics.repeat_tac(@tactics.conj_tac),
+      @tactics.first(@list.List([solve(triple), solve(simple)])),
+    ])
+  }
   let _ = lemma(
     name("sl_pre_l"),
     "\{env}∀ p : \{sa}, ∀ p2 : \{sa}, ∀ bs : List[B_e], ∀ q : \{sa}, ∀ ls : List[\{sa}], (∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, p2(vs, lc, gs, ms, h) → p(vs, lc, gs, ms, h)) && \{tr("p", "bs", "q", "ls")} → \{tr("p2", "bs", "q", "ls")}",
     seq([
       @tactics.repeat_tac(@tactics.gen_tac),
       @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      conseq("(p : \{sa})", "(q : \{sa})", "(ls : List[\{sa}])", @meson.asm_meson_tac(ths([]))),
+      conseq(
+        "(p : \{sa})",
+        "(q : \{sa})",
+        "(ls : List[\{sa}])",
+        @meson.asm_meson_tac(ths([])),
+      ),
     ]),
   )
   // [i] then rest
-  let cons_append = (i : String, rest : String) => @equal.gsym(
-    @simp.rewrite_conv(ths([@lists.append()]))(tm("APPEND([\{i}], \{rest})")),
-  )
+  let cons_append = (i : String, rest : String) => {
+    @equal.gsym(
+      @simp.rewrite_conv(ths([@lists.append()]))(tm("APPEND([\{i}], \{rest})")),
+    )
+  }
   if !g {
     let _ = lemma(
       "sl_step_l",
@@ -152,7 +177,10 @@ fn prove_sym_derived(g : Bool) -> Unit raise {
         br_pre,
         sa_false,
         ls,
-        seq([@tactics.match_mp_tac(rule("sl_br")), @tactics.first_assum(th => @tactics.accept_tac(th))]),
+        seq([
+          @tactics.match_mp_tac(rule("sl_br")),
+          @tactics.first_assum(th => @tactics.accept_tac(th)),
+        ]),
       ),
     ]),
   )
@@ -160,14 +188,16 @@ fn prove_sym_derived(g : Bool) -> Unit raise {
   let x = "V_num(ConstInt32((c : \{w32})))"
   let pre_c = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (∃ vs0 : List[Value], vs == APPEND(vs0, [\{x}]) && \{state}(vs0, lc, gs, ms, h))"
   let top = "st(APPEND(v, [\{x}]), l, R)"
-  let to_pre_c = (rest : @tactics.Tactic) => seq([
-    @tactics.match_mp_tac(rule("sl_pre_l")),
-    @tactics.exists_tac(tm(pre_c)),
-    @tactics.thenl(
-      @tactics.conj_tac,
-      @list.List([solve(@simp.rewrite_tac(ths([thm("st_snoc_ex")]))), rest]),
-    ),
-  ])
+  let to_pre_c = (rest : @tactics.Tactic) => {
+    seq([
+      @tactics.match_mp_tac(rule("sl_pre_l")),
+      @tactics.exists_tac(tm(pre_c)),
+      @tactics.thenl(
+        @tactics.conj_tac,
+        @list.List([solve(@simp.rewrite_tac(ths([thm("st_snoc_ex")]))), rest]),
+      ),
+    ])
+  }
   let _ = lemma(
     name("sl_br_if_st"),
     "\{vars}, ∀ c : \{w32}, ∀ i : Num, ∀ rest : List[B_e], ∀ r : \{sa}, ∀ ls : List[\{sa}], (!(c == word(0)) → \{tr(state, "[Br(i)]", sa_false, "ls")}) && (c == word(0) → \{tr(state, "rest", "r", "ls")}) → \{tr(top, "CONS(Br_if(i), rest)", "r", "ls")}",
@@ -177,7 +207,9 @@ fn prove_sym_derived(g : Bool) -> Unit raise {
       @tactics.subst1_tac(cons_append("Br_if((i : Num))", "(rest : List[B_e])")),
       @tactics.match_mp_tac(rule("sl_seq_l")),
       @tactics.exists_tac(
-        tm("(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (c : \{w32}) == word(0) && \{state}(vs, lc, gs, ms, h)"),
+        tm(
+          "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (c : \{w32}) == word(0) && \{state}(vs, lc, gs, ms, h)",
+        ),
       ),
       @tactics.thenl(
         @tactics.conj_tac,
@@ -187,8 +219,15 @@ fn prove_sym_derived(g : Bool) -> Unit raise {
               seq([@tactics.match_mp_tac(rule("sl_br_if")), @tactics.conj_tac]),
               @list.List([
                 // c ≠ 0: br, whose postcondition is false
-                seq([@tactics.disch_tac, conseq(state, sa_false, ls, @meson.asm_meson_tac(ths([])))]),
-                seq([@tactics.disch_tac, @tactics.repeat_tac(@tactics.strip_tac), @simp.asm_rewrite_tac(ths([]))]),
+                seq([
+                  @tactics.disch_tac,
+                  conseq(state, sa_false, ls, @meson.asm_meson_tac(ths([]))),
+                ]),
+                seq([
+                  @tactics.disch_tac,
+                  @tactics.repeat_tac(@tactics.strip_tac),
+                  @simp.asm_rewrite_tac(ths([])),
+                ]),
               ]),
             ),
           ),
@@ -221,7 +260,9 @@ fn prove_sym_derived(g : Bool) -> Unit raise {
   let ot = "(ot : Option[Valtype])"
   let lb = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => LENGTH(vs) == LENGTH(tbv_results(\{ot})) && (r : \{sa})(APPEND(v, vs), lc, gs, ms, h)"
   let block = @equal.beta_rule(
-    spec_rule("sl_block", [ot, "(bs : List[B_e])", "st((NIL : List[Value]), l, R)", after, lb, ls, "(v : List[Value])"]),
+    spec_rule("sl_block", [
+      ot, "(bs : List[B_e])", "st((NIL : List[Value]), l, R)", after, lb, ls, "(v : List[Value])",
+    ]),
   )
   let (_, block_concl) = @basics.dest_imp(@kernel.concl(block))
   let (block_pre, _, block_post, _) = triple_l_terms(block_concl)
@@ -236,20 +277,31 @@ fn prove_sym_derived(g : Bool) -> Unit raise {
       @tactics.exists_tac(block_post),
       @tactics.exists_tac(tm(ls)),
       @tactics.repeat_tac(@tactics.conj_tac),
-      @tactics.first(@list.List([
-        solve(seq([
-          @tactics.match_mp_tac(block),
-          @tactics.conj_tac,
-          seq([@tactics.repeat_tac(@tactics.strip_tac), @simp.asm_rewrite_tac(ths([]))]),
-          @tactics.first_assum(th => @tactics.accept_tac(th)),
-        ])),
-        solve(simple),
-      ])),
+      @tactics.first(
+        @list.List([
+          solve(
+            seq([
+              @tactics.match_mp_tac(block),
+              @tactics.conj_tac,
+              seq([
+                @tactics.repeat_tac(@tactics.strip_tac),
+                @simp.asm_rewrite_tac(ths([])),
+              ]),
+              @tactics.first_assum(th => @tactics.accept_tac(th)),
+            ]),
+          ),
+          solve(simple),
+        ]),
+      ),
     ]),
   )
   let linv = "(linv : (List[Value], List[Value], Num, \{heap}) -> Bool)"
   let lbl = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => vs == NIL && \{linv}(lc, gs, ms, h)"
-  let looped = @equal.beta_rule(spec_rule("sl_loop", [ot, "(bs : List[B_e])", linv, after, ls, "(v : List[Value])"]))
+  let looped = @equal.beta_rule(
+    spec_rule("sl_loop", [
+      ot, "(bs : List[B_e])", linv, after, ls, "(v : List[Value])",
+    ]),
+  )
   let (_, loop_concl) = @basics.dest_imp(@kernel.concl(looped))
   let (loop_pre, _, loop_post, _) = triple_l_terms(loop_concl)
   let _ = lemma(
@@ -263,10 +315,17 @@ fn prove_sym_derived(g : Bool) -> Unit raise {
       @tactics.exists_tac(loop_post),
       @tactics.exists_tac(tm(ls)),
       @tactics.repeat_tac(@tactics.conj_tac),
-      @tactics.first(@list.List([
-        solve(seq([@tactics.match_mp_tac(looped), @tactics.first_assum(th => @tactics.accept_tac(th))])),
-        solve(simple),
-      ])),
+      @tactics.first(
+        @list.List([
+          solve(
+            seq([
+              @tactics.match_mp_tac(looped),
+              @tactics.first_assum(th => @tactics.accept_tac(th)),
+            ]),
+          ),
+          solve(simple),
+        ]),
+      ),
     ]),
   )
 }
@@ -283,13 +342,14 @@ priv struct Sym {
   loops : Array[(@kernel.Term, @kernel.Term)]
   afters : Array[(@kernel.Term, @kernel.Term)]
   rules : Array[String]
+  chunks : Array[@kernel.Thm]
   rws : Array[@kernel.Thm]
   // for g triples: theorems ∀ xs. G(a, P, Q), the specs calls use
   specs : Array[@kernel.Thm]
   // for each call, in order, if given: a spec (its index in specs) and
   // the terms for its ∀s; the call then leaves P of the arguments to prove
-  calls : Array[(Int, Array[String])]
-  next_call : Ref[Int]
+  calls : Array[(Int32, Array[String])]
+  next_call : Ref[Int32]
 }
 
 ///|
@@ -312,9 +372,11 @@ fn rule_of(goal : @kernel.Term, name : String) -> @kernel.Thm raise {
 
 ///|
 /// Rewrites `norm_thms` (and `extra`) and numeral arithmetic to the end.
-pub fn norm_conv(extra? : Array[@kernel.Thm] = []) -> @equal.Conv raise {
+pub fn norm_conv(extra~ : Array[@kernel.Thm] = []) -> @equal.Conv raise {
   let rw = @simp.rewrite_conv(ths(norm_thms() + extra))
-  @equal.repeatc(@equal.changed_conv(@equal.thenc(rw, @calc_num.num_reduce_conv)))
+  @equal.repeatc(
+    @equal.changed_conv(@equal.thenc(rw, @calc_num.num_reduce_conv)),
+  )
 }
 
 ///|
@@ -330,7 +392,7 @@ fn stack_conv(c : @equal.Conv) -> @equal.Conv {
 }
 
 ///|
-let value_ty : Ref[@kernel.HolType?] = Ref::{ val: None }
+let value_ty : Ref[@kernel.HolType?] = Ref::{ val: None, }
 
 ///|
 fn values_ty() -> @kernel.HolType raise {
@@ -348,20 +410,39 @@ fn values_ty() -> @kernel.HolType raise {
 fn mk_append(a : @kernel.Term, b : @kernel.Term) -> @kernel.Term raise {
   let va = tm("(a : List[Value])")
   let vb = tm("(b : List[Value])")
-  @kernel.vsubst(@list.List([(a, va), (b, vb)]), tm("APPEND((a : List[Value]), (b : List[Value]))"))
+  @kernel.vsubst(
+    @list.List([(a, va), (b, vb)]),
+    tm("APPEND((a : List[Value]), (b : List[Value]))"),
+  )
 }
 
 ///|
 /// The stack s as (prefix, its top k values): s is `[x1, ..., xn]`,
 /// `APPEND(vs0, [x1, ..., xn])` or `vs0`.
-fn split_stack(s : @kernel.Term, k : Int) -> (@kernel.Term, Array[@kernel.Term]) raise {
-  let (base, elems) : (@kernel.Term?, Array[@kernel.Term]) = match args_of(s, "APPEND", 2) {
-    Some([b, l]) if @basics.is_list(l) => (Some(b), @basics.dest_list(l).to_array())
-    _ => if @basics.is_list(s) { (None, @basics.dest_list(s).to_array()) } else { (Some(s), []) }
+fn split_stack(
+  s : @kernel.Term,
+  k : Int32,
+) -> (@kernel.Term, Array[@kernel.Term]) raise {
+  let (base, elems) : (@kernel.Term?, Array[@kernel.Term]) = match
+    args_of(s, "APPEND", 2) {
+    Some([b, l]) if @basics.is_list(l) =>
+      (Some(b), @basics.dest_list(l).to_array())
+    _ =>
+      if @basics.is_list(s) {
+        (None, @basics.dest_list(s).to_array())
+      } else {
+        (Some(s), [])
+      }
   }
   let n = elems.length()
   if k > n {
-    raise Failure("certimoon/logic: sym: the stack " + show(s) + " has fewer than " + k.to_string() + " values on top")
+    raise Failure(
+      "certimoon/logic: sym: the stack " +
+      show(s) +
+      " has fewer than " +
+      k.to_string() +
+      " values on top",
+    )
   }
   let below = @lists.mk_list(@list.List(elems[0:n - k].to_owned()), values_ty())
   let prefix = match base {
@@ -377,7 +458,8 @@ fn split_stack(s : @kernel.Term, k : Int) -> (@kernel.Term, Array[@kernel.Term])
 fn last_apart_tac() -> @tactics.Tactic {
   g => {
     let (p, _, _, _) = triple_l_terms(g.1)
-    guard args_of(p, "st", 3) is Some([s, _, _]) && args_of(s, "APPEND", 2) is Some([_, top]) else {
+    guard args_of(p, "st", 3) is Some([s, _, _]) &&
+      args_of(s, "APPEND", 2) is Some([_, top]) else {
       raise Failure("last_apart_tac")
     }
     let items = @basics.dest_list(top).to_array()
@@ -388,20 +470,30 @@ fn last_apart_tac() -> @tactics.Tactic {
     )
     let th = @simp.rewrite_conv(ths([@lists.append()]))(apart)
     if !@basics.aconv(@equal.rhs(@kernel.concl(th)), top) {
-      raise Failure("certimoon/logic: sym: cannot take the top apart in " + show(s))
+      raise Failure(
+        "certimoon/logic: sym: cannot take the top apart in " + show(s),
+      )
     }
     let back = @equal.sym(th)
-    let at_top : @equal.Conv = t => if @basics.aconv(t, top) { back } else { raise Failure("last_apart_tac") }
+    let at_top : @equal.Conv = t => {
+      if @basics.aconv(t, top) {
+        back
+      } else {
+        raise Failure("last_apart_tac")
+      }
+    }
     @tactics.conv_tac(pre_conv(stack_conv(@equal.rand_conv(at_top))))(g)
   }
 }
 
 ///|
 /// Rewrites the precondition's stack to `APPEND(prefix, [top k])`.
-fn split_tac(k : Int) -> @tactics.Tactic {
+fn split_tac(k : Int32) -> @tactics.Tactic {
   g => {
     let (p, _, _, _) = triple_l_terms(g.1)
-    guard args_of(p, "st", 3) is Some([s, _, _]) else { raise Failure("split_tac") }
+    guard args_of(p, "st", 3) is Some([s, _, _]) else {
+      raise Failure("split_tac")
+    }
     let (prefix, top) = split_stack(s, k)
     let split = mk_append(prefix, @lists.mk_list(@list.List(top), values_ty()))
     let th = norm_conv()(split)
@@ -409,14 +501,23 @@ fn split_tac(k : Int) -> @tactics.Tactic {
       raise Failure("certimoon/logic: sym: cannot split the stack " + show(s))
     }
     let back = @equal.sym(th)
-    let at_s : @equal.Conv = t => if @basics.aconv(t, s) { back } else { raise Failure("split_tac") }
+    let at_s : @equal.Conv = t => {
+      if @basics.aconv(t, s) {
+        back
+      } else {
+        raise Failure("split_tac")
+      }
+    }
     @tactics.conv_tac(pre_conv(stack_conv(at_s)))(g)
   }
 }
 
 ///|
 /// `th` (∀ xs. ...) specialised to variables not in `avoid`.
-fn fresh_spec(th : @kernel.Thm, avoid : @list.List[@kernel.Term]) -> @kernel.Thm raise {
+fn fresh_spec(
+  th : @kernel.Thm,
+  avoid : @list.List[@kernel.Term],
+) -> @kernel.Thm raise {
   let (vs, _) = @basics.strip_forall(@kernel.concl(th))
   @bool.ispecl(@basics.variants(avoid, vs), th)
 }
@@ -431,14 +532,24 @@ pub let step_rules : Array[String] = [
 ///|
 /// The rule for `instr` from the state st(s, l, r): sl_triple(st(s, l, r),
 /// [instr], post), written out, after a side condition if it keeps one.
-fn step_rule(rules : Array[String], instr : @kernel.Term, p : @kernel.Term) -> @kernel.Thm raise {
-  guard args_of(p, "st", 3) is Some([s, l, r]) else { raise Failure("step_rule") }
+fn step_rule(
+  rules : Array[String],
+  instr : @kernel.Term,
+  p : @kernel.Term,
+) -> @kernel.Thm raise {
+  guard args_of(p, "st", 3) is Some([s, l, r]) else {
+    raise Failure("step_rule")
+  }
   let avoid = @kernel.frees(p) + @kernel.frees(instr)
   for name in rules {
-    let th = @simp.rewrite_rule(ths([@class.eta_ax()]))(fresh_spec(thm(name), avoid))
+    let th = @simp.rewrite_rule(ths([@class.eta_ax()]))(
+      fresh_spec(thm(name), avoid),
+    )
     let c = @kernel.concl(th)
     let triple = if @basics.is_imp(c) { @basics.dest_imp(c).1 } else { c }
-    guard args_of(triple, "sl_triple", 3) is Some([ppat, code, _]) else { continue }
+    guard args_of(triple, "sl_triple", 3) is Some([ppat, code, _]) else {
+      continue
+    }
     let ipat = @basics.dest_list(code).head().unwrap()
     if head_name(ipat) != head_name(instr) {
       continue
@@ -448,8 +559,14 @@ fn step_rule(rules : Array[String], instr : @kernel.Term, p : @kernel.Term) -> @
       Some([_, top]) => @basics.dest_list(top).length()
       _ => 0
     }
-    guard (try Some(split_stack(s, k)) catch { _ => None }) is Some((prefix, top)) else { continue }
-    let split = if k == 0 { s } else { mk_append(prefix, @lists.mk_list(@list.List(top), values_ty())) }
+    guard (Some(split_stack(s, k)) catch { _ => None }) is Some((prefix, top)) else {
+      continue
+    }
+    let split = if k == 0 {
+      s
+    } else {
+      mk_append(prefix, @lists.mk_list(@list.List(top), values_ty()))
+    }
     let (st_c, _) = @basics.strip_comb(ppat)
     let target_p = @basics.list_mk_comb(st_c, @list.List([split, l, r]))
     let pat = @kernel.rator(triple)
@@ -458,11 +575,18 @@ fn step_rule(rules : Array[String], instr : @kernel.Term, p : @kernel.Term) -> @
       @kernel.mk_comb(sl_triple_c, target_p),
       @lists.mk_list(@list.List([instr]), @kernel.type_of(instr)),
     )
-    guard (try Some(@drule.term_match(@list.List([]), pat, target)) catch { _ => None }) is Some(i) else { continue }
+    guard (Some(@drule.term_match(@list.List([]), pat, target)) catch {
+        _ => None
+      })
+      is Some(i) else {
+      continue
+    }
     let th = @drule.instantiate_rule(i, th)
     return norm(compute_results(th))
   }
-  raise Failure("certimoon/logic: sym: no rule for " + show(instr) + " from " + show(p))
+  raise Failure(
+    "certimoon/logic: sym: no rule for " + show(instr) + " from " + show(p),
+  )
 }
 
 ///|
@@ -474,10 +598,19 @@ fn compute_results(th : @kernel.Thm) -> @kernel.Thm raise {
     return th
   }
   let (h, _) = @basics.dest_imp(c)
-  guard h is Comb(Comb(Const("=", _), x), Comb(Const("SOME", _), Var(_, _) as v)) else { return th }
+  guard h
+    is Comb(Comb(Const("=", _), x), Comb(Const("SOME", _), Var(_, _) as v)) else {
+    return th
+  }
   let computed = @equal.rhs(@kernel.concl(norm_conv()(x)))
   guard computed is Comb(Const("SOME", _), d) else {
-    raise Failure("certimoon/logic: sym: " + show(x) + " is " + show(computed) + ", not SOME of a value")
+    raise Failure(
+      "certimoon/logic: sym: " +
+      show(x) +
+      " is " +
+      show(computed) +
+      ", not SOME of a value",
+    )
   }
   @bool.spec(d, @bool.gen(v, th))
 }
@@ -497,20 +630,25 @@ fn fact_tac() -> @tactics.Tactic {
 /// with an equation solved; then tries to finish with the assumptions.
 fn vc_tac(sym : Sym) -> @tactics.Tactic raise {
   let rws = [
-    thm("st"),
-    thm("tbv_results"),
-    @lists.length_eq_nil(),
-    @lists.cons_11(),
-    @ind_types.injectivity("value"),
-    @ind_types.injectivity("v_num"),
-  ] + sym.rws
+      thm("st"),
+      thm("tbv_results"),
+      @lists.length_eq_nil(),
+      @lists.cons_11(),
+      @ind_types.injectivity("value"),
+      @ind_types.injectivity("v_num"),
+    ] +
+    sym.rws
   seq([
     @tactics.repeat_tac(@tactics.gen_tac),
     @tactics.conv_tac(norm_conv(extra=rws)),
     @tactics.try_tac(@tactics.disch_then(th => @tactics.strip_assume_tac(th))),
-    @tactics.try_tac(@tactics.conv_tac(@equal.top_depth_conv(@ind_types.unwind_conv))),
+    @tactics.try_tac(
+      @tactics.conv_tac(@equal.top_depth_conv(@ind_types.unwind_conv)),
+    ),
     @simp.asm_rewrite_tac(ths(norm_thms() + rws)),
-    @tactics.try_tac(@tactics.conv_tac(@equal.top_depth_conv(@ind_types.unwind_conv))),
+    @tactics.try_tac(
+      @tactics.conv_tac(@equal.top_depth_conv(@ind_types.unwind_conv)),
+    ),
     @simp.asm_rewrite_tac(ths(norm_thms() + rws)),
   ])
 }
@@ -523,18 +661,37 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
     // the precondition, written out as the next step will see it
     let p = @equal.rhs(@kernel.concl(norm_conv()(p)))
     let renorm = @tactics.conv_tac(pre_conv(norm_conv()))
+    // A return can leave an unreachable normal continuation.
+    if @basics.aconv(@basics.strip_abs(p).1, tm("F")) {
+      return seq([renorm, @tactics.match_accept_tac(rule_of(g.1, "sl_false_l"))])(
+        g,
+      )
+    }
     if args_of(p, "st", 3) is None {
       return @tactics.then_tac(intro_tac(), sym_tac(sym))(g)
     }
     if @basics.is_list(code) && @basics.dest_list(code).is_empty() {
-      return seq([renorm, @tactics.match_mp_tac(rule_of(g.1, "sl_nil_st")), vc_tac(sym)])(g)
+      return seq([
+        renorm,
+        @tactics.match_mp_tac(rule_of(g.1, "sl_nil_st")),
+        vc_tac(sym),
+      ])(g)
     }
     guard args_of(code, "CONS", 2) is Some([instr, rest]) else {
-      raise Failure("certimoon/logic: sym: the code is not a list: " + show(code))
+      raise Failure(
+        "certimoon/logic: sym: the code is not a list: " + show(code),
+      )
+    }
+    if chunk_step(sym, p, code, g.1) is Some(tac) {
+      return seq([renorm, tac])(g)
     }
     let last = @basics.is_list(rest) && @basics.dest_list(rest).is_empty()
-    let need_last = (what : String) => if !last {
-      raise Failure("certimoon/logic: sym: " + what + " must end its instruction list")
+    let need_last = (what : String) => {
+      if !last {
+        raise Failure(
+          "certimoon/logic: sym: " + what + " must end its instruction list",
+        )
+      }
     }
     let name = head_name(instr)
     if !last && (name == "Block" || name == "If" || name == "Loop") {
@@ -546,7 +703,9 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
         }
       }
       guard after is Some(q) else {
-        raise Failure("certimoon/logic: sym: no state given for after " + show(instr))
+        raise Failure(
+          "certimoon/logic: sym: no state given for after " + show(instr),
+        )
       }
       return seq([
         renorm,
@@ -558,7 +717,12 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
     match name {
       "Br" => {
         need_last("br")
-        seq([renorm, @tactics.match_mp_tac(rule_of(g.1, "sl_br_st")), @tactics.conj_tac, vc_tac(sym)])(g)
+        seq([
+          renorm,
+          @tactics.match_mp_tac(rule_of(g.1, "sl_br_st")),
+          @tactics.conj_tac,
+          vc_tac(sym),
+        ])(g)
       }
       "Br_if" =>
         seq([
@@ -582,7 +746,12 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
       }
       "Block" => {
         need_last("block")
-        seq([renorm, @tactics.match_mp_tac(rule_of(g.1, "sl_block_st")), beta_goal(), sym_tac(sym)])(g)
+        seq([
+          renorm,
+          @tactics.match_mp_tac(rule_of(g.1, "sl_block_st")),
+          beta_goal(),
+          sym_tac(sym),
+        ])(g)
       }
       "Loop" => {
         need_last("loop")
@@ -596,11 +765,21 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
           raise Failure("certimoon/logic: sym: no invariant for " + show(instr))
         }
         @tactics.thenl(
-          seq([renorm, @tactics.match_mp_tac(@bool.ispec(inv, rule_of(g.1, "sl_loop_st"))), beta_goal(), @tactics.conj_tac]),
+          seq([
+            renorm,
+            @tactics.match_mp_tac(@bool.ispec(inv, rule_of(g.1, "sl_loop_st"))),
+            beta_goal(),
+            @tactics.conj_tac,
+          ]),
           @list.List([vc_tac(sym), sym_tac(sym)]),
         )(g)
       }
-      "Return" if is_g(g.1) => seq([renorm, @tactics.match_mp_tac(rule_of(g.1, "sl_return_st")), vc_tac(sym)])(g)
+      "Return" if is_g(g.1) =>
+        seq([
+          renorm,
+          @tactics.match_mp_tac(rule_of(g.1, "sl_return_st")),
+          vc_tac(sym),
+        ])(g)
       "Call" if is_g(g.1) && sym.next_call.val < sym.calls.length() => {
         let (which, terms) = sym.calls[sym.next_call.val]
         sym.next_call.val = sym.next_call.val + 1
@@ -608,18 +787,43 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
         let k = spec_arity(spec)
         let rule = @drule.match_mp(rule_of(g.1, "sl_call_spec"))(spec)
         @tactics.thenl(
-          seq([renorm, split_tac(k), @tactics.match_mp_tac(rule), @tactics.conj_tac]),
-          @list.List([seq([beta_goal(), vc_tac(sym)]), seq([beta_goal(), sym_tac(sym)])]),
+          seq([
+            renorm,
+            split_tac(k),
+            @tactics.match_mp_tac(rule),
+            @tactics.conj_tac,
+          ]),
+          @list.List([
+            seq([beta_goal(), vc_tac(sym)]),
+            seq([beta_goal(), sym_tac(sym)]),
+          ]),
         )(g)
       }
       "Call_indirect" if is_g(g.1) => {
         // the index c on top, and below it the arguments of a spec's P
-        guard args_of(p, "st", 3) is Some([s, l, r]) else { raise Failure("certimoon/logic: sym: call_indirect") }
-        let below = @basics.list_mk_icomb("st", @list.List([split_stack(s, 1).0, l, r]))
-        let (k, spec) = call_spec(sym, g.1, instr, below, rule_name="sl_call_indirect_st")
+        guard args_of(p, "st", 3) is Some([s, l, r]) else {
+          raise Failure("certimoon/logic: sym: call_indirect")
+        }
+        let below = @basics.list_mk_icomb(
+          "st",
+          @list.List([split_stack(s, 1).0, l, r]),
+        )
+        let (k, spec) = call_spec(
+          sym,
+          g.1,
+          instr,
+          below,
+          rule_name="sl_call_indirect_st",
+        )
         let rule = @drule.match_mp(rule_of(g.1, "sl_call_indirect_st"))(spec)
         @tactics.thenl(
-          seq([renorm, split_tac(k + 1), last_apart_tac(), @tactics.match_mp_tac(rule), @tactics.conj_tac]),
+          seq([
+            renorm,
+            split_tac(k + 1),
+            last_apart_tac(),
+            @tactics.match_mp_tac(rule),
+            @tactics.conj_tac,
+          ]),
           @list.List([vc_tac(sym), sym_tac(sym)]),
         )(g)
       }
@@ -627,18 +831,29 @@ fn sym_tac(sym : Sym) -> @tactics.Tactic {
         let (k, spec) = call_spec(sym, g.1, instr, p)
         let rule = @drule.match_mp(rule_of(g.1, "sl_call_st"))(spec)
         @tactics.thenl(
-          seq([renorm, split_tac(k), @tactics.match_mp_tac(rule), @tactics.conj_tac]),
+          seq([
+            renorm,
+            split_tac(k),
+            @tactics.match_mp_tac(rule),
+            @tactics.conj_tac,
+          ]),
           @list.List([vc_tac(sym), sym_tac(sym)]),
         )(g)
       }
-      _ if cell_step(sym, instr, p, g.1) is Some(tac) => seq([renorm, tac, sym_tac(sym)])(g)
+      _ if cell_step(sym, instr, p, g.1) is Some(tac) =>
+        seq([renorm, tac, sym_tac(sym)])(g)
       _ => {
         let th = step_rule(sym.rules, instr, p)
         let c = @kernel.concl(th)
         if @basics.is_imp(c) {
           let (h, _) = @basics.dest_imp(c)
           @tactics.thenl(
-            seq([renorm, @tactics.subgoal_then(h, hth => step_tac(@bool.mp(th, hth), p, g.1))]),
+            seq([
+              renorm,
+              @tactics.subgoal_then(h, hth => {
+                step_tac(@bool.mp(th, hth), p, g.1)
+              }),
+            ]),
             @list.List([vc_tac(sym), sym_tac(sym)]),
           )(g)
         } else {
@@ -661,7 +876,9 @@ fn contra_tac() -> @tactics.Tactic {
         let t = @basics.dest_neg(c)
         for b in asl {
           if @basics.aconv(@kernel.concl(b.1), t) {
-            return @tactics.accept_tac(@bool.contr(g.1, @bool.mp(@bool.not_elim(a.1), b.1)))(g)
+            return @tactics.accept_tac(
+              @bool.contr(g.1, @bool.mp(@bool.not_elim(a.1), b.1)),
+            )(g)
           }
         }
       }
@@ -684,7 +901,8 @@ fn cell_step(
   p : @kernel.Term,
   goal : @kernel.Term,
 ) -> @tactics.Tactic? raise {
-  let (store, iargs) = match (args_of(instr, "Load", 4), args_of(instr, "Store", 4)) {
+  let (store, iargs) = match
+    (args_of(instr, "Load", 4), args_of(instr, "Store", 4)) {
     (Some(a), _) => (false, a)
     (_, Some(a)) => (true, a)
     _ => return None
@@ -705,7 +923,9 @@ fn cell_step(
       }
   }
   let star_c = @basics.strip_comb(body).0
-  let mk_star = (a : @kernel.Term, b : @kernel.Term) => @basics.list_mk_comb(star_c, @list.List([a, b]))
+  let mk_star = (a : @kernel.Term, b : @kernel.Term) => {
+    @basics.list_mk_comb(star_c, @list.List([a, b]))
+  }
   let parts = [first]
   let mut rest = rest0
   while args_of(rest, "star", 2) is Some([c, x]) {
@@ -713,14 +933,18 @@ fn cell_step(
     rest = x
   }
   let n = if store { 2 } else { 1 }
-  guard (try Some(split_stack(s, n)) catch { _ => None }) is Some((prefix, top)) else { return None }
-  guard args_of(top[0], "V_num", 1) is Some([c]) && args_of(c, "ConstInt32", 1) is Some([k]) else {
+  guard (Some(split_stack(s, n)) catch { _ => None }) is Some((prefix, top)) else {
+    return None
+  }
+  guard args_of(top[0], "V_num", 1) is Some([c]) &&
+    args_of(c, "ConstInt32", 1) is Some([k]) else {
     return None
   }
   let rule = thm(if store { "st_cell_store" } else { "st_cell_load" })
   let addr_rws = ths([@arith.add_clauses()] + sym.rws)
   for i, part in parts {
-    guard args_of(part, "pts", 2) is Some([a, bs]) && args_of(bs, "serialise_i32", 1) is Some([x0]) else {
+    guard args_of(part, "pts", 2) is Some([a, bs]) &&
+      args_of(bs, "serialise_i32", 1) is Some([x0]) else {
       continue
     }
     // the other parts, in order, then the last
@@ -733,26 +957,40 @@ fn cell_step(
     let fp = @kernel.mk_abs(bvs[0], @kernel.mk_abs(bvs[1], others))
     let terms = [prefix, l, a, x0, fp, k, iargs[2], iargs[3]]
     if store {
-      guard args_of(top[1], "V_num", 1) is Some([cx]) && args_of(cx, "ConstInt32", 1) is Some([x]) else {
+      guard args_of(top[1], "V_num", 1) is Some([cx]) &&
+        args_of(cx, "ConstInt32", 1) is Some([x]) else {
         return None
       }
       terms.push(x)
     }
     let inst = @bool.ispecl(@list.List(terms), rule)
     let (hyp, _) = @basics.dest_imp(@kernel.concl(inst))
-    guard (try Some(@tactics.prove(hyp, @simp.rewrite_tac(addr_rws))) catch { _ => None }) is Some(hth) else {
+    guard (Some(@tactics.prove(hyp, @simp.rewrite_tac(addr_rws))) catch {
+        _ => None
+      })
+      is Some(hth) else {
       continue
     }
     let th = norm(@bool.mp(inst, hth))
     // R with the cell first
     let eq = @tactics.prove(
       @basics.mk_eq(mk_star(first, rest0), mk_star(part, others)),
-      @simp.rewrite_tac(ths([thm("star_assoc"), thm("star_comm"), thm("star_left_comm")])),
+      @simp.rewrite_tac(
+        ths([thm("star_assoc"), thm("star_comm"), thm("star_left_comm")]),
+      ),
     )
     // at that term only (bound variables as in R)
     let lhs = @equal.lhs(@kernel.concl(eq))
-    let rotate = @equal.once_depth_conv(t => if @basics.aconv(t, lhs) { eq } else { raise Failure("rotate") })
-    let p2 = @equal.rhs(@kernel.concl(norm_conv()(@equal.rhs(@kernel.concl(rotate(p))))))
+    let rotate = @equal.once_depth_conv(t => {
+      if @basics.aconv(t, lhs) {
+        eq
+      } else {
+        raise Failure("rotate")
+      }
+    })
+    let p2 = @equal.rhs(
+      @kernel.concl(norm_conv()(@equal.rhs(@kernel.concl(rotate(p))))),
+    )
     return Some(
       seq([
         @tactics.conv_tac(pre_conv(rotate)),
@@ -767,17 +1005,29 @@ fn cell_step(
 ///|
 /// sl_step_l with the instruction's rule `th`, whose precondition must be
 /// the goal's `p`.
-fn step_tac(th : @kernel.Thm, p : @kernel.Term, goal : @kernel.Term) -> @tactics.Tactic raise {
+fn step_tac(
+  th : @kernel.Thm,
+  p : @kernel.Term,
+  goal : @kernel.Term,
+) -> @tactics.Tactic raise {
   guard args_of(@kernel.concl(th), "sl_triple", 3) is Some([p2, code, _]) else {
     raise Failure("step_tac: " + show(@kernel.concl(th)))
   }
   if !@basics.aconv(p, p2) {
-    raise Failure("certimoon/logic: sym: the rule's precondition " + show(p2) + " is not the state " + show(p))
+    raise Failure(
+      "certimoon/logic: sym: the rule's precondition " +
+      show(p2) +
+      " is not the state " +
+      show(p),
+    )
   }
   let step = @drule.match_mp(rule_of(goal, "sl_step_l"))(th)
   if is_g(goal) {
     // the instruction has no calls
-    let cf = @tactics.prove(@basics.list_mk_comb(tm("call_free_b"), @list.List([code])), call_free_tac())
+    let cf = @tactics.prove(
+      @basics.list_mk_comb(tm("call_free_b"), @list.List([code])),
+      call_free_tac(),
+    )
     @tactics.match_mp_tac(@drule.match_mp(step)(cf))
   } else {
     @tactics.match_mp_tac(step)
@@ -785,18 +1035,146 @@ fn step_tac(th : @kernel.Thm, p : @kernel.Term, goal : @kernel.Term) -> @tactics
 }
 
 ///|
+// A previously proved instruction fragment can be composed as one step.
+// Matching only selects a theorem; seq and the kernel check its exact code,
+// precondition, side condition, and postcondition before execution continues.
+fn chunk_step(
+  sym : Sym,
+  p : @kernel.Term,
+  code : @kernel.Term,
+  goal : @kernel.Term,
+) -> @tactics.Tactic? raise {
+  if !@basics.is_list(code) {
+    return None
+  }
+  let instructions = @basics.dest_list(code).to_array()
+  for original in sym.chunks {
+    let fresh = fresh_spec(original, @kernel.frees(goal))
+    let c = @kernel.concl(fresh)
+    let tr = if @basics.is_imp(c) { @basics.dest_imp(c).1 } else { c }
+    guard args_of(tr, "sl_triple", 3) is Some([_, chunk, _]) else { continue }
+    let defs = match program_def(chunk) {
+      Some(d) => [d]
+      None => []
+    }
+    let th = @simp.rewrite_rule(ths(defs + [@class.eta_ax()]))(fresh)
+    let c = @kernel.concl(th)
+    let tr = if @basics.is_imp(c) { @basics.dest_imp(c).1 } else { c }
+    guard args_of(tr, "sl_triple", 3) is Some([pp, chunk, _]) else { continue }
+    if !@basics.is_list(chunk) {
+      continue
+    }
+    let count = @basics.dest_list(chunk).length()
+    if count < 2 || count > instructions.length() {
+      continue
+    }
+    let prefix = @lists.mk_list(
+      @list.List(instructions[:count].to_owned()),
+      @kernel.type_of(instructions[0]),
+    )
+    let pair = @pair.mk_pair((pp, chunk))
+    let wanted = @pair.mk_pair((p, prefix))
+    guard (Some(@drule.term_match(@list.List([]), pair, wanted)) catch {
+        _ => None
+      })
+      is Some(matching) else {
+      continue
+    }
+    let th = @drule.instantiate_rule(matching, th)
+    let rest = @lists.mk_list(
+      @list.List(instructions[count:].to_owned()),
+      @kernel.type_of(instructions[0]),
+    )
+    let apply = (closed : @kernel.Thm) => {
+      let a = args_of(@kernel.concl(closed), "sl_triple", 3).unwrap()
+      if @basics.dest_list(rest).is_empty() &&
+        @basics.aconv(a[2], triple_l_terms(goal).2) {
+        return if is_g(goal) {
+          seq([
+            @tactics.match_mp_tac(thm("sl_triple_g_of")),
+            @tactics.thenl(
+              @tactics.conj_tac,
+              @list.List([
+                call_free_tac(),
+                seq([
+                  @tactics.match_mp_tac(thm("sl_triple_l_of")),
+                  @tactics.accept_tac(closed),
+                ]),
+              ]),
+            ),
+          ])
+        } else {
+          seq([
+            @tactics.match_mp_tac(thm("sl_triple_l_of")),
+            @tactics.accept_tac(closed),
+          ])
+        }
+      }
+      let app = @basics.mk_icomb(@basics.mk_icomb(tm("APPEND"), prefix), rest)
+      let eq = @simp.rewrite_conv(ths([@lists.append()]))(app)
+      seq([
+        @tactics.subst1_tac(@equal.gsym(eq)),
+        @tactics.match_mp_tac(rule_of(goal, "sl_seq_l")),
+        @tactics.exists_tac(a[2]),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            if is_g(goal) {
+              seq([
+                @tactics.match_mp_tac(thm("sl_triple_g_of")),
+                @tactics.thenl(
+                  @tactics.conj_tac,
+                  @list.List([
+                    call_free_tac(),
+                    seq([
+                      @tactics.match_mp_tac(thm("sl_triple_l_of")),
+                      @tactics.accept_tac(closed),
+                    ]),
+                  ]),
+                ),
+              ])
+            } else {
+              seq([
+                @tactics.match_mp_tac(thm("sl_triple_l_of")),
+                @tactics.accept_tac(closed),
+              ])
+            },
+            sym_tac(sym),
+          ]),
+        ),
+      ])
+    }
+    return Some(
+      if @basics.is_imp(@kernel.concl(th)) {
+        @tactics.subgoal_then(@basics.dest_imp(@kernel.concl(th)).0, hth => {
+          apply(@bool.mp(th, hth))
+        })
+      } else {
+        apply(th)
+      },
+    )
+  }
+  None
+}
+
+///|
 /// The number of arguments of the spec G(a, P, Q): P says args is a list.
-fn spec_arity(spec : @kernel.Thm) -> Int raise {
+fn spec_arity(spec : @kernel.Thm) -> Int32 raise {
   let (_, sargs) = @basics.strip_comb(@kernel.concl(spec))
   let pp = sargs.to_array()[sargs.length() - 2]
   let (bvs, body) = @basics.strip_abs(pp)
-  guard bvs.to_array() is [args, _, _, _] else { raise Failure("certimoon/logic: sym: not a spec: " + show(pp)) }
+  guard bvs.to_array() is [args, _, _, _] else {
+    raise Failure("certimoon/logic: sym: not a spec: " + show(pp))
+  }
   for c in @basics.conjuncts(body) {
     if args_of(c, "=", 2) is Some([a, b]) && a == args && @basics.is_list(b) {
       return @basics.dest_list(b).length()
     }
   }
-  raise Failure("certimoon/logic: sym: the spec's P does not give its arguments: " + show(pp))
+  raise Failure(
+    "certimoon/logic: sym: the spec's P does not give its arguments: " +
+    show(pp),
+  )
 }
 
 ///|
@@ -809,9 +1187,11 @@ fn call_spec(
   goal : @kernel.Term,
   instr : @kernel.Term,
   p : @kernel.Term,
-  rule_name? : String = "sl_call_st",
-) -> (Int, @kernel.Thm) raise {
-  guard args_of(p, "st", 3) is Some([s, _, r]) else { raise Failure("call_spec") }
+  rule_name~ : String = "sl_call_st",
+) -> (Int32, @kernel.Thm) raise {
+  guard args_of(p, "st", 3) is Some([s, _, r]) else {
+    raise Failure("call_spec")
+  }
   let avoid = @kernel.frees(goal)
   for spec in sym.specs {
     let th = fresh_spec(spec, avoid)
@@ -828,15 +1208,23 @@ fn call_spec(
     for c in @basics.conjuncts(body) {
       if args_of(c, "=", 2) is Some([a, b]) && a == args && @basics.is_list(b) {
         pat = Some(b)
-      } else if @basics.strip_comb(c) is (Var(_, _) as rv, xs) && xs.to_array() == [gs, ms, h] {
+      } else if @basics.strip_comb(c) is (Var(_, _) as rv, xs) &&
+        xs.to_array() == [gs, ms, h] {
         frame = Some(rv)
       }
     }
     guard pat is Some(pat) else { continue }
     let k = @basics.dest_list(pat).length()
-    guard (try Some(split_stack(s, k)) catch { _ => None }) is Some((_, top)) else { continue }
+    guard (Some(split_stack(s, k)) catch { _ => None }) is Some((_, top)) else {
+      continue
+    }
     let actual = @lists.mk_list(@list.List(top), values_ty())
-    guard (try Some(@drule.term_match(@list.List([]), pat, actual)) catch { _ => None }) is Some(i) else { continue }
+    guard (Some(@drule.term_match(@list.List([]), pat, actual)) catch {
+        _ => None
+      })
+      is Some(i) else {
+      continue
+    }
     let th = @drule.instantiate_rule(i, th)
     let th = match frame {
       Some(rv) => @kernel.inst_rule(@list.List([(r, rv)]), th)
@@ -844,10 +1232,14 @@ fn call_spec(
     }
     // the spec's function must be the call's
     let rule = rule_of(goal, rule_name)
-    guard (try Some(@drule.match_mp(rule)(th)) catch { _ => None }) is Some(_) else { continue }
+    guard (Some(@drule.match_mp(rule)(th)) catch { _ => None }) is Some(_) else {
+      continue
+    }
     return (k, th)
   }
-  raise Failure("certimoon/logic: sym: no spec for " + show(instr) + " from " + show(p))
+  raise Failure(
+    "certimoon/logic: sym: no spec for " + show(instr) + " from " + show(p),
+  )
 }
 
 ///|
@@ -874,25 +1266,39 @@ pub fn intro_tac() -> @tactics.Tactic {
     let (p, bs, q, ls) = triple_l_terms(g.1)
     let (bvs, body) = @basics.strip_abs(p)
     guard bvs.to_array() is [vs, lc, gs, ms, h] else {
-      raise Failure("certimoon/logic: sym: the precondition is not an assertion: " + show(p))
+      raise Failure(
+        "certimoon/logic: sym: the precondition is not an assertion: " + show(p),
+      )
     }
     if @basics.is_exists(body) {
       let (x, b) = @basics.dest_exists(body)
       let pp = @basics.list_mk_abs(bvs.prepend(x), b)
-      let th = @equal.beta_rule(@bool.ispecl(@list.List([pp, bs, q, ls]), rule_of(g.1, "sl_ex_l")))
+      let th = @equal.beta_rule(
+        @bool.ispecl(@list.List([pp, bs, q, ls]), rule_of(g.1, "sl_ex_l")),
+      )
       return seq([@tactics.match_mp_tac(th), @tactics.gen_tac])(g)
     }
     if has_exists(body) {
-      let rw = @simp.pure_rewrite_conv(ths([@theorems.left_and_exists_thm(), @theorems.right_and_exists_thm()]))
+      let rw = @simp.pure_rewrite_conv(
+        ths([@theorems.left_and_exists_thm(), @theorems.right_and_exists_thm()]),
+      )
       return @tactics.conv_tac(pre_conv(rw))(g)
     }
     let mentions = (t : @kernel.Term, v : @kernel.Term) => @basics.free_in(v, t)
-    let pure = (t : @kernel.Term) => ![vs, lc, gs, ms, h].iter().any(v => mentions(t, v))
+    let pure = (t : @kernel.Term) => {
+      ![vs, lc, gs, ms, h].iter().any(v => mentions(t, v))
+    }
     // facts && st(v, l, R)(vs, lc, gs, ms, h): the facts become assumptions
     if @basics.is_conj(body) {
       let (c, rest) = @basics.dest_conj(body)
-      if pure(c) && args_of(rest, "st", 8) is Some(args) && args[3:].to_owned() == bvs.to_array() {
-        let facts = if is_g(g.1) { subst_facts_tac() } else { @tactics.disch_then(th => @tactics.strip_assume_tac(th)) }
+      if pure(c) &&
+        args_of(rest, "st", 8) is Some(args) &&
+        args[3:].to_owned() == bvs.to_array() {
+        let facts = if is_g(g.1) {
+          subst_facts_tac()
+        } else {
+          @tactics.disch_then(th => @tactics.strip_assume_tac(th))
+        }
         return seq([@tactics.match_mp_tac(rule_of(g.1, "sl_pure_l")), facts])(g)
       }
     }
@@ -904,20 +1310,31 @@ pub fn intro_tac() -> @tactics.Tactic {
     for c in conjs {
       if args_of(c, "=", 2) is Some([a, b]) && a == vs && !mentions(b, vs) {
         stack = Some(b)
-      } else if args_of(c, "=", 2) is Some([a, b]) && a == lc && !mentions(b, lc) {
+      } else if args_of(c, "=", 2) is Some([a, b]) &&
+        a == lc &&
+        !mentions(b, lc) {
         locals = Some(b)
       } else if pure(c) {
         facts.push(c)
       } else if !mentions(c, vs) && !mentions(c, lc) {
         rest.push(c)
       } else {
-        raise Failure("certimoon/logic: sym: cannot read " + show(c) + " as part of a state")
+        raise Failure(
+          "certimoon/logic: sym: cannot read " + show(c) + " as part of a state",
+        )
       }
     }
     guard stack is Some(s) && locals is Some(l) else {
-      raise Failure("certimoon/logic: sym: the precondition does not fix the stack and locals: " + show(p))
+      raise Failure(
+        "certimoon/logic: sym: the precondition does not fix the stack and locals: " +
+        show(p),
+      )
     }
-    let rbody = if rest.is_empty() { tm("T") } else { @bool.list_mk_conj(@list.List(rest)) }
+    let rbody = if rest.is_empty() {
+      tm("T")
+    } else {
+      @bool.list_mk_conj(@list.List(rest))
+    }
     let r = @basics.list_mk_abs(@list.List([gs, ms, h]), rbody)
     let r = @equal.rhs(@kernel.concl(norm_conv()(r)))
     let state = @basics.list_mk_comb(tm("st"), @list.List([s, l, r]))
@@ -925,10 +1342,17 @@ pub fn intro_tac() -> @tactics.Tactic {
       state
     } else {
       let applied = @basics.list_mk_comb(state, bvs)
-      @basics.list_mk_abs(bvs, @bool.mk_conj(@bool.list_mk_conj(@list.List(facts)), applied))
+      @basics.list_mk_abs(
+        bvs,
+        @bool.mk_conj(@bool.list_mk_conj(@list.List(facts)), applied),
+      )
     }
     @tactics.thenl(
-      seq([@tactics.match_mp_tac(rule_of(g.1, "sl_pre_l")), @tactics.exists_tac(p2), @tactics.conj_tac]),
+      seq([
+        @tactics.match_mp_tac(rule_of(g.1, "sl_pre_l")),
+        @tactics.exists_tac(p2),
+        @tactics.conj_tac,
+      ]),
       @list.List([
         // the same conjuncts, rearranged
         seq([
@@ -939,7 +1363,12 @@ pub fn intro_tac() -> @tactics.Tactic {
           // the state's R is written out: so are the facts it came from
           @tactics.rule_assum_tac(@simp.rewrite_rule(ths(norm_thms()))),
           @simp.asm_rewrite_tac(ths([])),
-          g => raise Failure("certimoon/logic: sym: cannot rearrange the precondition: " + show(g.1)),
+          g => {
+            raise Failure(
+              "certimoon/logic: sym: cannot rearrange the precondition: " +
+              show(g.1),
+            )
+          },
         ]),
         @tactics.all_tac,
       ]),
@@ -951,24 +1380,29 @@ pub fn intro_tac() -> @tactics.Tactic {
 /// Takes the facts as assumptions, and substitutes those that say a
 /// variable is a term (a function's arguments).
 fn subst_facts_tac() -> @tactics.Tactic {
-  @tactics.disch_then(th => g => {
-    let parts = @bool.conjuncts_rule(th).to_array()
-    let tacs = parts.map(c => {
-      let t = @kernel.concl(c)
-      if args_of(t, "=", 2) is Some([Var(_, _) as v, b]) && !@basics.free_in(v, b) {
-        @tactics.subst_var_tac(c)
-      } else {
-        @tactics.strip_assume_tac(c)
-      }
-    })
-    seq(tacs)(g)
+  @tactics.disch_then(th => {
+    g => {
+      let parts = @bool.conjuncts_rule(th).to_array()
+      let tacs = parts.map(c => {
+        let t = @kernel.concl(c)
+        if args_of(t, "=", 2) is Some([Var(_, _) as v, b]) &&
+          !@basics.free_in(v, b) {
+          @tactics.subst_var_tac(c)
+        } else {
+          @tactics.strip_assume_tac(c)
+        }
+      })
+      seq(tacs)(g)
+    }
   })
 }
 
 ///|
 /// The Loop instructions in `code`, and the Block, If and Loop
 /// instructions with more code after them, each outermost and first first.
-fn structure_of(code : @kernel.Term) -> (Array[@kernel.Term], Array[@kernel.Term]) raise {
+fn structure_of(
+  code : @kernel.Term,
+) -> (Array[@kernel.Term], Array[@kernel.Term]) raise {
   let loops = []
   let afters = []
   fn walk(t : @kernel.Term) -> Unit raise {
@@ -979,7 +1413,8 @@ fn structure_of(code : @kernel.Term) -> (Array[@kernel.Term], Array[@kernel.Term
     for k, i in instrs {
       let (_, args) = @basics.strip_comb(i)
       let name = head_name(i)
-      if k + 1 < instrs.length() && (name == "Block" || name == "If" || name == "Loop") {
+      if k + 1 < instrs.length() &&
+        (name == "Block" || name == "If" || name == "Loop") {
         afters.push(i)
       }
       match name {
@@ -1024,6 +1459,9 @@ fn structure_of(code : @kernel.Term) -> (Array[@kernel.Term], Array[@kernel.Term
 /// - `calls`: for each call in order, if given, a spec (its index in
 ///   `specs`) and the terms for its ∀s: the call then leaves "P of its
 ///   arguments" to prove, and the code after it starts from Q;
+/// - `chunks`: previously proved ordinary triples for exact, contiguous
+///   instruction fragments; their preconditions and code must match, and
+///   their premises become verification conditions;
 /// - `kind`: how load()'s listing shows it ("example" or "lemma").
 #callsite(autofill(loc))
 pub fn sym_prove(
@@ -1031,43 +1469,63 @@ pub fn sym_prove(
   stmt : String,
   invs : Array[String],
   vcs : Array[@tactics.Tactic],
-  afters? : Array[String] = [],
-  rules? : Array[String] = step_rules,
-  rws? : Array[@kernel.Thm] = [],
-  specs? : Array[@kernel.Thm] = [],
-  calls? : Array[(Int, Array[String])] = [],
-  kind? : String = "example",
+  afters~ : Array[String] = [],
+  rules~ : Array[String] = step_rules,
+  chunks~ : Array[@kernel.Thm] = [],
+  rws~ : Array[@kernel.Thm] = [],
+  specs~ : Array[@kernel.Thm] = [],
+  calls~ : Array[(Int32, Array[String])] = [],
+  kind~ : String = "example",
   loc~ : SourceLoc,
 ) -> @kernel.Thm raise {
   let goal = tm(stmt)
   let (_, body) = @basics.strip_forall(goal)
-  let triple = if @basics.is_imp(body) { @basics.dest_imp(body).1 } else { body }
-  let (code, g) = match (args_of(triple, "sl_triple", 3), args_of(triple, "sl_triple_g", 9)) {
+  let triple = if @basics.is_imp(body) {
+    @basics.dest_imp(body).1
+  } else {
+    body
+  }
+  let (code, g) = match
+    (args_of(triple, "sl_triple", 3), args_of(triple, "sl_triple_g", 9)) {
     (Some([_, code, _]), _) => (code, false)
     (_, Some(args)) => (args[6], true)
-    _ => raise Failure("certimoon/logic: sym_prove: not a triple: " + show(triple))
+    _ =>
+      raise Failure("certimoon/logic: sym_prove: not a triple: " + show(triple))
   }
   // a program's name: run its code
   let (code, unfold) = match program_def(code) {
-    Some(d) => (@kernel.dest_eq(@kernel.concl(@simp.pure_rewrite_conv(ths([d]))(code))).1, [d])
+    Some(d) =>
+      (
+        @kernel.dest_eq(@kernel.concl(@simp.pure_rewrite_conv(ths([d]))(code))).1,
+        [d],
+      )
     None => (code, [])
   }
   let (loops, after) = structure_of(code)
   if loops.length() != invs.length() || after.length() != afters.length() {
     raise Failure(
-      "certimoon/logic: sym_prove " + name + ": " + loops.length().to_string() + " loops, " +
-      invs.length().to_string() + " invariants, " + after.length().to_string() +
-      " blocks with code after them, " + afters.length().to_string() + " states after",
+      "certimoon/logic: sym_prove " +
+      name +
+      ": " +
+      loops.length().to_string() +
+      " loops, " +
+      invs.length().to_string() +
+      " invariants, " +
+      after.length().to_string() +
+      " blocks with code after them, " +
+      afters.length().to_string() +
+      " states after",
     )
   }
   let sym = {
     loops: loops.mapi((k, l) => (l, tm(invs[k]))),
     afters: after.mapi((k, a) => (a, tm(afters[k]))),
     rules,
+    chunks,
     rws,
     specs,
     calls,
-    next_call: Ref::{ val: 0 },
+    next_call: Ref::{ val: 0, },
   }
   let run = seq([
     g => {
@@ -1078,16 +1536,27 @@ pub fn sym_prove(
     @tactics.repeat_tac(@tactics.gen_tac),
     @tactics.try_tac(@tactics.disch_then(th => @tactics.strip_assume_tac(th))),
     @simp.pure_rewrite_tac(ths(unfold)),
-    if g { beta_goal() } else { @tactics.match_mp_tac(thm("sl_triple_of_l")) },
+    if g {
+      beta_goal()
+    } else {
+      @tactics.match_mp_tac(thm("sl_triple_of_l"))
+    },
     sym_tac(sym),
   ])
   let th = @tactics.prove(goal, @tactics.thenl(run, @list.List(vcs))) catch {
     e => {
       // say what is left
-      let left = (try run((@list.List([]), goal)) catch { _ => raise e }).1
+      let left = (run((@list.List([]), goal)) catch { _ => raise e }).1
       let msg = StringBuilder()
-      msg.write_string("certimoon/logic: sym_prove " + name + ": " + e.to_string() + "; ")
-      msg.write_string(left.length().to_string() + " goals left (" + vcs.length().to_string() + " tactics):")
+      msg.write_string(
+        "certimoon/logic: sym_prove " + name + ": " + e.to_string() + "; ",
+      )
+      msg.write_string(
+        left.length().to_string() +
+        " goals left (" +
+        vcs.length().to_string() +
+        " tactics):",
+      )
       let goal_text = (gl : @tactics.Goal) => {
         let b = StringBuilder()
         for a in gl.0 {
@@ -1102,16 +1571,23 @@ pub fn sym_prove(
         let verdict = if gls.length() != vcs.length() {
           ""
         } else {
-          let result : Result[@list.List[@tactics.Goal], Error] = try Ok(vcs[k](gl).1) catch {
+          let result : Result[@list.List[@tactics.Goal], Error] = Ok(
+            vcs[k](gl).1,
+          ) catch {
             e => Err(e)
           }
           match result {
             Ok(after) if after.is_empty() => " (its tactic proves it)"
-            Ok(after) => " (its tactic leaves:" + after.to_array().map(goal_text).join("") + "\n  )"
+            Ok(after) =>
+              " (its tactic leaves:" +
+              after.to_array().map(goal_text).join("") +
+              "\n  )"
             Err(e) => " (its tactic fails: " + e.to_string() + ")"
           }
         }
-        msg.write_string("\n-- " + (k + 1).to_string() + verdict + goal_text(gl))
+        msg.write_string(
+          "\n-- " + (k + 1).to_string() + verdict + goal_text(gl),
+        )
       }
       raise Failure(msg.to_string())
     }

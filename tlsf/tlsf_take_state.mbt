@@ -34,13 +34,13 @@ fn define_tlsf_take_state() -> Unit raise {
   )
   def(
     "tlsf_allocated",
-    "tlsf_allocated((d : \{w}), (lim : Num), (m : \{w}), (n : \{w}), (client : \{hprop})) == ((h : \{heap}) => !(m == word(0)) && (∃ top2 : \{w}, ∃ xs2 : \{lw}, ∃ hd2 : \{ht}, ∃ fl2 : \{w}, ∃ sb2 : (Num) -> \{w}, ∃ bl2 : \{bt}, MEM(m, xs2) && tlsf_used(hd2(m)) && val(n) <= val(tlsf_size(hd2(m))) && star(tlsf_large(d, lim, top2, xs2, hd2, fl2, sb2, bl2), star(tlsf_bytes(val(m) + 8, val(tlsf_size(hd2(m)))), client), h)))",
+    "tlsf_allocated((d : \{w}), (lim : Num), (m : \{w}), (n : \{w}), (oldxs : \{lw}), (oldhd : \{ht}), (client : \{hprop})) == ((h : \{heap}) => !(m == word(0)) && (∃ top2 : \{w}, ∃ xs2 : \{lw}, ∃ hd2 : \{ht}, ∃ fl2 : \{w}, ∃ sb2 : (Num) -> \{w}, ∃ bl2 : \{bt}, tlsf_retains(oldxs,oldhd,xs2,hd2) && MEM(m, xs2) && tlsf_used(hd2(m)) && val(n) <= val(tlsf_size(hd2(m))) && star(tlsf_large(d, lim, top2, xs2, hd2, fl2, sb2, bl2), star(tlsf_bytes(val(m) + 8, val(tlsf_size(hd2(m)))), client), h)))",
   )
   let large = "tlsf_large((d : \{w}), (lim : Num), (top : \{w}), (xs : \{lw}), (hd : \{ht}), (fl : \{w}), (sb : (Num) -> \{w}), (bl : \{bt}))"
   let frame = "(fp : \{rty})((gs : List[Value]), (ms : Num))"
   let p = "(args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => args == [V_num(ConstInt32((s : \{w})))] && 16 <= val(s) && val(s) <= 4160749568 && ms == (lim : Num) && h == (before : \{heap}) && star(\{large}, \{frame}, h)"
   let query = "tlsf_search((s : \{w}), (fl : \{w}), (sb : (Num) -> \{w}), (bl : \{bt}))"
-  let q = "(res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => ms == (lim : Num) && ((res == [V_num(ConstInt32((word(0) : \{w})))] && \{query} == word(0) && h == (before : \{heap}) && star(\{large}, \{frame}, h)) || (∃ m : \{w}, res == [V_num(ConstInt32(m))] && m == \{query} && MEM(m, (xs : \{lw})) && !tlsf_used((hd : \{ht})(m)) && tlsf_allocated(d, lim, m, s, \{frame}, h)))"
+  let q = "(res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => ms == (lim : Num) && ((res == [V_num(ConstInt32((word(0) : \{w})))] && \{query} == word(0) && h == (before : \{heap}) && star(\{large}, \{frame}, h)) || (∃ m : \{w}, res == [V_num(ConstInt32(m))] && m == \{query} && MEM(m, (xs : \{lw})) && !tlsf_used((hd : \{ht})(m)) && tlsf_allocated(d, lim, m, s, (xs : \{lw}), (hd : \{ht}), \{frame}, h)))"
   let params = "(d : \{w}), (s : \{w}), (lim : Num), (top : \{w}), (xs : \{lw}), (hd : \{ht}), (fl : \{w}), (sb : (Num) -> \{w}), (bl : \{bt}), (before : \{heap}), (fp : \{rty})"
   def("tlsf_take_pre", "tlsf_take_pre(\{params}) == (\{p})")
   def("tlsf_take_post", "tlsf_take_post(\{params}) == (\{q})")

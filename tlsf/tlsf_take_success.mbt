@@ -70,7 +70,7 @@ fn prove_tlsf_take_success() -> Unit raise {
   ])
   let pt = args_of(@basics.dest_imp(@kernel.concl(pop)).1, "sl_triple_m", 7).unwrap()
   let st = args_of(@basics.dest_imp(@kernel.concl(split)).1, "sl_triple_m", 7).unwrap()
-  let ret_r = "(gs : List[Value]) => (ms : Num) => (h : \{heap}) => ms == (lim : Num) && tlsf_allocated((d : \{w}), lim, \{m}, \{n}, (fp : \{rty})(gs, ms), h)"
+  let ret_r = "(gs : List[Value]) => (ms : Num) => (h : \{heap}) => ms == (lim : Num) && tlsf_allocated((d : \{w}), lim, \{m}, \{n}, \{oldxs}, \{hd}, (fp : \{rty})(gs, ms), h)"
   let rp = body_post("(Q : \{ft})")
   let falsep = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => F"
   let callback = "∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, (\{ret_r})(gs, ms, h) → (Q : \{ft})([V_num(ConstInt32(\{m}))], gs, ms, h)"

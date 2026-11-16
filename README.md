@@ -556,8 +556,98 @@ with different bin orders and compare every byte. Model fixtures check
 end coalescing, including the `2^32` endpoint. The WAT
 checker compares the full body and native signature.
 
-Initialization (including uninitialized states), the small-block page
-invariant, and the public malloc/free dispatch paths are still to come.
+`tlsf_initialize_code(d, push)` is the complete 75-instruction
+`initialize_memory`, with its real memory-size check, optional growth,
+trap checks, header stores, native push call, and top-pointer store.
+[tlsf_initialize_all](tlsf/tlsf_initialize_module.mbt) verifies its native
+unit signature and three zero locals. Starting from a zeroed unused suffix
+at the aligned static-data end, it establishes `tlsf_large` with one free
+last block, listed exactly once in the correct class, and leaves the
+small-page table zero. An arbitrary disjoint client assertion is preserved
+at the original memory length, including when initialization grows memory.
+The proof covers page boundaries and the memory32 endpoint.
+
+The zero-suffix requirement is essential: this code relies on startup
+zeroing instead of clearing the bin table or the physical previous pointer.
+Memory growth may fail in WasmCert even within the declared limit; the
+initializer then deliberately traps before writing allocator metadata.
+The separate `sl_abort_m` rules prove that this outcome preserves the exact
+old heap. Normal execution establishes the invariant; every reachable
+configuration is normal, this specified abort, or can take another step.
+The ordinary nontrapping triples retain their existing meaning. Runtime
+regressions compare every byte on normal and out-of-memory paths, and the
+WAT checker compares the complete initializer and native signature.
+
+The small-page invariant is now defined by `tlsf_small` and connected to
+`tlsf_large` by [tlsf_allocator](tlsf/tlsf_small_heap.mbt). Each page is a
+used physical TLSF memory with at least 1080 bytes of capacity. Its size
+is a multiple of eight between 8 and 256, and its slot count is
+`1056 / (8 + size)`. Every slot occurs exactly once among the page-local
+free list, global cached blocks, and live blocks. The header's `used`
+count is cached plus live; it is zero exactly when both are empty.
+Stable pages have positive `used`, and appear exactly once in the correct
+partial-page list precisely when `used < total`. Both table heads and
+all free-list links are owned by the invariant.
+
+Live payloads remain entirely client-owned. In particular, the first
+payload word is a free-list link only while free: the invariant places
+no zero-word requirement on live payloads. Kernel proofs establish slot
+bounds and separation, exact membership and accounting, the three model
+transfers (cached to live, live to local, and exporting local slots),
+and exclusion of pages from TLSF free bins. The ownership focus and
+transport lemmas carry the small heap across TLSF calls that retain its
+used backing blocks and capacities, including memory growth and changes
+to last flags. `tlsf_allocator_client_write` proves that writes to
+client-owned spans preserve the combined invariant. The initializer's
+postcondition establishes it with no small pages and a zero table.
+Nonempty model witnesses and rejection tests cover duplicates, missing
+or foreign slots, wrong classes, incorrect partial lists, and invalid
+backing memories. Optional execution tests use the sibling compiler WAT
+to check the invariant and all live client bytes after mixed allocations
+and frees, including cached slots that keep an otherwise empty page alive.
+
+The complete compiled `Page::allocate` is verified by
+[tlsf_page_allocate_all](tlsf/tlsf_page_allocate_module.mbt). Its native
+closure has five locals and calls the actual compiled `take`, `pop`, and
+`push` closures. A failed take returns zero with the exact old heap. A
+successful call returns a new used backing memory of at least 1080 bytes,
+preserves the combined invariant for existing pages, and initializes all
+slots with tag 4, the owning page, and the reversed local free list.
+`tlsf_page_allocate_slots_refine` connects the initialized prefix to the
+ordinary small-slot and free-list heap predicates. The entire client frame
+is preserved, including every byte of live payloads. The strengthened
+`tlsf_retains` postcondition of take explicitly retains old used memories and their
+size/flag words.
+
+The result is an **unpublished page**: the shipped code does not write its
+`used` or `prev` words. The proof preserves their arbitrary contents rather
+than assuming they are zero. The caller must set `used` and publish the
+slots before adding this page to the stable small-page model. Kernel
+execution tests compare every byte for the initialization fragments and
+full null-return path; optional tests execute complete pages from the
+shipped WAT for all 32 size classes.
+The WAT checker also compares all 99 instructions and the native signature.
+
+The compiled inline `Block::free` branch is verified by
+[tlsf_block_free_all](tlsf/tlsf_block_free_module.mbt). From the combined
+invariant and a live slot with its payload ownership, it returns the slot
+to its page, decrements `used`, and preserves the combined invariant and
+an arbitrary disjoint client frame. A formerly full page enters its correct
+partial list. Releasing the last counted slot unlinks the page at any list
+position, recovers the entire backing payload, and invokes the verified
+compiled TLSF free, including coalescing and bin updates. Cached slots
+remain counted and prevent premature reclamation. The model removes only
+the freed slot from the live set; all other client payloads remain framed.
+
+The compiler inlines `Block::free` and `Page::free` in public `free`.
+The theorem covers that exact 167-instruction small-block branch, checked
+against the shipped WAT, with the actual Memory::free/pop/push closures.
+The surrounding public guard, dispatch, and result drop are not yet
+verified. Kernel execution tests cover release and all unlink paths;
+shipped-WAT traces exercise full-page publication, every unlink position,
+TLSF coalescing, and surviving small and large payload canaries.
+Page publication on allocation and public malloc/free dispatch paths remain
+to be verified.
 
 ## Reference: the program logic
 

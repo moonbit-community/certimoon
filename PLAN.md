@@ -158,7 +158,10 @@ eval.mbt and builder.mbt (the evaluator), and the tests.
 | MoonBit's TLSF allocator: compiled split and complete take preserve the invariant and client bytes | done (Features 4, steps 3c–d) |
 | MoonBit's TLSF allocator: compiled ensure and memory growth preserve the invariant and client bytes | done (Features 4, step 3e) |
 | MoonBit's TLSF allocator: compiled large-block free coalesces and preserves the invariant and other client bytes | done (Features 4, step 3f) |
-| MoonBit's TLSF allocator: preservation by free and initialization | not started |
+| MoonBit's TLSF allocator: compiled initialization from a zeroed unused suffix, including specified growth failure | done (Features 4, step 3g) |
+| MoonBit's TLSF allocator: small-page invariant, exact slot partition, ownership, and connection to TLSF | done (Features 4, step 4a) |
+| MoonBit's TLSF allocator: compiled Page::allocate, dirty-page initialization, combined invariant, and client frame | done (Features 4, step 4b) |
+| MoonBit's TLSF allocator: compiled inline Block::free and Page::free, reclamation/coalescing, combined invariant, and client frame | done (Features 4, step 4c) |
 
 Known limits of what exists:
 
@@ -495,15 +498,48 @@ say so.
          bin-list order, and end coalescing through the model at the `2^32`
          endpoint; the WAT checker compares
          the complete body and signature.
-      g. Not yet: `initialize_memory`, including uninitialized states.
+      g. Done: the complete compiled `initialize_memory`, including its
+         unit native signature and three zero locals. Startup owns a zeroed
+         suffix from the aligned static-data end; arbitrary client bytes
+         are framed at the old memory length. The proof establishes the
+         singleton physical chain, exact bins and synchronized bitmaps,
+         and preserves the zero small-page table. Page-boundary arithmetic
+         includes the memory32 endpoint. A separate specified-abort logic
+         covers nondeterministic growth failure: it traps with the exact
+         old heap unchanged. Runtime tests compare all bytes on success
+         and failure; the WAT checker compares all 75 instructions.
          Used payloads remain outside the invariant's owned fields, to be
          carried in the client/page frame.
-   4. The small-block pages (a page's `used` counts the blocks handed to
-      the heap's free list; a page is on the partial list exactly when
-      `used < total`), then closed theorems for `try_malloc`,
-      `full_malloc` and `free`. This needs the importer (Features 2): the
-      module is 1,975 lines of WAT. Verify the module the compiler embeds,
-      after its second `wasm-opt` pass, not the vendored `output.wat`.
+   4. Small blocks and public allocation:
+      a. Done: `tlsf_small` and `tlsf_allocator` connect used TLSF backing
+         memories to page geometry, the 33 table entries, local and cached
+         free lists, and partial-page links. Each slot occurs exactly once
+         among local, cached, and live roles; `used = cached + live`, and
+         stable pages are partial exactly when non-full. Live payloads,
+         including their first word, stay outside allocator ownership.
+         Kernel proofs cover slot and page separation, model transfers,
+         client writes, backing transport, and the initialization bridge.
+         Nonempty witnesses and rejection tests exercise the model; optional
+         shipped-WAT traces check exact slots, bins, and client bytes.
+      b. Done: compiled `Page::allocate` (99 instructions, five native locals),
+         composing the actual take/pop/push closures with the initialized-prefix
+         loop proof. Failure preserves the exact old heap; success preserves the
+         combined invariant and client frame and returns an unpublished page.
+         Every slot refines the ordinary slot/free-list predicates in reverse
+         order. `used` and `prev` remain arbitrary because the compiler does not
+         initialize them. The caller must publish the page separately.
+      c. Done: the exact 167-instruction inline `Block::free` branch,
+         including inline `Page::free`. Release preserves the combined
+         invariant and all other client bytes; full pages enter the correct
+         partial list. The last counted slot reclaims the backing page through
+         the actual compiled Memory::free/pop/push closures, including all
+         unlink positions and TLSF coalescing. Cached slots prevent premature
+         reclamation. Tests cover the raw paths and shipped-WAT traces.
+      d. Next: verify allocation-side page publication, then close
+         `try_malloc`, `full_malloc`, and public `free` against the combined
+         invariant, including public guard/dispatch/drop. Verify the module
+         the compiler embeds after its second `wasm-opt` pass, not the vendored
+         `output.wat`.
 
 Not planned yet, with what they need:
 

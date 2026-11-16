@@ -1019,3 +1019,515 @@ fn instantiate(
     })
   @bool.specl(@list.List(args), th)
 }
+
+///|
+test "TLSF initialize page boundaries and the memory32 endpoint" {
+  @tlsf.load()
+  let conv = @wasm.compute_conv(
+    [
+      "tlsf_initialize_pages", "tlsf_initialize_required", "tlsf_initialize_limit",
+      "tlsf_initialize_origin", "tlsf_initialize_header", "tlsf_initialize_headers",
+      "tlsf_initialize_valid", "tlsf_capacity_at", "tlsf_base", "tlsf_origin", "tlsf_physical_ok",
+      "tlsf_layout", "tlsf_block_ok", "tlsf_coalesced", "tlsf_size", "tlsf_used",
+      "tlsf_last",
+    ].map(@logic.thm),
+  )
+  for
+    (data_end, pages, origin, header) in [
+      (0U, 1, 2176U, 63354U),
+      (123U, 1, 2304U, 63226U),
+      (63328U, 1, 65504U, 26U),
+      (63329U, 2, 65520U, 65546U),
+      (65536U, 2, 67712U, 63354U),
+      (4294965088U, 65536, 4294967264U, 26U),
+    ] {
+    let limit = pages.to_int64() * 65536L
+    let formulas = [
+      "tlsf_initialize_pages((word(\{data_end}) : Word[32])) == \{pages}",
+      "tlsf_initialize_required((word(\{data_end}) : Word[32])) == word(\{pages})",
+      "tlsf_initialize_origin((word(\{data_end}) : Word[32])) == word(\{origin})",
+      "tlsf_initialize_header((word(\{data_end}) : Word[32]),\{limit}) == word(\{header})",
+      "tlsf_physical_ok((word(\{data_end}) : Word[32]),\{limit},word(\{origin}),[word(\{origin})],tlsf_initialize_headers(word(\{data_end}),\{limit}))",
+    ]
+    for formula in formulas {
+      let th = conv(@logic.tm(formula))
+      assert_true(@kernel.hyp(th).is_empty())
+      assert_true(
+        @basics.aconv(@equal.rhs(@kernel.concl(th)), @logic.tm("T")),
+        msg=formula,
+      )
+    }
+  }
+  for
+    formula in [
+      "tlsf_initialize_valid((word(0) : Word[32]),0)", "tlsf_initialize_valid((word(65536) : Word[32]),65536)",
+      "!tlsf_initialize_valid((word(65537) : Word[32]),65536)", "!tlsf_initialize_valid((word(0) : Word[32]),65535)",
+      "!tlsf_initialize_valid((word(4294965089) : Word[32]),4294967296)", "tlsf_initialize_limit((word(0) : Word[32]),131072) == 131072",
+    ] {
+    let th = conv(@logic.tm(formula))
+    assert_true(@kernel.hyp(th).is_empty())
+    assert_true(
+      @basics.aconv(@equal.rhs(@kernel.concl(th)), @logic.tm("T")),
+      msg=formula,
+    )
+  }
+}
+
+///|
+test "small-page slot geometry covers every size class and the memory32 endpoint" {
+  @tlsf.load()
+  let conv = @wasm.compute_conv(
+    [
+      "tlsf_small_total", "tlsf_small_slot", "tlsf_small_slots", "tlsf_small_used",
+    ].map(@tlsf.thm),
+    suc=[("tlsf_small_slots", 3, 2)],
+  )
+  let fact = (s : String) => {
+    let th = @bool.eqt_elim(conv(@logic.tm(s)))
+    assert_true(@kernel.hyp(th).is_empty(), msg=s)
+  }
+  for index in 1..<33 {
+    let size = index * 8
+    let total = 1056 / (8 + size)
+    fact("tlsf_small_total(\{size}) == \{total}")
+    fact(
+      "LENGTH(tlsf_small_slots((word(2176) : Word[32]),\{size},\{total})) == \{total}",
+    )
+    fact(
+      "val(tlsf_small_slot((word(2176) : Word[32]),\{size},\{total-1}))+8+\{size} <= 3272",
+    )
+  }
+  fact(
+    "val(tlsf_small_slot((word(4294966200) : Word[32]),256,3)) == 4294967024",
+  )
+  fact(
+    "val(tlsf_small_slot((word(4294966200) : Word[32]),256,3))+264 <= 4294967296",
+  )
+  fact(
+    "tlsf_small_used([(word(2472) : Word[32])],[(word(2208) : Word[32])]) == 2",
+  )
+  fact("!(tlsf_small_used([(word(2472) : Word[32])],NIL) == 0)")
+}
+
+///|
+test "small-page partitions reject duplicate missing foreign and shared slots" {
+  @tlsf.load()
+  let w = @logic.w32
+  let p = "(word(2176) : \{w})"
+  let live = "[(word(2208) : \{w})]"
+  let cached = "[(word(2472) : \{w})]"
+  let loc = "[(word(2736) : \{w}),word(3000)]"
+  let conv = @wasm.compute_conv(
+    ["tlsf_small_total", "tlsf_small_slot", "tlsf_small_slots", "tlsf_count"].map(
+      @tlsf.thm,
+    ) +
+    [@lists.filter(), @lists.mem()],
+    suc=[("tlsf_small_slots", 3, 2)],
+  )
+  for
+    name in [
+      "tlsf_small_example_partition", "tlsf_small_example_lists", "tlsf_small_example_backing",
+    ] {
+    assert_true(@kernel.hyp(@tlsf.thm(name)).is_empty(), msg=name)
+  }
+  for
+    (bad_loc, bad_cached, bad_live, witness) in [
+      ("[(word(2736) : \{w}),word(2736),word(3000)]", cached, live, "2736"),
+      ("[(word(3000) : \{w})]", cached, live, "2736"),
+      ("[(word(2736) : \{w}),word(4000)]", cached, live, "4000"),
+      (loc, "[(word(2208) : \{w}),word(2472)]", live, "2208"),
+    ] {
+    let exact = @bool.ispecl(
+      @list.List(
+        [p, "256", bad_loc, bad_cached, bad_live, "(word(\{witness}) : \{w})"].map(
+          @logic.tm,
+        ),
+      ),
+      @tlsf.thm("tlsf_small_partition_counts"),
+    )
+    let rejected = @tactics.prove(
+      @logic.tm(
+        "!tlsf_small_partition(\{p},256,\{bad_loc},\{bad_cached},\{bad_live})",
+      ),
+      @logic.seq([@tactics.mp_tac(exact), @tactics.conv_tac(conv)]),
+    )
+    assert_true(@kernel.hyp(rejected).is_empty())
+  }
+}
+
+///|
+test "small-page lists reject wrong classes and premature page reclamation" {
+  @tlsf.load()
+  let w = @logic.w32
+  let lw = "List[\{w}]"
+  let p = "(word(2176) : \{w})"
+  let sz = "(p : \{w}) => (256 : Num)"
+  let loc = "(p : \{w}) => [(word(2736) : \{w}),word(3000)]"
+  let cached = "(p : \{w}) => [(word(2472) : \{w})]"
+  let live = "(p : \{w}) => [(word(2208) : \{w})]"
+  let empty = "(j : Num) => (NIL : \{lw})"
+  let fast = "(j : Num) => if j == 32 { [(word(2472) : \{w})] } else { (NIL : \{lw}) }"
+  let partial = "(j : Num) => if j == 32 { [\{p}] } else { (NIL : \{lw}) }"
+  let conv = @wasm.compute_conv(
+    [
+      "tlsf_small_used", "tlsf_small_total", "tlsf_count", "tlsf_used", "tlsf_size",
+    ].map(@tlsf.thm) +
+    [@lists.filter(), @lists.mem()],
+  )
+  let reject = (statement : String, rule : @kernel.Thm) => {
+    let th = @tactics.prove(
+      @logic.tm("!\{statement}"),
+      @logic.seq([@tactics.mp_tac(rule), @tactics.conv_tac(conv)]),
+    )
+    assert_true(@kernel.hyp(th).is_empty(), msg=statement)
+  }
+  for
+    bad_fast in [
+      empty,
+      "(j : Num) => if j == 31 { [(word(2472) : \{w})] } else { (NIL : \{lw}) }",
+      "(j : Num) => if j == 32 { [(word(2472) : \{w}),word(2472)] } else { (NIL : \{lw}) }",
+    ] {
+    let rule = @bool.ispecl(
+      @list.List(
+        [
+          "[\{p}]",
+          sz,
+          loc,
+          cached,
+          live,
+          bad_fast,
+          partial,
+          p,
+          "(word(2472) : \{w})",
+        ].map(@logic.tm),
+      ),
+      @tlsf.thm("tlsf_small_cached_exact"),
+    )
+    reject(
+      "tlsf_small_lists_ok([\{p}],\{sz},\{loc},\{cached},\{live},\{bad_fast},\{partial})",
+      rule,
+    )
+  }
+  let rule = @bool.ispecl(
+    @list.List(["[\{p}]", sz, loc, cached, live, fast, empty, p].map(@logic.tm)),
+    @tlsf.thm("tlsf_small_partial_exact"),
+  )
+  reject(
+    "tlsf_small_lists_ok([\{p}],\{sz},\{loc},\{cached},\{live},\{fast},\{empty})",
+    rule,
+  )
+  let full_cached = "(p : \{w}) => [(word(2208) : \{w}),word(2472),word(2736),word(3000)]"
+  let no_live = "(p : \{w}) => (NIL : \{lw})"
+  let rule = @bool.ispecl(
+    @list.List(
+      ["[\{p}]", sz, no_live, full_cached, no_live, fast, partial, p].map(
+        @logic.tm,
+      ),
+    ),
+    @tlsf.thm("tlsf_small_partial_exact"),
+  )
+  reject(
+    "tlsf_small_lists_ok([\{p}],\{sz},\{no_live},\{full_cached},\{no_live},\{fast},\{partial})",
+    rule,
+  )
+  for header in ["1090", "1027"] {
+    let hd = "(p : \{w}) => (word(\{header}) : \{w})"
+    let rule = @bool.ispecl(
+      @list.List(
+        ["[\{p}]", hd, "[\{p}]", sz, loc, cached, live, "65536", p].map(
+          @logic.tm,
+        ),
+      ),
+      @tlsf.thm("tlsf_small_backing_used"),
+    )
+    reject(
+      "tlsf_small_backing([\{p}],\{hd},[\{p}],\{sz},\{loc},\{cached},\{live},65536)",
+      rule,
+    )
+  }
+}
+
+///|
+/// Sparse kernel execution avoids expanding a whole page into a deep byte
+/// literal. Complete pages are also tested by the shipped-WAT runtime tests.
+test "compiled Page initialization stores and null return preserve client bytes" {
+  @tlsf.load()
+  let conv = @wasm.compute_conv(
+    [
+      "tlsf_pop_code", "tlsf_push_code", "tlsf_take_code", "tlsf_page_allocate_code",
+      "tlsf_page_allocate_begin", "tlsf_page_allocate_step",
+    ].map(@tlsf.thm),
+  )
+  let value = (s : String) => @equal.rhs(@kernel.concl(conv(@logic.tm(s))))
+  let instance = "Inst(NIL,[0,1,2,3],NIL,[0],NIL,NIL,NIL)"
+  let byte_terms = Array::makei(256, n => @logic.tm("(word(\{n}) : Word[8])"))
+  let memory_var = @logic.tm("(memory_bytes : List[Word[8]])")
+  let template = value(
+    "Wstore([Func_native(\{instance},Tf([T_num(T_i32)],NIL),[T_num(T_i32),T_num(T_i32),T_num(T_i32),T_num(T_i32)],tlsf_pop_code(word(0))),Func_native(\{instance},Tf([T_num(T_i32)],[T_num(T_i32)]),[T_num(T_i32),T_num(T_i32),T_num(T_i32)],tlsf_push_code(word(0))),Func_native(\{instance},Tf([T_num(T_i32)],[T_num(T_i32)]),[T_num(T_i32),T_num(T_i32),T_num(T_i32),T_num(T_i32),T_num(T_i32)],tlsf_take_code(word(0),0,1)),Func_native(\{instance},Tf([T_num(T_i32)],[T_num(T_i32)]),[T_num(T_i32),T_num(T_i32),T_num(T_i32),T_num(T_i32),T_num(T_i32)],tlsf_page_allocate_code(2))],NIL,[(Limit_t(0,NONE),(memory_bytes : List[Word[8]]))],NIL,NIL,NIL)",
+  )
+  let store = (bytes : Array[UInt32]) => {
+    let mem = @lists.mk_list(
+      @list.List(bytes.map(x => byte_terms[x.reinterpret_as_int()])),
+      @kernel.type_of(byte_terms[0]),
+    )
+    @kernel.vsubst(@list.List([(mem, memory_var)]), template)
+  }
+  let put = (bytes : Array[UInt32], addr : Int32, v : UInt32) => {
+    for k in 0..<4 {
+      bytes[addr + k] = (v >> (8 * k)) & 255U
+    }
+  }
+  let locals = (xs : Array[Int32]) => {
+    "[" + xs.map(x => "V_num(ConstInt32(word(\{x})))").join(",") + "]"
+  }
+  let check = (
+    before : Array[UInt32],
+    after : Array[UInt32],
+    lc : Array[Int32],
+    lc2 : Array[Int32],
+    code : String,
+    result : String,
+  ) => {
+    let frame = value("Wframe(\{locals(lc)},\{instance})")
+    let final_frame = value("Wframe(\{locals(lc2)},\{instance})")
+    let run = @wasm.run(
+      @pair.mk_pair((store(before), @pair.mk_pair((frame, value(code))))),
+    )
+    assert_true(@kernel.hyp(run).is_empty())
+    let expected = @pair.mk_pair(
+      (store(after), @pair.mk_pair((final_frame, value(result)))),
+    )
+    assert_true(@basics.aconv(@kernel.rand(@kernel.concl(run)), expected))
+  }
+  let dirty = () => {
+    Array::makei(104, n => (n * 19 + 7).reinterpret_as_uint() & 255U)
+  }
+  let before = dirty()
+  put(before, 0, 0U)
+  check(
+    before,
+    before,
+    [123],
+    [123],
+    "[Basic(EConstNum(ConstInt32(word(256)))),Basic(Call(3))]",
+    "[Basic(EConstNum(ConstInt32(word(0))))]",
+  )
+  for size in [8, 256] {
+    let p = 32
+    let before = dirty()
+    let after = before.copy()
+    let total = 1056 / (8 + size)
+    put(after, p + 8, size.reinterpret_as_uint())
+    put(after, p + 12, total.reinterpret_as_uint())
+    put(after, p + 20, (p + 32).reinterpret_as_uint())
+    put(after, p + 28, 0U)
+    put(after, p + 32, 4U)
+    put(after, p + 36, p.reinterpret_as_uint())
+    put(after, p + 40, 0U)
+    check(
+      before,
+      after,
+      [size, p, 6, 7, 8, 9],
+      [size, p, p + 32, 1, 8, total],
+      "MAP(Basic,tlsf_page_allocate_begin(2))",
+      "(NIL : List[Einstr])",
+    )
+  }
+  let before = dirty()
+  put(before, 52, 64U)
+  put(before, 64, 4U)
+  put(before, 68, 32U)
+  put(before, 72, 0U)
+  let after = before.copy()
+  put(after, 52, 80U)
+  put(after, 80, 4U)
+  put(after, 84, 32U)
+  put(after, 88, 64U)
+  check(
+    before,
+    after,
+    [8, 32, 64, 1, 9, 66],
+    [8, 32, 80, 1, 80, 66],
+    "MAP(Basic,tlsf_page_allocate_step(2))",
+    "[Basic(EConstNum(ConstInt32(word(2))))]",
+  )
+}
+
+///|
+/// Run the exact inlined branch with a sparse partial page, then each
+/// predecessor unlink path. Compare the whole endpoint, including all bytes
+/// outside the explicitly changed allocator words.
+test "compiled Block free release and unlink preserve other bytes" {
+  @tlsf.load()
+  let conv = @wasm.compute_conv([
+    @tlsf.thm("tlsf_block_free_code"),
+    @tlsf.thm("tlsf_block_free_release"),
+    @tlsf.thm("tlsf_block_free_unlink_prev"),
+    @tlsf.thm("tlsf_block_free_unlink_head"),
+  ])
+  let value = (s : String) => @equal.rhs(@kernel.concl(conv(@logic.tm(s))))
+  let instance = "Inst(NIL,NIL,NIL,[0],NIL,NIL,NIL)"
+  let byte_terms = Array::makei(256, n => @logic.tm("(word(\{n}) : Word[8])"))
+  let memory_var = @logic.tm("(memory_bytes : List[Word[8]])")
+  let template = @logic.tm(
+    "Wstore(NIL,NIL,[(Limit_t(0,NONE),(memory_bytes : List[Word[8]]))],NIL,NIL,NIL)",
+  )
+  let store = (bytes : Array[UInt32]) => {
+    let mem = @lists.mk_list(
+      @list.List(bytes.map(x => byte_terms[x.reinterpret_as_int()])),
+      @kernel.type_of(byte_terms[0]),
+    )
+    @kernel.vsubst(@list.List([(mem, memory_var)]), template)
+  }
+  let put = (bytes : Array[UInt32], addr : Int32, v : Int32) => {
+    for k in 0..<4 {
+      bytes[addr + k] = (v.reinterpret_as_uint() >> (8 * k)) & 255U
+    }
+  }
+  let locals = (xs : Array[Int32]) => {
+    "[" + xs.map(x => "V_num(ConstInt32(word(\{x})))").join(",") + "]"
+  }
+  let check = (
+    before : Array[UInt32],
+    after : Array[UInt32],
+    lc : Array[Int32],
+    lc2 : Array[Int32],
+    code : String,
+    result : String,
+  ) => {
+    let run = @wasm.run(
+      @pair.mk_pair(
+        (
+          store(before),
+          @pair.mk_pair(
+            (
+              value("Wframe(\{locals(lc)},\{instance})"),
+              value("MAP(Basic,\{code})"),
+            ),
+          ),
+        ),
+      ),
+    )
+    assert_true(@kernel.hyp(run).is_empty())
+    let expected = @pair.mk_pair(
+      (
+        store(after),
+        @pair.mk_pair(
+          (value("Wframe(\{locals(lc2)},\{instance})"), value(result)),
+        ),
+      ),
+    )
+    assert_true(@basics.aconv(@kernel.rand(@kernel.concl(run)), expected))
+  }
+  let zero = "[Basic(EConstNum(ConstInt32(word(0))))]"
+  for head in [0, 64] {
+    for whole in [false, true] {
+      let before = Array::makei(128, n => {
+        (n * 37 + 11).reinterpret_as_uint() & 255U
+      })
+      put(before, 44, 4)
+      put(before, 48, 2)
+      put(before, 52, head)
+      put(before, 84, 32)
+      let after = before.copy()
+      put(after, 48, 1)
+      put(after, 52, 80)
+      put(after, 88, head)
+      check(
+        before,
+        after,
+        [123, 80, 9],
+        [32, 2, 9],
+        if whole {
+          "tlsf_block_free_code(word(0),0)"
+        } else {
+          "tlsf_block_free_release(word(0),0)"
+        },
+        if whole {
+          zero
+        } else {
+          "(NIL : List[Einstr])"
+        },
+      )
+    }
+  }
+  for has_prev in [false, true] {
+    for nx in [0, 96] {
+      let before = Array::makei(128, n => {
+        (n * 29 + 17).reinterpret_as_uint() & 255U
+      })
+      let prev = if has_prev { 64 } else { 0 }
+      put(before, 40, 0)
+      put(before, 56, prev)
+      put(before, 60, nx)
+      put(before, if has_prev { 92 } else { 12 }, 32)
+      if nx != 0 {
+        put(before, nx + 24, 32)
+      }
+      let after = before.copy()
+      put(after, if has_prev { 92 } else { 12 }, nx)
+      if nx != 0 {
+        put(after, nx + 24, prev)
+      }
+      // The isolated head-path test deliberately wraps the table address
+      // into this sparse memory. The full invariant tests use a real table.
+      check(
+        before,
+        after,
+        [32, if has_prev { 56 } else { 0 }, 9],
+        [32, nx, 0 + prev],
+        if has_prev {
+          "tlsf_block_free_unlink_prev(word(0),0)"
+        } else {
+          "tlsf_block_free_unlink_head(word(4294965392),0)"
+        },
+        zero,
+      )
+    }
+  }
+}
+
+///|
+test "Block free models full partial last and cached pages" {
+  @tlsf.load()
+  let conv = @wasm.compute_conv(
+    [
+      "tlsf_block_free_loc", "tlsf_block_free_live", "tlsf_block_free_pages", "tlsf_block_free_partial",
+      "tlsf_small_put", "tlsf_small_put_class", "tlsf_small_remove", "tlsf_small_used",
+      "tlsf_small_total",
+    ].map(@tlsf.thm) +
+    [@lists.filter()],
+  )
+  let w = @logic.w32
+  let lw = "List[\{w}]"
+  let p = "(word(32) : \{w})"
+  let b = "(word(64) : \{w})"
+  let pages = "[\{p},word(2048)]"
+  let size = "(q : \{w}) => (256 : Num)"
+  let local_slots = "(q : \{w}) => ([word(592)] : \{lw})"
+  for
+    (live, cached, before_partial, expected_pages, expected_partial) in [
+      (
+        "[word(64),word(328),word(592),word(856)]", "NIL", "[word(2048)]", pages,
+        "[word(32),word(2048)]",
+      ),
+      (
+        "[word(64),word(328)]", "NIL", "[word(32),word(2048)]", pages, "[word(32),word(2048)]",
+      ),
+      // A cached slot is still counted, so the last live slot cannot reclaim it.
+      (
+        "[word(64)]", "[word(328)]", "[word(32),word(2048)]", pages, "[word(32),word(2048)]",
+      ),
+      (
+        "[word(64)]", "NIL", "[word(2048),word(32)]", "[word(2048)]", "[word(2048)]",
+      ),
+    ] {
+    let live = "(q : \{w}) => ((\{live}) : \{lw})"
+    let cached = "(q : \{w}) => ((\{cached}) : \{lw})"
+    let pre_part = "(j : Num) => (if j == 32 { (\{before_partial} : \{lw}) } else { (NIL : \{lw}) })"
+    let claim = "tlsf_block_free_loc(\{local_slots},\{p},\{b},\{p}) == [word(64),word(592)] && tlsf_block_free_live(\{live},\{p},\{b},\{p}) == tlsf_small_remove(\{b},(\{live})(\{p})) && tlsf_block_free_live(\{live},\{p},\{b},word(2048)) == (\{live})(word(2048)) && tlsf_block_free_pages(\{pages},\{cached},\{live},\{p}) == (\{expected_pages} : \{lw}) && tlsf_block_free_partial(\{pre_part},\{size},\{cached},\{live},\{p},32) == (\{expected_partial} : \{lw})"
+    let proof = computed(conv, @logic.tm(claim))
+    assert_true(@kernel.hyp(proof).is_empty())
+  }
+  assert_true(@kernel.hyp(@tlsf.thm("tlsf_block_free_all")).is_empty())
+}

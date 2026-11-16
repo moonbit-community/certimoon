@@ -8842,3 +8842,839 @@ then
     [Load(T_i32, NONE, a, off)],
     st(APPEND(v, [V_num(ConstInt32(x))]), l, R))
 ```
+
+## Composing verified instruction fragments (chunks.mbt)
+
+lemma `chunk_pair`
+
+```
+∀ (lc : List[Value]) (R : GProp),
+  sl_triple(
+    st(NIL, lc, R),
+    [EConstNum(ConstInt32(word(1))), EConstNum(ConstInt32(word(2)))],
+    st([V_num(ConstInt32(word(1))), V_num(ConstInt32(word(2)))], lc, R))
+```
+
+example `example_chunks`
+
+```
+∀ (lc : List[Value]) (R : GProp),
+  sl_triple(
+    st(NIL, lc, R),
+    [EConstNum(ConstInt32(word(1))), EConstNum(ConstInt32(word(2))),
+     Binop(T_i32, Binop_i(Add))],
+    st([V_num(ConstInt32(word(3)))], lc, R))
+```
+
+lemma `chunk_hidden_locals`
+
+```
+∀ (lc : List[Value]) (R : GProp),
+  sl_triple(
+    st(NIL, lc, R),
+    [EConstNum(ConstInt32(word(1))), EConstNum(ConstInt32(word(2)))],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == [V_num(ConstInt32(word(1))), V_num(ConstInt32(word(2)))]
+      && R(gs, ms, h))
+```
+
+example `example_chunks_hidden_locals`
+
+```
+∀ (lc : List[Value]) (R : GProp),
+  sl_triple(
+    st(NIL, lc, R),
+    [EConstNum(ConstInt32(word(1))), EConstNum(ConstInt32(word(2)))],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == [V_num(ConstInt32(word(1))), V_num(ConstInt32(word(2)))]
+      && R(gs, ms, h))
+```
+
+example `example_chunks_return`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (lc : List[Value])
+  (R : GProp),
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == [V_num(ConstInt32(word(1)))] && R(gs, ms, h),
+    st(NIL, lc, R),
+    [EConstNum(ConstInt32(word(1))),
+     If(Tbv(NONE), [EConstNum(ConstInt32(word(1))), Return], NIL),
+     EConstNum(ConstInt32(word(2)))],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      false,
+    [
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        vs == [V_num(ConstInt32(word(1)))] && R(gs, ms, h)])
+```
+
+lemma `sl_false_l`
+
+```
+∀ (bs : List[B_e]) (q : SAssn) (ls : List[SAssn]),
+  sl_triple_l(
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      false,
+    bs,
+    q,
+    ls)
+```
+
+example `example_false_ordinary_continuation`
+
+```
+∀ (q : SAssn),
+  sl_triple(
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      false,
+    [Unreachable],
+    q)
+```
+
+## Specified aborts (abort.mbt)
+
+definition `safe_abort`
+
+```
+safe_abort(
+  0,
+  (s : Wstore),
+  (f : Wframe),
+  (es : List[Einstr]),
+  (q : Assn),
+  (a : (Wstore, Wframe) -> Bool))
+  == true
+&& safe_abort(
+     SUC((n : Num)),
+     (s : Wstore),
+     (f : Wframe),
+     (es : List[Einstr]),
+     (q : Assn),
+     (a : (Wstore, Wframe) -> Bool)) == (
+     (∃ vs : List[Value], es == MAP(v_to_e, vs) && q(s, f, vs))
+     || es == [Trap] && a(s, f)
+     || (
+          ∃ s2 : Wstore,
+            ∃ f2 : Wframe, ∃ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2))
+        && (
+             ∀ s2 : Wstore,
+               ∀ f2 : Wframe,
+                 ∀ es2 : List[Einstr],
+                   reduce(s, f, es, s2, f2, es2) → safe_abort(
+                     n,
+                     s2,
+                     f2,
+                     es2,
+                     q,
+                     a)))
+```
+
+lemma `safe_abort_of_safe`
+
+```
+∀ (n : Num) (s : Wstore) (f : Wframe) (es : List[Einstr]) (q : Assn)
+  (a : (Wstore, Wframe) -> Bool)
+if
+  1. safe(n, s, f, es, q)
+then
+  safe_abort(n, s, f, es, q, a)
+```
+
+lemma `safe_abort_vals`
+
+```
+∀ (n : Num) (s : Wstore) (f : Wframe) (vs : List[Value]) (q : Assn)
+  (a : (Wstore, Wframe) -> Bool)
+if
+  1. q(s, f, vs)
+then
+  safe_abort(n, s, f, MAP(v_to_e, vs), q, a)
+```
+
+lemma `safe_abort_trap`
+
+```
+∀ (n : Num) (s : Wstore) (f : Wframe) (q : Assn) (a : (Wstore, Wframe) -> Bool)
+if
+  1. a(s, f)
+then
+  safe_abort(n, s, f, [Trap], q, a)
+```
+
+lemma `safe_abort_step`
+
+```
+∀ (n : Num) (s : Wstore) (f : Wframe) (es : List[Einstr]) (q : Assn)
+  (a : (Wstore, Wframe) -> Bool)
+if
+  1. ∃ s2 : Wstore,
+       ∃ f2 : Wframe, ∃ es2 : List[Einstr], reduce(s, f, es, s2, f2, es2)
+  2. ∀ s2 : Wstore,
+       ∀ f2 : Wframe,
+         ∀ es2 : List[Einstr],
+           reduce(s, f, es, s2, f2, es2) → safe_abort(n, s2, f2, es2, q, a)
+then
+  safe_abort(SUC(n), s, f, es, q, a)
+```
+
+lemma `safe_abort_after_step`
+
+```
+∀ (n : Num) (s s2 : Wstore) (f f2 : Wframe) (es es2 : List[Einstr]) (q : Assn)
+  (a : (Wstore, Wframe) -> Bool)
+if
+  1. safe_abort(SUC(n), s, f, es, q, a)
+  2. reduce(s, f, es, s2, f2, es2)
+then
+  safe_abort(n, s2, f2, es2, q, a)
+```
+
+lemma `safe_abort_run`
+
+```
+∀ (c c2 : (Wstore, Wframe, List[Einstr])) (q : Assn)
+  (a : (Wstore, Wframe) -> Bool) (n : Num)
+if
+  1. reduce_trans(c, c2)
+  2. ∀ n : Num, safe_abort(n, FST(c), FST(SND(c)), SND(SND(c)), q, a)
+then
+  safe_abort(n, FST(c2), FST(SND(c2)), SND(SND(c2)), q, a)
+```
+
+lemma `safe_abort_adequate`
+
+```
+∀ (s : Wstore) (f : Wframe) (es : List[Einstr]) (q : Assn)
+  (a : (Wstore, Wframe) -> Bool)
+if
+  1. ∀ n : Num, safe_abort(n, s, f, es, q, a)
+then
+  ∃ (vs : List[Value]),
+    es == MAP(v_to_e, vs)
+    && q(s, f, vs)
+or
+  es == [Trap]
+  && a(s, f)
+or
+  ∃ (s2 : Wstore) (f2 : Wframe) (es2 : List[Einstr]),
+    reduce(s, f, es, s2, f2, es2)
+```
+
+lemma `safe_abort_seq`
+
+```
+∀ (n : Num) (s : Wstore) (f : Wframe) (es1 es2 : List[Einstr]) (q r : Assn)
+  (a : (Wstore, Wframe) -> Bool)
+if
+  1. safe(n, s, f, es1, q)
+  2. ∀ s : Wstore,
+       ∀ f : Wframe,
+         ∀ vs : List[Value],
+           ∀ m : Num,
+             q(s, f, vs) → safe_abort(
+               m,
+               s,
+               f,
+               APPEND(MAP(v_to_e, vs), es2),
+               r,
+               a)
+then
+  safe_abort(n, s, f, APPEND(es1, es2), r, a)
+```
+
+lemma `abort_reduce_simple`
+
+```
+∀ (s : Wstore) (f : Wframe) (e e2 : List[Einstr])
+if
+  1. reduce_simple(e, e2)
+then
+  reduce(s, f, e, s, f, e2)
+```
+
+lemma `safe_abort_label_can_step`
+
+```
+∀ (n m : Num) (s : Wstore) (f : Wframe) (es e0 : List[Einstr]) (q : Assn)
+  (a : (Wstore, Wframe) -> Bool)
+if
+  1. safe_abort(SUC(n), s, f, es, q, a)
+then
+  ∃ (s2 : Wstore) (f2 : Wframe) (es2 : List[Einstr]),
+    reduce(s, f, [Label(m, e0, es)], s2, f2, es2)
+```
+
+lemma `safe_abort_label`
+
+```
+∀ (n m : Num) (s : Wstore) (f : Wframe) (es e0 : List[Einstr]) (q : Assn)
+  (a : (Wstore, Wframe) -> Bool)
+if
+  1. safe_abort(n, s, f, es, q, a)
+then
+  safe_abort(n, s, f, [Label(m, e0, es)], q, a)
+```
+
+lemma `abort_trap_nonvalues`
+
+```
+∀ (es : List[Einstr])
+if
+  1. trap_top(es)
+then
+  !ALL(is_val, es)
+```
+
+lemma `abort_trap_first_nonvalue`
+
+```
+∀ (vs : List[Value]) (x : Einstr) (rest : List[Einstr])
+if
+  1. !is_val(x)
+then
+  trap_top(APPEND(MAP(v_to_e, vs), CONS(x, rest))) == (x == Trap)
+```
+
+lemma `abort_trap_drop_values`
+
+```
+∀ (vs : List[Value]) (es : List[Einstr]),
+  trap_top(APPEND(MAP(v_to_e, vs), es)) == trap_top(es)
+```
+
+lemma `abort_trap_append`
+
+```
+∀ (es rest : List[Einstr])
+if
+  1. !ALL(is_val, es)
+then
+  trap_top(APPEND(es, rest)) == trap_top(es)
+```
+
+lemma `abort_trap_context`
+
+```
+∀ (lh : Lholed) (es : List[Einstr])
+if
+  1. !ALL(is_val, es)
+then
+  trap_top(lfill(lh, es)) == (lh_depth(lh) == 0 && trap_top(es))
+```
+
+lemma `abort_trap_simple`
+
+```
+∀ (es es2 : List[Einstr])
+if
+  1. reduce_simple(es, es2)
+  2. trap_top(es)
+then
+  trap_top(es2)
+```
+
+lemma `abort_trap_reduce_strong`
+
+```
+∀ (s s2 : Wstore) (f f2 : Wframe) (es es2 : List[Einstr])
+if
+  1. reduce(s, f, es, s2, f2, es2)
+then
+  !ALL(is_val, es)
+  && trap_top(es) → s2 == s && f2 == f && trap_top(es2)
+```
+
+lemma `abort_trap_reduce`
+
+```
+∀ (s s2 : Wstore) (f f2 : Wframe) (es es2 : List[Einstr])
+if
+  1. reduce(s, f, es, s2, f2, es2)
+  2. trap_top(es)
+then
+  s2 == s
+  && f2 == f
+  && trap_top(es2)
+```
+
+lemma `safe_abort_top_trap`
+
+```
+∀ (n : Num) (s : Wstore) (f : Wframe) (es : List[Einstr]) (q : Assn)
+  (a : (Wstore, Wframe) -> Bool)
+if
+  1. trap_top(es)
+  2. a(s, f)
+then
+  safe_abort(n, s, f, es, q, a)
+```
+
+lemma `safe_abort_trap_assert`
+
+```
+∀ (n : Num) (s : Wstore) (f : Wframe) (q : Assn) (a : (Wstore, Wframe) -> Bool)
+if
+  1. safe_abort(SUC(n), s, f, [Trap], q, a)
+then
+  a(s, f)
+```
+
+lemma `safe_abort_top_assert`
+
+```
+∀ (s : Wstore) (f : Wframe) (es : List[Einstr]) (q : Assn)
+  (a : (Wstore, Wframe) -> Bool)
+if
+  1. ∀ k : Num, safe_abort(k, s, f, es, q, a)
+  2. trap_top(es)
+then
+  a(s, f)
+```
+
+lemma `safe_abort_seq_all`
+
+```
+∀ (n : Num) (s : Wstore) (f : Wframe) (es1 es2 : List[Einstr]) (q r : Assn)
+  (a : (Wstore, Wframe) -> Bool)
+if
+  1. ∀ k : Num, safe_abort(k, s, f, es1, q, a)
+  2. ∀ s2 : Wstore,
+       ∀ f2 : Wframe,
+         ∀ vs : List[Value],
+           ∀ k : Num,
+             q(s2, f2, vs) → safe_abort(
+               k,
+               s2,
+               f2,
+               APPEND(MAP(v_to_e, vs), es2),
+               r,
+               a)
+then
+  safe_abort(n, s, f, APPEND(es1, es2), r, a)
+```
+
+definition `sl_abort_m`
+
+```
+sl_abort_m(
+  (fs : List[Cl]),
+  (tabs : Tabs),
+  (inst : Inst),
+  (P : SAssn),
+  (bs : List[B_e]),
+  (Q : SAssn),
+  (A : SAssn)) == (
+  ∀ fr : HProp,
+    ∀ s : Wstore,
+      ∀ f : Wframe,
+        ∀ vs : List[Value],
+          ∀ n : Num,
+            keep(fs, tabs, inst, lift(P, fr), s, f, vs) → safe_abort(
+              n,
+              s,
+              f,
+              APPEND(MAP(v_to_e, vs), MAP(Basic, bs)),
+              keep(fs, tabs, inst, lift(Q, fr)),
+              (s : Wstore) => (f : Wframe) =>
+                keep(fs, tabs, inst, lift(A, fr), s, f, NIL)))
+```
+
+lemma `safe_abort_mono`
+
+```
+∀ (n : Num) (s : Wstore) (f : Wframe) (es : List[Einstr]) (q r : Assn)
+  (a b : (Wstore, Wframe) -> Bool)
+if
+  1. safe_abort(n, s, f, es, q, a)
+  2. ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], q(s, f, vs) → r(s, f, vs)
+  3. ∀ s : Wstore, ∀ f : Wframe, a(s, f) → b(s, f)
+then
+  safe_abort(n, s, f, es, r, b)
+```
+
+lemma `abort_keep_lift_mono`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (P Q : SAssn) (fr : HProp)
+  (s : Wstore) (f : Wframe) (vs : List[Value])
+if
+  1. ∀ vs : List[Value],
+       ∀ lc : List[Value],
+         ∀ gs : List[Value],
+           ∀ ms : Num, ∀ h : Heap, P(vs, lc, gs, ms, h) → Q(vs, lc, gs, ms, h)
+  2. keep(fs, tabs, inst, lift(P, fr), s, f, vs)
+then
+  keep(fs, tabs, inst, lift(Q, fr), s, f, vs)
+```
+
+lemma `sl_abort_m_of`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (P Q A : SAssn) (bs : List[B_e])
+if
+  1. sl_triple_m(fs, tabs, inst, P, bs, Q, NIL)
+then
+  sl_abort_m(fs, tabs, inst, P, bs, Q, A)
+```
+
+lemma `sl_abort_nil_m`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (P A : SAssn),
+  sl_abort_m(fs, tabs, inst, P, NIL, P, A)
+```
+
+lemma `sl_abort_seq_m`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (P Q R A : SAssn)
+  (bs1 bs2 : List[B_e])
+if
+  1. sl_abort_m(fs, tabs, inst, P, bs1, Q, A)
+  2. sl_abort_m(fs, tabs, inst, Q, bs2, R, A)
+then
+  sl_abort_m(fs, tabs, inst, P, APPEND(bs1, bs2), R, A)
+```
+
+lemma `sl_abort_conseq_m`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (P P2 Q Q2 A A2 : SAssn)
+  (bs : List[B_e])
+if
+  1. ∀ vs : List[Value],
+       ∀ lc : List[Value],
+         ∀ gs : List[Value],
+           ∀ ms : Num, ∀ h : Heap, P2(vs, lc, gs, ms, h) → P(vs, lc, gs, ms, h)
+  2. sl_abort_m(fs, tabs, inst, P, bs, Q, A)
+  3. ∀ vs : List[Value],
+       ∀ lc : List[Value],
+         ∀ gs : List[Value],
+           ∀ ms : Num, ∀ h : Heap, Q(vs, lc, gs, ms, h) → Q2(vs, lc, gs, ms, h)
+  4. ∀ vs : List[Value],
+       ∀ lc : List[Value],
+         ∀ gs : List[Value],
+           ∀ ms : Num, ∀ h : Heap, A(vs, lc, gs, ms, h) → A2(vs, lc, gs, ms, h)
+then
+  sl_abort_m(fs, tabs, inst, P2, bs, Q2, A2)
+```
+
+lemma `sl_abort_or_m`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (P R Q A : SAssn) (bs : List[B_e])
+if
+  1. sl_abort_m(fs, tabs, inst, P, bs, Q, A)
+  2. sl_abort_m(fs, tabs, inst, R, bs, Q, A)
+then
+  sl_abort_m(
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      P(vs, lc, gs, ms, h) || R(vs, lc, gs, ms, h),
+    bs,
+    Q,
+    A)
+```
+
+lemma `safe_abort_unreachable_step`
+
+```
+∀ (n : Num) (s : Wstore) (f : Wframe) (q : Assn) (a : (Wstore, Wframe) -> Bool)
+if
+  1. a(s, f)
+then
+  safe_abort(SUC(n), s, f, [Basic(Unreachable)], q, a)
+```
+
+lemma `safe_abort_unreachable`
+
+```
+∀ (n : Num) (s : Wstore) (f : Wframe) (q : Assn) (a : (Wstore, Wframe) -> Bool)
+if
+  1. a(s, f)
+then
+  safe_abort(n, s, f, [Basic(Unreachable)], q, a)
+```
+
+lemma `safe_abort_unit_block`
+
+```
+∀ (n : Num) (s : Wstore) (f : Wframe) (q : Assn) (a : (Wstore, Wframe) -> Bool)
+  (bs : List[B_e])
+if
+  1. safe_abort(n, s, f, MAP(Basic, bs), q, a)
+then
+  safe_abort(SUC(n), s, f, [Basic(Block(Tbv(NONE), bs))], q, a)
+```
+
+lemma `safe_abort_unit_if`
+
+```
+∀ (n : Num) (s : Wstore) (f : Wframe) (q : Assn) (a : (Wstore, Wframe) -> Bool)
+  (c : W32) (bs1 bs2 : List[B_e])
+if
+  1. !(c == word(0)) → safe_abort(n, s, f, [Basic(Block(Tbv(NONE), bs1))], q, a)
+  2. c == word(0) → safe_abort(n, s, f, [Basic(Block(Tbv(NONE), bs2))], q, a)
+then
+  safe_abort(
+    SUC(n),
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(c))), Basic(If(Tbv(NONE), bs1, bs2))],
+    q,
+    a)
+```
+
+lemma `abort_st_heap`
+
+```
+∀ (v l vs lc gs : List[Value]) (R : GProp) (ms : Num),
+  st(v, l, R, vs, lc, gs, ms)
+    == ((h : Heap) => vs == v && lc == l && R(gs, ms, h))
+```
+
+lemma `abort_keep_st_values`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (v lc vs : List[Value])
+  (R : GProp) (fr : HProp) (s : Wstore) (f : Wframe)
+if
+  1. keep(fs, tabs, inst, lift(st(v, lc, R), fr), s, f, vs)
+then
+  vs == v
+```
+
+lemma `abort_keep_st_transport`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (v lc vs : List[Value])
+  (R : GProp) (fr : HProp) (s : Wstore) (f : Wframe)
+if
+  1. keep(fs, tabs, inst, lift(st(v, lc, R), fr), s, f, vs)
+then
+  keep(fs, tabs, inst, lift(st(NIL, lc, R), fr), s, f, NIL)
+```
+
+lemma `sl_abort_unreachable_m`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (lc : List[Value]) (R : GProp)
+  (Q A : SAssn)
+if
+  1. ∀ vs : List[Value],
+       ∀ lc2 : List[Value],
+         ∀ gs : List[Value],
+           ∀ ms : Num,
+             ∀ h : Heap,
+               st(NIL, lc, R, vs, lc2, gs, ms, h) → A(vs, lc2, gs, ms, h)
+then
+  sl_abort_m(fs, tabs, inst, st(NIL, lc, R), [Unreachable], Q, A)
+```
+
+lemma `sl_abort_block_st_m`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (lc : List[Value]) (R : GProp)
+  (bs : List[B_e]) (Q A : SAssn)
+if
+  1. sl_abort_m(fs, tabs, inst, st(NIL, lc, R), bs, Q, A)
+then
+  sl_abort_m(fs, tabs, inst, st(NIL, lc, R), [Block(Tbv(NONE), bs)], Q, A)
+```
+
+lemma `sl_abort_if_blocks_m`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (lc : List[Value]) (R : GProp)
+  (c : W32) (bs1 bs2 : List[B_e]) (Q A : SAssn)
+if
+  1. !(c == word(0)) → sl_abort_m(
+       fs,
+       tabs,
+       inst,
+       st(NIL, lc, R),
+       [Block(Tbv(NONE), bs1)],
+       Q,
+       A)
+  2. c == word(0) → sl_abort_m(
+       fs,
+       tabs,
+       inst,
+       st(NIL, lc, R),
+       [Block(Tbv(NONE), bs2)],
+       Q,
+       A)
+then
+  sl_abort_m(
+    fs,
+    tabs,
+    inst,
+    st([V_num(ConstInt32(c))], lc, R),
+    [If(Tbv(NONE), bs1, bs2)],
+    Q,
+    A)
+```
+
+lemma `sl_abort_if_st_m`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (lc : List[Value]) (R : GProp)
+  (c : W32) (bs1 bs2 : List[B_e]) (Q A : SAssn)
+if
+  1. !(c == word(0)) → sl_abort_m(fs, tabs, inst, st(NIL, lc, R), bs1, Q, A)
+  2. c == word(0) → sl_abort_m(fs, tabs, inst, st(NIL, lc, R), bs2, Q, A)
+then
+  sl_abort_m(
+    fs,
+    tabs,
+    inst,
+    st([V_num(ConstInt32(c))], lc, R),
+    [If(Tbv(NONE), bs1, bs2)],
+    Q,
+    A)
+```
+
+lemma `safe_abort_values_assert`
+
+```
+∀ (n : Num) (s : Wstore) (f : Wframe) (vs : List[Value]) (q : Assn)
+  (a : (Wstore, Wframe) -> Bool)
+if
+  1. safe_abort(SUC(n), s, f, MAP(v_to_e, vs), q, a)
+then
+  q(s, f, vs)
+```
+
+lemma `safe_abort_frame_can_step`
+
+```
+∀ (n m : Num) (s : Wstore) (f0 f1 : Wframe) (es : List[Einstr]) (qin : Assn)
+  (ain : (Wstore, Wframe) -> Bool)
+if
+  1. safe_abort(SUC(n), s, f1, es, qin, ain)
+then
+  ∃ (s2 : Wstore) (f2 : Wframe) (es2 : List[Einstr]),
+    reduce(s, f0, [Frame(m, f1, es)], s2, f2, es2)
+```
+
+lemma `safe_abort_frame`
+
+```
+∀ (n m : Num) (s : Wstore) (f0 f1 : Wframe) (es : List[Einstr]) (qin q : Assn)
+  (ain a : (Wstore, Wframe) -> Bool)
+if
+  1. safe_abort(n, s, f1, es, qin, ain)
+  2. ∀ s2 : Wstore,
+       ∀ f2 : Wframe, ∀ vs : List[Value], qin(s2, f2, vs) → q(s2, f0, vs)
+  3. ∀ s2 : Wstore, ∀ f2 : Wframe, ain(s2, f2) → a(s2, f0)
+then
+  safe_abort(n, s, f0, [Frame(m, f1, es)], q, a)
+```
+
+lemma `safe_abort_deterministic_step`
+
+```
+∀ (n : Num) (s s2 : Wstore) (f f2 : Wframe) (es es2 : List[Einstr]) (q : Assn)
+  (a : (Wstore, Wframe) -> Bool)
+if
+  1. reduce(s, f, es, s2, f2, es2)
+  2. ∀ t1 : Wstore,
+       ∀ t2 : Wframe,
+         ∀ t3 : List[Einstr],
+           reduce(s, f, es, t1, t2, t3) → t1 == s2 && t2 == f2 && t3 == es2
+  3. ∀ k : Num, safe_abort(k, s2, f2, es2, q, a)
+then
+  safe_abort(n, s, f, es, q, a)
+```
+
+lemma `safe_abort_call_unit`
+
+```
+∀ (n j : Num) (s : Wstore) (f : Wframe) (i : Inst) (ts : List[Valtype])
+  (code : List[B_e]) (zs : List[Value]) (qin q : Assn)
+  (ain a : (Wstore, Wframe) -> Bool)
+if
+  1. EL(sfunc_ind(f_inst(f), j), s_funcs(s))
+       == Func_native(i, Tf(NIL, NIL), ts, code)
+     && n_zeros(ts) == SOME(zs)
+  2. ∀ k : Num, safe_abort(k, s, Wframe(zs, i), MAP(Basic, code), qin, ain)
+  3. ∀ s2 : Wstore,
+       ∀ f2 : Wframe, ∀ vs : List[Value], qin(s2, f2, vs) → q(s2, f, vs)
+  4. ∀ s2 : Wstore, ∀ f2 : Wframe, ain(s2, f2) → a(s2, f)
+then
+  safe_abort(n, s, f, [Basic(Call(j))], q, a)
+```
+
+lemma `sl_abort_call_unit_m`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (j : Num) (ts : List[Valtype])
+  (code : List[B_e]) (zs lc0 : List[Value]) (P Q A : GProp)
+if
+  1. EL(sfunc_ind(inst, j), fs) == Func_native(inst, Tf(NIL, NIL), ts, code)
+  2. n_zeros(ts) == SOME(zs)
+  3. sl_abort_m(
+       fs,
+       tabs,
+       inst,
+       st(NIL, zs, P),
+       code,
+       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+       (ms : Num) => (h : Heap) =>
+         vs == NIL && Q(gs, ms, h),
+       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+       (ms : Num) => (h : Heap) =>
+         A(gs, ms, h))
+then
+  sl_abort_m(
+    fs,
+    tabs,
+    inst,
+    st(NIL, lc0, P),
+    [Call(j)],
+    st(NIL, lc0, Q),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      A(gs, ms, h))
+```
+
+lemma `sl_abort_m_adequate`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (P Q A : SAssn) (bs : List[B_e])
+  (fr : HProp) (s s2 : Wstore) (f f2 : Wframe) (vs : List[Value])
+  (es2 : List[Einstr])
+if
+  1. sl_abort_m(fs, tabs, inst, P, bs, Q, A)
+  2. keep(fs, tabs, inst, lift(P, fr), s, f, vs)
+  3. reduce_trans(
+       (s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, bs))),
+       (s2, f2, es2))
+then
+  ∃ (res : List[Value]),
+    es2 == MAP(v_to_e, res)
+    && keep(fs, tabs, inst, lift(Q, fr), s2, f2, res)
+or
+  es2 == [Trap]
+  && (
+       (s : Wstore) => (f : Wframe) =>
+         keep(fs, tabs, inst, lift(A, fr), s, f, NIL))(s2, f2)
+or
+  ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]),
+    reduce(s2, f2, es2, s3, f3, es3)
+```
