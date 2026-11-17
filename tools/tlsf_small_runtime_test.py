@@ -22,7 +22,10 @@ class SmallPageRuntimeTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             wat = Path(directory) / 'allocator.wat'
             binary = Path(directory) / 'allocator.wasm'
-            wat.write_text('(module\n' + SHIPPED.read_text() +
+            fields = SHIPPED.read_text()
+            if mode in ('try_malloc', 'full_malloc'):
+                fields = fields.replace('(memory $0 1)', '(memory $0 1 2)')
+            wat.write_text('(module\n' + fields +
                            '\n(export "memory" (memory $0)))')
             subprocess.run(['wasm-tools', 'parse', str(wat), '-o', str(binary)],
                            check=True, capture_output=True)
@@ -144,7 +147,7 @@ class SmallPageRuntimeTest(unittest.TestCase):
               new Uint8Array(e.memory.buffer).fill(0xA7,0,base);
               let serial = 0;
               function allocate(size) {
-                const ptr = e.malloc(size) >>> 0;
+                const ptr = (mode === 'try_malloc' ? e.malloc_no_grow(size) : e.full_malloc(size)) >>> 0;
                 insist(ptr !== 0 && ptr !== 0xFFFFFFFF, 'allocation failed');
                 for (const [other,item] of live) {
                   insist(ptr + size <= other || other + item.size <= ptr, 'overlapping clients');
@@ -154,7 +157,60 @@ class SmallPageRuntimeTest(unittest.TestCase):
                 live.set(ptr,{size,pattern}); check(); return ptr;
               }
               function release(ptr) { e.free(ptr); live.delete(ptr); check(); }
-              if (mode === 'block_free') {
+              if (mode === 'try_malloc' || mode === 'full_malloc') {
+                const guardian = allocate(24), largeGuardian = allocate(600);
+                for (const allocateZero of [e.malloc_no_grow,e.full_malloc]) {
+                  const before = new Uint8Array(e.memory.buffer).slice();
+                  insist(allocateZero(0) === 0,'zero allocation result');
+                  insist(Buffer.from(before).equals(Buffer.from(e.memory.buffer)),'zero allocation changed heap');
+                  check();
+                }
+                for(const size of [1,7,8,9,255,256,257,1024]) {
+                  const p=allocate(size),q=allocate(size); release(p);release(q);
+                }
+                const beforeSize=e.memory.buffer.byteLength;
+                if (mode === 'try_malloc') {
+                  const before=new Uint8Array(e.memory.buffer).slice();
+                  insist((e.malloc_no_grow(100000)>>>0)===0xFFFFFFFF,'no-grow failure sentinel');
+                  insist(e.memory.buffer.byteLength===beforeSize,'try_malloc grew memory');
+                  insist(Buffer.from(before).equals(Buffer.from(e.memory.buffer)),'failed try_malloc changed heap');
+                  check();
+                } else {
+                  const p=allocate(100000);
+                  insist(e.memory.buffer.byteLength>beforeSize,'full_malloc did not grow');
+                  release(p);
+                  let trapped=false;
+                  try { e.full_malloc(200000); } catch(error) {
+                    insist(error instanceof WebAssembly.RuntimeError,'wrong failure'); trapped=true;
+                  }
+                  insist(trapped,'full_malloc must trap when memory.grow fails');
+                  check();
+                }
+                release(largeGuardian);release(guardian);
+              } else if (mode === 'publication') {
+                const smallGuardian = allocate(8), largeGuardian = allocate(600);
+                for (const size of [16,32,128,256]) {
+                  const total = Math.floor(1056/(size+8));
+                  const groups = Array.from({length:2},()=>Array.from({length:total},()=>allocate(size)));
+                  const owner = g=>new DataView(e.memory.buffer).getUint32(g[0]-4,true);
+                  insist(owner(groups[0])!==owner(groups[1]),'two distinct published pages');
+                  // Export singleton and multi-slot local lists. With two partial
+                  // pages, the first export must reset its successor's prev link.
+                  for (const n of [1,2]) {
+                    groups.forEach(g=>{ for(let i=0;i<n;i++) release(g.pop()); });
+                    for(let page=1;page>=0;page--) {
+                      const first=allocate(size);
+                      insist(new DataView(e.memory.buffer).getUint32(first-4,true)===owner(groups[page]),'partial page publication order');
+                      groups[page].push(first);
+                      for(let i=1;i<n;i++) groups[page].push(allocate(size));
+                      const data=new DataView(e.memory.buffer), p=owner(groups[page]);
+                      insist(data.getUint32(p+16,true)===total && data.getUint32(p+20,true)===0,'published full-page accounting');
+                    }
+                  }
+                  groups.flat().forEach(release);
+                }
+                release(largeGuardian); release(smallGuardian);
+              } else if (mode === 'block_free') {
                 const guardian = allocate(8), largeGuardian = allocate(600);
                 for (const order of [[2,0,1,4,3],[0,1,2,3,4]]) {
                   const groups = Array.from({length:5},()=>Array.from({length:4},()=>allocate(256)));
@@ -198,11 +254,20 @@ class SmallPageRuntimeTest(unittest.TestCase):
                                     check=True, capture_output=True, text=True)
             return json.loads(result.stdout)
 
+    def test_try_malloc_zero_rounding_failure_and_client_frames(self):
+        self.assertGreater(self.run_trace('try_malloc')['operations'], 30)
+
+    def test_full_malloc_growth_retry_oom_and_client_frames(self):
+        self.assertGreater(self.run_trace('full_malloc')['operations'], 30)
+
     def test_cached_partial_full_and_reclaimed_page_transitions(self):
         result = self.run_trace('transitions')
         self.assertTrue(result['witnessedPartial'])
         self.assertTrue(result['witnessedPinned'])
         self.assertGreater(result['operations'], 70)
+
+    def test_allocation_page_publication_preserves_live_small_and_large_clients(self):
+        self.assertGreater(self.run_trace('publication')['operations'], 300)
 
     def test_block_free_all_partial_positions_reclaim_and_coalesce(self):
         self.assertGreater(self.run_trace('block_free')['operations'], 80)

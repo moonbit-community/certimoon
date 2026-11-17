@@ -1044,6 +1044,9 @@ fn chunk_step(
   code : @kernel.Term,
   goal : @kernel.Term,
 ) -> @tactics.Tactic? raise {
+  if g_chunk_step(sym, p, code, goal) is Some(tac) {
+    return Some(tac)
+  }
   if !@basics.is_list(code) {
     return None
   }
@@ -1065,7 +1068,7 @@ fn chunk_step(
       continue
     }
     let count = @basics.dest_list(chunk).length()
-    if count < 2 || count > instructions.length() {
+    if count < 1 || count > instructions.length() {
       continue
     }
     let prefix = @lists.mk_list(
@@ -1270,6 +1273,29 @@ pub fn intro_tac() -> @tactics.Tactic {
         "certimoon/logic: sym: the precondition is not an assertion: " + show(p),
       )
     }
+    fn has_disjunction(t : @kernel.Term) -> Bool raise {
+      if @basics.is_disj(t) {
+        return true
+      }
+      if @basics.is_conj(t) {
+        let (a, b) = @basics.dest_conj(t)
+        return has_disjunction(a) || has_disjunction(b)
+      }
+      false
+    }
+    if is_g(g.1) && has_disjunction(body) {
+      return seq([
+        @tactics.conv_tac(
+          pre_conv(
+            @simp.pure_rewrite_conv(
+              ths([@theorems.left_or_distrib(), @theorems.right_or_distrib()]),
+            ),
+          ),
+        ),
+        @tactics.match_mp_tac(thm("sl_or_g")),
+        @tactics.conj_tac,
+      ])(g)
+    }
     if @basics.is_exists(body) {
       let (x, b) = @basics.dest_exists(body)
       let pp = @basics.list_mk_abs(bvs.prepend(x), b)
@@ -1314,14 +1340,35 @@ pub fn intro_tac() -> @tactics.Tactic {
         a == lc &&
         !mentions(b, lc) {
         locals = Some(b)
+      }
+    }
+    for c in conjs {
+      if args_of(c, "=", 2) is Some([a, b]) && a == vs && !mentions(b, vs) {
+        stack = Some(b)
+      } else if args_of(c, "=", 2) is Some([a, b]) &&
+        a == lc &&
+        !mentions(b, lc) {
+        locals = Some(b)
       } else if pure(c) {
         facts.push(c)
       } else if !mentions(c, vs) && !mentions(c, lc) {
         rest.push(c)
       } else {
-        raise Failure(
-          "certimoon/logic: sym: cannot read " + show(c) + " as part of a state",
-        )
+        let subs = []
+        if stack is Some(s) {
+          subs.push((s, vs))
+        }
+        if locals is Some(l) {
+          subs.push((l, lc))
+        }
+        let resolved = @kernel.vsubst(@list.List(subs), c)
+        if !mentions(resolved, vs) && !mentions(resolved, lc) {
+          rest.push(resolved)
+        } else {
+          raise Failure(
+            "certimoon/logic: sym: cannot fix state arguments in " + show(c),
+          )
+        }
       }
     }
     guard stack is Some(s) && locals is Some(l) else {
@@ -1359,6 +1406,7 @@ pub fn intro_tac() -> @tactics.Tactic {
           @tactics.repeat_tac(@tactics.gen_tac),
           @simp.rewrite_tac(ths([thm("st")])),
           @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+          subst_vars(),
           @simp.asm_rewrite_tac(ths([])),
           // the state's R is written out: so are the facts it came from
           @tactics.rule_assum_tac(@simp.rewrite_rule(ths(norm_thms()))),

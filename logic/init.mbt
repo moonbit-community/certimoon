@@ -91,6 +91,7 @@ pub fn load() -> Unit {
     prove_specs_basics()
     define_in_mod()
     prove_specs_rules()
+    prove_disjunctive_triple()
     prove_call_g()
     prove_sym_g()
     section("Indirect calls (indirect.mbt)")
@@ -119,6 +120,14 @@ pub fn load() -> Unit {
     prove_abort_unit_call()
     prove_abort_call_triple()
     prove_abort_adequacy()
+    prove_abort_typed_controls()
+    prove_abort_value_call()
+    prove_abort_typed_control_triples()
+    prove_abort_value_call_triple()
+    prove_abort_structural()
+    prove_abort_symbolic_examples()
+    prove_g_chunk_example()
+    prove_disjunctive_example()
   })() catch {
     e => {
       let msg = match e {

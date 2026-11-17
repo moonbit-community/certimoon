@@ -67,7 +67,7 @@ fn prove_chunk_control_example() -> Unit raise {
     @tactics.exists_tac(tm("(NIL : List[Value])")),
     @simp.asm_rewrite_tac(ths([@lists.append()])),
   ])
-  let unreachable = seq([
+  let dead_path = seq([
     same,
     @tactics.undisch_tac(tm("(word(1) : " + w + ") == word(0)")),
     @tactics.conv_tac(@words.word_reduce_conv),
@@ -77,8 +77,73 @@ fn prove_chunk_control_example() -> Unit raise {
       "example_chunks_return",
       "∀ G : \{gt}, ∀ fs : List[Cl], ∀ tabs : List[(Tab_t,List[V_ref])], ∀ inst : Inst, ∀ lc : List[Value], ∀ R : \{rty}, sl_triple_g(G,fs,tabs,inst,\{rp},st(NIL,lc,R),[EConstNum(ConstInt32((word(1) : \{w}))),If(Tbv(NONE),[EConstNum(ConstInt32((word(1) : \{w}))),Return],NIL),EConstNum(ConstInt32((word(2) : \{w})))],\{sa_false},[\{rp}])",
       [],
-      [ret, unreachable],
+      [ret, dead_path],
       afters=[sa_false],
+    ),
+  )
+}
+
+///|
+fn prove_g_chunk_example() -> Unit raise {
+  let w = w32
+  let gt = "(Num,(List[Value],List[Value],Num," +
+    heap +
+    ") -> Bool,(List[Value],List[Value],Num," +
+    heap +
+    ") -> Bool) -> Bool"
+  let i = "V_num(ConstInt32((word(1) : " + w + ")))"
+  let vars = "∀ G : " +
+    gt +
+    ", ∀ fs : List[Cl], ∀ tabs : List[(Tab_t,List[V_ref])], ∀ inst : Inst, ∀ lc : List[Value], ∀ R : " +
+    rty +
+    ", "
+  let rp = "(vs : List[Value]) => (lc2 : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : " +
+    heap +
+    ") => vs == [" +
+    i +
+    "] && (R : " +
+    rty +
+    ")(gs,ms,h)"
+  let code = "[EConstNum(ConstInt32((word(1) : " + w + "))),Return]"
+  let same = seq([
+    @tactics.repeat_tac(@tactics.gen_tac),
+    @tactics.repeat_tac(@tactics.strip_tac),
+    @simp.asm_rewrite_tac(ths([])),
+    @tactics.exists_tac(tm("(NIL : List[Value])")),
+    @simp.asm_rewrite_tac(ths([@lists.append()])),
+  ])
+  let chunk = sym_prove(
+    "chunk_general_return",
+    vars +
+    "sl_triple_g(G,fs,tabs,inst," +
+    rp +
+    ",st(NIL,lc,R)," +
+    code +
+    "," +
+    sa_false +
+    ",[" +
+    rp +
+    "])",
+    [],
+    [same],
+    kind="lemma",
+  )
+  ignore(
+    sym_prove(
+      "example_general_chunks_return",
+      vars +
+      "sl_triple_g(G,fs,tabs,inst," +
+      rp +
+      ",st(NIL,lc,R),[EConstNum(ConstInt32((word(1) : " +
+      w +
+      "))),Return,Unreachable]," +
+      sa_false +
+      ",[" +
+      rp +
+      "])",
+      [],
+      [],
+      chunks=[chunk],
     ),
   )
 }

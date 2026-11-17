@@ -127,11 +127,7 @@ fn prove_tlsf_ensure_logic() -> Unit raise {
       ),
     ]),
   )
-  let gt = "(Num, (List[Value], List[Value], Num, \{heap}) -> Bool, (List[Value], List[Value], Num, \{heap}) -> Bool) -> Bool"
   let ors = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => (P : \{sassn})(vs,lc,gs,ms,h) || (R : \{sassn})(vs,lc,gs,ms,h)"
-  let tr = (p : String) => {
-    "sl_triple_g((G : \{gt}),(fs : List[Cl]),(tabs : List[(Tab_t,List[V_ref])]),(inst : Inst),(rp : \{sassn}),\{p},(code : List[B_e]),(Q : \{sassn}),(ls : List[\{sassn}]))"
-  }
 
   let klift = (p : String) => {
     "keep((fs : List[Cl]),(tabs : List[(Tab_t,List[V_ref])]),(inst : Inst),lift(\{p},(fr : \{hprop})),(store : Wstore),(frame : Wframe),(vs : List[Value]))"
@@ -141,14 +137,6 @@ fn prove_tlsf_ensure_logic() -> Unit raise {
     "∀ fs : List[Cl], ∀ tabs : List[(Tab_t,List[V_ref])], ∀ inst : Inst, ∀ fr : \{hprop}, ∀ store : Wstore, ∀ frame : Wframe, ∀ vs : List[Value], ∀ P : \{sassn}, ∀ R : \{sassn}, \{klift(ors)} == (\{klift("P")} || \{klift("R")})",
     seq([
       rw([thm("keep"), thm("lift"), thm("star_or"), @class.eta_ax()]),
-      @meson.meson_tac(ths([])),
-    ]),
-  )
-  let _ = lemma(
-    "sl_or_g",
-    "∀ G : \{gt}, ∀ fs : List[Cl], ∀ tabs : List[(Tab_t,List[V_ref])], ∀ inst : Inst, ∀ rp : \{sassn}, ∀ P : \{sassn}, ∀ R : \{sassn}, ∀ Q : \{sassn}, ∀ code : List[B_e], ∀ ls : List[\{sassn}], \{tr("P")} && \{tr("R")} → \{tr(ors)}",
-    seq([
-      rw([thm("sl_triple_g"), thm("keep_lift_or")]),
       @meson.meson_tac(ths([])),
     ]),
   )

@@ -31,7 +31,7 @@ pub fn names() -> Array[String] {
 pub fn record(
   name : String,
   th : @kernel.Thm,
-  kind? : String = "lemma",
+  kind~ : String = "lemma",
   loc~ : SourceLoc,
 ) -> Unit {
   if thms.contains(name) {
@@ -41,7 +41,7 @@ pub fn record(
   // what load() proves is the theory listing; a user's theorems are not
   if in_load.val {
     let defines = @wasm.defined_constants(kind, th)
-    entries.push({ kind, name, th: Some(th), defines, loc: loc.to_string() })
+    entries.push({ kind, name, th: Some(th), defines, loc: loc.to_string(), })
   }
 }
 
@@ -57,7 +57,8 @@ pub fn tm(s : String) -> @kernel.Term raise {
 #callsite(autofill(loc))
 pub fn def(name : String, s : String, loc~ : SourceLoc) -> Unit raise {
   let th = @define.define_(tm(s)) catch {
-    e => raise Failure("certimoon/logic: defining " + name + ": " + e.to_string())
+    e =>
+      raise Failure("certimoon/logic: defining " + name + ": " + e.to_string())
   }
   record(name, th, kind="definition", loc~)
 }
@@ -78,12 +79,20 @@ let programs : Array[@kernel.Thm] = []
 pub fn program(
   name : String,
   code : String,
-  params? : Array[String] = [],
+  params~ : Array[String] = [],
   loc~ : SourceLoc,
 ) -> String raise {
-  let lhs = if params.is_empty() { name } else { name + "(" + params.join(", ") + ")" }
-  let th = @define.define_(tm(lhs + " == (" + code + " : List[B_e])")) catch {
-    e => raise Failure("certimoon/logic: defining " + name + ": " + e.to_string())
+  let lhs = if params.is_empty() {
+    name
+  } else {
+    name + "(" + params.join(", ") + ")"
+  }
+  // Instruction lists are nonrecursive HOL definitions, even when their
+  // Wasm instructions call a function recursively. Avoid the general
+  // recursive-function processor and its deep rewrite net for long code.
+  let th = @drule.new_definition(tm(lhs + " == (" + code + " : List[B_e])")) catch {
+    e =>
+      raise Failure("certimoon/logic: defining " + name + ": " + e.to_string())
   }
   programs.push(th)
   record(name, th, kind="program", loc~)
@@ -114,7 +123,7 @@ pub fn program_defs() -> Array[@kernel.Thm] {
 ///|
 /// Debugging: when set, `lemma` names each lemma and prints the goals its
 /// tactic leaves, and `show_goal` prints. See PLAN.md, "Debugging a proof".
-let trace : Ref[Bool] = Ref::{ val: false }
+let trace : Ref[Bool] = Ref::{ val: false, }
 
 ///|
 /// Turns tracing on or off (see `trace`): for debugging a proof.
@@ -138,7 +147,8 @@ pub fn lemma(
     tac
   }
   let th = @tactics.prove(tm(stmt), tac) catch {
-    e => raise Failure("certimoon/logic: proving " + name + ": " + e.to_string())
+    e =>
+      raise Failure("certimoon/logic: proving " + name + ": " + e.to_string())
   }
   record(name, th, loc~)
   th
@@ -149,7 +159,7 @@ pub fn lemma(
 /// cannot print it).
 pub fn show(t : @kernel.Term) -> String {
   @term_syntax.print_term(t) catch {
-    _ => (try @printer.string_of_term(t) catch { _ => "?" })
+    _ => @printer.string_of_term(t) catch { _ => "?" }
   }
 }
 

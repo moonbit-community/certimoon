@@ -12,6 +12,9 @@ test "the logic's lemmas are theorems, with no new axioms" {
   }
   for
     name in [
+      "sl_abort_typed_if_st_m", "sl_abort_call_value_m", "sl_abort_ex_m", "sl_abort_pure_m",
+      "sl_abort_false_m", "sl_abort_pre_m", "example_abort_typed_if", "example_stack_in_heap_predicate",
+      "chunk_general_return", "example_general_chunks_return", "sl_or_g", "example_general_disjunction",
       "chunk_pair", "example_chunks", "chunk_hidden_locals", "example_chunks_hidden_locals",
       "example_chunks_return", "star_comm", "star_assoc", "star_mono", "read_pts",
       "heap_of_write", "write_pts", "load_pts", "store_pts", "safe_mono", "triple_conseq",

@@ -1,8 +1,9 @@
 """Regression checks for the compiler-to-proof transcription checker."""
 
 import unittest
+import tlsf_wat_check as check
 
-from tlsf_wat_check import block_free_branch, FREE_NAME, FIND_PARENT, full_page_allocate, check_page_allocate_signature, POP_NAME, PUSH_NAME, check_push_signature, check_pop_signature, check_take_signature, check_ensure_signature, check_free_signature, full_free, check_initialize_signature, full_initialize, full_take, full_ensure, find_prefix, instructions, split_suffix
+from tlsf_wat_check import page_publication_fragments, block_free_branch, FREE_NAME, FIND_PARENT, full_page_allocate, check_page_allocate_signature, POP_NAME, PUSH_NAME, check_push_signature, check_pop_signature, check_take_signature, check_ensure_signature, check_free_signature, full_free, check_initialize_signature, full_initialize, full_take, full_ensure, find_prefix, instructions, split_suffix
 
 
 class InstructionsTest(unittest.TestCase):
@@ -35,6 +36,29 @@ class InstructionsTest(unittest.TestCase):
                      '(func $page (param i32) (result i64) (local i32 i32 i32 i32 i32))'):
             with self.assertRaisesRegex(ValueError, 'signature or locals'):
                 check_page_allocate_signature(body)
+
+    def test_publication_prefixes_preserve_nested_stores_and_local_renaming(self):
+        head = ['local.get 0', 'i32.const 20', 'i32.add', 'local.tee 3',
+                'i32.load', 'local.tee 1']
+        fresh = ['local.get 1', 'i32.const 8', 'i32.add', 'local.tee 1',
+                 'i32.load', 'local.set 4', 'local.get 2', 'i32.const d',
+                 'i32.const 0', 'i32.store', 'local.get 1']
+        partial = head + ['i32.const 8', 'i32.add', 'i32.load', 'local.set 4',
+                          'local.get 0', 'if', 'local.get 0', 'i32.const 24',
+                          'i32.add', 'i32.const 0', 'i32.store', 'end',
+                          'local.get 1', 'i32.const 8', 'i32.add']
+        body = ['if'] + partial + ['return', 'end'] + head + ['if'] + fresh + ['br 3', 'end']
+        expected = {'fresh': [fresh], 'partial': [partial], 'head': [head]}
+        self.assertEqual(page_publication_fragments(body), expected)
+        shifted = [line.rsplit(' ', 1)[0] + ' ' + str(int(line.rsplit(' ', 1)[1]) + 1)
+                   if line.startswith('local.') else line for line in body]
+        self.assertEqual(page_publication_fragments(shifted, 1), expected)
+        mutated = body.copy()
+        mutated[mutated.index('i32.store')] = 'i32.load'
+        self.assertNotEqual(page_publication_fragments(mutated), expected)
+        for changed in [body[1:], body[:-2], body[:-len(fresh)-3] + fresh + ['br 3', 'end']]:
+            with self.assertRaises(ValueError):
+                page_publication_fragments(changed)
 
     def test_inlined_block_free_keeps_nested_unlink_and_reclaim(self):
         prefix = ['i32.load', 'i32.const 4', 'i32.and', 'if (result i32)']
@@ -237,6 +261,45 @@ class InstructionsTest(unittest.TestCase):
             ):
                 with self.assertRaisesRegex(ValueError, 'signature or locals'):
                     check(changed)
+
+
+class MallocBodyTest(unittest.TestCase):
+    def test_try_keeps_every_instruction_and_links_helpers(self):
+        body = ['i32.const 0', 'return', 'call ' + check.INITIALIZE_NAME,
+                'call ' + check.PAGE_ALLOCATE_NAME, 'call ' + check.FIND_PARENT,
+                'unreachable', 'i32.const 4294967295']
+        self.assertEqual(check.full_malloc(body),
+                         ['i32.const 0', 'return', 'call initialize_idx',
+                          'call page_idx', 'call take_idx', 'unreachable',
+                          'i32.const 4294967295'])
+
+    def test_full_keeps_both_attempts_and_growth(self):
+        attempt = ['call ' + check.INITIALIZE_NAME,
+                   'call ' + check.PAGE_ALLOCATE_NAME, 'call ' + check.FIND_PARENT]
+        growth = ['if', 'call ' + check.ENSURE_NAME, 'unreachable',
+                  'else', 'call ' + check.ENSURE_NAME, 'unreachable', 'end']
+        body = attempt + growth + attempt
+        result = check.full_malloc(body, retry=True)
+        self.assertEqual(result.count('call page_idx'), 2)
+        self.assertIn('unreachable', result)
+        self.assertEqual(result.count('call ensure_idx'), 2)
+        self.assertEqual(result[3:-3], [line.replace(check.ENSURE_NAME, 'ensure_idx')
+                                     for line in growth])
+
+    def test_rejects_changed_helper_counts(self):
+        with self.assertRaises(ValueError):
+            check.full_malloc(['call ' + check.FIND_PARENT])
+        helpers = [check.INITIALIZE_NAME, check.PAGE_ALLOCATE_NAME,
+                   check.FIND_PARENT, check.ENSURE_NAME]
+        body = ['call ' + helper for helper in helpers for _ in range(2)]
+        check.full_malloc(body, retry=True)
+        for helper in helpers:
+            removed = body.copy()
+            removed.remove('call ' + helper)
+            for changed in [removed, body + ['call ' + helper]]:
+                with self.subTest(helper=helper, count=len(changed)):
+                    with self.assertRaisesRegex(ValueError, 'call count'):
+                        check.full_malloc(changed, retry=True)
 
 
 if __name__ == "__main__":

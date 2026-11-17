@@ -10833,29 +10833,6 @@ lemma `keep_lift_or`
     || keep(fs, tabs, inst, lift(R, fr), store, frame, vs))
 ```
 
-lemma `sl_or_g`
-
-```
-∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp P R Q : SAssn)
-  (code : List[B_e]) (ls : List[SAssn])
-if
-  1. sl_triple_g(G, fs, tabs, inst, rp, P, code, Q, ls)
-  2. sl_triple_g(G, fs, tabs, inst, rp, R, code, Q, ls)
-then
-  sl_triple_g(
-    G,
-    fs,
-    tabs,
-    inst,
-    rp,
-    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
-    (ms : Num) => (h : Heap) =>
-      P(vs, lc, gs, ms, h) || R(vs, lc, gs, ms, h),
-    code,
-    Q,
-    ls)
-```
-
 lemma `tlsf_physical_last`
 
 ```
@@ -28703,4 +28680,21083 @@ then
       l2,
       fp),
     NIL)
+```
+
+## Compiled allocation-side page publication (tlsf_page_publish_*.mbt)
+
+program `tlsf_page_publish_fresh_code`
+
+```
+tlsf_page_publish_fresh_code((d : W32)) ==
+  local.get 1
+  i32.const 8
+  i32.add
+  local.tee 1
+  i32.load offset=0 align=2**2
+  local.set 4
+  local.get 2
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1912
+  i32.add
+  i32.add
+  local.get 4
+  i32.store offset=0 align=2**2
+  local.get 1
+  i32.const 0
+  i32.store offset=0 align=2**2
+  local.get 3
+  i32.const 0
+  i32.store offset=0 align=2**2
+  local.get 0
+  i32.const 16
+  i32.add
+  local.get 0
+  i32.const 12
+  i32.add
+  i32.load offset=0 align=2**2
+  i32.store offset=0 align=2**2
+  local.get 1
+```
+
+program `tlsf_page_publish_partial_code`
+
+```
+tlsf_page_publish_partial_code((d : W32)) ==
+  local.get 0
+  i32.const 20
+  i32.add
+  local.tee 3
+  i32.load offset=0 align=2**2
+  local.tee 1
+  i32.const 8
+  i32.add
+  i32.load offset=0 align=2**2
+  local.set 4
+  local.get 2
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1912
+  i32.add
+  i32.add
+  local.get 4
+  i32.store offset=0 align=2**2
+  local.get 1
+  i32.const 8
+  i32.add
+  i32.const 0
+  i32.store offset=0 align=2**2
+  local.get 3
+  i32.const 0
+  i32.store offset=0 align=2**2
+  local.get 0
+  i32.const 16
+  i32.add
+  local.get 0
+  i32.const 12
+  i32.add
+  i32.load offset=0 align=2**2
+  i32.store offset=0 align=2**2
+  local.get 0
+  i32.const 28
+  i32.add
+  i32.load offset=0 align=2**2
+  local.set 0
+  local.get 2
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.add
+  i32.const 1916
+  i32.add
+  local.get 0
+  i32.store offset=0 align=2**2
+  local.get 0
+  if
+    local.get 0
+    i32.const 24
+    i32.add
+    i32.const 0
+    i32.store offset=0 align=2**2
+  end
+  local.get 1
+  i32.const 8
+  i32.add
+```
+
+program `tlsf_page_publish_head_code`
+
+```
+tlsf_page_publish_head_code((d : W32)) ==
+  local.get 0
+  i32.const 20
+  i32.add
+  local.tee 3
+  i32.load offset=0 align=2**2
+  local.tee 1
+```
+
+lemma `tlsf_page_publish_fresh_raw`
+
+```
+∀ (d p b s total used nx oldfast : W32) (l1 l3 l4 : Value) (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), V_num(ConstInt32(b)), V_num(ConstInt32(s)),
+       V_num(ConstInt32(word_add(p, word(20)))), l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(12))), serialise_i32(total)),
+          star(
+            pts(val(word_add(p, word(16))), serialise_i32(used)),
+            star(
+              pts(val(word_add(p, word(20))), serialise_i32(b)),
+              star(
+                pts(val(word_add(b, word(8))), serialise_i32(nx)),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        s,
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(1912)))),
+                    serialise_i32(oldfast)),
+                  star(fp(gs, ms), emp))))))),
+    tlsf_page_publish_fresh_code(d),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [V_num(ConstInt32(p)), V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(s)), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(nx))],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(12))), serialise_i32(total)),
+          star(
+            pts(val(word_add(p, word(16))), serialise_i32(total)),
+            star(
+              pts(val(word_add(p, word(20))), serialise_i32(word(0))),
+              star(
+                pts(val(word_add(b, word(8))), serialise_i32(word(0))),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        s,
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(1912)))),
+                    serialise_i32(nx)),
+                  star(fp(gs, ms), emp))))))))
+```
+
+lemma `tlsf_page_publish_partial_nil_raw`
+
+```
+∀ (d p b s total used nx oldfast nextp : W32) (l1 l3 l4 : Value) (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), l1, V_num(ConstInt32(s)), l3, l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(12))), serialise_i32(total)),
+          star(
+            pts(val(word_add(p, word(16))), serialise_i32(used)),
+            star(
+              pts(val(word_add(p, word(20))), serialise_i32(b)),
+              star(
+                pts(val(word_add(b, word(8))), serialise_i32(nx)),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        s,
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(1912)))),
+                    serialise_i32(oldfast)),
+                  star(
+                    pts(
+                      val(word_add(p, word(28))),
+                      serialise_i32(word(0))),
+                    star(
+                      pts(
+                        val(
+                          word_add(
+                            word_add(
+                              s,
+                              word_and(
+                                word_add(d, word(15)),
+                                word(4294967280))),
+                            word(1916))),
+                        serialise_i32(p)),
+                      star(fp(gs, ms), emp))))))))),
+    tlsf_page_publish_partial_code(d),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [V_num(ConstInt32(word(0))), V_num(ConstInt32(b)), V_num(ConstInt32(s)),
+       V_num(ConstInt32(word_add(p, word(20)))), V_num(ConstInt32(nx))],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(12))), serialise_i32(total)),
+          star(
+            pts(val(word_add(p, word(16))), serialise_i32(total)),
+            star(
+              pts(val(word_add(p, word(20))), serialise_i32(word(0))),
+              star(
+                pts(val(word_add(b, word(8))), serialise_i32(word(0))),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        s,
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(1912)))),
+                    serialise_i32(nx)),
+                  star(
+                    pts(
+                      val(word_add(p, word(28))),
+                      serialise_i32(word(0))),
+                    star(
+                      pts(
+                        val(
+                          word_add(
+                            word_add(
+                              s,
+                              word_and(
+                                word_add(d, word(15)),
+                                word(4294967280))),
+                            word(1916))),
+                        serialise_i32(word(0))),
+                      star(fp(gs, ms), emp))))))))))
+```
+
+lemma `tlsf_page_publish_partial_cons_raw`
+
+```
+∀ (d p b s total used nx oldfast nextp : W32) (l1 l3 l4 : Value) (fp : GProp)
+if
+  1. !(nextp == word(0))
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), l1, V_num(ConstInt32(s)), l3, l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(12))), serialise_i32(total)),
+          star(
+            pts(val(word_add(p, word(16))), serialise_i32(used)),
+            star(
+              pts(val(word_add(p, word(20))), serialise_i32(b)),
+              star(
+                pts(val(word_add(b, word(8))), serialise_i32(nx)),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        s,
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(1912)))),
+                    serialise_i32(oldfast)),
+                  star(
+                    pts(
+                      val(word_add(p, word(28))),
+                      serialise_i32(nextp)),
+                    star(
+                      pts(
+                        val(
+                          word_add(
+                            word_add(
+                              s,
+                              word_and(
+                                word_add(d, word(15)),
+                                word(4294967280))),
+                            word(1916))),
+                        serialise_i32(p)),
+                      star(
+                        pts(
+                          val(word_add(nextp, word(24))),
+                          serialise_i32(p)),
+                        star(fp(gs, ms), emp)))))))))),
+    tlsf_page_publish_partial_code(d),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [V_num(ConstInt32(nextp)), V_num(ConstInt32(b)), V_num(ConstInt32(s)),
+       V_num(ConstInt32(word_add(p, word(20)))), V_num(ConstInt32(nx))],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(12))), serialise_i32(total)),
+          star(
+            pts(val(word_add(p, word(16))), serialise_i32(total)),
+            star(
+              pts(val(word_add(p, word(20))), serialise_i32(word(0))),
+              star(
+                pts(val(word_add(b, word(8))), serialise_i32(word(0))),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        s,
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(1912)))),
+                    serialise_i32(nx)),
+                  star(
+                    pts(
+                      val(word_add(p, word(28))),
+                      serialise_i32(nextp)),
+                    star(
+                      pts(
+                        val(
+                          word_add(
+                            word_add(
+                              s,
+                              word_and(
+                                word_add(d, word(15)),
+                                word(4294967280))),
+                            word(1916))),
+                        serialise_i32(nextp)),
+                      star(
+                        pts(
+                          val(word_add(nextp, word(24))),
+                          serialise_i32(word(0))),
+                        star(fp(gs, ms), emp)))))))))))
+```
+
+lemma `tlsf_page_publish_head_raw`
+
+```
+∀ (d p b s total used nx oldfast : W32) (l1 l3 l4 : Value) (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), l1, V_num(ConstInt32(s)), l3, l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(20))), serialise_i32(b)),
+          star(fp(gs, ms), emp))),
+    tlsf_page_publish_head_code(d),
+    st(
+      [V_num(ConstInt32(b))],
+      [V_num(ConstInt32(p)), V_num(ConstInt32(b)), V_num(ConstInt32(s)),
+       V_num(ConstInt32(word_add(p, word(20)))), l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(20))), serialise_i32(b)),
+          star(fp(gs, ms), emp))))
+```
+
+lemma `tlsf_page_publish_slot_rest`
+
+```
+∀ (n s i : Num) (p b : W32) (live : List[W32])
+if
+  1. ∀ j : Num, j < n && !(j == i) → !(tlsf_small_slot(p, s, j) == b)
+then
+  tlsf_istar(
+    (j : Num) =>
+      if j == i { emp } else { tlsf_small_slot_heap(p, s, CONS(b, live), j) },
+    n) == tlsf_istar(
+    (j : Num) => if j == i { emp } else { tlsf_small_slot_heap(p, s, live, j) },
+    n)
+```
+
+lemma `tlsf_page_publish_slots_pre`
+
+```
+∀ (n s i : Num) (p b : W32) (live : List[W32])
+if
+  1. i < n
+  2. b == tlsf_small_slot(p, s, i)
+  3. !MEM(b, live)
+  4. ∀ j : Num, j < n && !(j == i) → !(tlsf_small_slot(p, s, j) == b)
+then
+  tlsf_istar(tlsf_small_slot_heap(p, s, live), n) == star(
+    pts(val(b), serialise_i32(word(4))),
+    star(
+      pts(val(b) + 4, serialise_i32(p)),
+      star(
+        tlsf_bytes(val(b) + 12, s - 4),
+        star(
+          tlsf_istar(
+            (j : Num) =>
+              if j
+                == i { emp } else { tlsf_small_slot_heap(p, s, live, j) },
+            n),
+          emp))))
+```
+
+lemma `tlsf_page_publish_slots_post`
+
+```
+∀ (n s i : Num) (p b : W32) (live : List[W32])
+if
+  1. i < n
+  2. b == tlsf_small_slot(p, s, i)
+  3. !MEM(b, live)
+  4. ∀ j : Num, j < n && !(j == i) → !(tlsf_small_slot(p, s, j) == b)
+then
+  tlsf_istar(tlsf_small_slot_heap(p, s, CONS(b, live)), n) == star(
+    pts(val(b), serialise_i32(word(4))),
+    star(
+      pts(val(b) + 4, serialise_i32(p)),
+      star(
+        tlsf_istar(
+          (j : Num) =>
+            if j == i { emp } else { tlsf_small_slot_heap(p, s, live, j) },
+          n),
+        emp)))
+```
+
+lemma `tlsf_page_publish_partition`
+
+```
+∀ (p b : W32) (s : Num) (bs live : List[W32])
+if
+  1. tlsf_small_partition(p, s, CONS(b, bs), NIL, live)
+then
+  tlsf_small_partition(p, s, NIL, bs, CONS(b, live))
+  && tlsf_small_used(bs, CONS(b, live)) == tlsf_small_total(s)
+```
+
+lemma `tlsf_page_publish_local_unique`
+
+```
+∀ (p b : W32) (s : Num) (loc cached live : List[W32])
+if
+  1. tlsf_small_partition(p, s, loc, cached, live)
+  2. MEM(b, loc)
+then
+  MEM(b, tlsf_small_slots(p, s, tlsf_small_total(s)))
+  && tlsf_count(b, loc) == 1
+  && !MEM(b, live)
+  && !MEM(b, cached)
+```
+
+lemma `tlsf_page_publish_cached_unique`
+
+```
+∀ (p b : W32) (s : Num) (loc cached live : List[W32])
+if
+  1. tlsf_small_partition(p, s, loc, cached, live)
+  2. MEM(b, cached)
+then
+  tlsf_count(b, cached) == 1
+```
+
+definition `tlsf_page_publish_frame`
+
+```
+tlsf_page_publish_frame(
+  (p : W32),
+  (cap : Num),
+  (s : Num),
+  (live : List[W32]),
+  (b : W32),
+  (i : Num)) == star(
+  pts(val(p) + 8, serialise_i32(word(s))),
+  star(
+    pts(val(b), serialise_i32(word(4))),
+    star(
+      pts(val(b) + 4, serialise_i32(p)),
+      star(
+        tlsf_istar(
+          (j : Num) =>
+            if j == i { emp } else { tlsf_small_slot_heap(p, s, live, j) },
+          tlsf_small_total(s)),
+        star(
+          tlsf_bytes(
+            val(p) + 32 + (8 + s) * tlsf_small_total(s),
+            cap - 24 - (8 + s) * tlsf_small_total(s)),
+          emp)))))
+```
+
+definition `tlsf_page_publish_payload`
+
+```
+tlsf_page_publish_payload((b : W32), (s : Num)) == star(
+  pts(val(b) + 8, serialise_i32(word(0))),
+  tlsf_bytes(val(b) + 12, s - 4))
+```
+
+lemma `tlsf_page_publish_view_facts`
+
+```
+∀ (lim cap s i : Num) (p b : W32) (bs live : List[W32])
+if
+  1. tlsf_small_page_ok(lim, p, cap, s, CONS(b, bs), NIL, live)
+  2. i < tlsf_small_total(s)
+  3. b == tlsf_small_slot(p, s, i)
+then
+  !MEM(b, live)
+  && ∀ j : Num,
+       j < tlsf_small_total(s) && !(j == i) → !(tlsf_small_slot(p, s, j) == b)
+```
+
+lemma `tlsf_page_publish_page_pre`
+
+```
+∀ (lim cap s i : Num) (p b : W32) (bs live : List[W32])
+if
+  1. tlsf_small_page_ok(lim, p, cap, s, CONS(b, bs), NIL, live)
+  2. i < tlsf_small_total(s)
+  3. b == tlsf_small_slot(p, s, i)
+then
+  tlsf_small_page_heap(p, cap, s, CONS(b, bs), NIL, live) == star(
+    pts(val(b) + 8, serialise_i32(tlsf_small_head(bs))),
+    star(
+      pts(val(p) + 12, serialise_i32(word(tlsf_small_total(s)))),
+      star(
+        pts(val(p) + 16, serialise_i32(word(tlsf_small_used(NIL, live)))),
+        star(
+          pts(val(p) + 20, serialise_i32(b)),
+          star(
+            tlsf_page_publish_frame(p, cap, s, live, b, i),
+            star(
+              tlsf_small_links(bs),
+              star(tlsf_bytes(val(b) + 12, s - 4), emp)))))))
+```
+
+lemma `tlsf_page_publish_page_post`
+
+```
+∀ (lim cap s i : Num) (p b : W32) (bs live : List[W32])
+if
+  1. tlsf_small_page_ok(lim, p, cap, s, CONS(b, bs), NIL, live)
+  2. i < tlsf_small_total(s)
+  3. b == tlsf_small_slot(p, s, i)
+then
+  star(
+    tlsf_small_page_heap(p, cap, s, NIL, bs, CONS(b, live)),
+    star(tlsf_small_links(bs), tlsf_page_publish_payload(b, s))) == star(
+    tlsf_bytes(val(p) + 24, 8),
+    star(
+      pts(val(b) + 8, serialise_i32(word(0))),
+      star(
+        pts(val(p) + 12, serialise_i32(word(tlsf_small_total(s)))),
+        star(
+          pts(val(p) + 16, serialise_i32(word(tlsf_small_total(s)))),
+          star(
+            pts(val(p) + 20, serialise_i32(word(0))),
+            star(
+              tlsf_page_publish_frame(p, cap, s, live, b, i),
+              star(
+                tlsf_small_links(bs),
+                star(tlsf_bytes(val(b) + 12, s - 4), emp))))))))
+```
+
+lemma `tlsf_page_publish_lists`
+
+```
+∀ (ps ps2 bs : List[W32]) (sz sz2 : (W32) -> Num)
+  (loc cached live loc2 cached2 live2 : (W32) -> List[W32])
+  (fast partial fast2 partial2 : (Num) -> List[W32]) (p : W32) (s k : Num)
+if
+  1. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  2. ∀ q : W32, MEM(q, ps) → DIV(sz(q), 8) < 33
+  3. ∀ q : W32,
+       !(q == p) → MEM(q, ps2) == MEM(q, ps)
+       && tlsf_count(q, ps2) == tlsf_count(q, ps)
+       && sz2(q) == sz(q)
+       && cached2(q) == cached(q)
+       && live2(q) == live(q)
+  4. MEM(p, ps2)
+  5. tlsf_count(p, ps2) == 1
+  6. sz2(p) == s
+  7. cached2(p) == bs
+  8. tlsf_small_used(cached2(p), live2(p)) == tlsf_small_total(s)
+  9. 0 < tlsf_small_total(s)
+  10. s == 8 * k
+  11. k < 33
+  12. !MEM(p, ps) || cached(p) == NIL
+  13. fast(k) == NIL
+  14. fast2 == tlsf_small_put_class(fast, k, bs)
+  15. ∀ b : W32, MEM(b, bs) → tlsf_count(b, bs) == 1
+  16. ∀ j : Num, j < 33 → partial2(j) == tlsf_small_remove(p, partial(j))
+then
+  tlsf_small_lists_ok(ps2, sz2, loc2, cached2, live2, fast2, partial2)
+```
+
+lemma `tlsf_page_publish_backing_classes`
+
+```
+∀ (d top fl q : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. MEM(q, ps)
+then
+  8 <= sz(q)
+  && sz(q) <= 256
+  && MOD(sz(q), 8) == 0
+  && DIV(sz(q), 8) < 33
+```
+
+lemma `tlsf_page_publish_partial_models`
+
+```
+∀ (d top fl p b : W32) (lim s : Num) (xs ps bs z : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32])
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  3. fast(DIV(sz(p), 8)) == NIL
+  4. MEM(p, ps)
+  5. loc(p) == CONS(b, bs)
+  6. cached(p) == NIL
+  7. partial(DIV(sz(p), 8)) == CONS(p, z)
+then
+  tlsf_small_backing(
+    xs,
+    hd,
+    ps,
+    sz,
+    tlsf_small_put(loc, p, NIL),
+    tlsf_small_put(cached, p, bs),
+    tlsf_small_put(live, p, CONS(b, live(p))),
+    lim)
+  && tlsf_small_lists_ok(
+       ps,
+       sz,
+       tlsf_small_put(loc, p, NIL),
+       tlsf_small_put(cached, p, bs),
+       tlsf_small_put(live, p, CONS(b, live(p))),
+       tlsf_small_put_class(fast, DIV(sz(p), 8), bs),
+       tlsf_small_put_class(partial, DIV(sz(p), 8), TL(partial(DIV(sz(p), 8)))))
+```
+
+lemma `tlsf_page_publish_fresh_models`
+
+```
+∀ (d top fl p b : W32) (lim s : Num) (xs ps bs z : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32])
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  3. fast(DIV(s, 8)) == NIL
+  4. !MEM(p, ps)
+  5. MEM(p, xs)
+  6. tlsf_used(hd(p))
+  7. tlsf_small_page_ok(lim, p, val(tlsf_size(hd(p))), s, CONS(b, bs), NIL, NIL)
+then
+  tlsf_small_backing(
+    xs,
+    hd,
+    CONS(p, ps),
+    (q : W32) => if q == p { s } else { sz(q) },
+    tlsf_small_put(loc, p, NIL),
+    tlsf_small_put(cached, p, bs),
+    tlsf_small_put(live, p, [b]),
+    lim)
+  && tlsf_small_lists_ok(
+       CONS(p, ps),
+       (q : W32) => if q == p { s } else { sz(q) },
+       tlsf_small_put(loc, p, NIL),
+       tlsf_small_put(cached, p, bs),
+       tlsf_small_put(live, p, [b]),
+       tlsf_small_put_class(fast, DIV(s, 8), bs),
+       partial)
+```
+
+lemma `tlsf_page_publish_count_reverse`
+
+```
+∀ (xs : List[W32]) (b : W32), tlsf_count(b, REVERSE(xs)) == tlsf_count(b, xs)
+```
+
+lemma `tlsf_page_publish_fresh_partition`
+
+```
+∀ (p : W32) (cap s : Num)
+if
+  1. tlsf_page_allocate_geometry(p, cap, s)
+then
+  tlsf_small_partition(
+    p,
+    s,
+    REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))),
+    NIL,
+    NIL)
+```
+
+lemma `tlsf_page_publish_fresh_ready`
+
+```
+∀ (p : W32) (cap s lim : Num)
+if
+  1. tlsf_page_allocate_geometry(p, cap, s)
+  2. val(p) + 8 + cap <= lim
+  3. lim <= 4294967296
+then
+  tlsf_small_page_ok(
+    lim,
+    p,
+    cap,
+    s,
+    REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))),
+    NIL,
+    NIL)
+```
+
+lemma `tlsf_page_publish_partial_pages_rest`
+
+```
+∀ (d top fl p b : W32) (lim s : Num) (xs ps bs : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32]),
+  tlsf_small_pages_heap(
+    tlsf_small_remove(p, ps),
+    hd,
+    sz,
+    tlsf_small_put(loc, p, NIL),
+    tlsf_small_put(cached, p, bs),
+    tlsf_small_put(live, p, CONS(b, live(p)))) == tlsf_small_pages_heap(
+    tlsf_small_remove(p, ps),
+    hd,
+    sz,
+    loc,
+    cached,
+    live)
+```
+
+lemma `tlsf_page_publish_fresh_pages_rest`
+
+```
+∀ (d top fl p b : W32) (lim s : Num) (xs ps bs : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+if
+  1. !MEM(p, ps)
+then
+  tlsf_small_pages_heap(
+    ps,
+    hd,
+    (q : W32) => if q == p { s } else { sz(q) },
+    tlsf_small_put(loc, p, NIL),
+    tlsf_small_put(cached, p, bs),
+    tlsf_small_put(live, p, [b]))
+    == tlsf_small_pages_heap(ps, hd, sz, loc, cached, live)
+```
+
+lemma `tlsf_page_publish_table_rest`
+
+```
+∀ (d top fl p b : W32) (lim s k : Num) (xs ps bs z : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]),
+  tlsf_istar(
+    (j : Num) =>
+      if j == k { emp } else {
+        tlsf_small_table_item(
+          d,
+          tlsf_small_put_class(fast, k, bs),
+          tlsf_small_put_class(partial, k, z),
+          j) },
+    33) == tlsf_istar(
+    (j : Num) =>
+      if j == k { emp } else { tlsf_small_table_item(d, fast, partial, j) },
+    33)
+```
+
+lemma `tlsf_page_publish_put_class_same`
+
+```
+∀ (ff : (Num) -> List[W32]) (k : Num), tlsf_small_put_class(ff, k, ff(k)) == ff
+```
+
+lemma `tlsf_page_publish_fresh_view`
+
+```
+∀ (lim cap s i : Num) (p b used0 prev0 : W32) (bs : List[W32])
+if
+  1. tlsf_small_page_ok(lim, p, cap, s, CONS(b, bs), NIL, NIL)
+  2. i < tlsf_small_total(s)
+  3. b == tlsf_small_slot(p, s, i)
+  4. REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))) == CONS(b, bs)
+then
+  tlsf_page_allocate_build(p, cap, s, tlsf_small_total(s), used0, prev0) == star(
+    pts(val(p) + 12, serialise_i32(word(tlsf_small_total(s)))),
+    star(
+      pts(val(p) + 16, serialise_i32(used0)),
+      star(
+        pts(val(p) + 20, serialise_i32(b)),
+        star(
+          pts(val(p) + 24, serialise_i32(prev0)),
+          star(
+            pts(val(p) + 28, serialise_i32(word(0))),
+            star(
+              pts(val(b) + 8, serialise_i32(tlsf_small_head(bs))),
+              star(
+                tlsf_page_publish_frame(p, cap, s, NIL, b, i),
+                star(
+                  tlsf_small_links(bs),
+                  star(tlsf_bytes(val(b) + 12, s - 4), emp)))))))))
+```
+
+lemma `tlsf_page_publish_payload_bytes`
+
+```
+∀ (b : W32) (s : Num) (h : Heap)
+if
+  1. 4 <= s
+  2. tlsf_page_publish_payload(b, s, h)
+then
+  tlsf_bytes(val(b) + 8, s, h)
+```
+
+lemma `tlsf_page_publish_two_words`
+
+```
+∀ (a : Num) (v u : W32) (h : Heap)
+if
+  1. star(pts(a, serialise_i32(v)), pts(a + 4, serialise_i32(u)), h)
+then
+  tlsf_bytes(a, 8, h)
+```
+
+lemma `tlsf_page_publish_fast_address`
+
+```
+∀ (d : W32) (s : Num)
+if
+  1. val(d) <= 4294965088
+  2. s <= 256
+then
+  val(
+    word_add(
+      word(s),
+      word_add(word_and(word_add(d, word(15)), word(4294967280)), word(1912))))
+    == val(tlsf_base(d)) + 1912 + s
+```
+
+lemma `tlsf_page_publish_partial_address`
+
+```
+∀ (d : W32) (s : Num)
+if
+  1. val(d) <= 4294965088
+  2. s <= 256
+then
+  val(
+    word_add(
+      word_add(word(s), word_and(word_add(d, word(15)), word(4294967280))),
+      word(1916)))
+    == val(tlsf_base(d)) + 1916 + s
+```
+
+lemma `tlsf_page_publish_fresh_page`
+
+```
+∀ (d p b used0 prev0 : W32) (lim cap s i : Num) (bs live : List[W32])
+  (l1 l3 l4 : Value) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. tlsf_small_page_ok(lim, p, cap, s, CONS(b, bs), NIL, live)
+  3. i < tlsf_small_total(s)
+  4. b == tlsf_small_slot(p, s, i)
+  5. live == NIL
+  6. REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))) == CONS(b, bs)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), V_num(ConstInt32(b)), V_num(ConstInt32(word(s))),
+       V_num(ConstInt32(word_add(p, word(20)))), l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          tlsf_page_allocate_build(
+            p,
+            cap,
+            s,
+            tlsf_small_total(s),
+            used0,
+            prev0),
+          star(
+            pts(val(tlsf_base(d)) + 1912 + s, serialise_i32(word(0))),
+            star(fp(gs, ms), emp)))),
+    tlsf_page_publish_fresh_code(d),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [V_num(ConstInt32(p)), V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs)))],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          star(
+            tlsf_small_page_heap(p, cap, s, NIL, bs, CONS(b, live)),
+            star(tlsf_small_links(bs), tlsf_page_publish_payload(b, s))),
+          star(
+            pts(
+              val(tlsf_base(d)) + 1912 + s,
+              serialise_i32(tlsf_small_head(bs))),
+            star(fp(gs, ms), emp)))))
+```
+
+lemma `tlsf_page_publish_partial_nil_page`
+
+```
+∀ (d p b used0 prev0 nextp : W32) (lim cap s i : Num) (bs live zs : List[W32])
+  (l1 l3 l4 : Value) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. tlsf_small_page_ok(lim, p, cap, s, CONS(b, bs), NIL, live)
+  3. i < tlsf_small_total(s)
+  4. b == tlsf_small_slot(p, s, i)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), l1, V_num(ConstInt32(word(s))), l3, l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          tlsf_small_page_heap(p, cap, s, CONS(b, bs), NIL, live),
+          star(
+            pts(val(tlsf_base(d)) + 1912 + s, serialise_i32(word(0))),
+            star(
+              pts(val(tlsf_base(d)) + 1916 + s, serialise_i32(p)),
+              star(
+                tlsf_small_partial_links(word(0), [p]),
+                star(fp(gs, ms), emp)))))),
+    tlsf_page_publish_partial_code(d),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [V_num(ConstInt32(word(0))), V_num(ConstInt32(b)),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs)))],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          star(
+            tlsf_small_page_heap(p, cap, s, NIL, bs, CONS(b, live)),
+            star(tlsf_small_links(bs), tlsf_page_publish_payload(b, s))),
+          star(
+            pts(
+              val(tlsf_base(d)) + 1912 + s,
+              serialise_i32(tlsf_small_head(bs))),
+            star(
+              pts(
+                val(tlsf_base(d)) + 1916 + s,
+                serialise_i32(tlsf_small_head(NIL))),
+              star(
+                tlsf_small_partial_links(word(0), NIL),
+                star(fp(gs, ms), emp)))))))
+```
+
+lemma `tlsf_page_publish_partial_cons_page`
+
+```
+∀ (d p b used0 prev0 nextp : W32) (lim cap s i : Num) (bs live zs : List[W32])
+  (l1 l3 l4 : Value) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. tlsf_small_page_ok(lim, p, cap, s, CONS(b, bs), NIL, live)
+  3. i < tlsf_small_total(s)
+  4. b == tlsf_small_slot(p, s, i)
+  5. !(nextp == word(0))
+  6. val(nextp) + 32 <= 4294967296
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), l1, V_num(ConstInt32(word(s))), l3, l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          tlsf_small_page_heap(p, cap, s, CONS(b, bs), NIL, live),
+          star(
+            pts(val(tlsf_base(d)) + 1912 + s, serialise_i32(word(0))),
+            star(
+              pts(val(tlsf_base(d)) + 1916 + s, serialise_i32(p)),
+              star(
+                tlsf_small_partial_links(
+                  word(0),
+                  CONS(p, CONS(nextp, zs))),
+                star(fp(gs, ms), emp)))))),
+    tlsf_page_publish_partial_code(d),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [V_num(ConstInt32(nextp)), V_num(ConstInt32(b)),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs)))],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          star(
+            tlsf_small_page_heap(p, cap, s, NIL, bs, CONS(b, live)),
+            star(tlsf_small_links(bs), tlsf_page_publish_payload(b, s))),
+          star(
+            pts(
+              val(tlsf_base(d)) + 1912 + s,
+              serialise_i32(tlsf_small_head(bs))),
+            star(
+              pts(
+                val(tlsf_base(d)) + 1916 + s,
+                serialise_i32(tlsf_small_head(CONS(nextp, zs)))),
+              star(
+                tlsf_small_partial_links(word(0), CONS(nextp, zs)),
+                star(fp(gs, ms), emp)))))))
+```
+
+lemma `tlsf_page_publish_fresh_small`
+
+```
+∀ (d top fl p b used0 prev0 : W32) (lim s i : Num) (xs ps bs z : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (l1 l3 l4 : Value) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. tlsf_small_page_ok(lim, p, val(tlsf_size(hd(p))), s, CONS(b, bs), NIL, NIL)
+  3. i < tlsf_small_total(s)
+  4. b == tlsf_small_slot(p, s, i)
+  5. fast(DIV(s, 8)) == NIL
+  6. !MEM(p, ps)
+  7. REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))) == CONS(b, bs)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), V_num(ConstInt32(b)), V_num(ConstInt32(word(s))),
+       V_num(ConstInt32(word_add(p, word(20)))), l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          tlsf_page_allocate_build(
+            p,
+            val(tlsf_size(hd(p))),
+            s,
+            tlsf_small_total(s),
+            used0,
+            prev0),
+          star(
+            tlsf_small_pages_heap(ps, hd, sz, loc, cached, live),
+            star(tlsf_small_table(d, fast, partial), star(fp(gs, ms), emp))))),
+    tlsf_page_publish_fresh_code(d),
+    (res : List[Value]) => (lc2 : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc2 == [V_num(ConstInt32(p)), V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs)))]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && (
+           (gs : List[Value]) => (ms : Num) =>
+             star(
+               tlsf_small_pages_heap(
+                 CONS(p, ps),
+                 hd,
+                 (q : W32) => if q == p { s } else { sz(q) },
+                 tlsf_small_put(loc, p, NIL),
+                 tlsf_small_put(cached, p, bs),
+                 tlsf_small_put(live, p, [b])),
+               star(
+                 tlsf_small_table(
+                   d,
+                   tlsf_small_put_class(fast, DIV(s, 8), bs),
+                   partial),
+                 star(
+                   tlsf_page_publish_payload(b, s),
+                   star(fp(gs, ms), emp)))))(gs, ms, h))
+```
+
+lemma `tlsf_page_publish_partial_small`
+
+```
+∀ (d top fl p b used0 prev0 : W32) (lim s i : Num) (xs ps bs z : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (l1 l3 l4 : Value) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. tlsf_small_page_ok(
+       lim,
+       p,
+       val(tlsf_size(hd(p))),
+       s,
+       CONS(b, bs),
+       NIL,
+       live(p))
+  3. i < tlsf_small_total(s)
+  4. b == tlsf_small_slot(p, s, i)
+  5. fast(DIV(s, 8)) == NIL
+  6. tlsf_count(p, ps) == 1
+  7. sz(p) == s
+  8. loc(p) == CONS(b, bs)
+  9. cached(p) == NIL
+  10. partial(DIV(s, 8)) == CONS(p, z)
+  11. ∀ q : W32, MEM(q, z) → !(q == word(0)) && val(q) + 32 <= 4294967296
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), l1, V_num(ConstInt32(word(s))), l3, l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          tlsf_small_pages_heap(ps, hd, sz, loc, cached, live),
+          star(tlsf_small_table(d, fast, partial), star(fp(gs, ms), emp)))),
+    tlsf_page_publish_partial_code(d),
+    (res : List[Value]) => (lc2 : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc2 == [V_num(ConstInt32(tlsf_small_head(z))), V_num(ConstInt32(b)),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs)))]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && (
+           (gs : List[Value]) => (ms : Num) =>
+             star(
+               tlsf_small_pages_heap(
+                 ps,
+                 hd,
+                 sz,
+                 tlsf_small_put(loc, p, NIL),
+                 tlsf_small_put(cached, p, bs),
+                 tlsf_small_put(live, p, CONS(b, live(p)))),
+               star(
+                 tlsf_small_table(
+                   d,
+                   tlsf_small_put_class(fast, DIV(s, 8), bs),
+                   tlsf_small_put_class(
+                     partial,
+                     DIV(s, 8),
+                     TL(partial(DIV(s, 8))))),
+                 star(
+                   tlsf_page_publish_payload(b, s),
+                   star(fp(gs, ms), emp)))))(gs, ms, h))
+```
+
+lemma `tlsf_page_publish_large_bounds`
+
+```
+∀ (d top fl p : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (client : HProp) (h : Heap)
+if
+  1. star(tlsf_large(d, lim, top, xs, hd, fl, sb, bl), client, h)
+  2. MEM(p, xs)
+then
+  val(d) <= 4294965088
+  && lim <= 4294967296
+  && val(p) + 8 + val(tlsf_size(hd(p))) <= lim
+```
+
+lemma `tlsf_page_publish_local_index`
+
+```
+∀ (lim cap s : Num) (p b : W32) (bs live : List[W32])
+if
+  1. tlsf_small_page_ok(lim, p, cap, s, CONS(b, bs), NIL, live)
+then
+  ∃ (i : Num),
+    i < tlsf_small_total(s)
+    && b == tlsf_small_slot(p, s, i)
+```
+
+lemma `tlsf_page_publish_empty_cached`
+
+```
+∀ (d top fl p : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+if
+  1. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  2. MEM(p, ps)
+  3. fast(DIV(sz(p), 8)) == NIL
+then
+  cached(p) == NIL
+```
+
+lemma `tlsf_page_publish_allocated_ready`
+
+```
+∀ (d top fl p : W32) (lim s : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (client : HProp) (h : Heap)
+if
+  1. star(
+       tlsf_allocator(
+         d,
+         lim,
+         top,
+         xs,
+         hd,
+         fl,
+         sb,
+         bl,
+         ps,
+         sz,
+         loc,
+         cached,
+         live,
+         fast,
+         partial),
+       star(tlsf_page_allocate_fresh(p, val(tlsf_size(hd(p))), s), client),
+       h)
+  2. MEM(p, xs)
+then
+  tlsf_small_page_ok(
+    lim,
+    p,
+    val(tlsf_size(hd(p))),
+    s,
+    REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))),
+    NIL,
+    NIL)
+```
+
+definition `tlsf_page_publish_fresh_pre`
+
+```
+∀ (d top fl p b used0 prev0 : W32) (lim s : Num) (xs ps bs z : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (l1 l3 l4 : Value) (fp : GProp),
+  tlsf_page_publish_fresh_pre(
+    d,
+    lim,
+    top,
+    xs,
+    hd,
+    fl,
+    sb,
+    bl,
+    ps,
+    sz,
+    loc,
+    cached,
+    live,
+    fast,
+    partial,
+    p,
+    b,
+    bs,
+    s,
+    used0,
+    prev0,
+    l1,
+    l3,
+    l4,
+    fp,
+    z) == (
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL
+      && lc == [V_num(ConstInt32(p)), V_num(ConstInt32(b)),
+          V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+          l4]
+      && ms == lim
+      && !MEM(p, ps)
+      && MEM(p, xs)
+      && tlsf_used(hd(p))
+      && tlsf_small_page_ok(
+           lim,
+           p,
+           val(tlsf_size(hd(p))),
+           s,
+           CONS(b, bs),
+           NIL,
+           NIL)
+      && REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))) == CONS(b, bs)
+      && fast(DIV(s, 8)) == NIL
+      && star(
+           tlsf_allocator(
+             d,
+             lim,
+             top,
+             xs,
+             hd,
+             fl,
+             sb,
+             bl,
+             ps,
+             sz,
+             loc,
+             cached,
+             live,
+             fast,
+             partial),
+           star(
+             tlsf_page_allocate_build(
+               p,
+               val(tlsf_size(hd(p))),
+               s,
+               tlsf_small_total(s),
+               used0,
+               prev0),
+             star(fp(gs, ms), emp)),
+           h))
+```
+
+definition `tlsf_page_publish_fresh_post`
+
+```
+∀ (d top fl p b used0 prev0 : W32) (lim s : Num) (xs ps bs z : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (l1 l3 l4 : Value) (fp : GProp),
+  tlsf_page_publish_fresh_post(
+    d,
+    lim,
+    top,
+    xs,
+    hd,
+    fl,
+    sb,
+    bl,
+    ps,
+    sz,
+    loc,
+    cached,
+    live,
+    fast,
+    partial,
+    p,
+    b,
+    bs,
+    s,
+    used0,
+    prev0,
+    l1,
+    l3,
+    l4,
+    fp,
+    z) == (
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && star(
+           tlsf_allocator(
+             d,
+             lim,
+             top,
+             xs,
+             hd,
+             fl,
+             sb,
+             bl,
+             CONS(p, ps),
+             (q : W32) => if q == p { s } else { sz(q) },
+             tlsf_small_put(loc, p, NIL),
+             tlsf_small_put(cached, p, bs),
+             tlsf_small_put(live, p, [b]),
+             tlsf_small_put_class(fast, DIV(s, 8), bs),
+             partial),
+           star(tlsf_page_publish_payload(b, s), star(fp(gs, ms), emp)),
+           h))
+```
+
+definition `tlsf_page_publish_partial_pre`
+
+```
+∀ (d top fl p b used0 prev0 : W32) (lim s : Num) (xs ps bs z : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (l1 l3 l4 : Value) (fp : GProp),
+  tlsf_page_publish_partial_pre(
+    d,
+    lim,
+    top,
+    xs,
+    hd,
+    fl,
+    sb,
+    bl,
+    ps,
+    sz,
+    loc,
+    cached,
+    live,
+    fast,
+    partial,
+    p,
+    b,
+    bs,
+    s,
+    used0,
+    prev0,
+    l1,
+    l3,
+    l4,
+    fp,
+    z) == (
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL
+      && lc == [V_num(ConstInt32(p)), l1, V_num(ConstInt32(word(s))), l3, l4]
+      && ms == lim
+      && MEM(p, ps)
+      && sz(p) == s
+      && loc(p) == CONS(b, bs)
+      && cached(p) == NIL
+      && partial(DIV(s, 8)) == CONS(p, z)
+      && fast(DIV(s, 8)) == NIL
+      && star(
+           tlsf_allocator(
+             d,
+             lim,
+             top,
+             xs,
+             hd,
+             fl,
+             sb,
+             bl,
+             ps,
+             sz,
+             loc,
+             cached,
+             live,
+             fast,
+             partial),
+           star(fp(gs, ms), emp),
+           h))
+```
+
+definition `tlsf_page_publish_partial_post`
+
+```
+∀ (d top fl p b used0 prev0 : W32) (lim s : Num) (xs ps bs z : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (l1 l3 l4 : Value) (fp : GProp),
+  tlsf_page_publish_partial_post(
+    d,
+    lim,
+    top,
+    xs,
+    hd,
+    fl,
+    sb,
+    bl,
+    ps,
+    sz,
+    loc,
+    cached,
+    live,
+    fast,
+    partial,
+    p,
+    b,
+    bs,
+    s,
+    used0,
+    prev0,
+    l1,
+    l3,
+    l4,
+    fp,
+    z) == (
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && star(
+           tlsf_allocator(
+             d,
+             lim,
+             top,
+             xs,
+             hd,
+             fl,
+             sb,
+             bl,
+             ps,
+             sz,
+             tlsf_small_put(loc, p, NIL),
+             tlsf_small_put(cached, p, bs),
+             tlsf_small_put(live, p, CONS(b, live(p))),
+             tlsf_small_put_class(fast, DIV(s, 8), bs),
+             tlsf_small_put_class(partial, DIV(s, 8), TL(partial(DIV(s, 8))))),
+           star(tlsf_page_publish_payload(b, s), star(fp(gs, ms), emp)),
+           h))
+```
+
+lemma `tlsf_page_publish_fresh_allocator`
+
+```
+∀ (d top fl p b used0 prev0 : W32) (lim s : Num) (xs ps bs z : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (l1 l3 l4 : Value) (fp : GProp),
+  sl_triple(
+    tlsf_page_publish_fresh_pre(
+      d,
+      lim,
+      top,
+      xs,
+      hd,
+      fl,
+      sb,
+      bl,
+      ps,
+      sz,
+      loc,
+      cached,
+      live,
+      fast,
+      partial,
+      p,
+      b,
+      bs,
+      s,
+      used0,
+      prev0,
+      l1,
+      l3,
+      l4,
+      fp,
+      z),
+    tlsf_page_publish_fresh_code(d),
+    tlsf_page_publish_fresh_post(
+      d,
+      lim,
+      top,
+      xs,
+      hd,
+      fl,
+      sb,
+      bl,
+      ps,
+      sz,
+      loc,
+      cached,
+      live,
+      fast,
+      partial,
+      p,
+      b,
+      bs,
+      s,
+      used0,
+      prev0,
+      l1,
+      l3,
+      l4,
+      fp,
+      z))
+```
+
+lemma `tlsf_page_publish_fresh_all`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (d top fl p b used0 prev0 : W32)
+  (lim s : Num) (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (l1 l3 l4 : Value) (fp : GProp),
+  sl_triple_m(
+    fs,
+    tabs,
+    inst,
+    tlsf_page_publish_fresh_pre(
+      d,
+      lim,
+      top,
+      xs,
+      hd,
+      fl,
+      sb,
+      bl,
+      ps,
+      sz,
+      loc,
+      cached,
+      live,
+      fast,
+      partial,
+      p,
+      b,
+      bs,
+      s,
+      used0,
+      prev0,
+      l1,
+      l3,
+      l4,
+      fp,
+      z),
+    tlsf_page_publish_fresh_code(d),
+    tlsf_page_publish_fresh_post(
+      d,
+      lim,
+      top,
+      xs,
+      hd,
+      fl,
+      sb,
+      bl,
+      ps,
+      sz,
+      loc,
+      cached,
+      live,
+      fast,
+      partial,
+      p,
+      b,
+      bs,
+      s,
+      used0,
+      prev0,
+      l1,
+      l3,
+      l4,
+      fp,
+      z),
+    NIL)
+```
+
+lemma `tlsf_page_publish_partial_allocator`
+
+```
+∀ (d top fl p b used0 prev0 : W32) (lim s : Num) (xs ps bs z : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (l1 l3 l4 : Value) (fp : GProp),
+  sl_triple(
+    tlsf_page_publish_partial_pre(
+      d,
+      lim,
+      top,
+      xs,
+      hd,
+      fl,
+      sb,
+      bl,
+      ps,
+      sz,
+      loc,
+      cached,
+      live,
+      fast,
+      partial,
+      p,
+      b,
+      bs,
+      s,
+      used0,
+      prev0,
+      l1,
+      l3,
+      l4,
+      fp,
+      z),
+    tlsf_page_publish_partial_code(d),
+    tlsf_page_publish_partial_post(
+      d,
+      lim,
+      top,
+      xs,
+      hd,
+      fl,
+      sb,
+      bl,
+      ps,
+      sz,
+      loc,
+      cached,
+      live,
+      fast,
+      partial,
+      p,
+      b,
+      bs,
+      s,
+      used0,
+      prev0,
+      l1,
+      l3,
+      l4,
+      fp,
+      z))
+```
+
+lemma `tlsf_page_publish_partial_all`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (d top fl p b used0 prev0 : W32)
+  (lim s : Num) (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (l1 l3 l4 : Value) (fp : GProp),
+  sl_triple_m(
+    fs,
+    tabs,
+    inst,
+    tlsf_page_publish_partial_pre(
+      d,
+      lim,
+      top,
+      xs,
+      hd,
+      fl,
+      sb,
+      bl,
+      ps,
+      sz,
+      loc,
+      cached,
+      live,
+      fast,
+      partial,
+      p,
+      b,
+      bs,
+      s,
+      used0,
+      prev0,
+      l1,
+      l3,
+      l4,
+      fp,
+      z),
+    tlsf_page_publish_partial_code(d),
+    tlsf_page_publish_partial_post(
+      d,
+      lim,
+      top,
+      xs,
+      hd,
+      fl,
+      sb,
+      bl,
+      ps,
+      sz,
+      loc,
+      cached,
+      live,
+      fast,
+      partial,
+      p,
+      b,
+      bs,
+      s,
+      used0,
+      prev0,
+      l1,
+      l3,
+      l4,
+      fp,
+      z),
+    NIL)
+```
+
+## Compiled allocation entry points (tlsf_malloc_*.mbt)
+
+program `tlsf_try_malloc_code`
+
+```
+tlsf_try_malloc_code((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num)) ==
+  local.get 0
+  i32.eqz
+  if
+    i32.const 0
+    return
+  end
+  i32.const d
+  local.tee 1
+  i32.const 4294965088
+  i32.gt_u
+  if
+    unreachable
+  end
+  local.get 1
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1908
+  i32.add
+  local.tee 1
+  i32.const 16
+  i32.shr_u
+  memory.size
+  i32.ge_u
+  if (result i32)
+    i32.const 0
+  else
+    local.get 1
+    i32.load offset=0 align=2**2
+  end
+  i32.eqz
+  if
+    call initialize_idx
+  end
+  local.get 0
+  i32.const 256
+  i32.le_u
+  if (result i32)
+    i32.const d
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.const 1912
+    i32.add
+    local.get 0
+    i32.const 7
+    i32.add
+    i32.const 3
+    i32.shr_u
+    local.tee 1
+    i32.const 3
+    i32.shl
+    i32.add
+    i32.load offset=0 align=2**2
+    local.tee 0
+    if
+      local.get 0
+      i32.const 8
+      i32.add
+      local.tee 0
+      i32.load offset=0 align=2**2
+      local.set 2
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.const 1912
+      i32.add
+      local.get 1
+      i32.const 3
+      i32.shl
+      i32.add
+      local.get 2
+      i32.store offset=0 align=2**2
+      local.get 0
+      i32.const 0
+      i32.store offset=0 align=2**2
+      local.get 0
+      return
+    end
+    local.get 1
+    i32.const 3
+    i32.shl
+    local.tee 2
+    i32.const d
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.add
+    i32.const 1916
+    i32.add
+    i32.load offset=0 align=2**2
+    local.tee 0
+    if
+      local.get 0
+      i32.const 20
+      i32.add
+      local.tee 3
+      i32.load offset=0 align=2**2
+      local.tee 1
+      i32.const 8
+      i32.add
+      i32.load offset=0 align=2**2
+      local.set 4
+      local.get 2
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.const 1912
+      i32.add
+      i32.add
+      local.get 4
+      i32.store offset=0 align=2**2
+      local.get 1
+      i32.const 8
+      i32.add
+      i32.const 0
+      i32.store offset=0 align=2**2
+      local.get 3
+      i32.const 0
+      i32.store offset=0 align=2**2
+      local.get 0
+      i32.const 16
+      i32.add
+      local.get 0
+      i32.const 12
+      i32.add
+      i32.load offset=0 align=2**2
+      i32.store offset=0 align=2**2
+      local.get 0
+      i32.const 28
+      i32.add
+      i32.load offset=0 align=2**2
+      local.set 0
+      local.get 2
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.add
+      i32.const 1916
+      i32.add
+      local.get 0
+      i32.store offset=0 align=2**2
+      local.get 0
+      if
+        local.get 0
+        i32.const 24
+        i32.add
+        i32.const 0
+        i32.store offset=0 align=2**2
+      end
+      local.get 1
+      i32.const 8
+      i32.add
+      return
+    end
+    local.get 1
+    i32.const 3
+    i32.shl
+    local.tee 2
+    call page_idx
+    local.tee 0
+    if
+      local.get 0
+      i32.const 20
+      i32.add
+      local.tee 3
+      i32.load offset=0 align=2**2
+      local.tee 1
+      if
+        local.get 1
+        i32.const 8
+        i32.add
+        local.tee 1
+        i32.load offset=0 align=2**2
+        local.set 4
+        local.get 2
+        i32.const d
+        i32.const 15
+        i32.add
+        i32.const 4294967280
+        i32.and
+        i32.const 1912
+        i32.add
+        i32.add
+        local.get 4
+        i32.store offset=0 align=2**2
+        local.get 1
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 3
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 0
+        i32.const 16
+        i32.add
+        local.get 0
+        i32.const 12
+        i32.add
+        i32.load offset=0 align=2**2
+        i32.store offset=0 align=2**2
+        local.get 1
+        return
+      end
+    end
+    i32.const 4294967295
+  else
+    local.get 0
+    i32.const 4160749568
+    i32.gt_u
+    if
+      unreachable
+    end
+    local.get 0
+    call take_idx
+    local.tee 0
+    if (result i32)
+      local.get 0
+      i32.const 8
+      i32.add
+    else
+      i32.const 4294967295
+    end
+  end
+```
+
+program `tlsf_full_malloc_code`
+
+```
+tlsf_full_malloc_code((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  block (result i32)
+    i32.const 0
+    local.get 0
+    i32.eqz
+    br_if 0
+    drop
+    i32.const d
+    local.tee 1
+    i32.const 4294965088
+    i32.gt_u
+    if
+      unreachable
+    end
+    local.get 1
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.const 1908
+    i32.add
+    local.tee 1
+    i32.const 16
+    i32.shr_u
+    memory.size
+    i32.ge_u
+    if (result i32)
+      i32.const 0
+    else
+      local.get 1
+      i32.load offset=0 align=2**2
+    end
+    i32.eqz
+    if
+      call initialize_idx
+    end
+    local.get 0
+    i32.const 256
+    i32.le_u
+    if (result i32)
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.const 1912
+      i32.add
+      local.get 0
+      i32.const 7
+      i32.add
+      i32.const 3
+      i32.shr_u
+      local.tee 2
+      i32.const 3
+      i32.shl
+      i32.add
+      i32.load offset=0 align=2**2
+      local.tee 1
+      if
+        local.get 1
+        i32.const 8
+        i32.add
+        local.tee 1
+        i32.load offset=0 align=2**2
+        local.set 3
+        i32.const d
+        i32.const 15
+        i32.add
+        i32.const 4294967280
+        i32.and
+        i32.const 1912
+        i32.add
+        local.get 2
+        i32.const 3
+        i32.shl
+        i32.add
+        local.get 3
+        i32.store offset=0 align=2**2
+        local.get 1
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 1
+        br 2
+      end
+      local.get 2
+      i32.const 3
+      i32.shl
+      local.tee 3
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.add
+      i32.const 1916
+      i32.add
+      i32.load offset=0 align=2**2
+      local.tee 1
+      if
+        local.get 1
+        i32.const 20
+        i32.add
+        local.tee 4
+        i32.load offset=0 align=2**2
+        local.tee 2
+        i32.const 8
+        i32.add
+        i32.load offset=0 align=2**2
+        local.set 5
+        local.get 3
+        i32.const d
+        i32.const 15
+        i32.add
+        i32.const 4294967280
+        i32.and
+        i32.const 1912
+        i32.add
+        i32.add
+        local.get 5
+        i32.store offset=0 align=2**2
+        local.get 2
+        i32.const 8
+        i32.add
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 4
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 1
+        i32.const 16
+        i32.add
+        local.get 1
+        i32.const 12
+        i32.add
+        i32.load offset=0 align=2**2
+        i32.store offset=0 align=2**2
+        local.get 1
+        i32.const 28
+        i32.add
+        i32.load offset=0 align=2**2
+        local.set 1
+        local.get 3
+        i32.const d
+        i32.const 15
+        i32.add
+        i32.const 4294967280
+        i32.and
+        i32.add
+        i32.const 1916
+        i32.add
+        local.get 1
+        i32.store offset=0 align=2**2
+        local.get 1
+        if
+          local.get 1
+          i32.const 24
+          i32.add
+          i32.const 0
+          i32.store offset=0 align=2**2
+        end
+        local.get 2
+        i32.const 8
+        i32.add
+        br 2
+      end
+      local.get 2
+      i32.const 3
+      i32.shl
+      local.tee 3
+      call page_idx
+      local.tee 1
+      if
+        local.get 1
+        i32.const 20
+        i32.add
+        local.tee 4
+        i32.load offset=0 align=2**2
+        local.tee 2
+        if
+          local.get 2
+          i32.const 8
+          i32.add
+          local.tee 2
+          i32.load offset=0 align=2**2
+          local.set 5
+          local.get 3
+          i32.const d
+          i32.const 15
+          i32.add
+          i32.const 4294967280
+          i32.and
+          i32.const 1912
+          i32.add
+          i32.add
+          local.get 5
+          i32.store offset=0 align=2**2
+          local.get 2
+          i32.const 0
+          i32.store offset=0 align=2**2
+          local.get 4
+          i32.const 0
+          i32.store offset=0 align=2**2
+          local.get 1
+          i32.const 16
+          i32.add
+          local.get 1
+          i32.const 12
+          i32.add
+          i32.load offset=0 align=2**2
+          i32.store offset=0 align=2**2
+          local.get 2
+          br 3
+        end
+      end
+      i32.const 4294967295
+    else
+      local.get 0
+      i32.const 4160749568
+      i32.gt_u
+      if
+        unreachable
+      end
+      local.get 0
+      call take_idx
+      local.tee 1
+      if (result i32)
+        local.get 1
+        i32.const 8
+        i32.add
+      else
+        i32.const 4294967295
+      end
+    end
+  end
+  local.tee 1
+  i32.const 4294967295
+  i32.ne
+  if
+    local.get 1
+    return
+  end
+  local.get 0
+  i32.const 256
+  i32.le_u
+  if
+    i32.const 1080
+    call ensure_idx
+    i32.eqz
+    if
+      unreachable
+    end
+  else
+    local.get 0
+    call ensure_idx
+    i32.eqz
+    if
+      unreachable
+    end
+  end
+  block (result i32)
+    i32.const 0
+    local.get 0
+    i32.eqz
+    br_if 0
+    drop
+    i32.const d
+    local.tee 1
+    i32.const 4294965088
+    i32.gt_u
+    if
+      unreachable
+    end
+    local.get 1
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.const 1908
+    i32.add
+    local.tee 1
+    i32.const 16
+    i32.shr_u
+    memory.size
+    i32.ge_u
+    if (result i32)
+      i32.const 0
+    else
+      local.get 1
+      i32.load offset=0 align=2**2
+    end
+    i32.eqz
+    if
+      call initialize_idx
+    end
+    local.get 0
+    i32.const 256
+    i32.le_u
+    if (result i32)
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.const 1912
+      i32.add
+      local.get 0
+      i32.const 7
+      i32.add
+      i32.const 3
+      i32.shr_u
+      local.tee 1
+      i32.const 3
+      i32.shl
+      i32.add
+      i32.load offset=0 align=2**2
+      local.tee 0
+      if
+        local.get 0
+        i32.const 8
+        i32.add
+        local.tee 0
+        i32.load offset=0 align=2**2
+        local.set 2
+        i32.const d
+        i32.const 15
+        i32.add
+        i32.const 4294967280
+        i32.and
+        i32.const 1912
+        i32.add
+        local.get 1
+        i32.const 3
+        i32.shl
+        i32.add
+        local.get 2
+        i32.store offset=0 align=2**2
+        local.get 0
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 0
+        br 2
+      end
+      local.get 1
+      i32.const 3
+      i32.shl
+      local.tee 2
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.add
+      i32.const 1916
+      i32.add
+      i32.load offset=0 align=2**2
+      local.tee 0
+      if
+        local.get 0
+        i32.const 20
+        i32.add
+        local.tee 3
+        i32.load offset=0 align=2**2
+        local.tee 1
+        i32.const 8
+        i32.add
+        i32.load offset=0 align=2**2
+        local.set 4
+        local.get 2
+        i32.const d
+        i32.const 15
+        i32.add
+        i32.const 4294967280
+        i32.and
+        i32.const 1912
+        i32.add
+        i32.add
+        local.get 4
+        i32.store offset=0 align=2**2
+        local.get 1
+        i32.const 8
+        i32.add
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 3
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 0
+        i32.const 16
+        i32.add
+        local.get 0
+        i32.const 12
+        i32.add
+        i32.load offset=0 align=2**2
+        i32.store offset=0 align=2**2
+        local.get 0
+        i32.const 28
+        i32.add
+        i32.load offset=0 align=2**2
+        local.set 0
+        local.get 2
+        i32.const d
+        i32.const 15
+        i32.add
+        i32.const 4294967280
+        i32.and
+        i32.add
+        i32.const 1916
+        i32.add
+        local.get 0
+        i32.store offset=0 align=2**2
+        local.get 0
+        if
+          local.get 0
+          i32.const 24
+          i32.add
+          i32.const 0
+          i32.store offset=0 align=2**2
+        end
+        local.get 1
+        i32.const 8
+        i32.add
+        br 2
+      end
+      local.get 1
+      i32.const 3
+      i32.shl
+      local.tee 2
+      call page_idx
+      local.tee 0
+      if
+        local.get 0
+        i32.const 20
+        i32.add
+        local.tee 3
+        i32.load offset=0 align=2**2
+        local.tee 1
+        if
+          local.get 1
+          i32.const 8
+          i32.add
+          local.tee 1
+          i32.load offset=0 align=2**2
+          local.set 4
+          local.get 2
+          i32.const d
+          i32.const 15
+          i32.add
+          i32.const 4294967280
+          i32.and
+          i32.const 1912
+          i32.add
+          i32.add
+          local.get 4
+          i32.store offset=0 align=2**2
+          local.get 1
+          i32.const 0
+          i32.store offset=0 align=2**2
+          local.get 3
+          i32.const 0
+          i32.store offset=0 align=2**2
+          local.get 0
+          i32.const 16
+          i32.add
+          local.get 0
+          i32.const 12
+          i32.add
+          i32.load offset=0 align=2**2
+          i32.store offset=0 align=2**2
+          local.get 1
+          br 3
+        end
+      end
+      i32.const 4294967295
+    else
+      local.get 0
+      i32.const 4160749568
+      i32.gt_u
+      if
+        unreachable
+      end
+      local.get 0
+      call take_idx
+      local.tee 0
+      if (result i32)
+        local.get 0
+        i32.const 8
+        i32.add
+      else
+        i32.const 4294967295
+      end
+    end
+  end
+  local.tee 0
+  i32.const 4294967295
+  i32.eq
+  if (result i32)
+    unreachable
+  else
+    local.get 0
+  end
+```
+
+program `tlsf_malloc_try_body`
+
+```
+tlsf_malloc_try_body((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 0
+  i32.eqz
+  if
+    i32.const 0
+    return
+  end
+  i32.const d
+  local.tee 1
+  i32.const 4294965088
+  i32.gt_u
+  if
+    unreachable
+  end
+  local.get 1
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1908
+  i32.add
+  local.tee 1
+  i32.const 16
+  i32.shr_u
+  memory.size
+  i32.ge_u
+  if (result i32)
+    i32.const 0
+  else
+    local.get 1
+    i32.load offset=0 align=2**2
+  end
+  i32.eqz
+  if
+    call initialize_idx
+  end
+  local.get 0
+  i32.const 256
+  i32.le_u
+  if (result i32)
+    i32.const d
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.const 1912
+    i32.add
+    local.get 0
+    i32.const 7
+    i32.add
+    i32.const 3
+    i32.shr_u
+    local.tee 1
+    i32.const 3
+    i32.shl
+    i32.add
+    i32.load offset=0 align=2**2
+    local.tee 0
+    if
+      local.get 0
+      i32.const 8
+      i32.add
+      local.tee 0
+      i32.load offset=0 align=2**2
+      local.set 2
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.const 1912
+      i32.add
+      local.get 1
+      i32.const 3
+      i32.shl
+      i32.add
+      local.get 2
+      i32.store offset=0 align=2**2
+      local.get 0
+      i32.const 0
+      i32.store offset=0 align=2**2
+      local.get 0
+      return
+    end
+    local.get 1
+    i32.const 3
+    i32.shl
+    local.tee 2
+    i32.const d
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.add
+    i32.const 1916
+    i32.add
+    i32.load offset=0 align=2**2
+    local.tee 0
+    if
+      local.get 0
+      i32.const 20
+      i32.add
+      local.tee 3
+      i32.load offset=0 align=2**2
+      local.tee 1
+      i32.const 8
+      i32.add
+      i32.load offset=0 align=2**2
+      local.set 4
+      local.get 2
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.const 1912
+      i32.add
+      i32.add
+      local.get 4
+      i32.store offset=0 align=2**2
+      local.get 1
+      i32.const 8
+      i32.add
+      i32.const 0
+      i32.store offset=0 align=2**2
+      local.get 3
+      i32.const 0
+      i32.store offset=0 align=2**2
+      local.get 0
+      i32.const 16
+      i32.add
+      local.get 0
+      i32.const 12
+      i32.add
+      i32.load offset=0 align=2**2
+      i32.store offset=0 align=2**2
+      local.get 0
+      i32.const 28
+      i32.add
+      i32.load offset=0 align=2**2
+      local.set 0
+      local.get 2
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.add
+      i32.const 1916
+      i32.add
+      local.get 0
+      i32.store offset=0 align=2**2
+      local.get 0
+      if
+        local.get 0
+        i32.const 24
+        i32.add
+        i32.const 0
+        i32.store offset=0 align=2**2
+      end
+      local.get 1
+      i32.const 8
+      i32.add
+      return
+    end
+    local.get 1
+    i32.const 3
+    i32.shl
+    local.tee 2
+    call page_idx
+    local.tee 0
+    if
+      local.get 0
+      i32.const 20
+      i32.add
+      local.tee 3
+      i32.load offset=0 align=2**2
+      local.tee 1
+      if
+        local.get 1
+        i32.const 8
+        i32.add
+        local.tee 1
+        i32.load offset=0 align=2**2
+        local.set 4
+        local.get 2
+        i32.const d
+        i32.const 15
+        i32.add
+        i32.const 4294967280
+        i32.and
+        i32.const 1912
+        i32.add
+        i32.add
+        local.get 4
+        i32.store offset=0 align=2**2
+        local.get 1
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 3
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 0
+        i32.const 16
+        i32.add
+        local.get 0
+        i32.const 12
+        i32.add
+        i32.load offset=0 align=2**2
+        i32.store offset=0 align=2**2
+        local.get 1
+        return
+      end
+    end
+    i32.const 4294967295
+  else
+    local.get 0
+    i32.const 4160749568
+    i32.gt_u
+    if
+      unreachable
+    end
+    local.get 0
+    call take_idx
+    local.tee 0
+    if (result i32)
+      local.get 0
+      i32.const 8
+      i32.add
+    else
+      i32.const 4294967295
+    end
+  end
+```
+
+program `tlsf_malloc_try_small`
+
+```
+tlsf_malloc_try_small((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1912
+  i32.add
+  local.get 0
+  i32.const 7
+  i32.add
+  i32.const 3
+  i32.shr_u
+  local.tee 1
+  i32.const 3
+  i32.shl
+  i32.add
+  i32.load offset=0 align=2**2
+  local.tee 0
+  if
+    local.get 0
+    i32.const 8
+    i32.add
+    local.tee 0
+    i32.load offset=0 align=2**2
+    local.set 2
+    i32.const d
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.const 1912
+    i32.add
+    local.get 1
+    i32.const 3
+    i32.shl
+    i32.add
+    local.get 2
+    i32.store offset=0 align=2**2
+    local.get 0
+    i32.const 0
+    i32.store offset=0 align=2**2
+    local.get 0
+    return
+  end
+  local.get 1
+  i32.const 3
+  i32.shl
+  local.tee 2
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.add
+  i32.const 1916
+  i32.add
+  i32.load offset=0 align=2**2
+  local.tee 0
+  if
+    local.get 0
+    i32.const 20
+    i32.add
+    local.tee 3
+    i32.load offset=0 align=2**2
+    local.tee 1
+    i32.const 8
+    i32.add
+    i32.load offset=0 align=2**2
+    local.set 4
+    local.get 2
+    i32.const d
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.const 1912
+    i32.add
+    i32.add
+    local.get 4
+    i32.store offset=0 align=2**2
+    local.get 1
+    i32.const 8
+    i32.add
+    i32.const 0
+    i32.store offset=0 align=2**2
+    local.get 3
+    i32.const 0
+    i32.store offset=0 align=2**2
+    local.get 0
+    i32.const 16
+    i32.add
+    local.get 0
+    i32.const 12
+    i32.add
+    i32.load offset=0 align=2**2
+    i32.store offset=0 align=2**2
+    local.get 0
+    i32.const 28
+    i32.add
+    i32.load offset=0 align=2**2
+    local.set 0
+    local.get 2
+    i32.const d
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.add
+    i32.const 1916
+    i32.add
+    local.get 0
+    i32.store offset=0 align=2**2
+    local.get 0
+    if
+      local.get 0
+      i32.const 24
+      i32.add
+      i32.const 0
+      i32.store offset=0 align=2**2
+    end
+    local.get 1
+    i32.const 8
+    i32.add
+    return
+  end
+  local.get 1
+  i32.const 3
+  i32.shl
+  local.tee 2
+  call page_idx
+  local.tee 0
+  if
+    local.get 0
+    i32.const 20
+    i32.add
+    local.tee 3
+    i32.load offset=0 align=2**2
+    local.tee 1
+    if
+      local.get 1
+      i32.const 8
+      i32.add
+      local.tee 1
+      i32.load offset=0 align=2**2
+      local.set 4
+      local.get 2
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.const 1912
+      i32.add
+      i32.add
+      local.get 4
+      i32.store offset=0 align=2**2
+      local.get 1
+      i32.const 0
+      i32.store offset=0 align=2**2
+      local.get 3
+      i32.const 0
+      i32.store offset=0 align=2**2
+      local.get 0
+      i32.const 16
+      i32.add
+      local.get 0
+      i32.const 12
+      i32.add
+      i32.load offset=0 align=2**2
+      i32.store offset=0 align=2**2
+      local.get 1
+      return
+    end
+  end
+  i32.const 4294967295
+```
+
+program `tlsf_malloc_try_large`
+
+```
+tlsf_malloc_try_large((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 0
+  i32.const 4160749568
+  i32.gt_u
+  if
+    unreachable
+  end
+  local.get 0
+  call take_idx
+  local.tee 0
+  if (result i32)
+    local.get 0
+    i32.const 8
+    i32.add
+  else
+    i32.const 4294967295
+  end
+```
+
+program `tlsf_malloc_try_fast_lookup`
+
+```
+tlsf_malloc_try_fast_lookup((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1912
+  i32.add
+  local.get 0
+  i32.const 7
+  i32.add
+  i32.const 3
+  i32.shr_u
+  local.tee 1
+  i32.const 3
+  i32.shl
+  i32.add
+  i32.load offset=0 align=2**2
+  local.tee 0
+```
+
+program `tlsf_malloc_try_cached`
+
+```
+tlsf_malloc_try_cached((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 0
+  i32.const 8
+  i32.add
+  local.tee 0
+  i32.load offset=0 align=2**2
+  local.set 2
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1912
+  i32.add
+  local.get 1
+  i32.const 3
+  i32.shl
+  i32.add
+  local.get 2
+  i32.store offset=0 align=2**2
+  local.get 0
+  i32.const 0
+  i32.store offset=0 align=2**2
+  local.get 0
+```
+
+program `tlsf_malloc_try_partial_lookup`
+
+```
+tlsf_malloc_try_partial_lookup((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 1
+  i32.const 3
+  i32.shl
+  local.tee 2
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.add
+  i32.const 1916
+  i32.add
+  i32.load offset=0 align=2**2
+  local.tee 0
+```
+
+program `tlsf_malloc_try_partial`
+
+```
+tlsf_malloc_try_partial((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 0
+  i32.const 20
+  i32.add
+  local.tee 3
+  i32.load offset=0 align=2**2
+  local.tee 1
+  i32.const 8
+  i32.add
+  i32.load offset=0 align=2**2
+  local.set 4
+  local.get 2
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1912
+  i32.add
+  i32.add
+  local.get 4
+  i32.store offset=0 align=2**2
+  local.get 1
+  i32.const 8
+  i32.add
+  i32.const 0
+  i32.store offset=0 align=2**2
+  local.get 3
+  i32.const 0
+  i32.store offset=0 align=2**2
+  local.get 0
+  i32.const 16
+  i32.add
+  local.get 0
+  i32.const 12
+  i32.add
+  i32.load offset=0 align=2**2
+  i32.store offset=0 align=2**2
+  local.get 0
+  i32.const 28
+  i32.add
+  i32.load offset=0 align=2**2
+  local.set 0
+  local.get 2
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.add
+  i32.const 1916
+  i32.add
+  local.get 0
+  i32.store offset=0 align=2**2
+  local.get 0
+  if
+    local.get 0
+    i32.const 24
+    i32.add
+    i32.const 0
+    i32.store offset=0 align=2**2
+  end
+  local.get 1
+  i32.const 8
+  i32.add
+```
+
+program `tlsf_malloc_try_page_call`
+
+```
+tlsf_malloc_try_page_call((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 1
+  i32.const 3
+  i32.shl
+  local.tee 2
+  call page_idx
+  local.tee 0
+```
+
+program `tlsf_malloc_try_head`
+
+```
+tlsf_malloc_try_head((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 0
+  i32.const 20
+  i32.add
+  local.tee 3
+  i32.load offset=0 align=2**2
+  local.tee 1
+```
+
+program `tlsf_malloc_try_fresh`
+
+```
+tlsf_malloc_try_fresh((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 1
+  i32.const 8
+  i32.add
+  local.tee 1
+  i32.load offset=0 align=2**2
+  local.set 4
+  local.get 2
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1912
+  i32.add
+  i32.add
+  local.get 4
+  i32.store offset=0 align=2**2
+  local.get 1
+  i32.const 0
+  i32.store offset=0 align=2**2
+  local.get 3
+  i32.const 0
+  i32.store offset=0 align=2**2
+  local.get 0
+  i32.const 16
+  i32.add
+  local.get 0
+  i32.const 12
+  i32.add
+  i32.load offset=0 align=2**2
+  i32.store offset=0 align=2**2
+  local.get 1
+```
+
+program `tlsf_malloc_try_ready_guard`
+
+```
+tlsf_malloc_try_ready_guard((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  i32.const d
+  local.tee 1
+  i32.const 4294965088
+  i32.gt_u
+  if
+    unreachable
+  end
+  local.get 1
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1908
+  i32.add
+  local.tee 1
+  i32.const 16
+  i32.shr_u
+  memory.size
+  i32.ge_u
+  if (result i32)
+    i32.const 0
+  else
+    local.get 1
+    i32.load offset=0 align=2**2
+  end
+  i32.eqz
+  if
+    call initialize_idx
+  end
+```
+
+program `tlsf_malloc_first_body`
+
+```
+tlsf_malloc_first_body((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  i32.const 0
+  local.get 0
+  i32.eqz
+  br_if 0
+  drop
+  i32.const d
+  local.tee 1
+  i32.const 4294965088
+  i32.gt_u
+  if
+    unreachable
+  end
+  local.get 1
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1908
+  i32.add
+  local.tee 1
+  i32.const 16
+  i32.shr_u
+  memory.size
+  i32.ge_u
+  if (result i32)
+    i32.const 0
+  else
+    local.get 1
+    i32.load offset=0 align=2**2
+  end
+  i32.eqz
+  if
+    call initialize_idx
+  end
+  local.get 0
+  i32.const 256
+  i32.le_u
+  if (result i32)
+    i32.const d
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.const 1912
+    i32.add
+    local.get 0
+    i32.const 7
+    i32.add
+    i32.const 3
+    i32.shr_u
+    local.tee 2
+    i32.const 3
+    i32.shl
+    i32.add
+    i32.load offset=0 align=2**2
+    local.tee 1
+    if
+      local.get 1
+      i32.const 8
+      i32.add
+      local.tee 1
+      i32.load offset=0 align=2**2
+      local.set 3
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.const 1912
+      i32.add
+      local.get 2
+      i32.const 3
+      i32.shl
+      i32.add
+      local.get 3
+      i32.store offset=0 align=2**2
+      local.get 1
+      i32.const 0
+      i32.store offset=0 align=2**2
+      local.get 1
+      br 2
+    end
+    local.get 2
+    i32.const 3
+    i32.shl
+    local.tee 3
+    i32.const d
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.add
+    i32.const 1916
+    i32.add
+    i32.load offset=0 align=2**2
+    local.tee 1
+    if
+      local.get 1
+      i32.const 20
+      i32.add
+      local.tee 4
+      i32.load offset=0 align=2**2
+      local.tee 2
+      i32.const 8
+      i32.add
+      i32.load offset=0 align=2**2
+      local.set 5
+      local.get 3
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.const 1912
+      i32.add
+      i32.add
+      local.get 5
+      i32.store offset=0 align=2**2
+      local.get 2
+      i32.const 8
+      i32.add
+      i32.const 0
+      i32.store offset=0 align=2**2
+      local.get 4
+      i32.const 0
+      i32.store offset=0 align=2**2
+      local.get 1
+      i32.const 16
+      i32.add
+      local.get 1
+      i32.const 12
+      i32.add
+      i32.load offset=0 align=2**2
+      i32.store offset=0 align=2**2
+      local.get 1
+      i32.const 28
+      i32.add
+      i32.load offset=0 align=2**2
+      local.set 1
+      local.get 3
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.add
+      i32.const 1916
+      i32.add
+      local.get 1
+      i32.store offset=0 align=2**2
+      local.get 1
+      if
+        local.get 1
+        i32.const 24
+        i32.add
+        i32.const 0
+        i32.store offset=0 align=2**2
+      end
+      local.get 2
+      i32.const 8
+      i32.add
+      br 2
+    end
+    local.get 2
+    i32.const 3
+    i32.shl
+    local.tee 3
+    call page_idx
+    local.tee 1
+    if
+      local.get 1
+      i32.const 20
+      i32.add
+      local.tee 4
+      i32.load offset=0 align=2**2
+      local.tee 2
+      if
+        local.get 2
+        i32.const 8
+        i32.add
+        local.tee 2
+        i32.load offset=0 align=2**2
+        local.set 5
+        local.get 3
+        i32.const d
+        i32.const 15
+        i32.add
+        i32.const 4294967280
+        i32.and
+        i32.const 1912
+        i32.add
+        i32.add
+        local.get 5
+        i32.store offset=0 align=2**2
+        local.get 2
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 4
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 1
+        i32.const 16
+        i32.add
+        local.get 1
+        i32.const 12
+        i32.add
+        i32.load offset=0 align=2**2
+        i32.store offset=0 align=2**2
+        local.get 2
+        br 3
+      end
+    end
+    i32.const 4294967295
+  else
+    local.get 0
+    i32.const 4160749568
+    i32.gt_u
+    if
+      unreachable
+    end
+    local.get 0
+    call take_idx
+    local.tee 1
+    if (result i32)
+      local.get 1
+      i32.const 8
+      i32.add
+    else
+      i32.const 4294967295
+    end
+  end
+```
+
+program `tlsf_malloc_first_small`
+
+```
+tlsf_malloc_first_small((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1912
+  i32.add
+  local.get 0
+  i32.const 7
+  i32.add
+  i32.const 3
+  i32.shr_u
+  local.tee 2
+  i32.const 3
+  i32.shl
+  i32.add
+  i32.load offset=0 align=2**2
+  local.tee 1
+  if
+    local.get 1
+    i32.const 8
+    i32.add
+    local.tee 1
+    i32.load offset=0 align=2**2
+    local.set 3
+    i32.const d
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.const 1912
+    i32.add
+    local.get 2
+    i32.const 3
+    i32.shl
+    i32.add
+    local.get 3
+    i32.store offset=0 align=2**2
+    local.get 1
+    i32.const 0
+    i32.store offset=0 align=2**2
+    local.get 1
+    br 2
+  end
+  local.get 2
+  i32.const 3
+  i32.shl
+  local.tee 3
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.add
+  i32.const 1916
+  i32.add
+  i32.load offset=0 align=2**2
+  local.tee 1
+  if
+    local.get 1
+    i32.const 20
+    i32.add
+    local.tee 4
+    i32.load offset=0 align=2**2
+    local.tee 2
+    i32.const 8
+    i32.add
+    i32.load offset=0 align=2**2
+    local.set 5
+    local.get 3
+    i32.const d
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.const 1912
+    i32.add
+    i32.add
+    local.get 5
+    i32.store offset=0 align=2**2
+    local.get 2
+    i32.const 8
+    i32.add
+    i32.const 0
+    i32.store offset=0 align=2**2
+    local.get 4
+    i32.const 0
+    i32.store offset=0 align=2**2
+    local.get 1
+    i32.const 16
+    i32.add
+    local.get 1
+    i32.const 12
+    i32.add
+    i32.load offset=0 align=2**2
+    i32.store offset=0 align=2**2
+    local.get 1
+    i32.const 28
+    i32.add
+    i32.load offset=0 align=2**2
+    local.set 1
+    local.get 3
+    i32.const d
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.add
+    i32.const 1916
+    i32.add
+    local.get 1
+    i32.store offset=0 align=2**2
+    local.get 1
+    if
+      local.get 1
+      i32.const 24
+      i32.add
+      i32.const 0
+      i32.store offset=0 align=2**2
+    end
+    local.get 2
+    i32.const 8
+    i32.add
+    br 2
+  end
+  local.get 2
+  i32.const 3
+  i32.shl
+  local.tee 3
+  call page_idx
+  local.tee 1
+  if
+    local.get 1
+    i32.const 20
+    i32.add
+    local.tee 4
+    i32.load offset=0 align=2**2
+    local.tee 2
+    if
+      local.get 2
+      i32.const 8
+      i32.add
+      local.tee 2
+      i32.load offset=0 align=2**2
+      local.set 5
+      local.get 3
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.const 1912
+      i32.add
+      i32.add
+      local.get 5
+      i32.store offset=0 align=2**2
+      local.get 2
+      i32.const 0
+      i32.store offset=0 align=2**2
+      local.get 4
+      i32.const 0
+      i32.store offset=0 align=2**2
+      local.get 1
+      i32.const 16
+      i32.add
+      local.get 1
+      i32.const 12
+      i32.add
+      i32.load offset=0 align=2**2
+      i32.store offset=0 align=2**2
+      local.get 2
+      br 3
+    end
+  end
+  i32.const 4294967295
+```
+
+program `tlsf_malloc_first_large`
+
+```
+tlsf_malloc_first_large((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 0
+  i32.const 4160749568
+  i32.gt_u
+  if
+    unreachable
+  end
+  local.get 0
+  call take_idx
+  local.tee 1
+  if (result i32)
+    local.get 1
+    i32.const 8
+    i32.add
+  else
+    i32.const 4294967295
+  end
+```
+
+program `tlsf_malloc_first_fast_lookup`
+
+```
+tlsf_malloc_first_fast_lookup((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1912
+  i32.add
+  local.get 0
+  i32.const 7
+  i32.add
+  i32.const 3
+  i32.shr_u
+  local.tee 2
+  i32.const 3
+  i32.shl
+  i32.add
+  i32.load offset=0 align=2**2
+  local.tee 1
+```
+
+program `tlsf_malloc_first_cached`
+
+```
+tlsf_malloc_first_cached((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 1
+  i32.const 8
+  i32.add
+  local.tee 1
+  i32.load offset=0 align=2**2
+  local.set 3
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1912
+  i32.add
+  local.get 2
+  i32.const 3
+  i32.shl
+  i32.add
+  local.get 3
+  i32.store offset=0 align=2**2
+  local.get 1
+  i32.const 0
+  i32.store offset=0 align=2**2
+  local.get 1
+```
+
+program `tlsf_malloc_first_partial_lookup`
+
+```
+tlsf_malloc_first_partial_lookup((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 2
+  i32.const 3
+  i32.shl
+  local.tee 3
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.add
+  i32.const 1916
+  i32.add
+  i32.load offset=0 align=2**2
+  local.tee 1
+```
+
+program `tlsf_malloc_first_partial`
+
+```
+tlsf_malloc_first_partial((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 1
+  i32.const 20
+  i32.add
+  local.tee 4
+  i32.load offset=0 align=2**2
+  local.tee 2
+  i32.const 8
+  i32.add
+  i32.load offset=0 align=2**2
+  local.set 5
+  local.get 3
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1912
+  i32.add
+  i32.add
+  local.get 5
+  i32.store offset=0 align=2**2
+  local.get 2
+  i32.const 8
+  i32.add
+  i32.const 0
+  i32.store offset=0 align=2**2
+  local.get 4
+  i32.const 0
+  i32.store offset=0 align=2**2
+  local.get 1
+  i32.const 16
+  i32.add
+  local.get 1
+  i32.const 12
+  i32.add
+  i32.load offset=0 align=2**2
+  i32.store offset=0 align=2**2
+  local.get 1
+  i32.const 28
+  i32.add
+  i32.load offset=0 align=2**2
+  local.set 1
+  local.get 3
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.add
+  i32.const 1916
+  i32.add
+  local.get 1
+  i32.store offset=0 align=2**2
+  local.get 1
+  if
+    local.get 1
+    i32.const 24
+    i32.add
+    i32.const 0
+    i32.store offset=0 align=2**2
+  end
+  local.get 2
+  i32.const 8
+  i32.add
+```
+
+program `tlsf_malloc_first_page_call`
+
+```
+tlsf_malloc_first_page_call((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 2
+  i32.const 3
+  i32.shl
+  local.tee 3
+  call page_idx
+  local.tee 1
+```
+
+program `tlsf_malloc_first_head`
+
+```
+tlsf_malloc_first_head((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 1
+  i32.const 20
+  i32.add
+  local.tee 4
+  i32.load offset=0 align=2**2
+  local.tee 2
+```
+
+program `tlsf_malloc_first_fresh`
+
+```
+tlsf_malloc_first_fresh((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 2
+  i32.const 8
+  i32.add
+  local.tee 2
+  i32.load offset=0 align=2**2
+  local.set 5
+  local.get 3
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1912
+  i32.add
+  i32.add
+  local.get 5
+  i32.store offset=0 align=2**2
+  local.get 2
+  i32.const 0
+  i32.store offset=0 align=2**2
+  local.get 4
+  i32.const 0
+  i32.store offset=0 align=2**2
+  local.get 1
+  i32.const 16
+  i32.add
+  local.get 1
+  i32.const 12
+  i32.add
+  i32.load offset=0 align=2**2
+  i32.store offset=0 align=2**2
+  local.get 2
+```
+
+program `tlsf_malloc_first_ready_guard`
+
+```
+tlsf_malloc_first_ready_guard((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  i32.const d
+  local.tee 1
+  i32.const 4294965088
+  i32.gt_u
+  if
+    unreachable
+  end
+  local.get 1
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1908
+  i32.add
+  local.tee 1
+  i32.const 16
+  i32.shr_u
+  memory.size
+  i32.ge_u
+  if (result i32)
+    i32.const 0
+  else
+    local.get 1
+    i32.load offset=0 align=2**2
+  end
+  i32.eqz
+  if
+    call initialize_idx
+  end
+```
+
+program `tlsf_malloc_retry_body`
+
+```
+tlsf_malloc_retry_body((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  i32.const 0
+  local.get 0
+  i32.eqz
+  br_if 0
+  drop
+  i32.const d
+  local.tee 1
+  i32.const 4294965088
+  i32.gt_u
+  if
+    unreachable
+  end
+  local.get 1
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1908
+  i32.add
+  local.tee 1
+  i32.const 16
+  i32.shr_u
+  memory.size
+  i32.ge_u
+  if (result i32)
+    i32.const 0
+  else
+    local.get 1
+    i32.load offset=0 align=2**2
+  end
+  i32.eqz
+  if
+    call initialize_idx
+  end
+  local.get 0
+  i32.const 256
+  i32.le_u
+  if (result i32)
+    i32.const d
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.const 1912
+    i32.add
+    local.get 0
+    i32.const 7
+    i32.add
+    i32.const 3
+    i32.shr_u
+    local.tee 1
+    i32.const 3
+    i32.shl
+    i32.add
+    i32.load offset=0 align=2**2
+    local.tee 0
+    if
+      local.get 0
+      i32.const 8
+      i32.add
+      local.tee 0
+      i32.load offset=0 align=2**2
+      local.set 2
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.const 1912
+      i32.add
+      local.get 1
+      i32.const 3
+      i32.shl
+      i32.add
+      local.get 2
+      i32.store offset=0 align=2**2
+      local.get 0
+      i32.const 0
+      i32.store offset=0 align=2**2
+      local.get 0
+      br 2
+    end
+    local.get 1
+    i32.const 3
+    i32.shl
+    local.tee 2
+    i32.const d
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.add
+    i32.const 1916
+    i32.add
+    i32.load offset=0 align=2**2
+    local.tee 0
+    if
+      local.get 0
+      i32.const 20
+      i32.add
+      local.tee 3
+      i32.load offset=0 align=2**2
+      local.tee 1
+      i32.const 8
+      i32.add
+      i32.load offset=0 align=2**2
+      local.set 4
+      local.get 2
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.const 1912
+      i32.add
+      i32.add
+      local.get 4
+      i32.store offset=0 align=2**2
+      local.get 1
+      i32.const 8
+      i32.add
+      i32.const 0
+      i32.store offset=0 align=2**2
+      local.get 3
+      i32.const 0
+      i32.store offset=0 align=2**2
+      local.get 0
+      i32.const 16
+      i32.add
+      local.get 0
+      i32.const 12
+      i32.add
+      i32.load offset=0 align=2**2
+      i32.store offset=0 align=2**2
+      local.get 0
+      i32.const 28
+      i32.add
+      i32.load offset=0 align=2**2
+      local.set 0
+      local.get 2
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.add
+      i32.const 1916
+      i32.add
+      local.get 0
+      i32.store offset=0 align=2**2
+      local.get 0
+      if
+        local.get 0
+        i32.const 24
+        i32.add
+        i32.const 0
+        i32.store offset=0 align=2**2
+      end
+      local.get 1
+      i32.const 8
+      i32.add
+      br 2
+    end
+    local.get 1
+    i32.const 3
+    i32.shl
+    local.tee 2
+    call page_idx
+    local.tee 0
+    if
+      local.get 0
+      i32.const 20
+      i32.add
+      local.tee 3
+      i32.load offset=0 align=2**2
+      local.tee 1
+      if
+        local.get 1
+        i32.const 8
+        i32.add
+        local.tee 1
+        i32.load offset=0 align=2**2
+        local.set 4
+        local.get 2
+        i32.const d
+        i32.const 15
+        i32.add
+        i32.const 4294967280
+        i32.and
+        i32.const 1912
+        i32.add
+        i32.add
+        local.get 4
+        i32.store offset=0 align=2**2
+        local.get 1
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 3
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 0
+        i32.const 16
+        i32.add
+        local.get 0
+        i32.const 12
+        i32.add
+        i32.load offset=0 align=2**2
+        i32.store offset=0 align=2**2
+        local.get 1
+        br 3
+      end
+    end
+    i32.const 4294967295
+  else
+    local.get 0
+    i32.const 4160749568
+    i32.gt_u
+    if
+      unreachable
+    end
+    local.get 0
+    call take_idx
+    local.tee 0
+    if (result i32)
+      local.get 0
+      i32.const 8
+      i32.add
+    else
+      i32.const 4294967295
+    end
+  end
+```
+
+program `tlsf_malloc_retry_small`
+
+```
+tlsf_malloc_retry_small((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1912
+  i32.add
+  local.get 0
+  i32.const 7
+  i32.add
+  i32.const 3
+  i32.shr_u
+  local.tee 1
+  i32.const 3
+  i32.shl
+  i32.add
+  i32.load offset=0 align=2**2
+  local.tee 0
+  if
+    local.get 0
+    i32.const 8
+    i32.add
+    local.tee 0
+    i32.load offset=0 align=2**2
+    local.set 2
+    i32.const d
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.const 1912
+    i32.add
+    local.get 1
+    i32.const 3
+    i32.shl
+    i32.add
+    local.get 2
+    i32.store offset=0 align=2**2
+    local.get 0
+    i32.const 0
+    i32.store offset=0 align=2**2
+    local.get 0
+    br 2
+  end
+  local.get 1
+  i32.const 3
+  i32.shl
+  local.tee 2
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.add
+  i32.const 1916
+  i32.add
+  i32.load offset=0 align=2**2
+  local.tee 0
+  if
+    local.get 0
+    i32.const 20
+    i32.add
+    local.tee 3
+    i32.load offset=0 align=2**2
+    local.tee 1
+    i32.const 8
+    i32.add
+    i32.load offset=0 align=2**2
+    local.set 4
+    local.get 2
+    i32.const d
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.const 1912
+    i32.add
+    i32.add
+    local.get 4
+    i32.store offset=0 align=2**2
+    local.get 1
+    i32.const 8
+    i32.add
+    i32.const 0
+    i32.store offset=0 align=2**2
+    local.get 3
+    i32.const 0
+    i32.store offset=0 align=2**2
+    local.get 0
+    i32.const 16
+    i32.add
+    local.get 0
+    i32.const 12
+    i32.add
+    i32.load offset=0 align=2**2
+    i32.store offset=0 align=2**2
+    local.get 0
+    i32.const 28
+    i32.add
+    i32.load offset=0 align=2**2
+    local.set 0
+    local.get 2
+    i32.const d
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.add
+    i32.const 1916
+    i32.add
+    local.get 0
+    i32.store offset=0 align=2**2
+    local.get 0
+    if
+      local.get 0
+      i32.const 24
+      i32.add
+      i32.const 0
+      i32.store offset=0 align=2**2
+    end
+    local.get 1
+    i32.const 8
+    i32.add
+    br 2
+  end
+  local.get 1
+  i32.const 3
+  i32.shl
+  local.tee 2
+  call page_idx
+  local.tee 0
+  if
+    local.get 0
+    i32.const 20
+    i32.add
+    local.tee 3
+    i32.load offset=0 align=2**2
+    local.tee 1
+    if
+      local.get 1
+      i32.const 8
+      i32.add
+      local.tee 1
+      i32.load offset=0 align=2**2
+      local.set 4
+      local.get 2
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.const 1912
+      i32.add
+      i32.add
+      local.get 4
+      i32.store offset=0 align=2**2
+      local.get 1
+      i32.const 0
+      i32.store offset=0 align=2**2
+      local.get 3
+      i32.const 0
+      i32.store offset=0 align=2**2
+      local.get 0
+      i32.const 16
+      i32.add
+      local.get 0
+      i32.const 12
+      i32.add
+      i32.load offset=0 align=2**2
+      i32.store offset=0 align=2**2
+      local.get 1
+      br 3
+    end
+  end
+  i32.const 4294967295
+```
+
+program `tlsf_malloc_retry_large`
+
+```
+tlsf_malloc_retry_large((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 0
+  i32.const 4160749568
+  i32.gt_u
+  if
+    unreachable
+  end
+  local.get 0
+  call take_idx
+  local.tee 0
+  if (result i32)
+    local.get 0
+    i32.const 8
+    i32.add
+  else
+    i32.const 4294967295
+  end
+```
+
+program `tlsf_malloc_retry_fast_lookup`
+
+```
+tlsf_malloc_retry_fast_lookup((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1912
+  i32.add
+  local.get 0
+  i32.const 7
+  i32.add
+  i32.const 3
+  i32.shr_u
+  local.tee 1
+  i32.const 3
+  i32.shl
+  i32.add
+  i32.load offset=0 align=2**2
+  local.tee 0
+```
+
+program `tlsf_malloc_retry_cached`
+
+```
+tlsf_malloc_retry_cached((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 0
+  i32.const 8
+  i32.add
+  local.tee 0
+  i32.load offset=0 align=2**2
+  local.set 2
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1912
+  i32.add
+  local.get 1
+  i32.const 3
+  i32.shl
+  i32.add
+  local.get 2
+  i32.store offset=0 align=2**2
+  local.get 0
+  i32.const 0
+  i32.store offset=0 align=2**2
+  local.get 0
+```
+
+program `tlsf_malloc_retry_partial_lookup`
+
+```
+tlsf_malloc_retry_partial_lookup((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 1
+  i32.const 3
+  i32.shl
+  local.tee 2
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.add
+  i32.const 1916
+  i32.add
+  i32.load offset=0 align=2**2
+  local.tee 0
+```
+
+program `tlsf_malloc_retry_partial`
+
+```
+tlsf_malloc_retry_partial((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 0
+  i32.const 20
+  i32.add
+  local.tee 3
+  i32.load offset=0 align=2**2
+  local.tee 1
+  i32.const 8
+  i32.add
+  i32.load offset=0 align=2**2
+  local.set 4
+  local.get 2
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1912
+  i32.add
+  i32.add
+  local.get 4
+  i32.store offset=0 align=2**2
+  local.get 1
+  i32.const 8
+  i32.add
+  i32.const 0
+  i32.store offset=0 align=2**2
+  local.get 3
+  i32.const 0
+  i32.store offset=0 align=2**2
+  local.get 0
+  i32.const 16
+  i32.add
+  local.get 0
+  i32.const 12
+  i32.add
+  i32.load offset=0 align=2**2
+  i32.store offset=0 align=2**2
+  local.get 0
+  i32.const 28
+  i32.add
+  i32.load offset=0 align=2**2
+  local.set 0
+  local.get 2
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.add
+  i32.const 1916
+  i32.add
+  local.get 0
+  i32.store offset=0 align=2**2
+  local.get 0
+  if
+    local.get 0
+    i32.const 24
+    i32.add
+    i32.const 0
+    i32.store offset=0 align=2**2
+  end
+  local.get 1
+  i32.const 8
+  i32.add
+```
+
+program `tlsf_malloc_retry_page_call`
+
+```
+tlsf_malloc_retry_page_call((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 1
+  i32.const 3
+  i32.shl
+  local.tee 2
+  call page_idx
+  local.tee 0
+```
+
+program `tlsf_malloc_retry_head`
+
+```
+tlsf_malloc_retry_head((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 0
+  i32.const 20
+  i32.add
+  local.tee 3
+  i32.load offset=0 align=2**2
+  local.tee 1
+```
+
+program `tlsf_malloc_retry_fresh`
+
+```
+tlsf_malloc_retry_fresh((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 1
+  i32.const 8
+  i32.add
+  local.tee 1
+  i32.load offset=0 align=2**2
+  local.set 4
+  local.get 2
+  i32.const d
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1912
+  i32.add
+  i32.add
+  local.get 4
+  i32.store offset=0 align=2**2
+  local.get 1
+  i32.const 0
+  i32.store offset=0 align=2**2
+  local.get 3
+  i32.const 0
+  i32.store offset=0 align=2**2
+  local.get 0
+  i32.const 16
+  i32.add
+  local.get 0
+  i32.const 12
+  i32.add
+  i32.load offset=0 align=2**2
+  i32.store offset=0 align=2**2
+  local.get 1
+```
+
+program `tlsf_malloc_retry_ready_guard`
+
+```
+tlsf_malloc_retry_ready_guard((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  i32.const d
+  local.tee 1
+  i32.const 4294965088
+  i32.gt_u
+  if
+    unreachable
+  end
+  local.get 1
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 1908
+  i32.add
+  local.tee 1
+  i32.const 16
+  i32.shr_u
+  memory.size
+  i32.ge_u
+  if (result i32)
+    i32.const 0
+  else
+    local.get 1
+    i32.load offset=0 align=2**2
+  end
+  i32.eqz
+  if
+    call initialize_idx
+  end
+```
+
+program `tlsf_malloc_full_prefix`
+
+```
+tlsf_malloc_full_prefix((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  block (result i32)
+    i32.const 0
+    local.get 0
+    i32.eqz
+    br_if 0
+    drop
+    i32.const d
+    local.tee 1
+    i32.const 4294965088
+    i32.gt_u
+    if
+      unreachable
+    end
+    local.get 1
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.const 1908
+    i32.add
+    local.tee 1
+    i32.const 16
+    i32.shr_u
+    memory.size
+    i32.ge_u
+    if (result i32)
+      i32.const 0
+    else
+      local.get 1
+      i32.load offset=0 align=2**2
+    end
+    i32.eqz
+    if
+      call initialize_idx
+    end
+    local.get 0
+    i32.const 256
+    i32.le_u
+    if (result i32)
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.const 1912
+      i32.add
+      local.get 0
+      i32.const 7
+      i32.add
+      i32.const 3
+      i32.shr_u
+      local.tee 2
+      i32.const 3
+      i32.shl
+      i32.add
+      i32.load offset=0 align=2**2
+      local.tee 1
+      if
+        local.get 1
+        i32.const 8
+        i32.add
+        local.tee 1
+        i32.load offset=0 align=2**2
+        local.set 3
+        i32.const d
+        i32.const 15
+        i32.add
+        i32.const 4294967280
+        i32.and
+        i32.const 1912
+        i32.add
+        local.get 2
+        i32.const 3
+        i32.shl
+        i32.add
+        local.get 3
+        i32.store offset=0 align=2**2
+        local.get 1
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 1
+        br 2
+      end
+      local.get 2
+      i32.const 3
+      i32.shl
+      local.tee 3
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.add
+      i32.const 1916
+      i32.add
+      i32.load offset=0 align=2**2
+      local.tee 1
+      if
+        local.get 1
+        i32.const 20
+        i32.add
+        local.tee 4
+        i32.load offset=0 align=2**2
+        local.tee 2
+        i32.const 8
+        i32.add
+        i32.load offset=0 align=2**2
+        local.set 5
+        local.get 3
+        i32.const d
+        i32.const 15
+        i32.add
+        i32.const 4294967280
+        i32.and
+        i32.const 1912
+        i32.add
+        i32.add
+        local.get 5
+        i32.store offset=0 align=2**2
+        local.get 2
+        i32.const 8
+        i32.add
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 4
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 1
+        i32.const 16
+        i32.add
+        local.get 1
+        i32.const 12
+        i32.add
+        i32.load offset=0 align=2**2
+        i32.store offset=0 align=2**2
+        local.get 1
+        i32.const 28
+        i32.add
+        i32.load offset=0 align=2**2
+        local.set 1
+        local.get 3
+        i32.const d
+        i32.const 15
+        i32.add
+        i32.const 4294967280
+        i32.and
+        i32.add
+        i32.const 1916
+        i32.add
+        local.get 1
+        i32.store offset=0 align=2**2
+        local.get 1
+        if
+          local.get 1
+          i32.const 24
+          i32.add
+          i32.const 0
+          i32.store offset=0 align=2**2
+        end
+        local.get 2
+        i32.const 8
+        i32.add
+        br 2
+      end
+      local.get 2
+      i32.const 3
+      i32.shl
+      local.tee 3
+      call page_idx
+      local.tee 1
+      if
+        local.get 1
+        i32.const 20
+        i32.add
+        local.tee 4
+        i32.load offset=0 align=2**2
+        local.tee 2
+        if
+          local.get 2
+          i32.const 8
+          i32.add
+          local.tee 2
+          i32.load offset=0 align=2**2
+          local.set 5
+          local.get 3
+          i32.const d
+          i32.const 15
+          i32.add
+          i32.const 4294967280
+          i32.and
+          i32.const 1912
+          i32.add
+          i32.add
+          local.get 5
+          i32.store offset=0 align=2**2
+          local.get 2
+          i32.const 0
+          i32.store offset=0 align=2**2
+          local.get 4
+          i32.const 0
+          i32.store offset=0 align=2**2
+          local.get 1
+          i32.const 16
+          i32.add
+          local.get 1
+          i32.const 12
+          i32.add
+          i32.load offset=0 align=2**2
+          i32.store offset=0 align=2**2
+          local.get 2
+          br 3
+        end
+      end
+      i32.const 4294967295
+    else
+      local.get 0
+      i32.const 4160749568
+      i32.gt_u
+      if
+        unreachable
+      end
+      local.get 0
+      call take_idx
+      local.tee 1
+      if (result i32)
+        local.get 1
+        i32.const 8
+        i32.add
+      else
+        i32.const 4294967295
+      end
+    end
+  end
+```
+
+program `tlsf_malloc_full_after_attempt`
+
+```
+tlsf_malloc_full_after_attempt((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.tee 1
+  i32.const 4294967295
+  i32.ne
+  if
+    local.get 1
+    return
+  end
+  local.get 0
+  i32.const 256
+  i32.le_u
+  if
+    i32.const 1080
+    call ensure_idx
+    i32.eqz
+    if
+      unreachable
+    end
+  else
+    local.get 0
+    call ensure_idx
+    i32.eqz
+    if
+      unreachable
+    end
+  end
+```
+
+program `tlsf_malloc_full_retry`
+
+```
+tlsf_malloc_full_retry((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  block (result i32)
+    i32.const 0
+    local.get 0
+    i32.eqz
+    br_if 0
+    drop
+    i32.const d
+    local.tee 1
+    i32.const 4294965088
+    i32.gt_u
+    if
+      unreachable
+    end
+    local.get 1
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.const 1908
+    i32.add
+    local.tee 1
+    i32.const 16
+    i32.shr_u
+    memory.size
+    i32.ge_u
+    if (result i32)
+      i32.const 0
+    else
+      local.get 1
+      i32.load offset=0 align=2**2
+    end
+    i32.eqz
+    if
+      call initialize_idx
+    end
+    local.get 0
+    i32.const 256
+    i32.le_u
+    if (result i32)
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.const 1912
+      i32.add
+      local.get 0
+      i32.const 7
+      i32.add
+      i32.const 3
+      i32.shr_u
+      local.tee 1
+      i32.const 3
+      i32.shl
+      i32.add
+      i32.load offset=0 align=2**2
+      local.tee 0
+      if
+        local.get 0
+        i32.const 8
+        i32.add
+        local.tee 0
+        i32.load offset=0 align=2**2
+        local.set 2
+        i32.const d
+        i32.const 15
+        i32.add
+        i32.const 4294967280
+        i32.and
+        i32.const 1912
+        i32.add
+        local.get 1
+        i32.const 3
+        i32.shl
+        i32.add
+        local.get 2
+        i32.store offset=0 align=2**2
+        local.get 0
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 0
+        br 2
+      end
+      local.get 1
+      i32.const 3
+      i32.shl
+      local.tee 2
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      i32.add
+      i32.const 1916
+      i32.add
+      i32.load offset=0 align=2**2
+      local.tee 0
+      if
+        local.get 0
+        i32.const 20
+        i32.add
+        local.tee 3
+        i32.load offset=0 align=2**2
+        local.tee 1
+        i32.const 8
+        i32.add
+        i32.load offset=0 align=2**2
+        local.set 4
+        local.get 2
+        i32.const d
+        i32.const 15
+        i32.add
+        i32.const 4294967280
+        i32.and
+        i32.const 1912
+        i32.add
+        i32.add
+        local.get 4
+        i32.store offset=0 align=2**2
+        local.get 1
+        i32.const 8
+        i32.add
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 3
+        i32.const 0
+        i32.store offset=0 align=2**2
+        local.get 0
+        i32.const 16
+        i32.add
+        local.get 0
+        i32.const 12
+        i32.add
+        i32.load offset=0 align=2**2
+        i32.store offset=0 align=2**2
+        local.get 0
+        i32.const 28
+        i32.add
+        i32.load offset=0 align=2**2
+        local.set 0
+        local.get 2
+        i32.const d
+        i32.const 15
+        i32.add
+        i32.const 4294967280
+        i32.and
+        i32.add
+        i32.const 1916
+        i32.add
+        local.get 0
+        i32.store offset=0 align=2**2
+        local.get 0
+        if
+          local.get 0
+          i32.const 24
+          i32.add
+          i32.const 0
+          i32.store offset=0 align=2**2
+        end
+        local.get 1
+        i32.const 8
+        i32.add
+        br 2
+      end
+      local.get 1
+      i32.const 3
+      i32.shl
+      local.tee 2
+      call page_idx
+      local.tee 0
+      if
+        local.get 0
+        i32.const 20
+        i32.add
+        local.tee 3
+        i32.load offset=0 align=2**2
+        local.tee 1
+        if
+          local.get 1
+          i32.const 8
+          i32.add
+          local.tee 1
+          i32.load offset=0 align=2**2
+          local.set 4
+          local.get 2
+          i32.const d
+          i32.const 15
+          i32.add
+          i32.const 4294967280
+          i32.and
+          i32.const 1912
+          i32.add
+          i32.add
+          local.get 4
+          i32.store offset=0 align=2**2
+          local.get 1
+          i32.const 0
+          i32.store offset=0 align=2**2
+          local.get 3
+          i32.const 0
+          i32.store offset=0 align=2**2
+          local.get 0
+          i32.const 16
+          i32.add
+          local.get 0
+          i32.const 12
+          i32.add
+          i32.load offset=0 align=2**2
+          i32.store offset=0 align=2**2
+          local.get 1
+          br 3
+        end
+      end
+      i32.const 4294967295
+    else
+      local.get 0
+      i32.const 4160749568
+      i32.gt_u
+      if
+        unreachable
+      end
+      local.get 0
+      call take_idx
+      local.tee 0
+      if (result i32)
+        local.get 0
+        i32.const 8
+        i32.add
+      else
+        i32.const 4294967295
+      end
+    end
+  end
+```
+
+program `tlsf_malloc_full_result`
+
+```
+tlsf_malloc_full_result((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.tee 0
+  i32.const 4294967295
+  i32.eq
+  if (result i32)
+    unreachable
+  else
+    local.get 0
+  end
+```
+
+program `tlsf_malloc_full_early`
+
+```
+tlsf_malloc_full_early((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.tee 1
+  i32.const 4294967295
+  i32.ne
+  if
+    local.get 1
+    return
+  end
+```
+
+program `tlsf_malloc_full_growth`
+
+```
+tlsf_malloc_full_growth((d : W32), (initialize_idx : Num), (page_idx : Num), (take_idx : Num), (ensure_idx : Num)) ==
+  local.get 0
+  i32.const 256
+  i32.le_u
+  if
+    i32.const 1080
+    call ensure_idx
+    i32.eqz
+    if
+      unreachable
+    end
+  else
+    local.get 0
+    call ensure_idx
+    i32.eqz
+    if
+      unreachable
+    end
+  end
+```
+
+definition `tlsf_malloc_owned`
+
+```
+tlsf_malloc_owned(
+  (d : W32),
+  (lim : Num),
+  (top : W32),
+  (xs : List[W32]),
+  (hd : (W32) -> W32),
+  (fl : W32),
+  (sb : (Num) -> W32),
+  (bl : (Num, Num) -> List[W32]),
+  (ps : List[W32]),
+  (sz : (W32) -> Num),
+  (loc : (W32) -> List[W32]),
+  (cached : (W32) -> List[W32]),
+  (live : (W32) -> List[W32]),
+  (fast : (Num) -> List[W32]),
+  (partial : (Num) -> List[W32]),
+  (ptr : W32),
+  (cap : Num)) == (
+  (
+    ∃ m : W32,
+      MEM(m, xs)
+      && !MEM(m, ps)
+      && tlsf_used(hd(m))
+      && ptr == word_add(m, word(8))
+      && cap == val(tlsf_size(hd(m))))
+  || (
+       ∃ p : W32,
+         ∃ b : W32,
+           MEM(p, ps)
+           && MEM(b, live(p))
+           && ptr == word_add(b, word(8))
+           && cap == sz(p)))
+```
+
+definition `tlsf_malloc_result`
+
+```
+tlsf_malloc_result(
+  (d : W32),
+  (n : W32),
+  (oldlim : Num),
+  (fp : GProp),
+  (ptr : W32)) == (
+  (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+    ∃ top : W32,
+      ∃ xs : List[W32],
+        ∃ hd : (W32) -> W32,
+          ∃ fl : W32,
+            ∃ sb : (Num) -> W32,
+              ∃ bl : (Num, Num) -> List[W32],
+                ∃ ps : List[W32],
+                  ∃ sz : (W32) -> Num,
+                    ∃ loc : (W32) -> List[W32],
+                      ∃ cached : (W32) -> List[W32],
+                        ∃ live : (W32) -> List[W32],
+                          ∃ fast : (Num) -> List[W32],
+                            ∃ partial : (Num) -> List[W32],
+                              ∃ cap : Num,
+                                !(ptr == word(0))
+                                && !(ptr == word(4294967295))
+                                && val(n) <= cap
+                                && val(ptr) + cap <= ms
+                                && oldlim <= ms
+                                && tlsf_malloc_owned(
+                                     d,
+                                     ms,
+                                     top,
+                                     xs,
+                                     hd,
+                                     fl,
+                                     sb,
+                                     bl,
+                                     ps,
+                                     sz,
+                                     loc,
+                                     cached,
+                                     live,
+                                     fast,
+                                     partial,
+                                     ptr,
+                                     cap)
+                                && star(
+                                     tlsf_bytes(val(ptr), cap),
+                                     star(
+                                       tlsf_allocator(
+                                         d,
+                                         ms,
+                                         top,
+                                         xs,
+                                         hd,
+                                         fl,
+                                         sb,
+                                         bl,
+                                         ps,
+                                         sz,
+                                         loc,
+                                         cached,
+                                         live,
+                                         fast,
+                                         partial),
+                                       star(fp(gs, oldlim), emp)),
+                                     h))
+```
+
+definition `tlsf_malloc_state`
+
+```
+tlsf_malloc_state((d : W32), (oldlim : Num), (fp : GProp)) == (
+  (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+    oldlim <= ms
+    && (
+         ∃ top : W32,
+           ∃ xs : List[W32],
+             ∃ hd : (W32) -> W32,
+               ∃ fl : W32,
+                 ∃ sb : (Num) -> W32,
+                   ∃ bl : (Num, Num) -> List[W32],
+                     ∃ ps : List[W32],
+                       ∃ sz : (W32) -> Num,
+                         ∃ loc : (W32) -> List[W32],
+                           ∃ cached : (W32) -> List[W32],
+                             ∃ live : (W32) -> List[W32],
+                               ∃ fast : (Num) -> List[W32],
+                                 ∃ partial : (Num) -> List[W32],
+                                   star(
+                                     tlsf_allocator(
+                                       d,
+                                       ms,
+                                       top,
+                                       xs,
+                                       hd,
+                                       fl,
+                                       sb,
+                                       bl,
+                                       ps,
+                                       sz,
+                                       loc,
+                                       cached,
+                                       live,
+                                       fast,
+                                       partial),
+                                     fp(gs, oldlim),
+                                     h)))
+```
+
+definition `tlsf_try_malloc_pre`
+
+```
+tlsf_try_malloc_pre(
+  (d : W32),
+  (lim : Num),
+  (top : W32),
+  (xs : List[W32]),
+  (hd : (W32) -> W32),
+  (fl : W32),
+  (sb : (Num) -> W32),
+  (bl : (Num, Num) -> List[W32]),
+  (ps : List[W32]),
+  (sz : (W32) -> Num),
+  (loc : (W32) -> List[W32]),
+  (cached : (W32) -> List[W32]),
+  (live : (W32) -> List[W32]),
+  (fast : (Num) -> List[W32]),
+  (partial : (Num) -> List[W32]),
+  (n : W32),
+  (before : Heap),
+  (fp : GProp)) == (
+  (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+    res == [V_num(ConstInt32(n))]
+    && val(n) <= 4160749568
+    && (
+         (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+           ms == lim
+           && h == before
+           && star(
+                tlsf_allocator(
+                  d,
+                  lim,
+                  top,
+                  xs,
+                  hd,
+                  fl,
+                  sb,
+                  bl,
+                  ps,
+                  sz,
+                  loc,
+                  cached,
+                  live,
+                  fast,
+                  partial),
+                fp(gs, lim),
+                h))(gs, ms, h))
+```
+
+definition `tlsf_try_malloc_post`
+
+```
+tlsf_try_malloc_post(
+  (d : W32),
+  (lim : Num),
+  (top : W32),
+  (xs : List[W32]),
+  (hd : (W32) -> W32),
+  (fl : W32),
+  (sb : (Num) -> W32),
+  (bl : (Num, Num) -> List[W32]),
+  (ps : List[W32]),
+  (sz : (W32) -> Num),
+  (loc : (W32) -> List[W32]),
+  (cached : (W32) -> List[W32]),
+  (live : (W32) -> List[W32]),
+  (fast : (Num) -> List[W32]),
+  (partial : (Num) -> List[W32]),
+  (n : W32),
+  (before : Heap),
+  (fp : GProp)) == (
+  (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+    n == word(0)
+    && res == [V_num(ConstInt32(word(0)))]
+    && ms == lim
+    && h == before
+    && star(
+         tlsf_allocator(
+           d,
+           lim,
+           top,
+           xs,
+           hd,
+           fl,
+           sb,
+           bl,
+           ps,
+           sz,
+           loc,
+           cached,
+           live,
+           fast,
+           partial),
+         fp(gs, lim),
+         h)
+    || !(
+         n == word(0)
+         || val(n) <= 256
+            && (
+                 !(fast(DIV(val(n) + 7, 8)) == NIL)
+                 || !(partial(DIV(val(n) + 7, 8)) == NIL)
+                 || !(tlsf_search(word(1080), fl, sb, bl) == word(0)))
+         || 256 < val(n) && !(tlsf_search(n, fl, sb, bl) == word(0)))
+       && res == [V_num(ConstInt32(word(4294967295)))]
+       && ms == lim
+       && h == before
+       && star(
+            tlsf_allocator(
+              d,
+              lim,
+              top,
+              xs,
+              hd,
+              fl,
+              sb,
+              bl,
+              ps,
+              sz,
+              loc,
+              cached,
+              live,
+              fast,
+              partial),
+            fp(gs, lim),
+            h)
+    || (
+         n == word(0)
+         || val(n) <= 256
+            && (
+                 !(fast(DIV(val(n) + 7, 8)) == NIL)
+                 || !(partial(DIV(val(n) + 7, 8)) == NIL)
+                 || !(tlsf_search(word(1080), fl, sb, bl) == word(0)))
+         || 256 < val(n) && !(tlsf_search(n, fl, sb, bl) == word(0)))
+       && (
+            ∃ ptr : W32,
+              !(n == word(0))
+              && res == [V_num(ConstInt32(ptr))]
+              && tlsf_malloc_result(d, n, lim, fp, ptr, gs, ms, h)))
+```
+
+definition `tlsf_full_malloc_post`
+
+```
+tlsf_full_malloc_post(
+  (d : W32),
+  (lim : Num),
+  (top : W32),
+  (xs : List[W32]),
+  (hd : (W32) -> W32),
+  (fl : W32),
+  (sb : (Num) -> W32),
+  (bl : (Num, Num) -> List[W32]),
+  (ps : List[W32]),
+  (sz : (W32) -> Num),
+  (loc : (W32) -> List[W32]),
+  (cached : (W32) -> List[W32]),
+  (live : (W32) -> List[W32]),
+  (fast : (Num) -> List[W32]),
+  (partial : (Num) -> List[W32]),
+  (n : W32),
+  (before : Heap),
+  (fp : GProp)) == (
+  (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+    n == word(0)
+    && res == [V_num(ConstInt32(word(0)))]
+    && ms == lim
+    && h == before
+    && star(
+         tlsf_allocator(
+           d,
+           lim,
+           top,
+           xs,
+           hd,
+           fl,
+           sb,
+           bl,
+           ps,
+           sz,
+           loc,
+           cached,
+           live,
+           fast,
+           partial),
+         fp(gs, lim),
+         h)
+    || (
+         ∃ ptr : W32,
+           !(n == word(0))
+           && res == [V_num(ConstInt32(ptr))]
+           && tlsf_malloc_result(d, n, lim, fp, ptr, gs, ms, h)))
+```
+
+definition `tlsf_malloc_checked_post`
+
+```
+tlsf_malloc_checked_post(
+  (d : W32),
+  (lim : Num),
+  (top : W32),
+  (xs : List[W32]),
+  (hd : (W32) -> W32),
+  (fl : W32),
+  (sb : (Num) -> W32),
+  (bl : (Num, Num) -> List[W32]),
+  (ps : List[W32]),
+  (sz : (W32) -> Num),
+  (loc : (W32) -> List[W32]),
+  (cached : (W32) -> List[W32]),
+  (live : (W32) -> List[W32]),
+  (fast : (Num) -> List[W32]),
+  (partial : (Num) -> List[W32]),
+  (n : W32),
+  (before : Heap),
+  (fp : GProp)) == (
+  (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+    n == word(0)
+    && res == [V_num(ConstInt32(word(0)))]
+    && ms == lim
+    && h == before
+    && star(
+         tlsf_allocator(
+           d,
+           lim,
+           top,
+           xs,
+           hd,
+           fl,
+           sb,
+           bl,
+           ps,
+           sz,
+           loc,
+           cached,
+           live,
+           fast,
+           partial),
+         fp(gs, lim),
+         h)
+    || res == [V_num(ConstInt32(word(4294967295)))]
+       && ms == lim
+       && h == before
+       && star(
+            tlsf_allocator(
+              d,
+              lim,
+              top,
+              xs,
+              hd,
+              fl,
+              sb,
+              bl,
+              ps,
+              sz,
+              loc,
+              cached,
+              live,
+              fast,
+              partial),
+            fp(gs, lim),
+            h)
+    || (
+         ∃ ptr : W32,
+           !(n == word(0))
+           && res == [V_num(ConstInt32(ptr))]
+           && !(ptr == word(4294967295))
+           && tlsf_malloc_result(d, n, lim, fp, ptr, gs, ms, h)))
+```
+
+lemma `tlsf_malloc_small_round`
+
+```
+∀ (n : Num)
+if
+  1. 0 < n
+  2. n <= 256
+then
+  1 <= DIV(n + 7, 8)
+  && DIV(n + 7, 8) <= 32
+  && n <= 8 * DIV(n + 7, 8)
+  && 8 * DIV(n + 7, 8) <= 256
+  && MOD(8 * DIV(n + 7, 8), 8) == 0
+```
+
+lemma `tlsf_malloc_small_class_word`
+
+```
+∀ (n : W32)
+if
+  1. 0 < val(n)
+  2. val(n) <= 256
+then
+  word_jushr(word_add(n, word(7)), word(3)) == word(DIV(val(n) + 7, 8))
+  && word_jshl(word_jushr(word_add(n, word(7)), word(3)), word(3))
+       == word(8 * DIV(val(n) + 7, 8))
+```
+
+lemma `tlsf_malloc_cached_partition`
+
+```
+∀ (p b : W32) (s : Num) (loc cached live : List[W32])
+if
+  1. tlsf_small_partition(p, s, loc, cached, live)
+  2. MEM(b, cached)
+then
+  tlsf_small_partition(p, s, loc, tlsf_small_remove(b, cached), CONS(b, live))
+  && tlsf_small_used(tlsf_small_remove(b, cached), CONS(b, live))
+       == tlsf_small_used(cached, live)
+  && !MEM(b, live)
+```
+
+lemma `tlsf_malloc_try_cached_raw`
+
+```
+∀ (d b k nx : W32) (initialize_idx page_idx take_idx ensure_idx : Num)
+  (l2 l3 l4 original : Value) (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(b)), V_num(ConstInt32(k)), l2, l3, l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(
+            val(
+              word_add(
+                word_add(
+                  word_and(word_add(d, word(15)), word(4294967280)),
+                  word(1912)),
+                word_jshl(k, word(3)))),
+            serialise_i32(b)),
+          star(
+            pts(val(word_add(b, word(8))), serialise_i32(nx)),
+            star(fp(gs, ms), emp)))),
+    tlsf_malloc_try_cached(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [V_num(ConstInt32(word_add(b, word(8)))), V_num(ConstInt32(k)),
+       V_num(ConstInt32(nx)), l3, l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(
+            val(
+              word_add(
+                word_add(
+                  word_and(word_add(d, word(15)), word(4294967280)),
+                  word(1912)),
+                word_jshl(k, word(3)))),
+            serialise_i32(nx)),
+          star(
+            pts(val(word_add(b, word(8))), serialise_i32(word(0))),
+            star(fp(gs, ms), emp)))))
+```
+
+lemma `tlsf_malloc_first_cached_raw`
+
+```
+∀ (d b k nx : W32) (initialize_idx page_idx take_idx ensure_idx : Num)
+  (l2 l3 l4 original : Value) (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [original, V_num(ConstInt32(b)), V_num(ConstInt32(k)), l2, l3, l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(
+            val(
+              word_add(
+                word_add(
+                  word_and(word_add(d, word(15)), word(4294967280)),
+                  word(1912)),
+                word_jshl(k, word(3)))),
+            serialise_i32(b)),
+          star(
+            pts(val(word_add(b, word(8))), serialise_i32(nx)),
+            star(fp(gs, ms), emp)))),
+    tlsf_malloc_first_cached(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [original, V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(k)), V_num(ConstInt32(nx)), l3, l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(
+            val(
+              word_add(
+                word_add(
+                  word_and(word_add(d, word(15)), word(4294967280)),
+                  word(1912)),
+                word_jshl(k, word(3)))),
+            serialise_i32(nx)),
+          star(
+            pts(val(word_add(b, word(8))), serialise_i32(word(0))),
+            star(fp(gs, ms), emp)))))
+```
+
+lemma `tlsf_malloc_retry_cached_raw`
+
+```
+∀ (d b k nx : W32) (initialize_idx page_idx take_idx ensure_idx : Num)
+  (l2 l3 l4 original : Value) (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(b)), V_num(ConstInt32(k)), l2, l3, l4, original],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(
+            val(
+              word_add(
+                word_add(
+                  word_and(word_add(d, word(15)), word(4294967280)),
+                  word(1912)),
+                word_jshl(k, word(3)))),
+            serialise_i32(b)),
+          star(
+            pts(val(word_add(b, word(8))), serialise_i32(nx)),
+            star(fp(gs, ms), emp)))),
+    tlsf_malloc_retry_cached(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [V_num(ConstInt32(word_add(b, word(8)))), V_num(ConstInt32(k)),
+       V_num(ConstInt32(nx)), l3, l4, original],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(
+            val(
+              word_add(
+                word_add(
+                  word_and(word_add(d, word(15)), word(4294967280)),
+                  word(1912)),
+                word_jshl(k, word(3)))),
+            serialise_i32(nx)),
+          star(
+            pts(val(word_add(b, word(8))), serialise_i32(word(0))),
+            star(fp(gs, ms), emp)))))
+```
+
+lemma `tlsf_malloc_cache_page_view`
+
+```
+∀ (lim cap s i : Num) (p b : W32) (loc cached live : List[W32])
+if
+  1. tlsf_small_page_ok(lim, p, cap, s, loc, cached, live)
+  2. MEM(b, cached)
+  3. i < tlsf_small_total(s)
+  4. b == tlsf_small_slot(p, s, i)
+then
+  tlsf_small_page_heap(p, cap, s, loc, cached, live) == star(
+    tlsf_bytes(val(b) + 12, s - 4),
+    tlsf_small_page_heap(
+      p,
+      cap,
+      s,
+      loc,
+      tlsf_small_remove(b, cached),
+      CONS(b, live)))
+```
+
+lemma `tlsf_malloc_cached_unique`
+
+```
+∀ (p b : W32) (s : Num) (loc cached live : List[W32])
+if
+  1. tlsf_small_partition(p, s, loc, cached, live)
+  2. MEM(b, cached)
+then
+  MEM(b, tlsf_small_slots(p, s, tlsf_small_total(s)))
+  && tlsf_count(b, cached) == 1
+  && !MEM(b, live)
+  && !MEM(b, loc)
+```
+
+lemma `tlsf_malloc_cached_slot`
+
+```
+∀ (d top fl p b : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. MEM(p, ps)
+  3. MEM(b, cached(p))
+then
+  ∃ (i : Num),
+    i < tlsf_small_total(sz(p))
+    && b == tlsf_small_slot(p, sz(p), i)
+```
+
+lemma `tlsf_malloc_cached_bounds`
+
+```
+∀ (d top fl p b : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. MEM(p, ps)
+  3. MEM(b, cached(p))
+then
+  val(p) + 32 <= val(b)
+  && val(b) + 8 + sz(p) <= val(p) + 8 + val(tlsf_size(hd(p)))
+  && !(b == word(0))
+```
+
+lemma `tlsf_malloc_cached_other`
+
+```
+∀ (d top fl p q b : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. MEM(p, ps)
+  4. MEM(b, cached(p))
+  5. MEM(q, ps)
+  6. !(q == p)
+then
+  !MEM(b, cached(q))
+```
+
+lemma `tlsf_malloc_cached_member`
+
+```
+∀ (ff : (W32) -> List[W32]) (p b q a : W32),
+  MEM(a, tlsf_small_put(ff, p, tlsf_small_remove(b, ff(p)), q))
+    == (MEM(a, ff(q)) && (q == p → !(a == b)))
+```
+
+lemma `tlsf_malloc_cached_lists`
+
+```
+∀ (d top fl p b : W32) (lim k : Num) (xs ps bs : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+if
+  1. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  2. MEM(p, ps)
+  3. MEM(b, cached(p))
+  4. sz(p) == 8 * k
+  5. k < 33
+  6. fast(k) == CONS(b, bs)
+  7. ∀ q : W32,
+       tlsf_small_used(
+         tlsf_small_put(cached, p, tlsf_small_remove(b, cached(p)), q),
+         tlsf_small_put(live, p, CONS(b, live(p)), q))
+         == tlsf_small_used(cached(q), live(q))
+  8. ∀ q : W32, MEM(q, ps) && !(q == p) → !MEM(b, cached(q))
+then
+  tlsf_small_lists_ok(
+    ps,
+    sz,
+    loc,
+    tlsf_small_put(cached, p, tlsf_small_remove(b, cached(p))),
+    tlsf_small_put(live, p, CONS(b, live(p))),
+    tlsf_small_put_class(fast, k, bs),
+    partial)
+```
+
+lemma `tlsf_malloc_cached_models`
+
+```
+∀ (d top fl p b : W32) (lim k : Num) (xs ps bs : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. MEM(p, ps)
+  5. MEM(b, cached(p))
+  6. sz(p) == 8 * k
+  7. k < 33
+  8. fast(k) == CONS(b, bs)
+then
+  tlsf_small_backing(
+    xs,
+    hd,
+    ps,
+    sz,
+    loc,
+    tlsf_small_put(cached, p, tlsf_small_remove(b, cached(p))),
+    tlsf_small_put(live, p, CONS(b, live(p))),
+    lim)
+  && tlsf_small_lists_ok(
+       ps,
+       sz,
+       loc,
+       tlsf_small_put(cached, p, tlsf_small_remove(b, cached(p))),
+       tlsf_small_put(live, p, CONS(b, live(p))),
+       tlsf_small_put_class(fast, k, bs),
+       partial)
+```
+
+lemma `tlsf_malloc_cached_pages_rest`
+
+```
+∀ (d top fl p b : W32) (lim k : Num) (xs ps bs : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32]),
+  tlsf_small_pages_heap(
+    tlsf_small_remove(p, ps),
+    hd,
+    sz,
+    loc,
+    tlsf_small_put(cached, p, tlsf_small_remove(b, cached(p))),
+    tlsf_small_put(live, p, CONS(b, live(p)))) == tlsf_small_pages_heap(
+    tlsf_small_remove(p, ps),
+    hd,
+    sz,
+    loc,
+    cached,
+    live)
+```
+
+lemma `tlsf_malloc_small_shift`
+
+```
+∀ (k : Num)
+if
+  1. k < 33
+then
+  (word_jshl : (W32, W32) -> W32)(
+    (word : (Num) -> W32)(k),
+    (word : (Num) -> W32)(3))
+    == (word : (Num) -> W32)(8 * k)
+```
+
+lemma `tlsf_malloc_try_cached_small`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k i : Num)
+  (original l2 l3 l4 : Value) (d top fl p b : W32) (xs ps bs : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. tlsf_small_page_ok(
+       lim,
+       p,
+       val(tlsf_size(hd(p))),
+       8 * k,
+       loc(p),
+       cached(p),
+       live(p))
+  3. MEM(b, cached(p))
+  4. i < tlsf_small_total(8 * k)
+  5. b == tlsf_small_slot(p, 8 * k, i)
+  6. tlsf_count(p, ps) == 1
+  7. sz(p) == 8 * k
+  8. k < 33
+  9. fast(k) == CONS(b, bs)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(b)), V_num(ConstInt32(word(k))), l2, l3, l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          tlsf_small_pages_heap(ps, hd, sz, loc, cached, live),
+          star(tlsf_small_table(d, fast, partial), star(fp(gs, ms), emp)))),
+    tlsf_malloc_try_cached(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc2 : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc2 == [V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(word(k))), V_num(ConstInt32(tlsf_small_head(bs))), l3,
+       l4]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && (
+           (gs : List[Value]) => (ms : Num) =>
+             star(
+               tlsf_small_pages_heap(
+                 ps,
+                 hd,
+                 sz,
+                 loc,
+                 tlsf_small_put(cached, p, tlsf_small_remove(b, cached(p))),
+                 tlsf_small_put(live, p, CONS(b, live(p)))),
+               star(
+                 tlsf_small_table(
+                   d,
+                   tlsf_small_put_class(fast, k, bs),
+                   partial),
+                 star(
+                   tlsf_page_publish_payload(b, 8 * k),
+                   star(fp(gs, ms), emp)))))(gs, ms, h))
+```
+
+lemma `tlsf_malloc_first_cached_small`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k i : Num)
+  (original l2 l3 l4 : Value) (d top fl p b : W32) (xs ps bs : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. tlsf_small_page_ok(
+       lim,
+       p,
+       val(tlsf_size(hd(p))),
+       8 * k,
+       loc(p),
+       cached(p),
+       live(p))
+  3. MEM(b, cached(p))
+  4. i < tlsf_small_total(8 * k)
+  5. b == tlsf_small_slot(p, 8 * k, i)
+  6. tlsf_count(p, ps) == 1
+  7. sz(p) == 8 * k
+  8. k < 33
+  9. fast(k) == CONS(b, bs)
+then
+  sl_triple(
+    st(
+      NIL,
+      [original, V_num(ConstInt32(b)), V_num(ConstInt32(word(k))), l2, l3, l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          tlsf_small_pages_heap(ps, hd, sz, loc, cached, live),
+          star(tlsf_small_table(d, fast, partial), star(fp(gs, ms), emp)))),
+    tlsf_malloc_first_cached(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc2 : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc2 == [original, V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(word(k))), V_num(ConstInt32(tlsf_small_head(bs))), l3,
+       l4]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && (
+           (gs : List[Value]) => (ms : Num) =>
+             star(
+               tlsf_small_pages_heap(
+                 ps,
+                 hd,
+                 sz,
+                 loc,
+                 tlsf_small_put(cached, p, tlsf_small_remove(b, cached(p))),
+                 tlsf_small_put(live, p, CONS(b, live(p)))),
+               star(
+                 tlsf_small_table(
+                   d,
+                   tlsf_small_put_class(fast, k, bs),
+                   partial),
+                 star(
+                   tlsf_page_publish_payload(b, 8 * k),
+                   star(fp(gs, ms), emp)))))(gs, ms, h))
+```
+
+lemma `tlsf_malloc_retry_cached_small`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k i : Num)
+  (original l2 l3 l4 : Value) (d top fl p b : W32) (xs ps bs : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. tlsf_small_page_ok(
+       lim,
+       p,
+       val(tlsf_size(hd(p))),
+       8 * k,
+       loc(p),
+       cached(p),
+       live(p))
+  3. MEM(b, cached(p))
+  4. i < tlsf_small_total(8 * k)
+  5. b == tlsf_small_slot(p, 8 * k, i)
+  6. tlsf_count(p, ps) == 1
+  7. sz(p) == 8 * k
+  8. k < 33
+  9. fast(k) == CONS(b, bs)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(b)), V_num(ConstInt32(word(k))), l2, l3, l4, original],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          tlsf_small_pages_heap(ps, hd, sz, loc, cached, live),
+          star(tlsf_small_table(d, fast, partial), star(fp(gs, ms), emp)))),
+    tlsf_malloc_retry_cached(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc2 : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc2 == [V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(word(k))), V_num(ConstInt32(tlsf_small_head(bs))), l3,
+       l4, original]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && (
+           (gs : List[Value]) => (ms : Num) =>
+             star(
+               tlsf_small_pages_heap(
+                 ps,
+                 hd,
+                 sz,
+                 loc,
+                 tlsf_small_put(cached, p, tlsf_small_remove(b, cached(p))),
+                 tlsf_small_put(live, p, CONS(b, live(p)))),
+               star(
+                 tlsf_small_table(
+                   d,
+                   tlsf_small_put_class(fast, k, bs),
+                   partial),
+                 star(
+                   tlsf_page_publish_payload(b, 8 * k),
+                   star(fp(gs, ms), emp)))))(gs, ms, h))
+```
+
+lemma `tlsf_malloc_first_publish_fresh_raw`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx : Num)
+  (original l1 l3 l4 : Value) (d p b s total used nx oldfast : W32) (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [original, V_num(ConstInt32(p)), V_num(ConstInt32(b)),
+       V_num(ConstInt32(s)), V_num(ConstInt32(word_add(p, word(20)))), l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(12))), serialise_i32(total)),
+          star(
+            pts(val(word_add(p, word(16))), serialise_i32(used)),
+            star(
+              pts(val(word_add(p, word(20))), serialise_i32(b)),
+              star(
+                pts(val(word_add(b, word(8))), serialise_i32(nx)),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        s,
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(1912)))),
+                    serialise_i32(oldfast)),
+                  star(fp(gs, ms), emp))))))),
+    tlsf_malloc_first_fresh(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [original, V_num(ConstInt32(p)),
+       V_num(ConstInt32(word_add(b, word(8)))), V_num(ConstInt32(s)),
+       V_num(ConstInt32(word_add(p, word(20)))), V_num(ConstInt32(nx))],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(12))), serialise_i32(total)),
+          star(
+            pts(val(word_add(p, word(16))), serialise_i32(total)),
+            star(
+              pts(val(word_add(p, word(20))), serialise_i32(word(0))),
+              star(
+                pts(val(word_add(b, word(8))), serialise_i32(word(0))),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        s,
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(1912)))),
+                    serialise_i32(nx)),
+                  star(fp(gs, ms), emp))))))))
+```
+
+lemma `tlsf_malloc_first_publish_partial_nil_raw`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx : Num)
+  (original l1 l3 l4 : Value) (d p b s total used nx oldfast nextp : W32)
+  (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [original, V_num(ConstInt32(p)), l1, V_num(ConstInt32(s)), l3, l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(12))), serialise_i32(total)),
+          star(
+            pts(val(word_add(p, word(16))), serialise_i32(used)),
+            star(
+              pts(val(word_add(p, word(20))), serialise_i32(b)),
+              star(
+                pts(val(word_add(b, word(8))), serialise_i32(nx)),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        s,
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(1912)))),
+                    serialise_i32(oldfast)),
+                  star(
+                    pts(
+                      val(word_add(p, word(28))),
+                      serialise_i32(word(0))),
+                    star(
+                      pts(
+                        val(
+                          word_add(
+                            word_add(
+                              s,
+                              word_and(
+                                word_add(d, word(15)),
+                                word(4294967280))),
+                            word(1916))),
+                        serialise_i32(p)),
+                      star(fp(gs, ms), emp))))))))),
+    tlsf_malloc_first_partial(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [original, V_num(ConstInt32(word(0))), V_num(ConstInt32(b)),
+       V_num(ConstInt32(s)), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(nx))],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(12))), serialise_i32(total)),
+          star(
+            pts(val(word_add(p, word(16))), serialise_i32(total)),
+            star(
+              pts(val(word_add(p, word(20))), serialise_i32(word(0))),
+              star(
+                pts(val(word_add(b, word(8))), serialise_i32(word(0))),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        s,
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(1912)))),
+                    serialise_i32(nx)),
+                  star(
+                    pts(
+                      val(word_add(p, word(28))),
+                      serialise_i32(word(0))),
+                    star(
+                      pts(
+                        val(
+                          word_add(
+                            word_add(
+                              s,
+                              word_and(
+                                word_add(d, word(15)),
+                                word(4294967280))),
+                            word(1916))),
+                        serialise_i32(word(0))),
+                      star(fp(gs, ms), emp))))))))))
+```
+
+lemma `tlsf_malloc_first_publish_partial_cons_raw`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx : Num)
+  (original l1 l3 l4 : Value) (d p b s total used nx oldfast nextp : W32)
+  (fp : GProp)
+if
+  1. !(nextp == word(0))
+then
+  sl_triple(
+    st(
+      NIL,
+      [original, V_num(ConstInt32(p)), l1, V_num(ConstInt32(s)), l3, l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(12))), serialise_i32(total)),
+          star(
+            pts(val(word_add(p, word(16))), serialise_i32(used)),
+            star(
+              pts(val(word_add(p, word(20))), serialise_i32(b)),
+              star(
+                pts(val(word_add(b, word(8))), serialise_i32(nx)),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        s,
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(1912)))),
+                    serialise_i32(oldfast)),
+                  star(
+                    pts(
+                      val(word_add(p, word(28))),
+                      serialise_i32(nextp)),
+                    star(
+                      pts(
+                        val(
+                          word_add(
+                            word_add(
+                              s,
+                              word_and(
+                                word_add(d, word(15)),
+                                word(4294967280))),
+                            word(1916))),
+                        serialise_i32(p)),
+                      star(
+                        pts(
+                          val(word_add(nextp, word(24))),
+                          serialise_i32(p)),
+                        star(fp(gs, ms), emp)))))))))),
+    tlsf_malloc_first_partial(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [original, V_num(ConstInt32(nextp)), V_num(ConstInt32(b)),
+       V_num(ConstInt32(s)), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(nx))],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(12))), serialise_i32(total)),
+          star(
+            pts(val(word_add(p, word(16))), serialise_i32(total)),
+            star(
+              pts(val(word_add(p, word(20))), serialise_i32(word(0))),
+              star(
+                pts(val(word_add(b, word(8))), serialise_i32(word(0))),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        s,
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(1912)))),
+                    serialise_i32(nx)),
+                  star(
+                    pts(
+                      val(word_add(p, word(28))),
+                      serialise_i32(nextp)),
+                    star(
+                      pts(
+                        val(
+                          word_add(
+                            word_add(
+                              s,
+                              word_and(
+                                word_add(d, word(15)),
+                                word(4294967280))),
+                            word(1916))),
+                        serialise_i32(nextp)),
+                      star(
+                        pts(
+                          val(word_add(nextp, word(24))),
+                          serialise_i32(word(0))),
+                        star(fp(gs, ms), emp)))))))))))
+```
+
+lemma `tlsf_malloc_first_publish_head_raw`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx : Num)
+  (original l1 l3 l4 : Value) (d p b s total used nx oldfast : W32) (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [original, V_num(ConstInt32(p)), l1, V_num(ConstInt32(s)), l3, l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(20))), serialise_i32(b)),
+          star(fp(gs, ms), emp))),
+    tlsf_malloc_first_head(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    st(
+      [V_num(ConstInt32(b))],
+      [original, V_num(ConstInt32(p)), V_num(ConstInt32(b)),
+       V_num(ConstInt32(s)), V_num(ConstInt32(word_add(p, word(20)))), l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(20))), serialise_i32(b)),
+          star(fp(gs, ms), emp))))
+```
+
+lemma `tlsf_malloc_first_publish_fresh_page`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim cap s i : Num)
+  (original l1 l3 l4 : Value) (d p b used0 prev0 : W32) (bs live : List[W32])
+  (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. tlsf_small_page_ok(lim, p, cap, s, CONS(b, bs), NIL, live)
+  3. i < tlsf_small_total(s)
+  4. b == tlsf_small_slot(p, s, i)
+  5. live == NIL
+  6. REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))) == CONS(b, bs)
+then
+  sl_triple(
+    st(
+      NIL,
+      [original, V_num(ConstInt32(p)), V_num(ConstInt32(b)),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          tlsf_page_allocate_build(
+            p,
+            cap,
+            s,
+            tlsf_small_total(s),
+            used0,
+            prev0),
+          star(
+            pts(val(tlsf_base(d)) + 1912 + s, serialise_i32(word(0))),
+            star(fp(gs, ms), emp)))),
+    tlsf_malloc_first_fresh(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [original, V_num(ConstInt32(p)),
+       V_num(ConstInt32(word_add(b, word(8)))), V_num(ConstInt32(word(s))),
+       V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs)))],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          star(
+            tlsf_small_page_heap(p, cap, s, NIL, bs, CONS(b, live)),
+            star(tlsf_small_links(bs), tlsf_page_publish_payload(b, s))),
+          star(
+            pts(
+              val(tlsf_base(d)) + 1912 + s,
+              serialise_i32(tlsf_small_head(bs))),
+            star(fp(gs, ms), emp)))))
+```
+
+lemma `tlsf_malloc_first_publish_partial_nil_page`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim cap s i : Num)
+  (original l1 l3 l4 : Value) (d p b used0 prev0 nextp : W32)
+  (bs live zs : List[W32]) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. tlsf_small_page_ok(lim, p, cap, s, CONS(b, bs), NIL, live)
+  3. i < tlsf_small_total(s)
+  4. b == tlsf_small_slot(p, s, i)
+then
+  sl_triple(
+    st(
+      NIL,
+      [original, V_num(ConstInt32(p)), l1, V_num(ConstInt32(word(s))), l3, l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          tlsf_small_page_heap(p, cap, s, CONS(b, bs), NIL, live),
+          star(
+            pts(val(tlsf_base(d)) + 1912 + s, serialise_i32(word(0))),
+            star(
+              pts(val(tlsf_base(d)) + 1916 + s, serialise_i32(p)),
+              star(
+                tlsf_small_partial_links(word(0), [p]),
+                star(fp(gs, ms), emp)))))),
+    tlsf_malloc_first_partial(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [original, V_num(ConstInt32(word(0))), V_num(ConstInt32(b)),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs)))],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          star(
+            tlsf_small_page_heap(p, cap, s, NIL, bs, CONS(b, live)),
+            star(tlsf_small_links(bs), tlsf_page_publish_payload(b, s))),
+          star(
+            pts(
+              val(tlsf_base(d)) + 1912 + s,
+              serialise_i32(tlsf_small_head(bs))),
+            star(
+              pts(
+                val(tlsf_base(d)) + 1916 + s,
+                serialise_i32(tlsf_small_head(NIL))),
+              star(
+                tlsf_small_partial_links(word(0), NIL),
+                star(fp(gs, ms), emp)))))))
+```
+
+lemma `tlsf_malloc_first_publish_partial_cons_page`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim cap s i : Num)
+  (original l1 l3 l4 : Value) (d p b used0 prev0 nextp : W32)
+  (bs live zs : List[W32]) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. tlsf_small_page_ok(lim, p, cap, s, CONS(b, bs), NIL, live)
+  3. i < tlsf_small_total(s)
+  4. b == tlsf_small_slot(p, s, i)
+  5. !(nextp == word(0))
+  6. val(nextp) + 32 <= 4294967296
+then
+  sl_triple(
+    st(
+      NIL,
+      [original, V_num(ConstInt32(p)), l1, V_num(ConstInt32(word(s))), l3, l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          tlsf_small_page_heap(p, cap, s, CONS(b, bs), NIL, live),
+          star(
+            pts(val(tlsf_base(d)) + 1912 + s, serialise_i32(word(0))),
+            star(
+              pts(val(tlsf_base(d)) + 1916 + s, serialise_i32(p)),
+              star(
+                tlsf_small_partial_links(
+                  word(0),
+                  CONS(p, CONS(nextp, zs))),
+                star(fp(gs, ms), emp)))))),
+    tlsf_malloc_first_partial(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [original, V_num(ConstInt32(nextp)), V_num(ConstInt32(b)),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs)))],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          star(
+            tlsf_small_page_heap(p, cap, s, NIL, bs, CONS(b, live)),
+            star(tlsf_small_links(bs), tlsf_page_publish_payload(b, s))),
+          star(
+            pts(
+              val(tlsf_base(d)) + 1912 + s,
+              serialise_i32(tlsf_small_head(bs))),
+            star(
+              pts(
+                val(tlsf_base(d)) + 1916 + s,
+                serialise_i32(tlsf_small_head(CONS(nextp, zs)))),
+              star(
+                tlsf_small_partial_links(word(0), CONS(nextp, zs)),
+                star(fp(gs, ms), emp)))))))
+```
+
+lemma `tlsf_malloc_first_publish_fresh_small`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim s i : Num)
+  (original l1 l3 l4 : Value) (d top fl p b used0 prev0 : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. tlsf_small_page_ok(lim, p, val(tlsf_size(hd(p))), s, CONS(b, bs), NIL, NIL)
+  3. i < tlsf_small_total(s)
+  4. b == tlsf_small_slot(p, s, i)
+  5. fast(DIV(s, 8)) == NIL
+  6. !MEM(p, ps)
+  7. REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))) == CONS(b, bs)
+then
+  sl_triple(
+    st(
+      NIL,
+      [original, V_num(ConstInt32(p)), V_num(ConstInt32(b)),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          tlsf_page_allocate_build(
+            p,
+            val(tlsf_size(hd(p))),
+            s,
+            tlsf_small_total(s),
+            used0,
+            prev0),
+          star(
+            tlsf_small_pages_heap(ps, hd, sz, loc, cached, live),
+            star(tlsf_small_table(d, fast, partial), star(fp(gs, ms), emp))))),
+    tlsf_malloc_first_fresh(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc2 : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc2 == [original, V_num(ConstInt32(p)),
+       V_num(ConstInt32(word_add(b, word(8)))), V_num(ConstInt32(word(s))),
+       V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs)))]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && (
+           (gs : List[Value]) => (ms : Num) =>
+             star(
+               tlsf_small_pages_heap(
+                 CONS(p, ps),
+                 hd,
+                 (q : W32) => if q == p { s } else { sz(q) },
+                 tlsf_small_put(loc, p, NIL),
+                 tlsf_small_put(cached, p, bs),
+                 tlsf_small_put(live, p, [b])),
+               star(
+                 tlsf_small_table(
+                   d,
+                   tlsf_small_put_class(fast, DIV(s, 8), bs),
+                   partial),
+                 star(
+                   tlsf_page_publish_payload(b, s),
+                   star(fp(gs, ms), emp)))))(gs, ms, h))
+```
+
+lemma `tlsf_malloc_first_publish_partial_small`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim s i : Num)
+  (original l1 l3 l4 : Value) (d top fl p b used0 prev0 : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. tlsf_small_page_ok(
+       lim,
+       p,
+       val(tlsf_size(hd(p))),
+       s,
+       CONS(b, bs),
+       NIL,
+       live(p))
+  3. i < tlsf_small_total(s)
+  4. b == tlsf_small_slot(p, s, i)
+  5. fast(DIV(s, 8)) == NIL
+  6. tlsf_count(p, ps) == 1
+  7. sz(p) == s
+  8. loc(p) == CONS(b, bs)
+  9. cached(p) == NIL
+  10. partial(DIV(s, 8)) == CONS(p, z)
+  11. ∀ q : W32, MEM(q, z) → !(q == word(0)) && val(q) + 32 <= 4294967296
+then
+  sl_triple(
+    st(
+      NIL,
+      [original, V_num(ConstInt32(p)), l1, V_num(ConstInt32(word(s))), l3, l4],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          tlsf_small_pages_heap(ps, hd, sz, loc, cached, live),
+          star(tlsf_small_table(d, fast, partial), star(fp(gs, ms), emp)))),
+    tlsf_malloc_first_partial(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    (res : List[Value]) => (lc2 : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc2 == [original, V_num(ConstInt32(tlsf_small_head(z))),
+       V_num(ConstInt32(b)), V_num(ConstInt32(word(s))),
+       V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs)))]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && (
+           (gs : List[Value]) => (ms : Num) =>
+             star(
+               tlsf_small_pages_heap(
+                 ps,
+                 hd,
+                 sz,
+                 tlsf_small_put(loc, p, NIL),
+                 tlsf_small_put(cached, p, bs),
+                 tlsf_small_put(live, p, CONS(b, live(p)))),
+               star(
+                 tlsf_small_table(
+                   d,
+                   tlsf_small_put_class(fast, DIV(s, 8), bs),
+                   tlsf_small_put_class(
+                     partial,
+                     DIV(s, 8),
+                     TL(partial(DIV(s, 8))))),
+                 star(
+                   tlsf_page_publish_payload(b, s),
+                   star(fp(gs, ms), emp)))))(gs, ms, h))
+```
+
+lemma `tlsf_malloc_retry_publish_fresh_raw`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx : Num)
+  (original l1 l3 l4 : Value) (d p b s total used nx oldfast : W32) (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), V_num(ConstInt32(b)), V_num(ConstInt32(s)),
+       V_num(ConstInt32(word_add(p, word(20)))), l4, original],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(12))), serialise_i32(total)),
+          star(
+            pts(val(word_add(p, word(16))), serialise_i32(used)),
+            star(
+              pts(val(word_add(p, word(20))), serialise_i32(b)),
+              star(
+                pts(val(word_add(b, word(8))), serialise_i32(nx)),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        s,
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(1912)))),
+                    serialise_i32(oldfast)),
+                  star(fp(gs, ms), emp))))))),
+    tlsf_malloc_retry_fresh(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [V_num(ConstInt32(p)), V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(s)), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(nx)), original],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(12))), serialise_i32(total)),
+          star(
+            pts(val(word_add(p, word(16))), serialise_i32(total)),
+            star(
+              pts(val(word_add(p, word(20))), serialise_i32(word(0))),
+              star(
+                pts(val(word_add(b, word(8))), serialise_i32(word(0))),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        s,
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(1912)))),
+                    serialise_i32(nx)),
+                  star(fp(gs, ms), emp))))))))
+```
+
+lemma `tlsf_malloc_retry_publish_partial_nil_raw`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx : Num)
+  (original l1 l3 l4 : Value) (d p b s total used nx oldfast nextp : W32)
+  (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), l1, V_num(ConstInt32(s)), l3, l4, original],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(12))), serialise_i32(total)),
+          star(
+            pts(val(word_add(p, word(16))), serialise_i32(used)),
+            star(
+              pts(val(word_add(p, word(20))), serialise_i32(b)),
+              star(
+                pts(val(word_add(b, word(8))), serialise_i32(nx)),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        s,
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(1912)))),
+                    serialise_i32(oldfast)),
+                  star(
+                    pts(
+                      val(word_add(p, word(28))),
+                      serialise_i32(word(0))),
+                    star(
+                      pts(
+                        val(
+                          word_add(
+                            word_add(
+                              s,
+                              word_and(
+                                word_add(d, word(15)),
+                                word(4294967280))),
+                            word(1916))),
+                        serialise_i32(p)),
+                      star(fp(gs, ms), emp))))))))),
+    tlsf_malloc_retry_partial(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [V_num(ConstInt32(word(0))), V_num(ConstInt32(b)), V_num(ConstInt32(s)),
+       V_num(ConstInt32(word_add(p, word(20)))), V_num(ConstInt32(nx)),
+       original],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(12))), serialise_i32(total)),
+          star(
+            pts(val(word_add(p, word(16))), serialise_i32(total)),
+            star(
+              pts(val(word_add(p, word(20))), serialise_i32(word(0))),
+              star(
+                pts(val(word_add(b, word(8))), serialise_i32(word(0))),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        s,
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(1912)))),
+                    serialise_i32(nx)),
+                  star(
+                    pts(
+                      val(word_add(p, word(28))),
+                      serialise_i32(word(0))),
+                    star(
+                      pts(
+                        val(
+                          word_add(
+                            word_add(
+                              s,
+                              word_and(
+                                word_add(d, word(15)),
+                                word(4294967280))),
+                            word(1916))),
+                        serialise_i32(word(0))),
+                      star(fp(gs, ms), emp))))))))))
+```
+
+lemma `tlsf_malloc_retry_publish_partial_cons_raw`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx : Num)
+  (original l1 l3 l4 : Value) (d p b s total used nx oldfast nextp : W32)
+  (fp : GProp)
+if
+  1. !(nextp == word(0))
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), l1, V_num(ConstInt32(s)), l3, l4, original],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(12))), serialise_i32(total)),
+          star(
+            pts(val(word_add(p, word(16))), serialise_i32(used)),
+            star(
+              pts(val(word_add(p, word(20))), serialise_i32(b)),
+              star(
+                pts(val(word_add(b, word(8))), serialise_i32(nx)),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        s,
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(1912)))),
+                    serialise_i32(oldfast)),
+                  star(
+                    pts(
+                      val(word_add(p, word(28))),
+                      serialise_i32(nextp)),
+                    star(
+                      pts(
+                        val(
+                          word_add(
+                            word_add(
+                              s,
+                              word_and(
+                                word_add(d, word(15)),
+                                word(4294967280))),
+                            word(1916))),
+                        serialise_i32(p)),
+                      star(
+                        pts(
+                          val(word_add(nextp, word(24))),
+                          serialise_i32(p)),
+                        star(fp(gs, ms), emp)))))))))),
+    tlsf_malloc_retry_partial(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [V_num(ConstInt32(nextp)), V_num(ConstInt32(b)), V_num(ConstInt32(s)),
+       V_num(ConstInt32(word_add(p, word(20)))), V_num(ConstInt32(nx)),
+       original],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(12))), serialise_i32(total)),
+          star(
+            pts(val(word_add(p, word(16))), serialise_i32(total)),
+            star(
+              pts(val(word_add(p, word(20))), serialise_i32(word(0))),
+              star(
+                pts(val(word_add(b, word(8))), serialise_i32(word(0))),
+                star(
+                  pts(
+                    val(
+                      word_add(
+                        s,
+                        word_add(
+                          word_and(
+                            word_add(d, word(15)),
+                            word(4294967280)),
+                          word(1912)))),
+                    serialise_i32(nx)),
+                  star(
+                    pts(
+                      val(word_add(p, word(28))),
+                      serialise_i32(nextp)),
+                    star(
+                      pts(
+                        val(
+                          word_add(
+                            word_add(
+                              s,
+                              word_and(
+                                word_add(d, word(15)),
+                                word(4294967280))),
+                            word(1916))),
+                        serialise_i32(nextp)),
+                      star(
+                        pts(
+                          val(word_add(nextp, word(24))),
+                          serialise_i32(word(0))),
+                        star(fp(gs, ms), emp)))))))))))
+```
+
+lemma `tlsf_malloc_retry_publish_head_raw`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx : Num)
+  (original l1 l3 l4 : Value) (d p b s total used nx oldfast : W32) (fp : GProp),
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), l1, V_num(ConstInt32(s)), l3, l4, original],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(20))), serialise_i32(b)),
+          star(fp(gs, ms), emp))),
+    tlsf_malloc_retry_head(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    st(
+      [V_num(ConstInt32(b))],
+      [V_num(ConstInt32(p)), V_num(ConstInt32(b)), V_num(ConstInt32(s)),
+       V_num(ConstInt32(word_add(p, word(20)))), l4, original],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          pts(val(word_add(p, word(20))), serialise_i32(b)),
+          star(fp(gs, ms), emp))))
+```
+
+lemma `tlsf_malloc_retry_publish_fresh_page`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim cap s i : Num)
+  (original l1 l3 l4 : Value) (d p b used0 prev0 : W32) (bs live : List[W32])
+  (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. tlsf_small_page_ok(lim, p, cap, s, CONS(b, bs), NIL, live)
+  3. i < tlsf_small_total(s)
+  4. b == tlsf_small_slot(p, s, i)
+  5. live == NIL
+  6. REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))) == CONS(b, bs)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), V_num(ConstInt32(b)), V_num(ConstInt32(word(s))),
+       V_num(ConstInt32(word_add(p, word(20)))), l4, original],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          tlsf_page_allocate_build(
+            p,
+            cap,
+            s,
+            tlsf_small_total(s),
+            used0,
+            prev0),
+          star(
+            pts(val(tlsf_base(d)) + 1912 + s, serialise_i32(word(0))),
+            star(fp(gs, ms), emp)))),
+    tlsf_malloc_retry_fresh(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [V_num(ConstInt32(p)), V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs))), original],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          star(
+            tlsf_small_page_heap(p, cap, s, NIL, bs, CONS(b, live)),
+            star(tlsf_small_links(bs), tlsf_page_publish_payload(b, s))),
+          star(
+            pts(
+              val(tlsf_base(d)) + 1912 + s,
+              serialise_i32(tlsf_small_head(bs))),
+            star(fp(gs, ms), emp)))))
+```
+
+lemma `tlsf_malloc_retry_publish_partial_nil_page`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim cap s i : Num)
+  (original l1 l3 l4 : Value) (d p b used0 prev0 nextp : W32)
+  (bs live zs : List[W32]) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. tlsf_small_page_ok(lim, p, cap, s, CONS(b, bs), NIL, live)
+  3. i < tlsf_small_total(s)
+  4. b == tlsf_small_slot(p, s, i)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), l1, V_num(ConstInt32(word(s))), l3, l4, original],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          tlsf_small_page_heap(p, cap, s, CONS(b, bs), NIL, live),
+          star(
+            pts(val(tlsf_base(d)) + 1912 + s, serialise_i32(word(0))),
+            star(
+              pts(val(tlsf_base(d)) + 1916 + s, serialise_i32(p)),
+              star(
+                tlsf_small_partial_links(word(0), [p]),
+                star(fp(gs, ms), emp)))))),
+    tlsf_malloc_retry_partial(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [V_num(ConstInt32(word(0))), V_num(ConstInt32(b)),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs))), original],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          star(
+            tlsf_small_page_heap(p, cap, s, NIL, bs, CONS(b, live)),
+            star(tlsf_small_links(bs), tlsf_page_publish_payload(b, s))),
+          star(
+            pts(
+              val(tlsf_base(d)) + 1912 + s,
+              serialise_i32(tlsf_small_head(bs))),
+            star(
+              pts(
+                val(tlsf_base(d)) + 1916 + s,
+                serialise_i32(tlsf_small_head(NIL))),
+              star(
+                tlsf_small_partial_links(word(0), NIL),
+                star(fp(gs, ms), emp)))))))
+```
+
+lemma `tlsf_malloc_retry_publish_partial_cons_page`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim cap s i : Num)
+  (original l1 l3 l4 : Value) (d p b used0 prev0 nextp : W32)
+  (bs live zs : List[W32]) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. tlsf_small_page_ok(lim, p, cap, s, CONS(b, bs), NIL, live)
+  3. i < tlsf_small_total(s)
+  4. b == tlsf_small_slot(p, s, i)
+  5. !(nextp == word(0))
+  6. val(nextp) + 32 <= 4294967296
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), l1, V_num(ConstInt32(word(s))), l3, l4, original],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          tlsf_small_page_heap(p, cap, s, CONS(b, bs), NIL, live),
+          star(
+            pts(val(tlsf_base(d)) + 1912 + s, serialise_i32(word(0))),
+            star(
+              pts(val(tlsf_base(d)) + 1916 + s, serialise_i32(p)),
+              star(
+                tlsf_small_partial_links(
+                  word(0),
+                  CONS(p, CONS(nextp, zs))),
+                star(fp(gs, ms), emp)))))),
+    tlsf_malloc_retry_partial(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(word_add(b, word(8))))],
+      [V_num(ConstInt32(nextp)), V_num(ConstInt32(b)),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs))), original],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          star(
+            tlsf_small_page_heap(p, cap, s, NIL, bs, CONS(b, live)),
+            star(tlsf_small_links(bs), tlsf_page_publish_payload(b, s))),
+          star(
+            pts(
+              val(tlsf_base(d)) + 1912 + s,
+              serialise_i32(tlsf_small_head(bs))),
+            star(
+              pts(
+                val(tlsf_base(d)) + 1916 + s,
+                serialise_i32(tlsf_small_head(CONS(nextp, zs)))),
+              star(
+                tlsf_small_partial_links(word(0), CONS(nextp, zs)),
+                star(fp(gs, ms), emp)))))))
+```
+
+lemma `tlsf_malloc_retry_publish_fresh_small`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim s i : Num)
+  (original l1 l3 l4 : Value) (d top fl p b used0 prev0 : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. tlsf_small_page_ok(lim, p, val(tlsf_size(hd(p))), s, CONS(b, bs), NIL, NIL)
+  3. i < tlsf_small_total(s)
+  4. b == tlsf_small_slot(p, s, i)
+  5. fast(DIV(s, 8)) == NIL
+  6. !MEM(p, ps)
+  7. REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))) == CONS(b, bs)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), V_num(ConstInt32(b)), V_num(ConstInt32(word(s))),
+       V_num(ConstInt32(word_add(p, word(20)))), l4, original],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          tlsf_page_allocate_build(
+            p,
+            val(tlsf_size(hd(p))),
+            s,
+            tlsf_small_total(s),
+            used0,
+            prev0),
+          star(
+            tlsf_small_pages_heap(ps, hd, sz, loc, cached, live),
+            star(tlsf_small_table(d, fast, partial), star(fp(gs, ms), emp))))),
+    tlsf_malloc_retry_fresh(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc2 : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc2 == [V_num(ConstInt32(p)), V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs))), original]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && (
+           (gs : List[Value]) => (ms : Num) =>
+             star(
+               tlsf_small_pages_heap(
+                 CONS(p, ps),
+                 hd,
+                 (q : W32) => if q == p { s } else { sz(q) },
+                 tlsf_small_put(loc, p, NIL),
+                 tlsf_small_put(cached, p, bs),
+                 tlsf_small_put(live, p, [b])),
+               star(
+                 tlsf_small_table(
+                   d,
+                   tlsf_small_put_class(fast, DIV(s, 8), bs),
+                   partial),
+                 star(
+                   tlsf_page_publish_payload(b, s),
+                   star(fp(gs, ms), emp)))))(gs, ms, h))
+```
+
+lemma `tlsf_malloc_retry_publish_partial_small`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim s i : Num)
+  (original l1 l3 l4 : Value) (d top fl p b used0 prev0 : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. tlsf_small_page_ok(
+       lim,
+       p,
+       val(tlsf_size(hd(p))),
+       s,
+       CONS(b, bs),
+       NIL,
+       live(p))
+  3. i < tlsf_small_total(s)
+  4. b == tlsf_small_slot(p, s, i)
+  5. fast(DIV(s, 8)) == NIL
+  6. tlsf_count(p, ps) == 1
+  7. sz(p) == s
+  8. loc(p) == CONS(b, bs)
+  9. cached(p) == NIL
+  10. partial(DIV(s, 8)) == CONS(p, z)
+  11. ∀ q : W32, MEM(q, z) → !(q == word(0)) && val(q) + 32 <= 4294967296
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), l1, V_num(ConstInt32(word(s))), l3, l4, original],
+      (gs : List[Value]) => (ms : Num) =>
+        star(
+          tlsf_small_pages_heap(ps, hd, sz, loc, cached, live),
+          star(tlsf_small_table(d, fast, partial), star(fp(gs, ms), emp)))),
+    tlsf_malloc_retry_partial(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    (res : List[Value]) => (lc2 : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc2 == [V_num(ConstInt32(tlsf_small_head(z))), V_num(ConstInt32(b)),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs))), original]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && (
+           (gs : List[Value]) => (ms : Num) =>
+             star(
+               tlsf_small_pages_heap(
+                 ps,
+                 hd,
+                 sz,
+                 tlsf_small_put(loc, p, NIL),
+                 tlsf_small_put(cached, p, bs),
+                 tlsf_small_put(live, p, CONS(b, live(p)))),
+               star(
+                 tlsf_small_table(
+                   d,
+                   tlsf_small_put_class(fast, DIV(s, 8), bs),
+                   tlsf_small_put_class(
+                     partial,
+                     DIV(s, 8),
+                     TL(partial(DIV(s, 8))))),
+                 star(
+                   tlsf_page_publish_payload(b, s),
+                   star(fp(gs, ms), emp)))))(gs, ms, h))
+```
+
+lemma `tlsf_malloc_try_cached_allocator`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k s i : Num)
+  (original l1 l2 l3 l4 : Value) (d top fl p b used0 prev0 : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp)
+if
+  1. val(d) <= 4294965088
+     && tlsf_small_page_ok(
+          lim,
+          p,
+          val(tlsf_size(hd(p))),
+          8 * k,
+          loc(p),
+          cached(p),
+          live(p))
+     && MEM(b, cached(p))
+     && i < tlsf_small_total(8 * k)
+     && b == tlsf_small_slot(p, 8 * k, i)
+     && tlsf_count(p, ps) == 1
+     && sz(p) == 8 * k
+     && k < 33
+     && fast(k) == CONS(b, bs)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. tlsf_physical_ok(d, lim, top, xs, hd)
+  5. MEM(p, ps)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(b)), V_num(ConstInt32(word(k))), l2, l3, l4],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(fp(gs, ms), emp),
+             h)),
+    tlsf_malloc_try_cached(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(word(k))), V_num(ConstInt32(tlsf_small_head(bs))), l3,
+       l4]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && star(
+           tlsf_page_publish_payload(b, 8 * k),
+           star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               tlsf_small_put(cached, p, tlsf_small_remove(b, cached(p))),
+               tlsf_small_put(live, p, CONS(b, live(p))),
+               tlsf_small_put_class(fast, k, bs),
+               partial),
+             star(fp(gs, ms), emp)),
+           h))
+```
+
+lemma `tlsf_malloc_try_partial_allocator`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k s i : Num)
+  (original l1 l2 l3 l4 : Value) (d top fl p b used0 prev0 : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp)
+if
+  1. val(d) <= 4294965088
+     && tlsf_small_page_ok(
+          lim,
+          p,
+          val(tlsf_size(hd(p))),
+          s,
+          CONS(b, bs),
+          NIL,
+          live(p))
+     && i < tlsf_small_total(s)
+     && b == tlsf_small_slot(p, s, i)
+     && fast(DIV(s, 8)) == NIL
+     && tlsf_count(p, ps) == 1
+     && sz(p) == s
+     && loc(p) == CONS(b, bs)
+     && cached(p) == NIL
+     && partial(DIV(s, 8)) == CONS(p, z)
+     && (∀ q : W32, MEM(q, z) → !(q == word(0)) && val(q) + 32 <= 4294967296)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. MEM(p, ps)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), l1, V_num(ConstInt32(word(s))), l3, l4],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(fp(gs, ms), emp),
+             h)),
+    tlsf_page_publish_partial_code(d),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [V_num(ConstInt32(tlsf_small_head(z))), V_num(ConstInt32(b)),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs)))]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && star(
+           tlsf_page_publish_payload(b, s),
+           star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               tlsf_small_put(loc, p, NIL),
+               tlsf_small_put(cached, p, bs),
+               tlsf_small_put(live, p, CONS(b, live(p))),
+               tlsf_small_put_class(fast, DIV(s, 8), bs),
+               tlsf_small_put_class(
+                 partial,
+                 DIV(s, 8),
+                 TL(partial(DIV(s, 8))))),
+             star(fp(gs, ms), emp)),
+           h))
+```
+
+lemma `tlsf_malloc_try_fresh_allocator`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k s i : Num)
+  (original l1 l2 l3 l4 : Value) (d top fl p b used0 prev0 : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp)
+if
+  1. val(d) <= 4294965088
+     && tlsf_small_page_ok(
+          lim,
+          p,
+          val(tlsf_size(hd(p))),
+          s,
+          CONS(b, bs),
+          NIL,
+          NIL)
+     && i < tlsf_small_total(s)
+     && b == tlsf_small_slot(p, s, i)
+     && fast(DIV(s, 8)) == NIL
+     && !MEM(p, ps)
+     && REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))) == CONS(b, bs)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. MEM(p, xs)
+  5. tlsf_used(hd(p))
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), V_num(ConstInt32(b)), V_num(ConstInt32(word(s))),
+       V_num(ConstInt32(word_add(p, word(20)))), l4],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_page_allocate_build(
+               p,
+               val(tlsf_size(hd(p))),
+               s,
+               tlsf_small_total(s),
+               used0,
+               prev0),
+             star(
+               tlsf_allocator(
+                 d,
+                 lim,
+                 top,
+                 xs,
+                 hd,
+                 fl,
+                 sb,
+                 bl,
+                 ps,
+                 sz,
+                 loc,
+                 cached,
+                 live,
+                 fast,
+                 partial),
+               star(fp(gs, ms), emp)),
+             h)),
+    tlsf_page_publish_fresh_code(d),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [V_num(ConstInt32(p)), V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs)))]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && star(
+           tlsf_page_publish_payload(b, s),
+           star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               CONS(p, ps),
+               (q : W32) => if q == p { s } else { sz(q) },
+               tlsf_small_put(loc, p, NIL),
+               tlsf_small_put(cached, p, bs),
+               tlsf_small_put(live, p, [b]),
+               tlsf_small_put_class(fast, DIV(s, 8), bs),
+               partial),
+             star(fp(gs, ms), emp)),
+           h))
+```
+
+lemma `tlsf_malloc_first_cached_allocator`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k s i : Num)
+  (original l1 l2 l3 l4 : Value) (d top fl p b used0 prev0 : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp)
+if
+  1. val(d) <= 4294965088
+     && tlsf_small_page_ok(
+          lim,
+          p,
+          val(tlsf_size(hd(p))),
+          8 * k,
+          loc(p),
+          cached(p),
+          live(p))
+     && MEM(b, cached(p))
+     && i < tlsf_small_total(8 * k)
+     && b == tlsf_small_slot(p, 8 * k, i)
+     && tlsf_count(p, ps) == 1
+     && sz(p) == 8 * k
+     && k < 33
+     && fast(k) == CONS(b, bs)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. tlsf_physical_ok(d, lim, top, xs, hd)
+  5. MEM(p, ps)
+then
+  sl_triple(
+    st(
+      NIL,
+      [original, V_num(ConstInt32(b)), V_num(ConstInt32(word(k))), l2, l3, l4],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(fp(gs, ms), emp),
+             h)),
+    tlsf_malloc_first_cached(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [original, V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(word(k))), V_num(ConstInt32(tlsf_small_head(bs))), l3,
+       l4]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && star(
+           tlsf_page_publish_payload(b, 8 * k),
+           star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               tlsf_small_put(cached, p, tlsf_small_remove(b, cached(p))),
+               tlsf_small_put(live, p, CONS(b, live(p))),
+               tlsf_small_put_class(fast, k, bs),
+               partial),
+             star(fp(gs, ms), emp)),
+           h))
+```
+
+lemma `tlsf_malloc_first_partial_allocator`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k s i : Num)
+  (original l1 l2 l3 l4 : Value) (d top fl p b used0 prev0 : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp)
+if
+  1. val(d) <= 4294965088
+     && tlsf_small_page_ok(
+          lim,
+          p,
+          val(tlsf_size(hd(p))),
+          s,
+          CONS(b, bs),
+          NIL,
+          live(p))
+     && i < tlsf_small_total(s)
+     && b == tlsf_small_slot(p, s, i)
+     && fast(DIV(s, 8)) == NIL
+     && tlsf_count(p, ps) == 1
+     && sz(p) == s
+     && loc(p) == CONS(b, bs)
+     && cached(p) == NIL
+     && partial(DIV(s, 8)) == CONS(p, z)
+     && (∀ q : W32, MEM(q, z) → !(q == word(0)) && val(q) + 32 <= 4294967296)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. MEM(p, ps)
+then
+  sl_triple(
+    st(
+      NIL,
+      [original, V_num(ConstInt32(p)), l1, V_num(ConstInt32(word(s))), l3, l4],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(fp(gs, ms), emp),
+             h)),
+    tlsf_malloc_first_partial(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [original, V_num(ConstInt32(tlsf_small_head(z))),
+       V_num(ConstInt32(b)), V_num(ConstInt32(word(s))),
+       V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs)))]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && star(
+           tlsf_page_publish_payload(b, s),
+           star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               tlsf_small_put(loc, p, NIL),
+               tlsf_small_put(cached, p, bs),
+               tlsf_small_put(live, p, CONS(b, live(p))),
+               tlsf_small_put_class(fast, DIV(s, 8), bs),
+               tlsf_small_put_class(
+                 partial,
+                 DIV(s, 8),
+                 TL(partial(DIV(s, 8))))),
+             star(fp(gs, ms), emp)),
+           h))
+```
+
+lemma `tlsf_malloc_first_fresh_allocator`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k s i : Num)
+  (original l1 l2 l3 l4 : Value) (d top fl p b used0 prev0 : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp)
+if
+  1. val(d) <= 4294965088
+     && tlsf_small_page_ok(
+          lim,
+          p,
+          val(tlsf_size(hd(p))),
+          s,
+          CONS(b, bs),
+          NIL,
+          NIL)
+     && i < tlsf_small_total(s)
+     && b == tlsf_small_slot(p, s, i)
+     && fast(DIV(s, 8)) == NIL
+     && !MEM(p, ps)
+     && REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))) == CONS(b, bs)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. MEM(p, xs)
+  5. tlsf_used(hd(p))
+then
+  sl_triple(
+    st(
+      NIL,
+      [original, V_num(ConstInt32(p)), V_num(ConstInt32(b)),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       l4],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_page_allocate_build(
+               p,
+               val(tlsf_size(hd(p))),
+               s,
+               tlsf_small_total(s),
+               used0,
+               prev0),
+             star(
+               tlsf_allocator(
+                 d,
+                 lim,
+                 top,
+                 xs,
+                 hd,
+                 fl,
+                 sb,
+                 bl,
+                 ps,
+                 sz,
+                 loc,
+                 cached,
+                 live,
+                 fast,
+                 partial),
+               star(fp(gs, ms), emp)),
+             h)),
+    tlsf_malloc_first_fresh(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [original, V_num(ConstInt32(p)),
+       V_num(ConstInt32(word_add(b, word(8)))), V_num(ConstInt32(word(s))),
+       V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs)))]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && star(
+           tlsf_page_publish_payload(b, s),
+           star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               CONS(p, ps),
+               (q : W32) => if q == p { s } else { sz(q) },
+               tlsf_small_put(loc, p, NIL),
+               tlsf_small_put(cached, p, bs),
+               tlsf_small_put(live, p, [b]),
+               tlsf_small_put_class(fast, DIV(s, 8), bs),
+               partial),
+             star(fp(gs, ms), emp)),
+           h))
+```
+
+lemma `tlsf_malloc_retry_cached_allocator`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k s i : Num)
+  (original l1 l2 l3 l4 : Value) (d top fl p b used0 prev0 : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp)
+if
+  1. val(d) <= 4294965088
+     && tlsf_small_page_ok(
+          lim,
+          p,
+          val(tlsf_size(hd(p))),
+          8 * k,
+          loc(p),
+          cached(p),
+          live(p))
+     && MEM(b, cached(p))
+     && i < tlsf_small_total(8 * k)
+     && b == tlsf_small_slot(p, 8 * k, i)
+     && tlsf_count(p, ps) == 1
+     && sz(p) == 8 * k
+     && k < 33
+     && fast(k) == CONS(b, bs)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. tlsf_physical_ok(d, lim, top, xs, hd)
+  5. MEM(p, ps)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(b)), V_num(ConstInt32(word(k))), l2, l3, l4, original],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(fp(gs, ms), emp),
+             h)),
+    tlsf_malloc_retry_cached(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(word(k))), V_num(ConstInt32(tlsf_small_head(bs))), l3,
+       l4, original]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && star(
+           tlsf_page_publish_payload(b, 8 * k),
+           star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               tlsf_small_put(cached, p, tlsf_small_remove(b, cached(p))),
+               tlsf_small_put(live, p, CONS(b, live(p))),
+               tlsf_small_put_class(fast, k, bs),
+               partial),
+             star(fp(gs, ms), emp)),
+           h))
+```
+
+lemma `tlsf_malloc_retry_partial_allocator`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k s i : Num)
+  (original l1 l2 l3 l4 : Value) (d top fl p b used0 prev0 : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp)
+if
+  1. val(d) <= 4294965088
+     && tlsf_small_page_ok(
+          lim,
+          p,
+          val(tlsf_size(hd(p))),
+          s,
+          CONS(b, bs),
+          NIL,
+          live(p))
+     && i < tlsf_small_total(s)
+     && b == tlsf_small_slot(p, s, i)
+     && fast(DIV(s, 8)) == NIL
+     && tlsf_count(p, ps) == 1
+     && sz(p) == s
+     && loc(p) == CONS(b, bs)
+     && cached(p) == NIL
+     && partial(DIV(s, 8)) == CONS(p, z)
+     && (∀ q : W32, MEM(q, z) → !(q == word(0)) && val(q) + 32 <= 4294967296)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. MEM(p, ps)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), l1, V_num(ConstInt32(word(s))), l3, l4, original],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(fp(gs, ms), emp),
+             h)),
+    tlsf_malloc_retry_partial(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [V_num(ConstInt32(tlsf_small_head(z))), V_num(ConstInt32(b)),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs))), original]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && star(
+           tlsf_page_publish_payload(b, s),
+           star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               tlsf_small_put(loc, p, NIL),
+               tlsf_small_put(cached, p, bs),
+               tlsf_small_put(live, p, CONS(b, live(p))),
+               tlsf_small_put_class(fast, DIV(s, 8), bs),
+               tlsf_small_put_class(
+                 partial,
+                 DIV(s, 8),
+                 TL(partial(DIV(s, 8))))),
+             star(fp(gs, ms), emp)),
+           h))
+```
+
+lemma `tlsf_malloc_retry_fresh_allocator`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k s i : Num)
+  (original l1 l2 l3 l4 : Value) (d top fl p b used0 prev0 : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp)
+if
+  1. val(d) <= 4294965088
+     && tlsf_small_page_ok(
+          lim,
+          p,
+          val(tlsf_size(hd(p))),
+          s,
+          CONS(b, bs),
+          NIL,
+          NIL)
+     && i < tlsf_small_total(s)
+     && b == tlsf_small_slot(p, s, i)
+     && fast(DIV(s, 8)) == NIL
+     && !MEM(p, ps)
+     && REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))) == CONS(b, bs)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. MEM(p, xs)
+  5. tlsf_used(hd(p))
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), V_num(ConstInt32(b)), V_num(ConstInt32(word(s))),
+       V_num(ConstInt32(word_add(p, word(20)))), l4, original],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_page_allocate_build(
+               p,
+               val(tlsf_size(hd(p))),
+               s,
+               tlsf_small_total(s),
+               used0,
+               prev0),
+             star(
+               tlsf_allocator(
+                 d,
+                 lim,
+                 top,
+                 xs,
+                 hd,
+                 fl,
+                 sb,
+                 bl,
+                 ps,
+                 sz,
+                 loc,
+                 cached,
+                 live,
+                 fast,
+                 partial),
+               star(fp(gs, ms), emp)),
+             h)),
+    tlsf_malloc_retry_fresh(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [V_num(ConstInt32(p)), V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs))), original]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && star(
+           tlsf_page_publish_payload(b, s),
+           star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               CONS(p, ps),
+               (q : W32) => if q == p { s } else { sz(q) },
+               tlsf_small_put(loc, p, NIL),
+               tlsf_small_put(cached, p, bs),
+               tlsf_small_put(live, p, [b]),
+               tlsf_small_put_class(fast, DIV(s, 8), bs),
+               partial),
+             star(fp(gs, ms), emp)),
+           h))
+```
+
+lemma `tlsf_malloc_allocator_facts`
+
+```
+∀ (d top fl : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (client : HProp) (h : Heap)
+if
+  1. star(
+       tlsf_allocator(
+         d,
+         lim,
+         top,
+         xs,
+         hd,
+         fl,
+         sb,
+         bl,
+         ps,
+         sz,
+         loc,
+         cached,
+         live,
+         fast,
+         partial),
+       client,
+       h)
+then
+  tlsf_physical_ok(d, lim, top, xs, hd)
+  && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  && tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+```
+
+lemma `tlsf_malloc_read_top`
+
+```
+∀ (d top fl : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (client : HProp) (h : Heap)
+if
+  1. star(
+       tlsf_allocator(
+         d,
+         lim,
+         top,
+         xs,
+         hd,
+         fl,
+         sb,
+         bl,
+         ps,
+         sz,
+         loc,
+         cached,
+         live,
+         fast,
+         partial),
+       client,
+       h)
+then
+  has_i32(h, val(word_add(tlsf_base(d), word(1908))), top)
+```
+
+lemma `tlsf_malloc_read_fast`
+
+```
+∀ (d top fl : W32) (lim k : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (client : HProp) (h : Heap)
+if
+  1. k < 33
+  2. star(
+       tlsf_allocator(
+         d,
+         lim,
+         top,
+         xs,
+         hd,
+         fl,
+         sb,
+         bl,
+         ps,
+         sz,
+         loc,
+         cached,
+         live,
+         fast,
+         partial),
+       client,
+       h)
+then
+  has_i32(h, val(tlsf_base(d)) + 1912 + 8 * k, tlsf_small_head(fast(k)))
+```
+
+lemma `tlsf_malloc_read_partial`
+
+```
+∀ (d top fl : W32) (lim k : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (client : HProp) (h : Heap)
+if
+  1. k < 33
+  2. star(
+       tlsf_allocator(
+         d,
+         lim,
+         top,
+         xs,
+         hd,
+         fl,
+         sb,
+         bl,
+         ps,
+         sz,
+         loc,
+         cached,
+         live,
+         fast,
+         partial),
+       client,
+       h)
+then
+  has_i32(h, val(tlsf_base(d)) + 1916 + 8 * k, tlsf_small_head(partial(k)))
+```
+
+lemma `tlsf_malloc_initialized_guards`
+
+```
+∀ (d top fl : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+then
+  val(d) <= 4294965088
+  && !word_uge(
+       word_jushr(word_add(tlsf_base(d), word(1908)), word(16)),
+       word(DIV(lim, 65536)))
+  && !(top == word(0))
+```
+
+definition `tlsf_malloc_ro`
+
+```
+tlsf_malloc_ro(
+  (d : W32),
+  (lim : Num),
+  (top : W32),
+  (xs : List[W32]),
+  (hd : (W32) -> W32),
+  (fl : W32),
+  (sb : (Num) -> W32),
+  (bl : (Num, Num) -> List[W32]),
+  (ps : List[W32]),
+  (sz : (W32) -> Num),
+  (loc : (W32) -> List[W32]),
+  (cached : (W32) -> List[W32]),
+  (live : (W32) -> List[W32]),
+  (fast : (Num) -> List[W32]),
+  (partial : (Num) -> List[W32]),
+  (before : Heap),
+  (fp : GProp)) == (
+  (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+    ms == lim
+    && h == before
+    && star(
+         tlsf_allocator(
+           d,
+           lim,
+           top,
+           xs,
+           hd,
+           fl,
+           sb,
+           bl,
+           ps,
+           sz,
+           loc,
+           cached,
+           live,
+           fast,
+           partial),
+         fp(gs, lim),
+         h))
+```
+
+lemma `tlsf_malloc_fast_word_address`
+
+```
+∀ (d kw : W32)
+if
+  1. val(d) <= 4294965088
+  2. val(kw) < 33
+then
+  val(
+    word_add(
+      word_add(word_and(word_add(d, word(15)), word(4294967280)), word(1912)),
+      word_jshl(kw, word(3))))
+    == val(tlsf_base(d)) + 1912 + 8 * val(kw)
+```
+
+lemma `tlsf_malloc_partial_word_address`
+
+```
+∀ (d kw : W32)
+if
+  1. val(d) <= 4294965088
+  2. val(kw) < 33
+then
+  val(
+    word_add(
+      word_add(
+        word_jshl(kw, word(3)),
+        word_and(word_add(d, word(15)), word(4294967280))),
+      word(1916)))
+    == val(tlsf_base(d)) + 1916 + 8 * val(kw)
+```
+
+lemma `st_malloc_load_fast`
+
+```
+∀ (d top fl kw : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (v lc : List[Value])
+if
+  1. val(d) <= 4294965088
+  2. val(kw) < 33
+then
+  sl_triple(
+    st(
+      APPEND(
+        v,
+        [
+          V_num(
+            ConstInt32(
+              word_add(
+                word_add(
+                  word_and(word_add(d, word(15)), word(4294967280)),
+                  word(1912)),
+                word_jshl(kw, word(3)))))]),
+      lc,
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    [Load(T_i32, NONE, 2, 0)],
+    st(
+      APPEND(v, [V_num(ConstInt32(tlsf_small_head(fast(val(kw)))))]),
+      lc,
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `st_malloc_load_partial`
+
+```
+∀ (d top fl kw : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (v lc : List[Value])
+if
+  1. val(d) <= 4294965088
+  2. val(kw) < 33
+then
+  sl_triple(
+    st(
+      APPEND(
+        v,
+        [
+          V_num(
+            ConstInt32(
+              word_add(
+                word_add(
+                  word_jshl(kw, word(3)),
+                  word_and(word_add(d, word(15)), word(4294967280))),
+                word(1916))))]),
+      lc,
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    [Load(T_i32, NONE, 2, 0)],
+    st(
+      APPEND(v, [V_num(ConstInt32(tlsf_small_head(partial(val(kw)))))]),
+      lc,
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `st_malloc_load_top`
+
+```
+∀ (d top fl kw : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (v lc : List[Value])
+if
+  1. true
+then
+  sl_triple(
+    st(
+      APPEND(
+        v,
+        [
+          V_num(
+            ConstInt32(
+              word_add(
+                word_and(word_add(d, word(15)), word(4294967280)),
+                word(1908))))]),
+      lc,
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    [Load(T_i32, NONE, 2, 0)],
+    st(
+      APPEND(v, [V_num(ConstInt32(top))]),
+      lc,
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `st_malloc_memory_size`
+
+```
+∀ (d top fl : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (v lc0 : List[Value]),
+  sl_triple(
+    st(
+      v,
+      lc0,
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    [Memory_size],
+    st(
+      APPEND(v, [V_num(ConstInt32(word(DIV(lim, 65536))))]),
+      lc0,
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `tlsf_malloc_try_fast_lookup_raw`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n kw : W32) (xs ps : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (before : Heap) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. val(word_jushr(word_add(n, word(7)), word(3))) < 33
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_try_fast_lookup(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [
+        V_num(
+          ConstInt32(
+            tlsf_small_head(
+              fast(val(word_jushr(word_add(n, word(7)), word(3)))))))],
+      [
+        V_num(
+          ConstInt32(
+            tlsf_small_head(
+              fast(val(word_jushr(word_add(n, word(7)), word(3))))))),
+        V_num(ConstInt32(word_jushr(word_add(n, word(7)), word(3)))),
+        l2,
+        l3,
+        l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `tlsf_malloc_try_partial_lookup_raw`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n kw : W32) (xs ps : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (before : Heap) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. val(kw) < 33
+then
+  sl_triple(
+    st(
+      NIL,
+      [l0, V_num(ConstInt32(kw)), l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_try_partial_lookup(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(tlsf_small_head(partial(val(kw)))))],
+      [V_num(ConstInt32(tlsf_small_head(partial(val(kw))))),
+       V_num(ConstInt32(kw)), V_num(ConstInt32(word_jshl(kw, word(3)))), l3,
+       l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `tlsf_malloc_first_fast_lookup_raw`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n kw : W32) (xs ps : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (before : Heap) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. val(word_jushr(word_add(n, word(7)), word(3))) < 33
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l0, l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_first_fast_lookup(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [
+        V_num(
+          ConstInt32(
+            tlsf_small_head(
+              fast(val(word_jushr(word_add(n, word(7)), word(3)))))))],
+      [
+        V_num(ConstInt32(n)),
+        V_num(
+          ConstInt32(
+            tlsf_small_head(
+              fast(val(word_jushr(word_add(n, word(7)), word(3))))))),
+        V_num(ConstInt32(word_jushr(word_add(n, word(7)), word(3)))),
+        l2,
+        l3,
+        l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `tlsf_malloc_first_partial_lookup_raw`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n kw : W32) (xs ps : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (before : Heap) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. val(kw) < 33
+then
+  sl_triple(
+    st(
+      NIL,
+      [original, l0, V_num(ConstInt32(kw)), l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_first_partial_lookup(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(tlsf_small_head(partial(val(kw)))))],
+      [original, V_num(ConstInt32(tlsf_small_head(partial(val(kw))))),
+       V_num(ConstInt32(kw)), V_num(ConstInt32(word_jshl(kw, word(3)))), l3,
+       l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `tlsf_malloc_retry_fast_lookup_raw`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n kw : W32) (xs ps : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (before : Heap) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. val(word_jushr(word_add(n, word(7)), word(3))) < 33
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_retry_fast_lookup(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [
+        V_num(
+          ConstInt32(
+            tlsf_small_head(
+              fast(val(word_jushr(word_add(n, word(7)), word(3)))))))],
+      [
+        V_num(
+          ConstInt32(
+            tlsf_small_head(
+              fast(val(word_jushr(word_add(n, word(7)), word(3))))))),
+        V_num(ConstInt32(word_jushr(word_add(n, word(7)), word(3)))),
+        l2,
+        l3,
+        l4,
+        original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `tlsf_malloc_retry_partial_lookup_raw`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n kw : W32) (xs ps : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (before : Heap) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. val(kw) < 33
+then
+  sl_triple(
+    st(
+      NIL,
+      [l0, V_num(ConstInt32(kw)), l2, l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_retry_partial_lookup(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(tlsf_small_head(partial(val(kw)))))],
+      [V_num(ConstInt32(tlsf_small_head(partial(val(kw))))),
+       V_num(ConstInt32(kw)), V_num(ConstInt32(word_jshl(kw, word(3)))), l3,
+       l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `tlsf_malloc_request_setup`
+
+```
+∀ (n : W32)
+if
+  1. 0 < val(n)
+  2. val(n) <= 256
+then
+  val(word_jushr(word_add(n, word(7)), word(3))) == DIV(val(n) + 7, 8)
+  && val(word_jushr(word_add(n, word(7)), word(3))) < 33
+  && 8 <= 8 * val(word_jushr(word_add(n, word(7)), word(3)))
+  && 8 * val(word_jushr(word_add(n, word(7)), word(3))) <= 256
+  && val(n) <= 8 * val(word_jushr(word_add(n, word(7)), word(3)))
+  && MOD(8 * val(word_jushr(word_add(n, word(7)), word(3))), 8) == 0
+  && word_jshl(word_jushr(word_add(n, word(7)), word(3)), word(3))
+       == word(8 * val(word_jushr(word_add(n, word(7)), word(3))))
+  && (val : (W32) -> Num)(
+       (word : (Num) -> W32)(
+         8 * (val : (W32) -> Num)(
+           (word_jushr : (W32, W32) -> W32)(
+             (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+             (word : (Num) -> W32)(3))))) == 8 * (val : (W32) -> Num)(
+       (word_jushr : (W32, W32) -> W32)(
+         (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+         (word : (Num) -> W32)(3)))
+  && DIV(8 * val(word_jushr(word_add(n, word(7)), word(3))), 8)
+       == val(word_jushr(word_add(n, word(7)), word(3)))
+```
+
+lemma `tlsf_malloc_try_fast_nil`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n kw b : W32)
+  (xs ps bs : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. val(word_jushr(word_add(n, word(7)), word(3))) < 33
+  3. fast(val(word_jushr(word_add(n, word(7)), word(3)))) == NIL
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_try_fast_lookup(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(word(0)))],
+      [V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word_jushr(word_add(n, word(7)), word(3)))), l2, l3,
+       l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `tlsf_malloc_try_fast_cons`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n kw b : W32)
+  (xs ps bs : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. val(word_jushr(word_add(n, word(7)), word(3))) < 33
+  3. fast(val(word_jushr(word_add(n, word(7)), word(3)))) == CONS(b, bs)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_try_fast_lookup(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(b))],
+      [V_num(ConstInt32(b)),
+       V_num(ConstInt32(word_jushr(word_add(n, word(7)), word(3)))), l2, l3,
+       l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `tlsf_malloc_try_partial_nil`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n kw b : W32)
+  (xs ps bs : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. val(kw) < 33
+  3. partial(val(kw)) == NIL
+then
+  sl_triple(
+    st(
+      NIL,
+      [l0, V_num(ConstInt32(kw)), l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_try_partial_lookup(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(word(0)))],
+      [V_num(ConstInt32(word(0))), V_num(ConstInt32(kw)),
+       V_num(ConstInt32(word(8 * val(kw)))), l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `tlsf_malloc_try_partial_cons`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n kw b : W32)
+  (xs ps bs : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. val(kw) < 33
+  3. partial(val(kw)) == CONS(b, bs)
+then
+  sl_triple(
+    st(
+      NIL,
+      [l0, V_num(ConstInt32(kw)), l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_try_partial_lookup(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(b))],
+      [V_num(ConstInt32(b)), V_num(ConstInt32(kw)),
+       V_num(ConstInt32(word(8 * val(kw)))), l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `tlsf_malloc_first_fast_nil`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n kw b : W32)
+  (xs ps bs : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. val(word_jushr(word_add(n, word(7)), word(3))) < 33
+  3. fast(val(word_jushr(word_add(n, word(7)), word(3)))) == NIL
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l0, l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_first_fast_lookup(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(word(0)))],
+      [V_num(ConstInt32(n)), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word_jushr(word_add(n, word(7)), word(3)))), l2, l3,
+       l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `tlsf_malloc_first_fast_cons`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n kw b : W32)
+  (xs ps bs : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. val(word_jushr(word_add(n, word(7)), word(3))) < 33
+  3. fast(val(word_jushr(word_add(n, word(7)), word(3)))) == CONS(b, bs)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l0, l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_first_fast_lookup(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(b))],
+      [V_num(ConstInt32(n)), V_num(ConstInt32(b)),
+       V_num(ConstInt32(word_jushr(word_add(n, word(7)), word(3)))), l2, l3,
+       l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `tlsf_malloc_first_partial_nil`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n kw b : W32)
+  (xs ps bs : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. val(kw) < 33
+  3. partial(val(kw)) == NIL
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l0, V_num(ConstInt32(kw)), l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_first_partial_lookup(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(word(0)))],
+      [V_num(ConstInt32(n)), V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(kw)), V_num(ConstInt32(word(8 * val(kw)))), l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `tlsf_malloc_first_partial_cons`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n kw b : W32)
+  (xs ps bs : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. val(kw) < 33
+  3. partial(val(kw)) == CONS(b, bs)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l0, V_num(ConstInt32(kw)), l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_first_partial_lookup(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(b))],
+      [V_num(ConstInt32(n)), V_num(ConstInt32(b)), V_num(ConstInt32(kw)),
+       V_num(ConstInt32(word(8 * val(kw)))), l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `tlsf_malloc_retry_fast_nil`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n kw b : W32)
+  (xs ps bs : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. val(word_jushr(word_add(n, word(7)), word(3))) < 33
+  3. fast(val(word_jushr(word_add(n, word(7)), word(3)))) == NIL
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_retry_fast_lookup(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(word(0)))],
+      [V_num(ConstInt32(word(0))),
+       V_num(ConstInt32(word_jushr(word_add(n, word(7)), word(3)))), l2, l3,
+       l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `tlsf_malloc_retry_fast_cons`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n kw b : W32)
+  (xs ps bs : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. val(word_jushr(word_add(n, word(7)), word(3))) < 33
+  3. fast(val(word_jushr(word_add(n, word(7)), word(3)))) == CONS(b, bs)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_retry_fast_lookup(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(b))],
+      [V_num(ConstInt32(b)),
+       V_num(ConstInt32(word_jushr(word_add(n, word(7)), word(3)))), l2, l3,
+       l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `tlsf_malloc_retry_partial_nil`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n kw b : W32)
+  (xs ps bs : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. val(kw) < 33
+  3. partial(val(kw)) == NIL
+then
+  sl_triple(
+    st(
+      NIL,
+      [l0, V_num(ConstInt32(kw)), l2, l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_retry_partial_lookup(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(word(0)))],
+      [V_num(ConstInt32(word(0))), V_num(ConstInt32(kw)),
+       V_num(ConstInt32(word(8 * val(kw)))), l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `tlsf_malloc_retry_partial_cons`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n kw b : W32)
+  (xs ps bs : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(d) <= 4294965088
+  2. val(kw) < 33
+  3. partial(val(kw)) == CONS(b, bs)
+then
+  sl_triple(
+    st(
+      NIL,
+      [l0, V_num(ConstInt32(kw)), l2, l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_retry_partial_lookup(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      [V_num(ConstInt32(b))],
+      [V_num(ConstInt32(b)), V_num(ConstInt32(kw)),
+       V_num(ConstInt32(word(8 * val(kw)))), l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)))
+```
+
+lemma `tlsf_malloc_dead_initialize`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp P : SAssn)
+  (labels : List[SAssn]) (initialize_idx : Num)
+if
+  1. false
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    P,
+    [Call(initialize_idx)],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      false,
+    labels)
+```
+
+lemma `tlsf_malloc_try_ready_raw`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n : W32) (xs ps : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (before : Heap) (fp : GProp)
+if
+  1. !word_ugt(d, word(4294965088))
+  2. !word_uge(
+       word_jushr(
+         word_add(
+           word_and(word_add(d, word(15)), word(4294967280)),
+           word(1908)),
+         word(16)),
+       word(DIV(lim, 65536)))
+  3. !(top == word(0))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_try_ready_guard(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      NIL,
+      [
+        V_num(ConstInt32(n)),
+        V_num(
+          ConstInt32(
+            word_add(
+              word_and(word_add(d, word(15)), word(4294967280)),
+              word(1908)))),
+        l2,
+        l3,
+        l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    labels)
+```
+
+lemma `tlsf_malloc_first_ready_raw`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n : W32) (xs ps : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (before : Heap) (fp : GProp)
+if
+  1. !word_ugt(d, word(4294965088))
+  2. !word_uge(
+       word_jushr(
+         word_add(
+           word_and(word_add(d, word(15)), word(4294967280)),
+           word(1908)),
+         word(16)),
+       word(DIV(lim, 65536)))
+  3. !(top == word(0))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [original, l0, l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_first_ready_guard(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      NIL,
+      [
+        original,
+        V_num(
+          ConstInt32(
+            word_add(
+              word_and(word_add(d, word(15)), word(4294967280)),
+              word(1908)))),
+        l1,
+        l2,
+        l3,
+        l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    labels)
+```
+
+lemma `tlsf_malloc_retry_ready_raw`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n : W32) (xs ps : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (before : Heap) (fp : GProp)
+if
+  1. !word_ugt(d, word(4294965088))
+  2. !word_uge(
+       word_jushr(
+         word_add(
+           word_and(word_add(d, word(15)), word(4294967280)),
+           word(1908)),
+         word(16)),
+       word(DIV(lim, 65536)))
+  3. !(top == word(0))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_retry_ready_guard(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    st(
+      NIL,
+      [
+        V_num(ConstInt32(n)),
+        V_num(
+          ConstInt32(
+            word_add(
+              word_and(word_add(d, word(15)), word(4294967280)),
+              word(1908)))),
+        l2,
+        l3,
+        l4,
+        original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    labels)
+```
+
+lemma `tlsf_malloc_cached_dispatch`
+
+```
+∀ (d top fl b : W32) (lim k : Num) (xs ps bs : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  3. k < 33
+  4. fast(k) == CONS(b, bs)
+then
+  ∃ (p : W32) (i : Num),
+    tlsf_small_page_ok(
+      lim,
+      p,
+      val(tlsf_size(hd(p))),
+      8 * k,
+      loc(p),
+      cached(p),
+      live(p))
+    && MEM(p, ps)
+    && MEM(b, cached(p))
+    && sz(p) == 8 * k
+    && tlsf_count(p, ps) == 1
+    && i < tlsf_small_total(8 * k)
+    && b == tlsf_small_slot(p, 8 * k, i)
+```
+
+lemma `tlsf_malloc_partial_dispatch`
+
+```
+∀ (d top fl p : W32) (lim k : Num) (xs ps z : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  3. k < 33
+  4. fast(k) == NIL
+  5. partial(k) == CONS(p, z)
+then
+  ∃ (b : W32) (bs : List[W32]) (i : Num),
+    tlsf_small_page_ok(
+      lim,
+      p,
+      val(tlsf_size(hd(p))),
+      8 * k,
+      CONS(b, bs),
+      NIL,
+      live(p))
+    && MEM(p, ps)
+    && sz(p) == 8 * k
+    && loc(p) == CONS(b, bs)
+    && cached(p) == NIL
+    && tlsf_count(p, ps) == 1
+    && i < tlsf_small_total(8 * k)
+    && b == tlsf_small_slot(p, 8 * k, i)
+    && ∀ q : W32, MEM(q, z) → !(q == word(0)) && val(q) + 32 <= 4294967296
+```
+
+lemma `tlsf_malloc_fresh_dispatch`
+
+```
+∀ (d top fl p : W32) (lim s : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. MEM(p, xs)
+  3. tlsf_page_allocate_geometry(p, val(tlsf_size(hd(p))), s)
+then
+  ∃ (b : W32) (bs : List[W32]) (i : Num),
+    REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))) == CONS(b, bs)
+    && tlsf_small_page_ok(
+         lim,
+         p,
+         val(tlsf_size(hd(p))),
+         s,
+         CONS(b, bs),
+         NIL,
+         NIL)
+    && i < tlsf_small_total(s)
+    && b == tlsf_small_slot(p, s, i)
+    && !(b == word(0))
+```
+
+definition `tlsf_malloc_page_pre`
+
+```
+tlsf_malloc_page_pre(
+  (d : W32),
+  (lim : Num),
+  (top : W32),
+  (xs : List[W32]),
+  (hd : (W32) -> W32),
+  (fl : W32),
+  (sb : (Num) -> W32),
+  (bl : (Num, Num) -> List[W32]),
+  (ps : List[W32]),
+  (sz : (W32) -> Num),
+  (loc : (W32) -> List[W32]),
+  (cached : (W32) -> List[W32]),
+  (live : (W32) -> List[W32]),
+  (fast : (Num) -> List[W32]),
+  (partial : (Num) -> List[W32]),
+  (s : W32),
+  (before : Heap),
+  (fp : GProp)) == (
+  (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+    res == [V_num(ConstInt32(s))]
+    && 8 <= val(s)
+    && val(s) <= 256
+    && MOD(val(s), 8) == 0
+    && ms == lim
+    && h == before
+    && star(
+         tlsf_allocator(
+           d,
+           lim,
+           top,
+           xs,
+           hd,
+           fl,
+           sb,
+           bl,
+           ps,
+           sz,
+           loc,
+           cached,
+           live,
+           fast,
+           partial),
+         fp(gs, ms),
+         h))
+```
+
+definition `tlsf_malloc_page_reserved`
+
+```
+tlsf_malloc_page_reserved(
+  (d : W32),
+  (lim : Num),
+  (top : W32),
+  (xs : List[W32]),
+  (hd : (W32) -> W32),
+  (fl : W32),
+  (sb : (Num) -> W32),
+  (bl : (Num, Num) -> List[W32]),
+  (ps : List[W32]),
+  (sz : (W32) -> Num),
+  (loc : (W32) -> List[W32]),
+  (cached : (W32) -> List[W32]),
+  (live : (W32) -> List[W32]),
+  (fast : (Num) -> List[W32]),
+  (partial : (Num) -> List[W32]),
+  (s : W32),
+  (before : Heap),
+  (fp : GProp)) == (
+  (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+    ms == lim
+    && (
+         tlsf_search(word(1080), fl, sb, bl) == word(0)
+         && res == [V_num(ConstInt32(word(0)))]
+         && h == before
+         && star(
+              tlsf_allocator(
+                d,
+                lim,
+                top,
+                xs,
+                hd,
+                fl,
+                sb,
+                bl,
+                ps,
+                sz,
+                loc,
+                cached,
+                live,
+                fast,
+                partial),
+              fp(gs, ms),
+              h)
+         || (
+              ∃ p : W32,
+                ∃ top2 : W32,
+                  ∃ xs2 : List[W32],
+                    ∃ hd2 : (W32) -> W32,
+                      ∃ fl2 : W32,
+                        ∃ sb2 : (Num) -> W32,
+                          ∃ bl2 : (Num, Num) -> List[W32],
+                            res == [V_num(ConstInt32(p))]
+                            && !(
+                                 tlsf_search(word(1080), fl, sb, bl)
+                                   == word(0))
+                            && !(p == word(0))
+                            && !MEM(p, ps)
+                            && MEM(p, xs2)
+                            && tlsf_used(hd2(p))
+                            && tlsf_retains(xs, hd, xs2, hd2)
+                            && tlsf_page_allocate_geometry(
+                                 p,
+                                 val(tlsf_size(hd2(p))),
+                                 val(s))
+                            && star(
+                                 tlsf_bytes(
+                                   val(p) + 8,
+                                   val(tlsf_size(hd2(p)))),
+                                 star(
+                                   tlsf_allocator(
+                                     d,
+                                     lim,
+                                     top2,
+                                     xs2,
+                                     hd2,
+                                     fl2,
+                                     sb2,
+                                     bl2,
+                                     ps,
+                                     sz,
+                                     loc,
+                                     cached,
+                                     live,
+                                     fast,
+                                     partial),
+                                   fp(gs, ms)),
+                                 h))))
+```
+
+definition `tlsf_malloc_page_post`
+
+```
+tlsf_malloc_page_post(
+  (d : W32),
+  (lim : Num),
+  (top : W32),
+  (xs : List[W32]),
+  (hd : (W32) -> W32),
+  (fl : W32),
+  (sb : (Num) -> W32),
+  (bl : (Num, Num) -> List[W32]),
+  (ps : List[W32]),
+  (sz : (W32) -> Num),
+  (loc : (W32) -> List[W32]),
+  (cached : (W32) -> List[W32]),
+  (live : (W32) -> List[W32]),
+  (fast : (Num) -> List[W32]),
+  (partial : (Num) -> List[W32]),
+  (s : W32),
+  (before : Heap),
+  (fp : GProp)) == (
+  (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+    ms == lim
+    && (
+         tlsf_search(word(1080), fl, sb, bl) == word(0)
+         && res == [V_num(ConstInt32(word(0)))]
+         && h == before
+         && star(
+              tlsf_allocator(
+                d,
+                lim,
+                top,
+                xs,
+                hd,
+                fl,
+                sb,
+                bl,
+                ps,
+                sz,
+                loc,
+                cached,
+                live,
+                fast,
+                partial),
+              fp(gs, ms),
+              h)
+         || (
+              ∃ p : W32,
+                ∃ top2 : W32,
+                  ∃ xs2 : List[W32],
+                    ∃ hd2 : (W32) -> W32,
+                      ∃ fl2 : W32,
+                        ∃ sb2 : (Num) -> W32,
+                          ∃ bl2 : (Num, Num) -> List[W32],
+                            res == [V_num(ConstInt32(p))]
+                            && !(
+                                 tlsf_search(word(1080), fl, sb, bl)
+                                   == word(0))
+                            && !(p == word(0))
+                            && !MEM(p, ps)
+                            && MEM(p, xs2)
+                            && tlsf_used(hd2(p))
+                            && tlsf_retains(xs, hd, xs2, hd2)
+                            && tlsf_page_allocate_geometry(
+                                 p,
+                                 val(tlsf_size(hd2(p))),
+                                 val(s))
+                            && star(
+                                 tlsf_page_allocate_fresh(
+                                   p,
+                                   val(tlsf_size(hd2(p))),
+                                   val(s)),
+                                 star(
+                                   tlsf_allocator(
+                                     d,
+                                     lim,
+                                     top2,
+                                     xs2,
+                                     hd2,
+                                     fl2,
+                                     sb2,
+                                     bl2,
+                                     ps,
+                                     sz,
+                                     loc,
+                                     cached,
+                                     live,
+                                     fast,
+                                     partial),
+                                   fp(gs, ms)),
+                                 h))))
+```
+
+lemma `tlsf_malloc_page_take_post`
+
+```
+∀ (d top fl s : W32) (lim ms : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before h : Heap) (fp : GProp) (res gs : List[Value])
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. 8 <= val(s)
+  3. val(s) <= 256
+  4. MOD(val(s), 8) == 0
+  5. tlsf_take_post(
+       d,
+       word(1080),
+       lim,
+       top,
+       xs,
+       hd,
+       fl,
+       sb,
+       bl,
+       before,
+       (gs : List[Value]) => (ms : Num) =>
+         star(
+           tlsf_small(d, hd, ps, sz, loc, cached, live, fast, partial),
+           fp(gs, ms)),
+       res,
+       gs,
+       ms,
+       h)
+then
+  tlsf_malloc_page_reserved(
+    d,
+    lim,
+    top,
+    xs,
+    hd,
+    fl,
+    sb,
+    bl,
+    ps,
+    sz,
+    loc,
+    cached,
+    live,
+    fast,
+    partial,
+    s,
+    before,
+    fp,
+    res,
+    gs,
+    ms,
+    h)
+```
+
+lemma `tlsf_malloc_page_tail_reserved`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (take_idx lim : Num)
+  (d top fl s : W32) (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (l1 l2 l3 l4 l5 : Value),
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_malloc_page_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        s,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [V_num(ConstInt32(s)), l1, l2, l3, l4, l5]
+      && tlsf_malloc_page_reserved(
+           d,
+           lim,
+           top,
+           xs,
+           hd,
+           fl,
+           sb,
+           bl,
+           ps,
+           sz,
+           loc,
+           cached,
+           live,
+           fast,
+           partial,
+           s,
+           before,
+           fp,
+           vs,
+           gs,
+           ms,
+           h),
+    tlsf_page_allocate_tail(take_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_malloc_page_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        s,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    [
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        tlsf_malloc_page_post(
+          d,
+          lim,
+          top,
+          xs,
+          hd,
+          fl,
+          sb,
+          bl,
+          ps,
+          sz,
+          loc,
+          cached,
+          live,
+          fast,
+          partial,
+          s,
+          before,
+          fp,
+          vs,
+          gs,
+          ms,
+          h)])
+```
+
+lemma `tlsf_malloc_page_prefix`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (pop push take_idx lim : Num)
+  (d top fl s : W32) (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (l1 l2 l3 l4 l5 : Value)
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. 8 <= val(s)
+  3. val(s) <= 256
+  4. MOD(val(s), 8) == 0
+  5. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  6. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  7. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_m(
+    fs,
+    tabs,
+    inst,
+    st(
+      NIL,
+      [V_num(ConstInt32(s)), l1, l2, l3, l4, l5],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && h == before
+        && star(
+             tlsf_large(d, lim, top, xs, hd, fl, sb, bl),
+             star(
+               tlsf_small(d, hd, ps, sz, loc, cached, live, fast, partial),
+               fp(gs, ms)),
+             h)),
+    tlsf_page_allocate_call(take_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [V_num(ConstInt32(s)), l1, l2, l3, l4, l5]
+      && tlsf_malloc_page_reserved(
+           d,
+           lim,
+           top,
+           xs,
+           hd,
+           fl,
+           sb,
+           bl,
+           ps,
+           sz,
+           loc,
+           cached,
+           live,
+           fast,
+           partial,
+           s,
+           before,
+           fp,
+           vs,
+           gs,
+           ms,
+           h),
+    NIL)
+```
+
+lemma `tlsf_malloc_page_body_focused`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push take_idx lim : Num) (d top fl s : W32) (xs ps : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (before : Heap) (fp : GProp)
+  (l1 l2 l3 l4 l5 : Value)
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. 8 <= val(s)
+  3. val(s) <= 256
+  4. MOD(val(s), 8) == 0
+  5. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  6. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  7. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_malloc_page_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        s,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    st(
+      NIL,
+      [V_num(ConstInt32(s)), l1, l2, l3, l4, l5],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && h == before
+        && star(
+             tlsf_large(d, lim, top, xs, hd, fl, sb, bl),
+             star(
+               tlsf_small(d, hd, ps, sz, loc, cached, live, fast, partial),
+               fp(gs, ms)),
+             h)),
+    tlsf_page_allocate_code(take_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_malloc_page_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        s,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    [
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        tlsf_malloc_page_post(
+          d,
+          lim,
+          top,
+          xs,
+          hd,
+          fl,
+          sb,
+          bl,
+          ps,
+          sz,
+          loc,
+          cached,
+          live,
+          fast,
+          partial,
+          s,
+          before,
+          fp,
+          vs,
+          gs,
+          ms,
+          h)])
+```
+
+lemma `tlsf_malloc_page_body`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push take_idx lim : Num) (d top fl s : W32) (xs ps : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (before : Heap) (fp : GProp)
+  (args : List[Value])
+if
+  1. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  2. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  3. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_malloc_page_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        s,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL
+      && lc == APPEND(
+           args,
+           [V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))),
+            V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))),
+            V_num(ConstInt32(word(0)))])
+      && tlsf_malloc_page_pre(
+           d,
+           lim,
+           top,
+           xs,
+           hd,
+           fl,
+           sb,
+           bl,
+           ps,
+           sz,
+           loc,
+           cached,
+           live,
+           fast,
+           partial,
+           s,
+           before,
+           fp,
+           args,
+           gs,
+           ms,
+           h),
+    tlsf_page_allocate_code(take_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_malloc_page_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        s,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    [
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        tlsf_malloc_page_post(
+          d,
+          lim,
+          top,
+          xs,
+          hd,
+          fl,
+          sb,
+          bl,
+          ps,
+          sz,
+          loc,
+          cached,
+          live,
+          fast,
+          partial,
+          s,
+          before,
+          fp,
+          vs,
+          gs,
+          ms,
+          h)])
+```
+
+definition `tlsf_malloc_page_spec`
+
+```
+tlsf_malloc_page_spec(
+  (inst : Inst),
+  (d : W32),
+  (take_idx : Num),
+  (page_idx : Num),
+  (a : Num),
+  (P : FProp),
+  (Q : FProp)) == (
+  a == sfunc_ind(inst, page_idx)
+  && (
+       ∃ lim : Num,
+         ∃ top : W32,
+           ∃ xs : List[W32],
+             ∃ hd : (W32) -> W32,
+               ∃ fl : W32,
+                 ∃ sb : (Num) -> W32,
+                   ∃ bl : (Num, Num) -> List[W32],
+                     ∃ ps : List[W32],
+                       ∃ sz : (W32) -> Num,
+                         ∃ loc : (W32) -> List[W32],
+                           ∃ cached : (W32) -> List[W32],
+                             ∃ live : (W32) -> List[W32],
+                               ∃ fast : (Num) -> List[W32],
+                                 ∃ partial : (Num) -> List[W32],
+                                   ∃ s : W32,
+                                     ∃ before : Heap,
+                                       ∃ fp : GProp,
+                                         P == tlsf_malloc_page_pre(
+                                           d,
+                                           lim,
+                                           top,
+                                           xs,
+                                           hd,
+                                           fl,
+                                           sb,
+                                           bl,
+                                           ps,
+                                           sz,
+                                           loc,
+                                           cached,
+                                           live,
+                                           fast,
+                                           partial,
+                                           s,
+                                           before,
+                                           fp)
+                                         && Q == tlsf_malloc_page_post(
+                                              d,
+                                              lim,
+                                              top,
+                                              xs,
+                                              hd,
+                                              fl,
+                                              sb,
+                                              bl,
+                                              ps,
+                                              sz,
+                                              loc,
+                                              cached,
+                                              live,
+                                              fast,
+                                              partial,
+                                              s,
+                                              before,
+                                              fp)))
+```
+
+lemma `tlsf_malloc_page_spec_call`
+
+```
+∀ (inst : Inst) (take_idx page_idx lim : Num) (d top fl s : W32)
+  (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp),
+  tlsf_malloc_page_spec(
+    inst,
+    d,
+    take_idx,
+    page_idx,
+    sfunc_ind(inst, page_idx),
+    tlsf_malloc_page_pre(
+      d,
+      lim,
+      top,
+      xs,
+      hd,
+      fl,
+      sb,
+      bl,
+      ps,
+      sz,
+      loc,
+      cached,
+      live,
+      fast,
+      partial,
+      s,
+      before,
+      fp),
+    tlsf_malloc_page_post(
+      d,
+      lim,
+      top,
+      xs,
+      hd,
+      fl,
+      sb,
+      bl,
+      ps,
+      sz,
+      loc,
+      cached,
+      live,
+      fast,
+      partial,
+      s,
+      before,
+      fp))
+```
+
+lemma `tlsf_malloc_page_specs`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (d : W32)
+  (pop push take_idx page_idx k : Num)
+if
+  1. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  2. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  3. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  4. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  specs_ok(
+    k,
+    tlsf_malloc_page_spec(inst, d, take_idx, page_idx),
+    fs,
+    tabs,
+    inst)
+```
+
+lemma `tlsf_malloc_page_all`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (d top fl s : W32)
+  (pop push take_idx page_idx lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (vs0 lc0 : List[Value])
+if
+  1. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  2. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  3. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  4. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_m(
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ args : List[Value],
+        vs == APPEND(vs0, args)
+        && lc == lc0
+        && tlsf_malloc_page_pre(
+             d,
+             lim,
+             top,
+             xs,
+             hd,
+             fl,
+             sb,
+             bl,
+             ps,
+             sz,
+             loc,
+             cached,
+             live,
+             fast,
+             partial,
+             s,
+             before,
+             fp,
+             args,
+             gs,
+             ms,
+             h),
+    [Call(page_idx)],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ res : List[Value],
+        vs == APPEND(vs0, res)
+        && lc == lc0
+        && tlsf_malloc_page_post(
+             d,
+             lim,
+             top,
+             xs,
+             hd,
+             fl,
+             sb,
+             bl,
+             ps,
+             sz,
+             loc,
+             cached,
+             live,
+             fast,
+             partial,
+             s,
+             before,
+             fp,
+             res,
+             gs,
+             ms,
+             h),
+    NIL)
+```
+
+definition `tlsf_malloc_page_ready_post`
+
+```
+tlsf_malloc_page_ready_post(
+  (d : W32),
+  (lim : Num),
+  (top : W32),
+  (xs : List[W32]),
+  (hd : (W32) -> W32),
+  (fl : W32),
+  (sb : (Num) -> W32),
+  (bl : (Num, Num) -> List[W32]),
+  (ps : List[W32]),
+  (sz : (W32) -> Num),
+  (loc : (W32) -> List[W32]),
+  (cached : (W32) -> List[W32]),
+  (live : (W32) -> List[W32]),
+  (fast : (Num) -> List[W32]),
+  (partial : (Num) -> List[W32]),
+  (s : W32),
+  (before : Heap),
+  (fp : GProp)) == (
+  (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+    ms == lim
+    && (
+         res == [V_num(ConstInt32(word(0)))]
+         && tlsf_search(word(1080), fl, sb, bl) == word(0)
+         && h == before
+         && star(
+              tlsf_allocator(
+                d,
+                lim,
+                top,
+                xs,
+                hd,
+                fl,
+                sb,
+                bl,
+                ps,
+                sz,
+                loc,
+                cached,
+                live,
+                fast,
+                partial),
+              fp(gs, ms),
+              h)
+         || (
+              ∃ p : W32,
+                ∃ top2 : W32,
+                  ∃ xs2 : List[W32],
+                    ∃ hd2 : (W32) -> W32,
+                      ∃ fl2 : W32,
+                        ∃ sb2 : (Num) -> W32,
+                          ∃ bl2 : (Num, Num) -> List[W32],
+                            ∃ used0 : W32,
+                              ∃ prev0 : W32,
+                                ∃ b : W32,
+                                  ∃ bs : List[W32],
+                                    ∃ i : Num,
+                                      res == [V_num(ConstInt32(p))]
+                                      && !(
+                                           tlsf_search(
+                                             word(1080),
+                                             fl,
+                                             sb,
+                                             bl)
+                                             == word(0))
+                                      && !(p == word(0))
+                                      && !MEM(p, ps)
+                                      && MEM(p, xs2)
+                                      && tlsf_used(hd2(p))
+                                      && tlsf_physical_ok(
+                                           d,
+                                           lim,
+                                           top2,
+                                           xs2,
+                                           hd2)
+                                      && tlsf_small_backing(
+                                           xs2,
+                                           hd2,
+                                           ps,
+                                           sz,
+                                           loc,
+                                           cached,
+                                           live,
+                                           lim)
+                                      && tlsf_small_lists_ok(
+                                           ps,
+                                           sz,
+                                           loc,
+                                           cached,
+                                           live,
+                                           fast,
+                                           partial)
+                                      && tlsf_page_allocate_geometry(
+                                           p,
+                                           val(tlsf_size(hd2(p))),
+                                           val(s))
+                                      && REVERSE(
+                                           tlsf_small_slots(
+                                             p,
+                                             val(s),
+                                             tlsf_small_total(val(s))))
+                                           == CONS(b, bs)
+                                      && tlsf_small_page_ok(
+                                           lim,
+                                           p,
+                                           val(tlsf_size(hd2(p))),
+                                           val(s),
+                                           CONS(b, bs),
+                                           NIL,
+                                           NIL)
+                                      && i < tlsf_small_total(val(s))
+                                      && b == tlsf_small_slot(p, val(s), i)
+                                      && !(b == word(0))
+                                      && star(
+                                           tlsf_page_allocate_build(
+                                             p,
+                                             val(tlsf_size(hd2(p))),
+                                             val(s),
+                                             tlsf_small_total(val(s)),
+                                             used0,
+                                             prev0),
+                                           star(
+                                             tlsf_allocator(
+                                               d,
+                                               lim,
+                                               top2,
+                                               xs2,
+                                               hd2,
+                                               fl2,
+                                               sb2,
+                                               bl2,
+                                               ps,
+                                               sz,
+                                               loc,
+                                               cached,
+                                               live,
+                                               fast,
+                                               partial),
+                                             star(fp(gs, ms), emp)),
+                                           h))))
+```
+
+lemma `tlsf_malloc_page_expand`
+
+```
+∀ (d top fl s : W32) (lim ms : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before h : Heap) (fp : GProp) (res gs : List[Value])
+if
+  1. tlsf_malloc_page_post(
+       d,
+       lim,
+       top,
+       xs,
+       hd,
+       fl,
+       sb,
+       bl,
+       ps,
+       sz,
+       loc,
+       cached,
+       live,
+       fast,
+       partial,
+       s,
+       before,
+       fp,
+       res,
+       gs,
+       ms,
+       h)
+then
+  tlsf_malloc_page_ready_post(
+    d,
+    lim,
+    top,
+    xs,
+    hd,
+    fl,
+    sb,
+    bl,
+    ps,
+    sz,
+    loc,
+    cached,
+    live,
+    fast,
+    partial,
+    s,
+    before,
+    fp,
+    res,
+    gs,
+    ms,
+    h)
+```
+
+lemma `tlsf_malloc_payload_frame`
+
+```
+∀ (b : W32) (sz : Num) (frame : HProp) (h : Heap)
+if
+  1. 4 <= sz
+  2. star(tlsf_page_publish_payload(b, sz), frame, h)
+then
+  star(tlsf_bytes(val(b) + 8, sz), frame, h)
+```
+
+lemma `tlsf_malloc_small_result`
+
+```
+∀ (d top fl p b n : W32) (lim oldlim : Num) (xs ps : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (fp : GProp) (gs : List[Value]) (h : Heap)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. MEM(p, ps)
+  4. MEM(b, live(p))
+  5. oldlim <= lim
+  6. val(n) <= sz(p)
+  7. star(
+       tlsf_page_publish_payload(b, sz(p)),
+       star(
+         tlsf_allocator(
+           d,
+           lim,
+           top,
+           xs,
+           hd,
+           fl,
+           sb,
+           bl,
+           ps,
+           sz,
+           loc,
+           cached,
+           live,
+           fast,
+           partial),
+         fp(gs, oldlim)),
+       h)
+then
+  tlsf_malloc_result(d, n, oldlim, fp, word_add(b, word(8)), gs, lim, h)
+```
+
+lemma `tlsf_malloc_large_result`
+
+```
+∀ (d top fl m n : W32) (lim oldlim : Num) (xs ps : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (fp : GProp) (gs : List[Value]) (h : Heap)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. MEM(m, xs)
+  3. !MEM(m, ps)
+  4. tlsf_used(hd(m))
+  5. val(n) <= val(tlsf_size(hd(m)))
+  6. oldlim <= lim
+  7. star(
+       tlsf_bytes(val(m) + 8, val(tlsf_size(hd(m)))),
+       star(
+         tlsf_allocator(
+           d,
+           lim,
+           top,
+           xs,
+           hd,
+           fl,
+           sb,
+           bl,
+           ps,
+           sz,
+           loc,
+           cached,
+           live,
+           fast,
+           partial),
+         fp(gs, oldlim)),
+       h)
+then
+  tlsf_malloc_result(d, n, oldlim, fp, word_add(m, word(8)), gs, lim, h)
+```
+
+lemma `tlsf_malloc_result_pointer`
+
+```
+∀ (d n ptr : W32) (lim ms : Num) (fp : GProp) (gs : List[Value]) (h : Heap)
+if
+  1. tlsf_malloc_result(d, n, lim, fp, ptr, gs, ms, h)
+then
+  !(ptr == word(0))
+  && !(ptr == word(4294967295))
+```
+
+lemma `tlsf_malloc_result_original_frame`
+
+```
+∀ (d n ptr : W32) (lim ms next : Num) (fp : GProp) (gs : List[Value]) (h : Heap)
+if
+  1. lim <= next
+  2. tlsf_malloc_result(
+       d,
+       n,
+       next,
+       (gs : List[Value]) => (ms : Num) => fp(gs, lim),
+       ptr,
+       gs,
+       ms,
+       h)
+then
+  tlsf_malloc_result(d, n, lim, fp, ptr, gs, ms, h)
+```
+
+lemma `tlsf_malloc_try_available`
+
+```
+∀ (d top fl n : W32) (lim ms : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before h : Heap) (fp : GProp) (res gs : List[Value])
+if
+  1. n == word(0)
+     || val(n) <= 256
+        && (
+             !(fast(DIV(val(n) + 7, 8)) == NIL)
+             || !(partial(DIV(val(n) + 7, 8)) == NIL)
+             || !(tlsf_search(word(1080), fl, sb, bl) == word(0)))
+     || 256 < val(n) && !(tlsf_search(n, fl, sb, bl) == word(0))
+  2. tlsf_try_malloc_post(
+       d,
+       lim,
+       top,
+       xs,
+       hd,
+       fl,
+       sb,
+       bl,
+       ps,
+       sz,
+       loc,
+       cached,
+       live,
+       fast,
+       partial,
+       n,
+       before,
+       fp,
+       res,
+       gs,
+       ms,
+       h)
+then
+  ∃ (ptr : W32),
+    res == [V_num(ConstInt32(ptr))]
+    && !(ptr == word(4294967295))
+    && tlsf_full_malloc_post(
+         d,
+         lim,
+         top,
+         xs,
+         hd,
+         fl,
+         sb,
+         bl,
+         ps,
+         sz,
+         loc,
+         cached,
+         live,
+         fast,
+         partial,
+         n,
+         before,
+         fp,
+         res,
+         gs,
+         ms,
+         h)
+```
+
+lemma `tlsf_malloc_try_no_fit`
+
+```
+∀ (d top fl n : W32) (lim ms : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before h : Heap) (fp : GProp) (res gs : List[Value])
+if
+  1. !(
+       n == word(0)
+       || val(n) <= 256
+          && (
+               !(fast(DIV(val(n) + 7, 8)) == NIL)
+               || !(partial(DIV(val(n) + 7, 8)) == NIL)
+               || !(tlsf_search(word(1080), fl, sb, bl) == word(0)))
+       || 256 < val(n) && !(tlsf_search(n, fl, sb, bl) == word(0)))
+  2. tlsf_try_malloc_post(
+       d,
+       lim,
+       top,
+       xs,
+       hd,
+       fl,
+       sb,
+       bl,
+       ps,
+       sz,
+       loc,
+       cached,
+       live,
+       fast,
+       partial,
+       n,
+       before,
+       fp,
+       res,
+       gs,
+       ms,
+       h)
+then
+  !(n == word(0))
+  && res == [V_num(ConstInt32(word(4294967295)))]
+  && ms == lim
+  && h == before
+  && star(
+       tlsf_allocator(
+         d,
+         lim,
+         top,
+         xs,
+         hd,
+         fl,
+         sb,
+         bl,
+         ps,
+         sz,
+         loc,
+         cached,
+         live,
+         fast,
+         partial),
+       fp(gs, lim),
+       h)
+```
+
+lemma `tlsf_malloc_frame_state`
+
+```
+∀ (d top fl : W32) (lim oldlim ms : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp) (gs : List[Value]) (h : Heap)
+if
+  1. oldlim <= lim
+  2. ms == lim
+  3. star(
+       tlsf_allocator(
+         d,
+         lim,
+         top,
+         xs,
+         hd,
+         fl,
+         sb,
+         bl,
+         ps,
+         sz,
+         loc,
+         cached,
+         live,
+         fast,
+         partial),
+       fp(gs, oldlim),
+       h)
+then
+  tlsf_malloc_state(d, oldlim, fp, gs, ms, h)
+```
+
+lemma `tlsf_malloc_result_full_post`
+
+```
+∀ (d top fl n ptr : W32) (lim ms : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before h : Heap) (fp : GProp) (res gs : List[Value])
+if
+  1. !(n == word(0))
+  2. res == [V_num(ConstInt32(ptr))]
+  3. tlsf_malloc_result(d, n, lim, fp, ptr, gs, ms, h)
+then
+  tlsf_full_malloc_post(
+    d,
+    lim,
+    top,
+    xs,
+    hd,
+    fl,
+    sb,
+    bl,
+    ps,
+    sz,
+    loc,
+    cached,
+    live,
+    fast,
+    partial,
+    n,
+    before,
+    fp,
+    res,
+    gs,
+    ms,
+    h)
+```
+
+lemma `tlsf_malloc_try_checked`
+
+```
+∀ (d top fl n : W32) (lim ms : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before h : Heap) (fp : GProp) (res gs : List[Value])
+if
+  1. tlsf_try_malloc_post(
+       d,
+       lim,
+       top,
+       xs,
+       hd,
+       fl,
+       sb,
+       bl,
+       ps,
+       sz,
+       loc,
+       cached,
+       live,
+       fast,
+       partial,
+       n,
+       before,
+       fp,
+       res,
+       gs,
+       ms,
+       h)
+then
+  tlsf_malloc_checked_post(
+    d,
+    lim,
+    top,
+    xs,
+    hd,
+    fl,
+    sb,
+    bl,
+    ps,
+    sz,
+    loc,
+    cached,
+    live,
+    fast,
+    partial,
+    n,
+    before,
+    fp,
+    res,
+    gs,
+    ms,
+    h)
+```
+
+lemma `tlsf_malloc_try_cached_export`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k s i : Num)
+  (original l1 l2 l3 l4 : Value) (d top fl p b used0 prev0 nreq : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp) (before : Heap)
+if
+  1. (
+       val(d) <= 4294965088
+       && tlsf_small_page_ok(
+            lim,
+            p,
+            val(tlsf_size(hd(p))),
+            8 * k,
+            loc(p),
+            cached(p),
+            live(p))
+       && MEM(b, cached(p))
+       && i < tlsf_small_total(8 * k)
+       && b == tlsf_small_slot(p, 8 * k, i)
+       && tlsf_count(p, ps) == 1
+       && sz(p) == 8 * k
+       && k < 33
+       && fast(k) == CONS(b, bs))
+     && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+     && tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+     && tlsf_physical_ok(d, lim, top, xs, hd)
+     && MEM(p, ps)
+  2. val(nreq) <= 8 * k
+  3. tlsf_physical_ok(d, lim, top, xs, hd)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(b)), V_num(ConstInt32(word(k))), l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_try_cached(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(word(k))), V_num(ConstInt32(tlsf_small_head(bs))), l3,
+       l4]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && tlsf_malloc_result(d, nreq, lim, fp, word_add(b, word(8)), gs, ms, h))
+```
+
+lemma `tlsf_malloc_try_partial_export`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k s i : Num)
+  (original l1 l2 l3 l4 : Value) (d top fl p b used0 prev0 nreq : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp) (before : Heap)
+if
+  1. (
+       val(d) <= 4294965088
+       && tlsf_small_page_ok(
+            lim,
+            p,
+            val(tlsf_size(hd(p))),
+            s,
+            CONS(b, bs),
+            NIL,
+            live(p))
+       && i < tlsf_small_total(s)
+       && b == tlsf_small_slot(p, s, i)
+       && fast(DIV(s, 8)) == NIL
+       && tlsf_count(p, ps) == 1
+       && sz(p) == s
+       && loc(p) == CONS(b, bs)
+       && cached(p) == NIL
+       && partial(DIV(s, 8)) == CONS(p, z)
+       && (∀ q : W32, MEM(q, z) → !(q == word(0)) && val(q) + 32 <= 4294967296))
+     && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+     && tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+     && MEM(p, ps)
+  2. val(nreq) <= s
+  3. tlsf_physical_ok(d, lim, top, xs, hd)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), l1, V_num(ConstInt32(word(s))), l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_page_publish_partial_code(d),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [V_num(ConstInt32(tlsf_small_head(z))), V_num(ConstInt32(b)),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs)))]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && tlsf_malloc_result(d, nreq, lim, fp, word_add(b, word(8)), gs, ms, h))
+```
+
+lemma `tlsf_malloc_try_fresh_export`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k s i : Num)
+  (original l1 l2 l3 l4 : Value) (d top fl p b used0 prev0 nreq : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp) (before : Heap)
+if
+  1. (
+       val(d) <= 4294965088
+       && tlsf_small_page_ok(
+            lim,
+            p,
+            val(tlsf_size(hd(p))),
+            s,
+            CONS(b, bs),
+            NIL,
+            NIL)
+       && i < tlsf_small_total(s)
+       && b == tlsf_small_slot(p, s, i)
+       && fast(DIV(s, 8)) == NIL
+       && !MEM(p, ps)
+       && REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))) == CONS(b, bs))
+     && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+     && tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+     && MEM(p, xs)
+     && tlsf_used(hd(p))
+  2. val(nreq) <= s
+  3. tlsf_physical_ok(d, lim, top, xs, hd)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), V_num(ConstInt32(b)), V_num(ConstInt32(word(s))),
+       V_num(ConstInt32(word_add(p, word(20)))), l4],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_page_allocate_build(
+               p,
+               val(tlsf_size(hd(p))),
+               s,
+               tlsf_small_total(s),
+               used0,
+               prev0),
+             star(
+               tlsf_allocator(
+                 d,
+                 lim,
+                 top,
+                 xs,
+                 hd,
+                 fl,
+                 sb,
+                 bl,
+                 ps,
+                 sz,
+                 loc,
+                 cached,
+                 live,
+                 fast,
+                 partial),
+               star(fp(gs, ms), emp)),
+             h)),
+    tlsf_page_publish_fresh_code(d),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [V_num(ConstInt32(p)), V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs)))]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && tlsf_malloc_result(d, nreq, lim, fp, word_add(b, word(8)), gs, ms, h))
+```
+
+lemma `tlsf_malloc_first_cached_export`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k s i : Num)
+  (original l1 l2 l3 l4 : Value) (d top fl p b used0 prev0 nreq : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp) (before : Heap)
+if
+  1. (
+       val(d) <= 4294965088
+       && tlsf_small_page_ok(
+            lim,
+            p,
+            val(tlsf_size(hd(p))),
+            8 * k,
+            loc(p),
+            cached(p),
+            live(p))
+       && MEM(b, cached(p))
+       && i < tlsf_small_total(8 * k)
+       && b == tlsf_small_slot(p, 8 * k, i)
+       && tlsf_count(p, ps) == 1
+       && sz(p) == 8 * k
+       && k < 33
+       && fast(k) == CONS(b, bs))
+     && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+     && tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+     && tlsf_physical_ok(d, lim, top, xs, hd)
+     && MEM(p, ps)
+  2. val(nreq) <= 8 * k
+  3. tlsf_physical_ok(d, lim, top, xs, hd)
+then
+  sl_triple(
+    st(
+      NIL,
+      [original, V_num(ConstInt32(b)), V_num(ConstInt32(word(k))), l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_first_cached(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [original, V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(word(k))), V_num(ConstInt32(tlsf_small_head(bs))), l3,
+       l4]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && tlsf_malloc_result(d, nreq, lim, fp, word_add(b, word(8)), gs, ms, h))
+```
+
+lemma `tlsf_malloc_first_partial_export`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k s i : Num)
+  (original l1 l2 l3 l4 : Value) (d top fl p b used0 prev0 nreq : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp) (before : Heap)
+if
+  1. (
+       val(d) <= 4294965088
+       && tlsf_small_page_ok(
+            lim,
+            p,
+            val(tlsf_size(hd(p))),
+            s,
+            CONS(b, bs),
+            NIL,
+            live(p))
+       && i < tlsf_small_total(s)
+       && b == tlsf_small_slot(p, s, i)
+       && fast(DIV(s, 8)) == NIL
+       && tlsf_count(p, ps) == 1
+       && sz(p) == s
+       && loc(p) == CONS(b, bs)
+       && cached(p) == NIL
+       && partial(DIV(s, 8)) == CONS(p, z)
+       && (∀ q : W32, MEM(q, z) → !(q == word(0)) && val(q) + 32 <= 4294967296))
+     && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+     && tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+     && MEM(p, ps)
+  2. val(nreq) <= s
+  3. tlsf_physical_ok(d, lim, top, xs, hd)
+then
+  sl_triple(
+    st(
+      NIL,
+      [original, V_num(ConstInt32(p)), l1, V_num(ConstInt32(word(s))), l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_first_partial(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [original, V_num(ConstInt32(tlsf_small_head(z))),
+       V_num(ConstInt32(b)), V_num(ConstInt32(word(s))),
+       V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs)))]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && tlsf_malloc_result(d, nreq, lim, fp, word_add(b, word(8)), gs, ms, h))
+```
+
+lemma `tlsf_malloc_first_fresh_export`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k s i : Num)
+  (original l1 l2 l3 l4 : Value) (d top fl p b used0 prev0 nreq : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp) (before : Heap)
+if
+  1. (
+       val(d) <= 4294965088
+       && tlsf_small_page_ok(
+            lim,
+            p,
+            val(tlsf_size(hd(p))),
+            s,
+            CONS(b, bs),
+            NIL,
+            NIL)
+       && i < tlsf_small_total(s)
+       && b == tlsf_small_slot(p, s, i)
+       && fast(DIV(s, 8)) == NIL
+       && !MEM(p, ps)
+       && REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))) == CONS(b, bs))
+     && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+     && tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+     && MEM(p, xs)
+     && tlsf_used(hd(p))
+  2. val(nreq) <= s
+  3. tlsf_physical_ok(d, lim, top, xs, hd)
+then
+  sl_triple(
+    st(
+      NIL,
+      [original, V_num(ConstInt32(p)), V_num(ConstInt32(b)),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       l4],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_page_allocate_build(
+               p,
+               val(tlsf_size(hd(p))),
+               s,
+               tlsf_small_total(s),
+               used0,
+               prev0),
+             star(
+               tlsf_allocator(
+                 d,
+                 lim,
+                 top,
+                 xs,
+                 hd,
+                 fl,
+                 sb,
+                 bl,
+                 ps,
+                 sz,
+                 loc,
+                 cached,
+                 live,
+                 fast,
+                 partial),
+               star(fp(gs, ms), emp)),
+             h)),
+    tlsf_malloc_first_fresh(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [original, V_num(ConstInt32(p)),
+       V_num(ConstInt32(word_add(b, word(8)))), V_num(ConstInt32(word(s))),
+       V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs)))]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && tlsf_malloc_result(d, nreq, lim, fp, word_add(b, word(8)), gs, ms, h))
+```
+
+lemma `tlsf_malloc_retry_cached_export`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k s i : Num)
+  (original l1 l2 l3 l4 : Value) (d top fl p b used0 prev0 nreq : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp) (before : Heap)
+if
+  1. (
+       val(d) <= 4294965088
+       && tlsf_small_page_ok(
+            lim,
+            p,
+            val(tlsf_size(hd(p))),
+            8 * k,
+            loc(p),
+            cached(p),
+            live(p))
+       && MEM(b, cached(p))
+       && i < tlsf_small_total(8 * k)
+       && b == tlsf_small_slot(p, 8 * k, i)
+       && tlsf_count(p, ps) == 1
+       && sz(p) == 8 * k
+       && k < 33
+       && fast(k) == CONS(b, bs))
+     && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+     && tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+     && tlsf_physical_ok(d, lim, top, xs, hd)
+     && MEM(p, ps)
+  2. val(nreq) <= 8 * k
+  3. tlsf_physical_ok(d, lim, top, xs, hd)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(b)), V_num(ConstInt32(word(k))), l2, l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_retry_cached(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(word(k))), V_num(ConstInt32(tlsf_small_head(bs))), l3,
+       l4, original]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && tlsf_malloc_result(d, nreq, lim, fp, word_add(b, word(8)), gs, ms, h))
+```
+
+lemma `tlsf_malloc_retry_partial_export`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k s i : Num)
+  (original l1 l2 l3 l4 : Value) (d top fl p b used0 prev0 nreq : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp) (before : Heap)
+if
+  1. (
+       val(d) <= 4294965088
+       && tlsf_small_page_ok(
+            lim,
+            p,
+            val(tlsf_size(hd(p))),
+            s,
+            CONS(b, bs),
+            NIL,
+            live(p))
+       && i < tlsf_small_total(s)
+       && b == tlsf_small_slot(p, s, i)
+       && fast(DIV(s, 8)) == NIL
+       && tlsf_count(p, ps) == 1
+       && sz(p) == s
+       && loc(p) == CONS(b, bs)
+       && cached(p) == NIL
+       && partial(DIV(s, 8)) == CONS(p, z)
+       && (∀ q : W32, MEM(q, z) → !(q == word(0)) && val(q) + 32 <= 4294967296))
+     && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+     && tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+     && MEM(p, ps)
+  2. val(nreq) <= s
+  3. tlsf_physical_ok(d, lim, top, xs, hd)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), l1, V_num(ConstInt32(word(s))), l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_retry_partial(
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [V_num(ConstInt32(tlsf_small_head(z))), V_num(ConstInt32(b)),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs))), original]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && tlsf_malloc_result(d, nreq, lim, fp, word_add(b, word(8)), gs, ms, h))
+```
+
+lemma `tlsf_malloc_retry_fresh_export`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim k s i : Num)
+  (original l1 l2 l3 l4 : Value) (d top fl p b used0 prev0 nreq : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp) (before : Heap)
+if
+  1. (
+       val(d) <= 4294965088
+       && tlsf_small_page_ok(
+            lim,
+            p,
+            val(tlsf_size(hd(p))),
+            s,
+            CONS(b, bs),
+            NIL,
+            NIL)
+       && i < tlsf_small_total(s)
+       && b == tlsf_small_slot(p, s, i)
+       && fast(DIV(s, 8)) == NIL
+       && !MEM(p, ps)
+       && REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))) == CONS(b, bs))
+     && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+     && tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+     && MEM(p, xs)
+     && tlsf_used(hd(p))
+  2. val(nreq) <= s
+  3. tlsf_physical_ok(d, lim, top, xs, hd)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), V_num(ConstInt32(b)), V_num(ConstInt32(word(s))),
+       V_num(ConstInt32(word_add(p, word(20)))), l4, original],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_page_allocate_build(
+               p,
+               val(tlsf_size(hd(p))),
+               s,
+               tlsf_small_total(s),
+               used0,
+               prev0),
+             star(
+               tlsf_allocator(
+                 d,
+                 lim,
+                 top,
+                 xs,
+                 hd,
+                 fl,
+                 sb,
+                 bl,
+                 ps,
+                 sz,
+                 loc,
+                 cached,
+                 live,
+                 fast,
+                 partial),
+               star(fp(gs, ms), emp)),
+             h)),
+    tlsf_malloc_retry_fresh(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [V_num(ConstInt32(p)), V_num(ConstInt32(word_add(b, word(8)))),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       V_num(ConstInt32(tlsf_small_head(bs))), original]
+      && res == [V_num(ConstInt32(word_add(b, word(8))))]
+      && ms == lim
+      && tlsf_malloc_result(d, nreq, lim, fp, word_add(b, word(8)), gs, ms, h))
+```
+
+definition `tlsf_malloc_take_selected_post`
+
+```
+tlsf_malloc_take_selected_post(
+  (d : W32),
+  (lim : Num),
+  (top : W32),
+  (xs : List[W32]),
+  (hd : (W32) -> W32),
+  (fl : W32),
+  (sb : (Num) -> W32),
+  (bl : (Num, Num) -> List[W32]),
+  (ps : List[W32]),
+  (sz : (W32) -> Num),
+  (loc : (W32) -> List[W32]),
+  (cached : (W32) -> List[W32]),
+  (live : (W32) -> List[W32]),
+  (fast : (Num) -> List[W32]),
+  (partial : (Num) -> List[W32]),
+  (n : W32),
+  (before : Heap),
+  (fp : GProp)) == (
+  (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+    ms == lim
+    && (
+         res == [V_num(ConstInt32(word(0)))]
+         && tlsf_search(n, fl, sb, bl) == word(0)
+         && (
+              (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+                ms == lim
+                && h == before
+                && star(
+                     tlsf_allocator(
+                       d,
+                       lim,
+                       top,
+                       xs,
+                       hd,
+                       fl,
+                       sb,
+                       bl,
+                       ps,
+                       sz,
+                       loc,
+                       cached,
+                       live,
+                       fast,
+                       partial),
+                     fp(gs, lim),
+                     h))(gs, ms, h)
+         || (
+              ∃ m : W32,
+                !(m == word(0))
+                && res == [V_num(ConstInt32(m))]
+                && m == tlsf_search(n, fl, sb, bl)
+                && tlsf_malloc_result(
+                     d,
+                     n,
+                     lim,
+                     fp,
+                     word_add(m, word(8)),
+                     gs,
+                     ms,
+                     h))))
+```
+
+lemma `tlsf_malloc_take_post_result`
+
+```
+∀ (d top fl n : W32) (lim ms : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before h : Heap) (fp : GProp) (res gs : List[Value])
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. tlsf_take_post(
+       d,
+       n,
+       lim,
+       top,
+       xs,
+       hd,
+       fl,
+       sb,
+       bl,
+       before,
+       (gs : List[Value]) => (ms : Num) =>
+         star(
+           tlsf_small(d, hd, ps, sz, loc, cached, live, fast, partial),
+           fp(gs, ms)),
+       res,
+       gs,
+       ms,
+       h)
+then
+  tlsf_malloc_take_selected_post(
+    d,
+    lim,
+    top,
+    xs,
+    hd,
+    fl,
+    sb,
+    bl,
+    ps,
+    sz,
+    loc,
+    cached,
+    live,
+    fast,
+    partial,
+    n,
+    before,
+    fp,
+    res,
+    gs,
+    ms,
+    h)
+```
+
+lemma `tlsf_malloc_take_call`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (pop push take_idx lim : Num)
+  (d top fl n : W32) (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (caller : List[Value])
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. 16 <= val(n)
+  3. val(n) <= 4160749568
+  4. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  5. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  6. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_m(
+    fs,
+    tabs,
+    inst,
+    st(
+      [V_num(ConstInt32(n))],
+      caller,
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    [Call(take_idx)],
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == caller
+      && tlsf_malloc_take_selected_post(
+           d,
+           lim,
+           top,
+           xs,
+           hd,
+           fl,
+           sb,
+           bl,
+           ps,
+           sz,
+           loc,
+           cached,
+           live,
+           fast,
+           partial,
+           n,
+           before,
+           fp,
+           res,
+           gs,
+           ms,
+           h),
+    NIL)
+```
+
+lemma `tlsf_malloc_take_call_g`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push take_idx lim : Num) (d top fl n : W32)
+  (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (caller : List[Value])
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. 16 <= val(n)
+  3. val(n) <= 4160749568
+  4. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  5. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  6. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      [V_num(ConstInt32(n))],
+      caller,
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    [Call(take_idx)],
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == caller
+      && ms == lim
+      && (
+           res == [V_num(ConstInt32(word(0)))]
+           && tlsf_search(n, fl, sb, bl) == word(0)
+           && ms == lim
+           && h == before
+           && star(
+                tlsf_allocator(
+                  d,
+                  lim,
+                  top,
+                  xs,
+                  hd,
+                  fl,
+                  sb,
+                  bl,
+                  ps,
+                  sz,
+                  loc,
+                  cached,
+                  live,
+                  fast,
+                  partial),
+                fp(gs, lim),
+                h)
+           || (
+                ∃ m : W32,
+                  !(m == word(0))
+                  && res == [V_num(ConstInt32(m))]
+                  && m == tlsf_search(n, fl, sb, bl)
+                  && tlsf_malloc_result(
+                       d,
+                       n,
+                       lim,
+                       fp,
+                       word_add(m, word(8)),
+                       gs,
+                       ms,
+                       h))),
+    labels)
+```
+
+lemma `tlsf_malloc_backing_used`
+
+```
+∀ (d top fl p : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. MEM(p, ps)
+then
+  MEM(p, xs)
+  && tlsf_used(hd(p))
+```
+
+lemma `tlsf_malloc_growth_retains`
+
+```
+∀ (d top fl p : W32) (lim lim2 : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. MEM(p, xs)
+  3. tlsf_used(hd(p))
+then
+  MEM(p, tlsf_grow_chain(xs, hd, top, lim))
+  && tlsf_used(tlsf_grow_headers(hd, top, lim, lim2, p))
+  && tlsf_size(tlsf_grow_headers(hd, top, lim, lim2, p)) == tlsf_size(hd(p))
+```
+
+definition `tlsf_malloc_ensure_post`
+
+```
+tlsf_malloc_ensure_post(
+  (d : W32),
+  (lim : Num),
+  (top : W32),
+  (xs : List[W32]),
+  (hd : (W32) -> W32),
+  (fl : W32),
+  (sb : (Num) -> W32),
+  (bl : (Num, Num) -> List[W32]),
+  (ps : List[W32]),
+  (sz : (W32) -> Num),
+  (loc : (W32) -> List[W32]),
+  (cached : (W32) -> List[W32]),
+  (live : (W32) -> List[W32]),
+  (fast : (Num) -> List[W32]),
+  (partial : (Num) -> List[W32]),
+  (n : W32),
+  (before : Heap),
+  (fp : GProp)) == (
+  (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+    res == [V_num(ConstInt32(word(0)))]
+    && (
+         (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+           ms == lim
+           && h == before
+           && star(
+                tlsf_allocator(
+                  d,
+                  lim,
+                  top,
+                  xs,
+                  hd,
+                  fl,
+                  sb,
+                  bl,
+                  ps,
+                  sz,
+                  loc,
+                  cached,
+                  live,
+                  fast,
+                  partial),
+                fp(gs, lim),
+                h))(gs, ms, h)
+    || res == [V_num(ConstInt32(word(1)))]
+       && lim <= ms
+       && (
+            ∃ top2 : W32,
+              ∃ xs2 : List[W32],
+                ∃ hd2 : (W32) -> W32,
+                  ∃ fl2 : W32,
+                    ∃ sb2 : (Num) -> W32,
+                      ∃ bl2 : (Num, Num) -> List[W32],
+                        star(
+                          tlsf_allocator(
+                            d,
+                            ms,
+                            top2,
+                            xs2,
+                            hd2,
+                            fl2,
+                            sb2,
+                            bl2,
+                            ps,
+                            sz,
+                            loc,
+                            cached,
+                            live,
+                            fast,
+                            partial),
+                          fp(gs, lim),
+                          h)))
+```
+
+lemma `tlsf_malloc_ensure_post_result`
+
+```
+∀ (d top fl n : W32) (lim ms : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before h : Heap) (fp : GProp) (res gs : List[Value])
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_ensure_post(
+       d,
+       n,
+       lim,
+       top,
+       xs,
+       hd,
+       fl,
+       sb,
+       bl,
+       before,
+       (gs : List[Value]) => (ms : Num) =>
+         star(
+           tlsf_small(d, hd, ps, sz, loc, cached, live, fast, partial),
+           fp(gs, ms)),
+       res,
+       gs,
+       ms,
+       h)
+then
+  tlsf_malloc_ensure_post(
+    d,
+    lim,
+    top,
+    xs,
+    hd,
+    fl,
+    sb,
+    bl,
+    ps,
+    sz,
+    loc,
+    cached,
+    live,
+    fast,
+    partial,
+    n,
+    before,
+    fp,
+    res,
+    gs,
+    ms,
+    h)
+```
+
+lemma `tlsf_malloc_ensure_call`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (pop push ensure_idx lim : Num)
+  (d top fl n : W32) (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (caller : List[Value])
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. 16 <= val(n)
+  4. val(n) <= 4160749568
+  5. EL(sfunc_ind(inst, ensure_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32)],
+       tlsf_ensure_code(d, pop, push))
+  6. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  7. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_m(
+    fs,
+    tabs,
+    inst,
+    st(
+      [V_num(ConstInt32(n))],
+      caller,
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    [Call(ensure_idx)],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      st(
+        [V_num(ConstInt32(word(0)))],
+        caller,
+        tlsf_malloc_ro(
+          d,
+          lim,
+          top,
+          xs,
+          hd,
+          fl,
+          sb,
+          bl,
+          ps,
+          sz,
+          loc,
+          cached,
+          live,
+          fast,
+          partial,
+          before,
+          fp),
+        vs,
+        lc,
+        gs,
+        ms,
+        h)
+      || (
+           ∃ lim2 : Num,
+             ∃ before2 : Heap,
+               ∃ top2 : W32,
+                 ∃ xs2 : List[W32],
+                   ∃ hd2 : (W32) -> W32,
+                     ∃ fl2 : W32,
+                       ∃ sb2 : (Num) -> W32,
+                         ∃ bl2 : (Num, Num) -> List[W32],
+                           lim <= lim2
+                           && st(
+                                [V_num(ConstInt32(word(1)))],
+                                caller,
+                                tlsf_malloc_ro(
+                                  d,
+                                  lim2,
+                                  top2,
+                                  xs2,
+                                  hd2,
+                                  fl2,
+                                  sb2,
+                                  bl2,
+                                  ps,
+                                  sz,
+                                  loc,
+                                  cached,
+                                  live,
+                                  fast,
+                                  partial,
+                                  before2,
+                                  (gs : List[Value]) => (ms : Num) =>
+                                    fp(gs, lim)),
+                                vs,
+                                lc,
+                                gs,
+                                ms,
+                                h)),
+    NIL)
+```
+
+lemma `tlsf_malloc_full_growth_all`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. 0 < val(n)
+  4. val(n) <= 4160749568
+  5. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  6. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  7. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  8. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+  9. EL(sfunc_ind(inst, ensure_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32)],
+       tlsf_ensure_code(d, pop, push))
+then
+  sl_abort_m(
+    fs,
+    tabs,
+    inst,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l0, l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_full_growth(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ lim2 : Num,
+        ∃ before2 : Heap,
+          ∃ top2 : W32,
+            ∃ xs2 : List[W32],
+              ∃ hd2 : (W32) -> W32,
+                ∃ fl2 : W32,
+                  ∃ sb2 : (Num) -> W32,
+                    ∃ bl2 : (Num, Num) -> List[W32],
+                      lim <= lim2
+                      && st(
+                           NIL,
+                           [V_num(ConstInt32(n)), l0, l1, l2, l3, l4],
+                           tlsf_malloc_ro(
+                             d,
+                             lim2,
+                             top2,
+                             xs2,
+                             hd2,
+                             fl2,
+                             sb2,
+                             bl2,
+                             ps,
+                             sz,
+                             loc,
+                             cached,
+                             live,
+                             fast,
+                             partial,
+                             before2,
+                             (gs : List[Value]) => (ms : Num) => fp(gs, lim)),
+                           vs,
+                           lc,
+                           gs,
+                           ms,
+                           h),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_malloc_state(d, lim, fp, gs, ms, h))
+```
+
+lemma `tlsf_malloc_page_call`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push take_idx page_idx lim : Num) (d top fl s : W32) (xs ps : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (before : Heap) (fp : GProp)
+  (caller : List[Value])
+if
+  1. 8 <= val(s)
+  2. val(s) <= 256
+  3. MOD(val(s), 8) == 0
+  4. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  5. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  6. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  7. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_m(
+    fs,
+    tabs,
+    inst,
+    st(
+      [V_num(ConstInt32(s))],
+      caller,
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    [Call(page_idx)],
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == caller
+      && tlsf_malloc_page_ready_post(
+           d,
+           lim,
+           top,
+           xs,
+           hd,
+           fl,
+           sb,
+           bl,
+           ps,
+           sz,
+           loc,
+           cached,
+           live,
+           fast,
+           partial,
+           s,
+           before,
+           fp,
+           res,
+           gs,
+           ms,
+           h),
+    NIL)
+```
+
+lemma `tlsf_malloc_page_call_g`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push take_idx page_idx lim : Num)
+  (d top fl s : W32) (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (caller : List[Value])
+if
+  1. 8 <= val(s)
+  2. val(s) <= 256
+  3. MOD(val(s), 8) == 0
+  4. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  5. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  6. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  7. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      [V_num(ConstInt32(s))],
+      caller,
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    [Call(page_idx)],
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == caller
+      && ms == lim
+      && (
+           res == [V_num(ConstInt32(word(0)))]
+           && tlsf_search(word(1080), fl, sb, bl) == word(0)
+           && h == before
+           && star(
+                tlsf_allocator(
+                  d,
+                  lim,
+                  top,
+                  xs,
+                  hd,
+                  fl,
+                  sb,
+                  bl,
+                  ps,
+                  sz,
+                  loc,
+                  cached,
+                  live,
+                  fast,
+                  partial),
+                fp(gs, ms),
+                h)
+           || (
+                ∃ p : W32,
+                  ∃ top2 : W32,
+                    ∃ xs2 : List[W32],
+                      ∃ hd2 : (W32) -> W32,
+                        ∃ fl2 : W32,
+                          ∃ sb2 : (Num) -> W32,
+                            ∃ bl2 : (Num, Num) -> List[W32],
+                              ∃ used0 : W32,
+                                ∃ prev0 : W32,
+                                  ∃ b : W32,
+                                    ∃ bs : List[W32],
+                                      ∃ i : Num,
+                                        res == [V_num(ConstInt32(p))]
+                                        && !(
+                                             tlsf_search(
+                                               word(1080),
+                                               fl,
+                                               sb,
+                                               bl)
+                                               == word(0))
+                                        && !(p == word(0))
+                                        && !MEM(p, ps)
+                                        && MEM(p, xs2)
+                                        && tlsf_used(hd2(p))
+                                        && tlsf_physical_ok(
+                                             d,
+                                             lim,
+                                             top2,
+                                             xs2,
+                                             hd2)
+                                        && tlsf_small_backing(
+                                             xs2,
+                                             hd2,
+                                             ps,
+                                             sz,
+                                             loc,
+                                             cached,
+                                             live,
+                                             lim)
+                                        && tlsf_small_lists_ok(
+                                             ps,
+                                             sz,
+                                             loc,
+                                             cached,
+                                             live,
+                                             fast,
+                                             partial)
+                                        && tlsf_page_allocate_geometry(
+                                             p,
+                                             val(tlsf_size(hd2(p))),
+                                             val(s))
+                                        && REVERSE(
+                                             tlsf_small_slots(
+                                               p,
+                                               val(s),
+                                               tlsf_small_total(val(s))))
+                                             == CONS(b, bs)
+                                        && tlsf_small_page_ok(
+                                             lim,
+                                             p,
+                                             val(tlsf_size(hd2(p))),
+                                             val(s),
+                                             CONS(b, bs),
+                                             NIL,
+                                             NIL)
+                                        && i < tlsf_small_total(val(s))
+                                        && b == tlsf_small_slot(p, val(s), i)
+                                        && !(b == word(0))
+                                        && star(
+                                             tlsf_page_allocate_build(
+                                               p,
+                                               val(tlsf_size(hd2(p))),
+                                               val(s),
+                                               tlsf_small_total(val(s)),
+                                               used0,
+                                               prev0),
+                                             star(
+                                               tlsf_allocator(
+                                                 d,
+                                                 lim,
+                                                 top2,
+                                                 xs2,
+                                                 hd2,
+                                                 fl2,
+                                                 sb2,
+                                                 bl2,
+                                                 ps,
+                                                 sz,
+                                                 loc,
+                                                 cached,
+                                                 live,
+                                                 fast,
+                                                 partial),
+                                               star(fp(gs, ms), emp)),
+                                             h))),
+    labels)
+```
+
+lemma `tlsf_malloc_page_natural_call_g`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push take_idx page_idx lim sn : Num)
+  (d top fl : W32) (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (caller : List[Value])
+if
+  1. 8 <= sn
+  2. sn <= 256
+  3. MOD(sn, 8) == 0
+  4. 8 <= (val : (W32) -> Num)((word : (Num) -> W32)(sn))
+  5. (val : (W32) -> Num)((word : (Num) -> W32)(sn)) <= 256
+  6. MOD((val : (W32) -> Num)((word : (Num) -> W32)(sn)), 8) == 0
+  7. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  8. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  9. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  10. EL(sfunc_ind(inst, push), fs) == Func_native(
+        inst,
+        Tf([T_num(T_i32)], [T_num(T_i32)]),
+        [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+        tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      [V_num(ConstInt32(word(sn)))],
+      caller,
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    [Call(page_idx)],
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == caller
+      && ms == lim
+      && (
+           res == [V_num(ConstInt32(word(0)))]
+           && tlsf_search(word(1080), fl, sb, bl) == word(0)
+           && h == before
+           && star(
+                tlsf_allocator(
+                  d,
+                  lim,
+                  top,
+                  xs,
+                  hd,
+                  fl,
+                  sb,
+                  bl,
+                  ps,
+                  sz,
+                  loc,
+                  cached,
+                  live,
+                  fast,
+                  partial),
+                fp(gs, ms),
+                h)
+           || (
+                ∃ p : W32,
+                  ∃ top2 : W32,
+                    ∃ xs2 : List[W32],
+                      ∃ hd2 : (W32) -> W32,
+                        ∃ fl2 : W32,
+                          ∃ sb2 : (Num) -> W32,
+                            ∃ bl2 : (Num, Num) -> List[W32],
+                              ∃ used0 : W32,
+                                ∃ prev0 : W32,
+                                  ∃ b : W32,
+                                    ∃ bs : List[W32],
+                                      ∃ i : Num,
+                                        res == [V_num(ConstInt32(p))]
+                                        && !(
+                                             tlsf_search(
+                                               word(1080),
+                                               fl,
+                                               sb,
+                                               bl)
+                                               == word(0))
+                                        && !(p == word(0))
+                                        && !MEM(p, ps)
+                                        && MEM(p, xs2)
+                                        && tlsf_used(hd2(p))
+                                        && tlsf_physical_ok(
+                                             d,
+                                             lim,
+                                             top2,
+                                             xs2,
+                                             hd2)
+                                        && tlsf_small_backing(
+                                             xs2,
+                                             hd2,
+                                             ps,
+                                             sz,
+                                             loc,
+                                             cached,
+                                             live,
+                                             lim)
+                                        && tlsf_small_lists_ok(
+                                             ps,
+                                             sz,
+                                             loc,
+                                             cached,
+                                             live,
+                                             fast,
+                                             partial)
+                                        && tlsf_page_allocate_geometry(
+                                             p,
+                                             val(tlsf_size(hd2(p))),
+                                             sn)
+                                        && REVERSE(
+                                             tlsf_small_slots(
+                                               p,
+                                               sn,
+                                               tlsf_small_total(sn)))
+                                             == CONS(b, bs)
+                                        && tlsf_small_page_ok(
+                                             lim,
+                                             p,
+                                             val(tlsf_size(hd2(p))),
+                                             sn,
+                                             CONS(b, bs),
+                                             NIL,
+                                             NIL)
+                                        && i < tlsf_small_total(sn)
+                                        && b == tlsf_small_slot(p, sn, i)
+                                        && !(b == word(0))
+                                        && star(
+                                             tlsf_page_allocate_build(
+                                               p,
+                                               val(tlsf_size(hd2(p))),
+                                               sn,
+                                               tlsf_small_total(sn),
+                                               used0,
+                                               prev0),
+                                             star(
+                                               tlsf_allocator(
+                                                 d,
+                                                 lim,
+                                                 top2,
+                                                 xs2,
+                                                 hd2,
+                                                 fl2,
+                                                 sb2,
+                                                 bl2,
+                                                 ps,
+                                                 sz,
+                                                 loc,
+                                                 cached,
+                                                 live,
+                                                 fast,
+                                                 partial),
+                                               star(fp(gs, ms), emp)),
+                                             h))),
+    labels)
+```
+
+lemma `tlsf_malloc_page_oriented_call_g`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push take_idx page_idx lim sn : Num)
+  (d top fl : W32) (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (caller : List[Value])
+if
+  1. 8 <= sn
+  2. sn <= 256
+  3. MOD(sn, 8) == 0
+  4. 8 <= (val : (W32) -> Num)((word : (Num) -> W32)(sn))
+  5. (val : (W32) -> Num)((word : (Num) -> W32)(sn)) <= 256
+  6. MOD((val : (W32) -> Num)((word : (Num) -> W32)(sn)), 8) == 0
+  7. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  8. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  9. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  10. EL(sfunc_ind(inst, push), fs) == Func_native(
+        inst,
+        Tf([T_num(T_i32)], [T_num(T_i32)]),
+        [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+        tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      [V_num(ConstInt32(word(sn)))],
+      caller,
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    [Call(page_idx)],
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == caller
+      && ms == lim
+      && (
+           res == [V_num(ConstInt32(word(0)))]
+           && tlsf_search(word(1080), fl, sb, bl) == word(0)
+           && h == before
+           && star(
+                tlsf_allocator(
+                  d,
+                  lim,
+                  top,
+                  xs,
+                  hd,
+                  fl,
+                  sb,
+                  bl,
+                  ps,
+                  sz,
+                  loc,
+                  cached,
+                  live,
+                  fast,
+                  partial),
+                fp(gs, ms),
+                h)
+           || (
+                ∃ p : W32,
+                  ∃ top2 : W32,
+                    ∃ xs2 : List[W32],
+                      ∃ hd2 : (W32) -> W32,
+                        ∃ fl2 : W32,
+                          ∃ sb2 : (Num) -> W32,
+                            ∃ bl2 : (Num, Num) -> List[W32],
+                              ∃ used0 : W32,
+                                ∃ prev0 : W32,
+                                  ∃ b : W32,
+                                    ∃ bs : List[W32],
+                                      ∃ i : Num,
+                                        res == [V_num(ConstInt32(p))]
+                                        && !(
+                                             tlsf_search(
+                                               word(1080),
+                                               fl,
+                                               sb,
+                                               bl)
+                                               == word(0))
+                                        && !(p == word(0))
+                                        && !MEM(p, ps)
+                                        && MEM(p, xs2)
+                                        && tlsf_used(hd2(p))
+                                        && tlsf_physical_ok(
+                                             d,
+                                             lim,
+                                             top2,
+                                             xs2,
+                                             hd2)
+                                        && tlsf_small_backing(
+                                             xs2,
+                                             hd2,
+                                             ps,
+                                             sz,
+                                             loc,
+                                             cached,
+                                             live,
+                                             lim)
+                                        && tlsf_small_lists_ok(
+                                             ps,
+                                             sz,
+                                             loc,
+                                             cached,
+                                             live,
+                                             fast,
+                                             partial)
+                                        && tlsf_page_allocate_geometry(
+                                             p,
+                                             val(tlsf_size(hd2(p))),
+                                             sn)
+                                        && REVERSE(
+                                             tlsf_small_slots(
+                                               p,
+                                               sn,
+                                               tlsf_small_total(sn)))
+                                             == CONS(b, bs)
+                                        && tlsf_small_page_ok(
+                                             lim,
+                                             p,
+                                             val(tlsf_size(hd2(p))),
+                                             sn,
+                                             CONS(b, bs),
+                                             NIL,
+                                             NIL)
+                                        && i < tlsf_small_total(sn)
+                                        && tlsf_small_slot(p, sn, i) == b
+                                        && !(b == word(0))
+                                        && star(
+                                             tlsf_page_allocate_build(
+                                               p,
+                                               val(tlsf_size(hd2(p))),
+                                               sn,
+                                               tlsf_small_total(sn),
+                                               used0,
+                                               prev0),
+                                             star(
+                                               tlsf_allocator(
+                                                 d,
+                                                 lim,
+                                                 top2,
+                                                 xs2,
+                                                 hd2,
+                                                 fl2,
+                                                 sb2,
+                                                 bl2,
+                                                 ps,
+                                                 sz,
+                                                 loc,
+                                                 cached,
+                                                 live,
+                                                 fast,
+                                                 partial),
+                                               star(fp(gs, ms), emp)),
+                                             h))),
+    labels)
+```
+
+lemma `tlsf_malloc_try_page_shift_call_g`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push take_idx page_idx lim : Num)
+  (d top fl kw : W32) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (original l3 l4 : Value)
+if
+  1. val(kw) < 33
+  2. 8 <= 8 * val(kw)
+  3. 8 * val(kw) <= 256
+  4. MOD(8 * val(kw), 8) == 0
+  5. 8 <= (val : (W32) -> Num)(
+       (word : (Num) -> W32)(8 * (val : (W32) -> Num)(kw)))
+  6. (val : (W32) -> Num)((word : (Num) -> W32)(8 * (val : (W32) -> Num)(kw))) <= 256
+  7. MOD(
+       (val : (W32) -> Num)(
+         (word : (Num) -> W32)(8 * (val : (W32) -> Num)(kw))),
+       8)
+       == 0
+  8. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  9. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  10. EL(sfunc_ind(inst, pop), fs) == Func_native(
+        inst,
+        Tf([T_num(T_i32)], NIL),
+        [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+        tlsf_pop_code(d))
+  11. EL(sfunc_ind(inst, push), fs) == Func_native(
+        inst,
+        Tf([T_num(T_i32)], [T_num(T_i32)]),
+        [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+        tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      [V_num(ConstInt32(word_jshl(kw, word(3))))],
+      [V_num(ConstInt32(word(0))), V_num(ConstInt32(kw)),
+       V_num(ConstInt32(word_jshl(kw, word(3)))), l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    [Call(page_idx)],
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [V_num(ConstInt32(word(0))), V_num(ConstInt32(kw)),
+       V_num(ConstInt32(word(8 * val(kw)))), l3, l4]
+      && ms == lim
+      && (
+           res == [V_num(ConstInt32(word(0)))]
+           && tlsf_search(word(1080), fl, sb, bl) == word(0)
+           && h == before
+           && star(
+                tlsf_allocator(
+                  d,
+                  lim,
+                  top,
+                  xs,
+                  hd,
+                  fl,
+                  sb,
+                  bl,
+                  ps,
+                  sz,
+                  loc,
+                  cached,
+                  live,
+                  fast,
+                  partial),
+                fp(gs, ms),
+                h)
+           || (
+                ∃ p : W32,
+                  ∃ top2 : W32,
+                    ∃ xs2 : List[W32],
+                      ∃ hd2 : (W32) -> W32,
+                        ∃ fl2 : W32,
+                          ∃ sb2 : (Num) -> W32,
+                            ∃ bl2 : (Num, Num) -> List[W32],
+                              ∃ used0 : W32,
+                                ∃ prev0 : W32,
+                                  ∃ b : W32,
+                                    ∃ bs : List[W32],
+                                      ∃ i : Num,
+                                        res == [V_num(ConstInt32(p))]
+                                        && !(
+                                             tlsf_search(
+                                               word(1080),
+                                               fl,
+                                               sb,
+                                               bl)
+                                               == word(0))
+                                        && !(p == word(0))
+                                        && !MEM(p, ps)
+                                        && MEM(p, xs2)
+                                        && tlsf_used(hd2(p))
+                                        && tlsf_physical_ok(
+                                             d,
+                                             lim,
+                                             top2,
+                                             xs2,
+                                             hd2)
+                                        && tlsf_small_backing(
+                                             xs2,
+                                             hd2,
+                                             ps,
+                                             sz,
+                                             loc,
+                                             cached,
+                                             live,
+                                             lim)
+                                        && tlsf_small_lists_ok(
+                                             ps,
+                                             sz,
+                                             loc,
+                                             cached,
+                                             live,
+                                             fast,
+                                             partial)
+                                        && tlsf_page_allocate_geometry(
+                                             p,
+                                             val(tlsf_size(hd2(p))),
+                                             8 * val(kw))
+                                        && REVERSE(
+                                             tlsf_small_slots(
+                                               p,
+                                               8 * val(kw),
+                                               tlsf_small_total(
+                                                 8 * val(kw))))
+                                             == CONS(b, bs)
+                                        && tlsf_small_page_ok(
+                                             lim,
+                                             p,
+                                             val(tlsf_size(hd2(p))),
+                                             8 * val(kw),
+                                             CONS(b, bs),
+                                             NIL,
+                                             NIL)
+                                        && i < tlsf_small_total(8 * val(kw))
+                                        && tlsf_small_slot(p, 8 * val(kw), i)
+                                             == b
+                                        && !(b == word(0))
+                                        && star(
+                                             tlsf_page_allocate_build(
+                                               p,
+                                               val(tlsf_size(hd2(p))),
+                                               8 * val(kw),
+                                               tlsf_small_total(
+                                                 8 * val(kw)),
+                                               used0,
+                                               prev0),
+                                             star(
+                                               tlsf_allocator(
+                                                 d,
+                                                 lim,
+                                                 top2,
+                                                 xs2,
+                                                 hd2,
+                                                 fl2,
+                                                 sb2,
+                                                 bl2,
+                                                 ps,
+                                                 sz,
+                                                 loc,
+                                                 cached,
+                                                 live,
+                                                 fast,
+                                                 partial),
+                                               star(fp(gs, ms), emp)),
+                                             h))),
+    labels)
+```
+
+lemma `tlsf_malloc_first_page_shift_call_g`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push take_idx page_idx lim : Num)
+  (d top fl kw : W32) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (original l3 l4 : Value)
+if
+  1. val(kw) < 33
+  2. 8 <= 8 * val(kw)
+  3. 8 * val(kw) <= 256
+  4. MOD(8 * val(kw), 8) == 0
+  5. 8 <= (val : (W32) -> Num)(
+       (word : (Num) -> W32)(8 * (val : (W32) -> Num)(kw)))
+  6. (val : (W32) -> Num)((word : (Num) -> W32)(8 * (val : (W32) -> Num)(kw))) <= 256
+  7. MOD(
+       (val : (W32) -> Num)(
+         (word : (Num) -> W32)(8 * (val : (W32) -> Num)(kw))),
+       8)
+       == 0
+  8. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  9. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  10. EL(sfunc_ind(inst, pop), fs) == Func_native(
+        inst,
+        Tf([T_num(T_i32)], NIL),
+        [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+        tlsf_pop_code(d))
+  11. EL(sfunc_ind(inst, push), fs) == Func_native(
+        inst,
+        Tf([T_num(T_i32)], [T_num(T_i32)]),
+        [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+        tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      [V_num(ConstInt32(word_jshl(kw, word(3))))],
+      [original, V_num(ConstInt32(word(0))), V_num(ConstInt32(kw)),
+       V_num(ConstInt32(word_jshl(kw, word(3)))), l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    [Call(page_idx)],
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [original, V_num(ConstInt32(word(0))), V_num(ConstInt32(kw)),
+       V_num(ConstInt32(word(8 * val(kw)))), l3, l4]
+      && ms == lim
+      && (
+           res == [V_num(ConstInt32(word(0)))]
+           && tlsf_search(word(1080), fl, sb, bl) == word(0)
+           && h == before
+           && star(
+                tlsf_allocator(
+                  d,
+                  lim,
+                  top,
+                  xs,
+                  hd,
+                  fl,
+                  sb,
+                  bl,
+                  ps,
+                  sz,
+                  loc,
+                  cached,
+                  live,
+                  fast,
+                  partial),
+                fp(gs, ms),
+                h)
+           || (
+                ∃ p : W32,
+                  ∃ top2 : W32,
+                    ∃ xs2 : List[W32],
+                      ∃ hd2 : (W32) -> W32,
+                        ∃ fl2 : W32,
+                          ∃ sb2 : (Num) -> W32,
+                            ∃ bl2 : (Num, Num) -> List[W32],
+                              ∃ used0 : W32,
+                                ∃ prev0 : W32,
+                                  ∃ b : W32,
+                                    ∃ bs : List[W32],
+                                      ∃ i : Num,
+                                        res == [V_num(ConstInt32(p))]
+                                        && !(
+                                             tlsf_search(
+                                               word(1080),
+                                               fl,
+                                               sb,
+                                               bl)
+                                               == word(0))
+                                        && !(p == word(0))
+                                        && !MEM(p, ps)
+                                        && MEM(p, xs2)
+                                        && tlsf_used(hd2(p))
+                                        && tlsf_physical_ok(
+                                             d,
+                                             lim,
+                                             top2,
+                                             xs2,
+                                             hd2)
+                                        && tlsf_small_backing(
+                                             xs2,
+                                             hd2,
+                                             ps,
+                                             sz,
+                                             loc,
+                                             cached,
+                                             live,
+                                             lim)
+                                        && tlsf_small_lists_ok(
+                                             ps,
+                                             sz,
+                                             loc,
+                                             cached,
+                                             live,
+                                             fast,
+                                             partial)
+                                        && tlsf_page_allocate_geometry(
+                                             p,
+                                             val(tlsf_size(hd2(p))),
+                                             8 * val(kw))
+                                        && REVERSE(
+                                             tlsf_small_slots(
+                                               p,
+                                               8 * val(kw),
+                                               tlsf_small_total(
+                                                 8 * val(kw))))
+                                             == CONS(b, bs)
+                                        && tlsf_small_page_ok(
+                                             lim,
+                                             p,
+                                             val(tlsf_size(hd2(p))),
+                                             8 * val(kw),
+                                             CONS(b, bs),
+                                             NIL,
+                                             NIL)
+                                        && i < tlsf_small_total(8 * val(kw))
+                                        && tlsf_small_slot(p, 8 * val(kw), i)
+                                             == b
+                                        && !(b == word(0))
+                                        && star(
+                                             tlsf_page_allocate_build(
+                                               p,
+                                               val(tlsf_size(hd2(p))),
+                                               8 * val(kw),
+                                               tlsf_small_total(
+                                                 8 * val(kw)),
+                                               used0,
+                                               prev0),
+                                             star(
+                                               tlsf_allocator(
+                                                 d,
+                                                 lim,
+                                                 top2,
+                                                 xs2,
+                                                 hd2,
+                                                 fl2,
+                                                 sb2,
+                                                 bl2,
+                                                 ps,
+                                                 sz,
+                                                 loc,
+                                                 cached,
+                                                 live,
+                                                 fast,
+                                                 partial),
+                                               star(fp(gs, ms), emp)),
+                                             h))),
+    labels)
+```
+
+lemma `tlsf_malloc_retry_page_shift_call_g`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push take_idx page_idx lim : Num)
+  (d top fl kw : W32) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (original l3 l4 : Value)
+if
+  1. val(kw) < 33
+  2. 8 <= 8 * val(kw)
+  3. 8 * val(kw) <= 256
+  4. MOD(8 * val(kw), 8) == 0
+  5. 8 <= (val : (W32) -> Num)(
+       (word : (Num) -> W32)(8 * (val : (W32) -> Num)(kw)))
+  6. (val : (W32) -> Num)((word : (Num) -> W32)(8 * (val : (W32) -> Num)(kw))) <= 256
+  7. MOD(
+       (val : (W32) -> Num)(
+         (word : (Num) -> W32)(8 * (val : (W32) -> Num)(kw))),
+       8)
+       == 0
+  8. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  9. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  10. EL(sfunc_ind(inst, pop), fs) == Func_native(
+        inst,
+        Tf([T_num(T_i32)], NIL),
+        [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+        tlsf_pop_code(d))
+  11. EL(sfunc_ind(inst, push), fs) == Func_native(
+        inst,
+        Tf([T_num(T_i32)], [T_num(T_i32)]),
+        [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+        tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      [V_num(ConstInt32(word_jshl(kw, word(3))))],
+      [V_num(ConstInt32(word(0))), V_num(ConstInt32(kw)),
+       V_num(ConstInt32(word_jshl(kw, word(3)))), l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    [Call(page_idx)],
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == [V_num(ConstInt32(word(0))), V_num(ConstInt32(kw)),
+       V_num(ConstInt32(word(8 * val(kw)))), l3, l4, original]
+      && ms == lim
+      && (
+           res == [V_num(ConstInt32(word(0)))]
+           && tlsf_search(word(1080), fl, sb, bl) == word(0)
+           && h == before
+           && star(
+                tlsf_allocator(
+                  d,
+                  lim,
+                  top,
+                  xs,
+                  hd,
+                  fl,
+                  sb,
+                  bl,
+                  ps,
+                  sz,
+                  loc,
+                  cached,
+                  live,
+                  fast,
+                  partial),
+                fp(gs, ms),
+                h)
+           || (
+                ∃ p : W32,
+                  ∃ top2 : W32,
+                    ∃ xs2 : List[W32],
+                      ∃ hd2 : (W32) -> W32,
+                        ∃ fl2 : W32,
+                          ∃ sb2 : (Num) -> W32,
+                            ∃ bl2 : (Num, Num) -> List[W32],
+                              ∃ used0 : W32,
+                                ∃ prev0 : W32,
+                                  ∃ b : W32,
+                                    ∃ bs : List[W32],
+                                      ∃ i : Num,
+                                        res == [V_num(ConstInt32(p))]
+                                        && !(
+                                             tlsf_search(
+                                               word(1080),
+                                               fl,
+                                               sb,
+                                               bl)
+                                               == word(0))
+                                        && !(p == word(0))
+                                        && !MEM(p, ps)
+                                        && MEM(p, xs2)
+                                        && tlsf_used(hd2(p))
+                                        && tlsf_physical_ok(
+                                             d,
+                                             lim,
+                                             top2,
+                                             xs2,
+                                             hd2)
+                                        && tlsf_small_backing(
+                                             xs2,
+                                             hd2,
+                                             ps,
+                                             sz,
+                                             loc,
+                                             cached,
+                                             live,
+                                             lim)
+                                        && tlsf_small_lists_ok(
+                                             ps,
+                                             sz,
+                                             loc,
+                                             cached,
+                                             live,
+                                             fast,
+                                             partial)
+                                        && tlsf_page_allocate_geometry(
+                                             p,
+                                             val(tlsf_size(hd2(p))),
+                                             8 * val(kw))
+                                        && REVERSE(
+                                             tlsf_small_slots(
+                                               p,
+                                               8 * val(kw),
+                                               tlsf_small_total(
+                                                 8 * val(kw))))
+                                             == CONS(b, bs)
+                                        && tlsf_small_page_ok(
+                                             lim,
+                                             p,
+                                             val(tlsf_size(hd2(p))),
+                                             8 * val(kw),
+                                             CONS(b, bs),
+                                             NIL,
+                                             NIL)
+                                        && i < tlsf_small_total(8 * val(kw))
+                                        && tlsf_small_slot(p, 8 * val(kw), i)
+                                             == b
+                                        && !(b == word(0))
+                                        && star(
+                                             tlsf_page_allocate_build(
+                                               p,
+                                               val(tlsf_size(hd2(p))),
+                                               8 * val(kw),
+                                               tlsf_small_total(
+                                                 8 * val(kw)),
+                                               used0,
+                                               prev0),
+                                             star(
+                                               tlsf_allocator(
+                                                 d,
+                                                 lim,
+                                                 top2,
+                                                 xs2,
+                                                 hd2,
+                                                 fl2,
+                                                 sb2,
+                                                 bl2,
+                                                 ps,
+                                                 sz,
+                                                 loc,
+                                                 cached,
+                                                 live,
+                                                 fast,
+                                                 partial),
+                                               star(fp(gs, ms), emp)),
+                                             h))),
+    labels)
+```
+
+lemma `tlsf_malloc_guard_facts`
+
+```
+∀ (d top fl : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+then
+  !word_ugt(d, word(4294965088))
+  && !word_uge(
+       word_jushr(
+         word_add(
+           word_and(word_add(d, word(15)), word(4294967280)),
+           word(1908)),
+         word(16)),
+       word(DIV(lim, 65536)))
+  && !(top == word(0))
+```
+
+lemma `tlsf_malloc_try_dead_small`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp P : SAssn)
+  (labels : List[SAssn]) (d : W32)
+  (initialize_idx page_idx take_idx ensure_idx : Num)
+if
+  1. false
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    P,
+    tlsf_malloc_try_small(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      false,
+    labels)
+```
+
+lemma `tlsf_malloc_try_dead_large`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp P : SAssn)
+  (labels : List[SAssn]) (d : W32)
+  (initialize_idx page_idx take_idx ensure_idx : Num)
+if
+  1. false
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    P,
+    tlsf_malloc_try_large(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      false,
+    labels)
+```
+
+lemma `tlsf_malloc_first_dead_small`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp P : SAssn)
+  (labels : List[SAssn]) (d : W32)
+  (initialize_idx page_idx take_idx ensure_idx : Num)
+if
+  1. false
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    P,
+    tlsf_malloc_first_small(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      false,
+    labels)
+```
+
+lemma `tlsf_malloc_first_dead_large`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp P : SAssn)
+  (labels : List[SAssn]) (d : W32)
+  (initialize_idx page_idx take_idx ensure_idx : Num)
+if
+  1. false
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    P,
+    tlsf_malloc_first_large(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      false,
+    labels)
+```
+
+lemma `tlsf_malloc_retry_dead_small`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp P : SAssn)
+  (labels : List[SAssn]) (d : W32)
+  (initialize_idx page_idx take_idx ensure_idx : Num)
+if
+  1. false
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    P,
+    tlsf_malloc_retry_small(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      false,
+    labels)
+```
+
+lemma `tlsf_malloc_retry_dead_large`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp P : SAssn)
+  (labels : List[SAssn]) (d : W32)
+  (initialize_idx page_idx take_idx ensure_idx : Num)
+if
+  1. false
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    P,
+    tlsf_malloc_retry_large(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      false,
+    labels)
+```
+
+lemma `st_malloc_fresh_head`
+
+```
+∀ (d top fl p b used0 prev0 : W32) (lim s i : Num) (xs ps bs : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (fp : GProp) (v lc : List[Value])
+if
+  1. tlsf_small_page_ok(lim, p, val(tlsf_size(hd(p))), s, CONS(b, bs), NIL, NIL)
+  2. i < tlsf_small_total(s)
+  3. b == tlsf_small_slot(p, s, i)
+  4. REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))) == CONS(b, bs)
+then
+  sl_triple(
+    st(
+      APPEND(v, [V_num(ConstInt32(word_add(p, word(20))))]),
+      lc,
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_page_allocate_build(
+               p,
+               val(tlsf_size(hd(p))),
+               s,
+               tlsf_small_total(s),
+               used0,
+               prev0),
+             star(
+               tlsf_allocator(
+                 d,
+                 lim,
+                 top,
+                 xs,
+                 hd,
+                 fl,
+                 sb,
+                 bl,
+                 ps,
+                 sz,
+                 loc,
+                 cached,
+                 live,
+                 fast,
+                 partial),
+               star(fp(gs, ms), emp)),
+             h)),
+    [Load(T_i32, NONE, 2, 0)],
+    st(
+      APPEND(v, [V_num(ConstInt32(b))]),
+      lc,
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_page_allocate_build(
+               p,
+               val(tlsf_size(hd(p))),
+               s,
+               tlsf_small_total(s),
+               used0,
+               prev0),
+             star(
+               tlsf_allocator(
+                 d,
+                 lim,
+                 top,
+                 xs,
+                 hd,
+                 fl,
+                 sb,
+                 bl,
+                 ps,
+                 sz,
+                 loc,
+                 cached,
+                 live,
+                 fast,
+                 partial),
+               star(fp(gs, ms), emp)),
+             h)))
+```
+
+lemma `tlsf_malloc_try_fresh_head`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim s i : Num)
+  (original l1 l3 l4 : Value) (d top fl p b used0 prev0 : W32)
+  (xs ps bs : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp)
+if
+  1. tlsf_small_page_ok(lim, p, val(tlsf_size(hd(p))), s, CONS(b, bs), NIL, NIL)
+  2. i < tlsf_small_total(s)
+  3. b == tlsf_small_slot(p, s, i)
+  4. REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))) == CONS(b, bs)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), l1, V_num(ConstInt32(word(s))), l3, l4],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_page_allocate_build(
+               p,
+               val(tlsf_size(hd(p))),
+               s,
+               tlsf_small_total(s),
+               used0,
+               prev0),
+             star(
+               tlsf_allocator(
+                 d,
+                 lim,
+                 top,
+                 xs,
+                 hd,
+                 fl,
+                 sb,
+                 bl,
+                 ps,
+                 sz,
+                 loc,
+                 cached,
+                 live,
+                 fast,
+                 partial),
+               star(fp(gs, ms), emp)),
+             h)),
+    tlsf_malloc_try_head(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    st(
+      [V_num(ConstInt32(b))],
+      [V_num(ConstInt32(p)), V_num(ConstInt32(b)), V_num(ConstInt32(word(s))),
+       V_num(ConstInt32(word_add(p, word(20)))), l4],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_page_allocate_build(
+               p,
+               val(tlsf_size(hd(p))),
+               s,
+               tlsf_small_total(s),
+               used0,
+               prev0),
+             star(
+               tlsf_allocator(
+                 d,
+                 lim,
+                 top,
+                 xs,
+                 hd,
+                 fl,
+                 sb,
+                 bl,
+                 ps,
+                 sz,
+                 loc,
+                 cached,
+                 live,
+                 fast,
+                 partial),
+               star(fp(gs, ms), emp)),
+             h)))
+```
+
+lemma `tlsf_malloc_first_fresh_head`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim s i : Num)
+  (original l1 l3 l4 : Value) (d top fl p b used0 prev0 : W32)
+  (xs ps bs : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp)
+if
+  1. tlsf_small_page_ok(lim, p, val(tlsf_size(hd(p))), s, CONS(b, bs), NIL, NIL)
+  2. i < tlsf_small_total(s)
+  3. b == tlsf_small_slot(p, s, i)
+  4. REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))) == CONS(b, bs)
+then
+  sl_triple(
+    st(
+      NIL,
+      [original, V_num(ConstInt32(p)), l1, V_num(ConstInt32(word(s))), l3, l4],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_page_allocate_build(
+               p,
+               val(tlsf_size(hd(p))),
+               s,
+               tlsf_small_total(s),
+               used0,
+               prev0),
+             star(
+               tlsf_allocator(
+                 d,
+                 lim,
+                 top,
+                 xs,
+                 hd,
+                 fl,
+                 sb,
+                 bl,
+                 ps,
+                 sz,
+                 loc,
+                 cached,
+                 live,
+                 fast,
+                 partial),
+               star(fp(gs, ms), emp)),
+             h)),
+    tlsf_malloc_first_head(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    st(
+      [V_num(ConstInt32(b))],
+      [original, V_num(ConstInt32(p)), V_num(ConstInt32(b)),
+       V_num(ConstInt32(word(s))), V_num(ConstInt32(word_add(p, word(20)))),
+       l4],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_page_allocate_build(
+               p,
+               val(tlsf_size(hd(p))),
+               s,
+               tlsf_small_total(s),
+               used0,
+               prev0),
+             star(
+               tlsf_allocator(
+                 d,
+                 lim,
+                 top,
+                 xs,
+                 hd,
+                 fl,
+                 sb,
+                 bl,
+                 ps,
+                 sz,
+                 loc,
+                 cached,
+                 live,
+                 fast,
+                 partial),
+               star(fp(gs, ms), emp)),
+             h)))
+```
+
+lemma `tlsf_malloc_retry_fresh_head`
+
+```
+∀ (initialize_idx page_idx take_idx ensure_idx lim s i : Num)
+  (original l1 l3 l4 : Value) (d top fl p b used0 prev0 : W32)
+  (xs ps bs : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp)
+if
+  1. tlsf_small_page_ok(lim, p, val(tlsf_size(hd(p))), s, CONS(b, bs), NIL, NIL)
+  2. i < tlsf_small_total(s)
+  3. b == tlsf_small_slot(p, s, i)
+  4. REVERSE(tlsf_small_slots(p, s, tlsf_small_total(s))) == CONS(b, bs)
+then
+  sl_triple(
+    st(
+      NIL,
+      [V_num(ConstInt32(p)), l1, V_num(ConstInt32(word(s))), l3, l4, original],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_page_allocate_build(
+               p,
+               val(tlsf_size(hd(p))),
+               s,
+               tlsf_small_total(s),
+               used0,
+               prev0),
+             star(
+               tlsf_allocator(
+                 d,
+                 lim,
+                 top,
+                 xs,
+                 hd,
+                 fl,
+                 sb,
+                 bl,
+                 ps,
+                 sz,
+                 loc,
+                 cached,
+                 live,
+                 fast,
+                 partial),
+               star(fp(gs, ms), emp)),
+             h)),
+    tlsf_malloc_retry_head(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    st(
+      [V_num(ConstInt32(b))],
+      [V_num(ConstInt32(p)), V_num(ConstInt32(b)), V_num(ConstInt32(word(s))),
+       V_num(ConstInt32(word_add(p, word(20)))), l4, original],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_page_allocate_build(
+               p,
+               val(tlsf_size(hd(p))),
+               s,
+               tlsf_small_total(s),
+               used0,
+               prev0),
+             star(
+               tlsf_allocator(
+                 d,
+                 lim,
+                 top,
+                 xs,
+                 hd,
+                 fl,
+                 sb,
+                 bl,
+                 ps,
+                 sz,
+                 loc,
+                 cached,
+                 live,
+                 fast,
+                 partial),
+               star(fp(gs, ms), emp)),
+             h)))
+```
+
+lemma `tlsf_malloc_try_cached_case`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. !word_ugt(d, word(4294965088))
+     && !word_uge(
+          word_jushr(
+            word_add(
+              word_and(word_add(d, word(15)), word(4294967280)),
+              word(1908)),
+            word(16)),
+          word(DIV(lim, 65536)))
+     && !(top == word(0))
+  5. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+     && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_take_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+  6. 0 < val(n)
+  7. val(n) <= 256
+  8. !(n == word(0))
+  9. (val : (W32) -> Num)(
+       (word_jushr : (W32, W32) -> W32)(
+         (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+         (word : (Num) -> W32)(3)))
+       == DIV((val : (W32) -> Num)(n) + 7, 8)
+     && (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3))) < 33
+     && 8 <= 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3))) <= 256
+     && (val : (W32) -> Num)(n) <= 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && MOD(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))),
+          8)
+          == 0
+     && (word_jshl : (W32, W32) -> W32)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)),
+          (word : (Num) -> W32)(3)) == (word : (Num) -> W32)(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))))
+     && (val : (W32) -> Num)(
+          (word : (Num) -> W32)(
+            8 * (val : (W32) -> Num)(
+              (word_jushr : (W32, W32) -> W32)(
+                (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+                (word : (Num) -> W32)(3))))) == 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && DIV(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))),
+          8) == (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+  10. (
+        (
+          val(d) <= 4294965088
+          && tlsf_small_page_ok(
+               lim,
+               p,
+               val(tlsf_size(hd(p))),
+               8 * val(word_jushr(word_add(n, word(7)), word(3))),
+               loc(p),
+               cached(p),
+               live(p))
+          && MEM(b, cached(p))
+          && i < tlsf_small_total(
+               8 * val(word_jushr(word_add(n, word(7)), word(3))))
+          && b == tlsf_small_slot(
+               p,
+               8 * val(word_jushr(word_add(n, word(7)), word(3))),
+               i)
+          && tlsf_count(p, ps) == 1
+          && sz(p) == 8 * val(word_jushr(word_add(n, word(7)), word(3)))
+          && val(word_jushr(word_add(n, word(7)), word(3))) < 33
+          && fast(val(word_jushr(word_add(n, word(7)), word(3))))
+               == CONS(b, bs))
+        && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+        && tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+        && tlsf_physical_ok(d, lim, top, xs, hd)
+        && MEM(p, ps))
+      && val(n) <= 8 * val(word_jushr(word_add(n, word(7)), word(3)))
+      && tlsf_physical_ok(d, lim, top, xs, hd)
+  11. !(b == word(0))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_try_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        n,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_try_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_try_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        n,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    [
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        tlsf_try_malloc_post(
+          d,
+          lim,
+          top,
+          xs,
+          hd,
+          fl,
+          sb,
+          bl,
+          ps,
+          sz,
+          loc,
+          cached,
+          live,
+          fast,
+          partial,
+          n,
+          before,
+          fp,
+          vs,
+          gs,
+          ms,
+          h)])
+```
+
+lemma `tlsf_malloc_first_cached_case`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. !word_ugt(d, word(4294965088))
+     && !word_uge(
+          word_jushr(
+            word_add(
+              word_and(word_add(d, word(15)), word(4294967280)),
+              word(1908)),
+            word(16)),
+          word(DIV(lim, 65536)))
+     && !(top == word(0))
+  5. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+     && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_take_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+  6. 0 < val(n)
+  7. val(n) <= 256
+  8. !(n == word(0))
+  9. (val : (W32) -> Num)(
+       (word_jushr : (W32, W32) -> W32)(
+         (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+         (word : (Num) -> W32)(3)))
+       == DIV((val : (W32) -> Num)(n) + 7, 8)
+     && (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3))) < 33
+     && 8 <= 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3))) <= 256
+     && (val : (W32) -> Num)(n) <= 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && MOD(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))),
+          8)
+          == 0
+     && (word_jshl : (W32, W32) -> W32)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)),
+          (word : (Num) -> W32)(3)) == (word : (Num) -> W32)(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))))
+     && (val : (W32) -> Num)(
+          (word : (Num) -> W32)(
+            8 * (val : (W32) -> Num)(
+              (word_jushr : (W32, W32) -> W32)(
+                (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+                (word : (Num) -> W32)(3))))) == 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && DIV(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))),
+          8) == (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+  10. (
+        (
+          val(d) <= 4294965088
+          && tlsf_small_page_ok(
+               lim,
+               p,
+               val(tlsf_size(hd(p))),
+               8 * val(word_jushr(word_add(n, word(7)), word(3))),
+               loc(p),
+               cached(p),
+               live(p))
+          && MEM(b, cached(p))
+          && i < tlsf_small_total(
+               8 * val(word_jushr(word_add(n, word(7)), word(3))))
+          && b == tlsf_small_slot(
+               p,
+               8 * val(word_jushr(word_add(n, word(7)), word(3))),
+               i)
+          && tlsf_count(p, ps) == 1
+          && sz(p) == 8 * val(word_jushr(word_add(n, word(7)), word(3)))
+          && val(word_jushr(word_add(n, word(7)), word(3))) < 33
+          && fast(val(word_jushr(word_add(n, word(7)), word(3))))
+               == CONS(b, bs))
+        && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+        && tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+        && tlsf_physical_ok(d, lim, top, xs, hd)
+        && MEM(p, ps))
+      && val(n) <= 8 * val(word_jushr(word_add(n, word(7)), word(3)))
+      && tlsf_physical_ok(d, lim, top, xs, hd)
+  11. !(b == word(0))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l0, l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_first_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [V_num(ConstInt32(n)), out0, out1, out2, out3, out4]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     n,
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h),
+    [
+      (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        ∃ out0 : Value,
+          ∃ out1 : Value,
+            ∃ out2 : Value,
+              ∃ out3 : Value,
+                ∃ out4 : Value,
+                  lc == [V_num(ConstInt32(n)), out0, out1, out2, out3, out4]
+                  && tlsf_try_malloc_post(
+                       d,
+                       lim,
+                       top,
+                       xs,
+                       hd,
+                       fl,
+                       sb,
+                       bl,
+                       ps,
+                       sz,
+                       loc,
+                       cached,
+                       live,
+                       fast,
+                       partial,
+                       n,
+                       before,
+                       fp,
+                       res,
+                       gs,
+                       ms,
+                       h)])
+```
+
+lemma `tlsf_malloc_retry_cached_case`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. !word_ugt(d, word(4294965088))
+     && !word_uge(
+          word_jushr(
+            word_add(
+              word_and(word_add(d, word(15)), word(4294967280)),
+              word(1908)),
+            word(16)),
+          word(DIV(lim, 65536)))
+     && !(top == word(0))
+  5. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+     && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_take_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+  6. 0 < val(n)
+  7. val(n) <= 256
+  8. !(n == word(0))
+  9. (val : (W32) -> Num)(
+       (word_jushr : (W32, W32) -> W32)(
+         (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+         (word : (Num) -> W32)(3)))
+       == DIV((val : (W32) -> Num)(n) + 7, 8)
+     && (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3))) < 33
+     && 8 <= 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3))) <= 256
+     && (val : (W32) -> Num)(n) <= 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && MOD(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))),
+          8)
+          == 0
+     && (word_jshl : (W32, W32) -> W32)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)),
+          (word : (Num) -> W32)(3)) == (word : (Num) -> W32)(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))))
+     && (val : (W32) -> Num)(
+          (word : (Num) -> W32)(
+            8 * (val : (W32) -> Num)(
+              (word_jushr : (W32, W32) -> W32)(
+                (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+                (word : (Num) -> W32)(3))))) == 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && DIV(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))),
+          8) == (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+  10. (
+        (
+          val(d) <= 4294965088
+          && tlsf_small_page_ok(
+               lim,
+               p,
+               val(tlsf_size(hd(p))),
+               8 * val(word_jushr(word_add(n, word(7)), word(3))),
+               loc(p),
+               cached(p),
+               live(p))
+          && MEM(b, cached(p))
+          && i < tlsf_small_total(
+               8 * val(word_jushr(word_add(n, word(7)), word(3))))
+          && b == tlsf_small_slot(
+               p,
+               8 * val(word_jushr(word_add(n, word(7)), word(3))),
+               i)
+          && tlsf_count(p, ps) == 1
+          && sz(p) == 8 * val(word_jushr(word_add(n, word(7)), word(3)))
+          && val(word_jushr(word_add(n, word(7)), word(3))) < 33
+          && fast(val(word_jushr(word_add(n, word(7)), word(3))))
+               == CONS(b, bs))
+        && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+        && tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+        && tlsf_physical_ok(d, lim, top, xs, hd)
+        && MEM(p, ps))
+      && val(n) <= 8 * val(word_jushr(word_add(n, word(7)), word(3)))
+      && tlsf_physical_ok(d, lim, top, xs, hd)
+  11. !(b == word(0))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_retry_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [out0, out1, out2, out3, out4, original]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     n,
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h),
+    [
+      (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        ∃ out0 : Value,
+          ∃ out1 : Value,
+            ∃ out2 : Value,
+              ∃ out3 : Value,
+                ∃ out4 : Value,
+                  lc == [out0, out1, out2, out3, out4, original]
+                  && tlsf_try_malloc_post(
+                       d,
+                       lim,
+                       top,
+                       xs,
+                       hd,
+                       fl,
+                       sb,
+                       bl,
+                       ps,
+                       sz,
+                       loc,
+                       cached,
+                       live,
+                       fast,
+                       partial,
+                       n,
+                       before,
+                       fp,
+                       res,
+                       gs,
+                       ms,
+                       h)])
+```
+
+lemma `tlsf_malloc_try_partial_case`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. !word_ugt(d, word(4294965088))
+     && !word_uge(
+          word_jushr(
+            word_add(
+              word_and(word_add(d, word(15)), word(4294967280)),
+              word(1908)),
+            word(16)),
+          word(DIV(lim, 65536)))
+     && !(top == word(0))
+  5. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+     && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_take_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+  6. 0 < val(n)
+  7. val(n) <= 256
+  8. !(n == word(0))
+  9. (val : (W32) -> Num)(
+       (word_jushr : (W32, W32) -> W32)(
+         (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+         (word : (Num) -> W32)(3)))
+       == DIV((val : (W32) -> Num)(n) + 7, 8)
+     && (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3))) < 33
+     && 8 <= 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3))) <= 256
+     && (val : (W32) -> Num)(n) <= 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && MOD(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))),
+          8)
+          == 0
+     && (word_jshl : (W32, W32) -> W32)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)),
+          (word : (Num) -> W32)(3)) == (word : (Num) -> W32)(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))))
+     && (val : (W32) -> Num)(
+          (word : (Num) -> W32)(
+            8 * (val : (W32) -> Num)(
+              (word_jushr : (W32, W32) -> W32)(
+                (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+                (word : (Num) -> W32)(3))))) == 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && DIV(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))),
+          8) == (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+  10. (
+        (
+          val(d) <= 4294965088
+          && tlsf_small_page_ok(
+               lim,
+               p,
+               val(tlsf_size(hd(p))),
+               8 * val(word_jushr(word_add(n, word(7)), word(3))),
+               CONS(b, bs),
+               NIL,
+               live(p))
+          && i < tlsf_small_total(
+               8 * val(word_jushr(word_add(n, word(7)), word(3))))
+          && b == tlsf_small_slot(
+               p,
+               8 * val(word_jushr(word_add(n, word(7)), word(3))),
+               i)
+          && fast(DIV(8 * val(word_jushr(word_add(n, word(7)), word(3))), 8))
+               == NIL
+          && tlsf_count(p, ps) == 1
+          && sz(p) == 8 * val(word_jushr(word_add(n, word(7)), word(3)))
+          && loc(p) == CONS(b, bs)
+          && cached(p) == NIL
+          && partial(
+               DIV(8 * val(word_jushr(word_add(n, word(7)), word(3))), 8))
+               == CONS(p, z)
+          && (
+               ∀ q : W32,
+                 MEM(q, z) → !(q == word(0)) && val(q) + 32 <= 4294967296))
+        && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+        && tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+        && MEM(p, ps))
+      && val(n) <= 8 * val(word_jushr(word_add(n, word(7)), word(3)))
+      && tlsf_physical_ok(d, lim, top, xs, hd)
+  11. !(p == word(0))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_try_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        n,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_try_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_try_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        n,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    [
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        tlsf_try_malloc_post(
+          d,
+          lim,
+          top,
+          xs,
+          hd,
+          fl,
+          sb,
+          bl,
+          ps,
+          sz,
+          loc,
+          cached,
+          live,
+          fast,
+          partial,
+          n,
+          before,
+          fp,
+          vs,
+          gs,
+          ms,
+          h)])
+```
+
+lemma `tlsf_malloc_first_partial_case`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. !word_ugt(d, word(4294965088))
+     && !word_uge(
+          word_jushr(
+            word_add(
+              word_and(word_add(d, word(15)), word(4294967280)),
+              word(1908)),
+            word(16)),
+          word(DIV(lim, 65536)))
+     && !(top == word(0))
+  5. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+     && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_take_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+  6. 0 < val(n)
+  7. val(n) <= 256
+  8. !(n == word(0))
+  9. (val : (W32) -> Num)(
+       (word_jushr : (W32, W32) -> W32)(
+         (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+         (word : (Num) -> W32)(3)))
+       == DIV((val : (W32) -> Num)(n) + 7, 8)
+     && (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3))) < 33
+     && 8 <= 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3))) <= 256
+     && (val : (W32) -> Num)(n) <= 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && MOD(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))),
+          8)
+          == 0
+     && (word_jshl : (W32, W32) -> W32)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)),
+          (word : (Num) -> W32)(3)) == (word : (Num) -> W32)(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))))
+     && (val : (W32) -> Num)(
+          (word : (Num) -> W32)(
+            8 * (val : (W32) -> Num)(
+              (word_jushr : (W32, W32) -> W32)(
+                (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+                (word : (Num) -> W32)(3))))) == 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && DIV(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))),
+          8) == (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+  10. (
+        (
+          val(d) <= 4294965088
+          && tlsf_small_page_ok(
+               lim,
+               p,
+               val(tlsf_size(hd(p))),
+               8 * val(word_jushr(word_add(n, word(7)), word(3))),
+               CONS(b, bs),
+               NIL,
+               live(p))
+          && i < tlsf_small_total(
+               8 * val(word_jushr(word_add(n, word(7)), word(3))))
+          && b == tlsf_small_slot(
+               p,
+               8 * val(word_jushr(word_add(n, word(7)), word(3))),
+               i)
+          && fast(DIV(8 * val(word_jushr(word_add(n, word(7)), word(3))), 8))
+               == NIL
+          && tlsf_count(p, ps) == 1
+          && sz(p) == 8 * val(word_jushr(word_add(n, word(7)), word(3)))
+          && loc(p) == CONS(b, bs)
+          && cached(p) == NIL
+          && partial(
+               DIV(8 * val(word_jushr(word_add(n, word(7)), word(3))), 8))
+               == CONS(p, z)
+          && (
+               ∀ q : W32,
+                 MEM(q, z) → !(q == word(0)) && val(q) + 32 <= 4294967296))
+        && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+        && tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+        && MEM(p, ps))
+      && val(n) <= 8 * val(word_jushr(word_add(n, word(7)), word(3)))
+      && tlsf_physical_ok(d, lim, top, xs, hd)
+  11. !(p == word(0))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l0, l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_first_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [V_num(ConstInt32(n)), out0, out1, out2, out3, out4]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     n,
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h),
+    [
+      (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        ∃ out0 : Value,
+          ∃ out1 : Value,
+            ∃ out2 : Value,
+              ∃ out3 : Value,
+                ∃ out4 : Value,
+                  lc == [V_num(ConstInt32(n)), out0, out1, out2, out3, out4]
+                  && tlsf_try_malloc_post(
+                       d,
+                       lim,
+                       top,
+                       xs,
+                       hd,
+                       fl,
+                       sb,
+                       bl,
+                       ps,
+                       sz,
+                       loc,
+                       cached,
+                       live,
+                       fast,
+                       partial,
+                       n,
+                       before,
+                       fp,
+                       res,
+                       gs,
+                       ms,
+                       h)])
+```
+
+lemma `tlsf_malloc_retry_partial_case`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. !word_ugt(d, word(4294965088))
+     && !word_uge(
+          word_jushr(
+            word_add(
+              word_and(word_add(d, word(15)), word(4294967280)),
+              word(1908)),
+            word(16)),
+          word(DIV(lim, 65536)))
+     && !(top == word(0))
+  5. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+     && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_take_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+  6. 0 < val(n)
+  7. val(n) <= 256
+  8. !(n == word(0))
+  9. (val : (W32) -> Num)(
+       (word_jushr : (W32, W32) -> W32)(
+         (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+         (word : (Num) -> W32)(3)))
+       == DIV((val : (W32) -> Num)(n) + 7, 8)
+     && (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3))) < 33
+     && 8 <= 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3))) <= 256
+     && (val : (W32) -> Num)(n) <= 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && MOD(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))),
+          8)
+          == 0
+     && (word_jshl : (W32, W32) -> W32)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)),
+          (word : (Num) -> W32)(3)) == (word : (Num) -> W32)(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))))
+     && (val : (W32) -> Num)(
+          (word : (Num) -> W32)(
+            8 * (val : (W32) -> Num)(
+              (word_jushr : (W32, W32) -> W32)(
+                (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+                (word : (Num) -> W32)(3))))) == 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && DIV(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))),
+          8) == (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+  10. (
+        (
+          val(d) <= 4294965088
+          && tlsf_small_page_ok(
+               lim,
+               p,
+               val(tlsf_size(hd(p))),
+               8 * val(word_jushr(word_add(n, word(7)), word(3))),
+               CONS(b, bs),
+               NIL,
+               live(p))
+          && i < tlsf_small_total(
+               8 * val(word_jushr(word_add(n, word(7)), word(3))))
+          && b == tlsf_small_slot(
+               p,
+               8 * val(word_jushr(word_add(n, word(7)), word(3))),
+               i)
+          && fast(DIV(8 * val(word_jushr(word_add(n, word(7)), word(3))), 8))
+               == NIL
+          && tlsf_count(p, ps) == 1
+          && sz(p) == 8 * val(word_jushr(word_add(n, word(7)), word(3)))
+          && loc(p) == CONS(b, bs)
+          && cached(p) == NIL
+          && partial(
+               DIV(8 * val(word_jushr(word_add(n, word(7)), word(3))), 8))
+               == CONS(p, z)
+          && (
+               ∀ q : W32,
+                 MEM(q, z) → !(q == word(0)) && val(q) + 32 <= 4294967296))
+        && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+        && tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+        && MEM(p, ps))
+      && val(n) <= 8 * val(word_jushr(word_add(n, word(7)), word(3)))
+      && tlsf_physical_ok(d, lim, top, xs, hd)
+  11. !(p == word(0))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_retry_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [out0, out1, out2, out3, out4, original]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     n,
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h),
+    [
+      (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        ∃ out0 : Value,
+          ∃ out1 : Value,
+            ∃ out2 : Value,
+              ∃ out3 : Value,
+                ∃ out4 : Value,
+                  lc == [out0, out1, out2, out3, out4, original]
+                  && tlsf_try_malloc_post(
+                       d,
+                       lim,
+                       top,
+                       xs,
+                       hd,
+                       fl,
+                       sb,
+                       bl,
+                       ps,
+                       sz,
+                       loc,
+                       cached,
+                       live,
+                       fast,
+                       partial,
+                       n,
+                       before,
+                       fp,
+                       res,
+                       gs,
+                       ms,
+                       h)])
+```
+
+lemma `tlsf_malloc_try_large_case`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. !word_ugt(d, word(4294965088))
+     && !word_uge(
+          word_jushr(
+            word_add(
+              word_and(word_add(d, word(15)), word(4294967280)),
+              word(1908)),
+            word(16)),
+          word(DIV(lim, 65536)))
+     && !(top == word(0))
+  4. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+     && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_take_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+  5. 256 < val(n)
+  6. val(n) <= 4160749568
+  7. !(n == word(0))
+  8. !word_ugt(n, word(4160749568))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_try_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        n,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_try_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_try_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        n,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    [
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        tlsf_try_malloc_post(
+          d,
+          lim,
+          top,
+          xs,
+          hd,
+          fl,
+          sb,
+          bl,
+          ps,
+          sz,
+          loc,
+          cached,
+          live,
+          fast,
+          partial,
+          n,
+          before,
+          fp,
+          vs,
+          gs,
+          ms,
+          h)])
+```
+
+lemma `tlsf_malloc_first_large_case`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. !word_ugt(d, word(4294965088))
+     && !word_uge(
+          word_jushr(
+            word_add(
+              word_and(word_add(d, word(15)), word(4294967280)),
+              word(1908)),
+            word(16)),
+          word(DIV(lim, 65536)))
+     && !(top == word(0))
+  4. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+     && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_take_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+  5. 256 < val(n)
+  6. val(n) <= 4160749568
+  7. !(n == word(0))
+  8. !word_ugt(n, word(4160749568))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l0, l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_first_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [V_num(ConstInt32(n)), out0, out1, out2, out3, out4]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     n,
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h),
+    [
+      (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        ∃ out0 : Value,
+          ∃ out1 : Value,
+            ∃ out2 : Value,
+              ∃ out3 : Value,
+                ∃ out4 : Value,
+                  lc == [V_num(ConstInt32(n)), out0, out1, out2, out3, out4]
+                  && tlsf_try_malloc_post(
+                       d,
+                       lim,
+                       top,
+                       xs,
+                       hd,
+                       fl,
+                       sb,
+                       bl,
+                       ps,
+                       sz,
+                       loc,
+                       cached,
+                       live,
+                       fast,
+                       partial,
+                       n,
+                       before,
+                       fp,
+                       res,
+                       gs,
+                       ms,
+                       h)])
+```
+
+lemma `tlsf_malloc_retry_large_case`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. !word_ugt(d, word(4294965088))
+     && !word_uge(
+          word_jushr(
+            word_add(
+              word_and(word_add(d, word(15)), word(4294967280)),
+              word(1908)),
+            word(16)),
+          word(DIV(lim, 65536)))
+     && !(top == word(0))
+  4. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+     && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_take_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+  5. 256 < val(n)
+  6. val(n) <= 4160749568
+  7. !(n == word(0))
+  8. !word_ugt(n, word(4160749568))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_retry_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [out0, out1, out2, out3, out4, original]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     n,
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h),
+    [
+      (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        ∃ out0 : Value,
+          ∃ out1 : Value,
+            ∃ out2 : Value,
+              ∃ out3 : Value,
+                ∃ out4 : Value,
+                  lc == [out0, out1, out2, out3, out4, original]
+                  && tlsf_try_malloc_post(
+                       d,
+                       lim,
+                       top,
+                       xs,
+                       hd,
+                       fl,
+                       sb,
+                       bl,
+                       ps,
+                       sz,
+                       loc,
+                       cached,
+                       live,
+                       fast,
+                       partial,
+                       n,
+                       before,
+                       fp,
+                       res,
+                       gs,
+                       ms,
+                       h)])
+```
+
+lemma `tlsf_malloc_try_zero_case`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp),
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_try_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        word(0),
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    st(
+      NIL,
+      [V_num(ConstInt32(word(0))), l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_try_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_try_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        word(0),
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    [
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        tlsf_try_malloc_post(
+          d,
+          lim,
+          top,
+          xs,
+          hd,
+          fl,
+          sb,
+          bl,
+          ps,
+          sz,
+          loc,
+          cached,
+          live,
+          fast,
+          partial,
+          word(0),
+          before,
+          fp,
+          vs,
+          gs,
+          ms,
+          h)])
+```
+
+lemma `tlsf_malloc_first_zero_case`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp),
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(word(0))), l0, l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_first_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc
+                  == [V_num(ConstInt32(word(0))), out0, out1, out2, out3, out4]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     word(0),
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h),
+    [
+      (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        ∃ out0 : Value,
+          ∃ out1 : Value,
+            ∃ out2 : Value,
+              ∃ out3 : Value,
+                ∃ out4 : Value,
+                  lc == [V_num(ConstInt32(word(0))), out0, out1, out2, out3,
+                   out4]
+                  && tlsf_try_malloc_post(
+                       d,
+                       lim,
+                       top,
+                       xs,
+                       hd,
+                       fl,
+                       sb,
+                       bl,
+                       ps,
+                       sz,
+                       loc,
+                       cached,
+                       live,
+                       fast,
+                       partial,
+                       word(0),
+                       before,
+                       fp,
+                       res,
+                       gs,
+                       ms,
+                       h)])
+```
+
+lemma `tlsf_malloc_retry_zero_case`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp),
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(word(0))), l1, l2, l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_retry_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [out0, out1, out2, out3, out4, original]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     word(0),
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h),
+    [
+      (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        ∃ out0 : Value,
+          ∃ out1 : Value,
+            ∃ out2 : Value,
+              ∃ out3 : Value,
+                ∃ out4 : Value,
+                  lc == [out0, out1, out2, out3, out4, original]
+                  && tlsf_try_malloc_post(
+                       d,
+                       lim,
+                       top,
+                       xs,
+                       hd,
+                       fl,
+                       sb,
+                       bl,
+                       ps,
+                       sz,
+                       loc,
+                       cached,
+                       live,
+                       fast,
+                       partial,
+                       word(0),
+                       before,
+                       fp,
+                       res,
+                       gs,
+                       ms,
+                       h)])
+```
+
+lemma `tlsf_malloc_try_fresh_case`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. !word_ugt(d, word(4294965088))
+     && !word_uge(
+          word_jushr(
+            word_add(
+              word_and(word_add(d, word(15)), word(4294967280)),
+              word(1908)),
+            word(16)),
+          word(DIV(lim, 65536)))
+     && !(top == word(0))
+  5. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+     && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_take_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+  6. 0 < val(n)
+  7. val(n) <= 256
+  8. !(n == word(0))
+  9. (val : (W32) -> Num)(
+       (word_jushr : (W32, W32) -> W32)(
+         (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+         (word : (Num) -> W32)(3)))
+       == DIV((val : (W32) -> Num)(n) + 7, 8)
+     && (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3))) < 33
+     && 8 <= 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3))) <= 256
+     && (val : (W32) -> Num)(n) <= 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && MOD(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))),
+          8)
+          == 0
+     && (word_jshl : (W32, W32) -> W32)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)),
+          (word : (Num) -> W32)(3)) == (word : (Num) -> W32)(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))))
+     && (val : (W32) -> Num)(
+          (word : (Num) -> W32)(
+            8 * (val : (W32) -> Num)(
+              (word_jushr : (W32, W32) -> W32)(
+                (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+                (word : (Num) -> W32)(3))))) == 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && DIV(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))),
+          8) == (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+  10. val(d) <= 4294965088
+  11. fast(val(word_jushr(word_add(n, word(7)), word(3)))) == NIL
+  12. partial(val(word_jushr(word_add(n, word(7)), word(3)))) == NIL
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_try_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        n,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_try_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_try_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        n,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    [
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        tlsf_try_malloc_post(
+          d,
+          lim,
+          top,
+          xs,
+          hd,
+          fl,
+          sb,
+          bl,
+          ps,
+          sz,
+          loc,
+          cached,
+          live,
+          fast,
+          partial,
+          n,
+          before,
+          fp,
+          vs,
+          gs,
+          ms,
+          h)])
+```
+
+lemma `tlsf_malloc_first_fresh_case`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. !word_ugt(d, word(4294965088))
+     && !word_uge(
+          word_jushr(
+            word_add(
+              word_and(word_add(d, word(15)), word(4294967280)),
+              word(1908)),
+            word(16)),
+          word(DIV(lim, 65536)))
+     && !(top == word(0))
+  5. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+     && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_take_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+  6. 0 < val(n)
+  7. val(n) <= 256
+  8. !(n == word(0))
+  9. (val : (W32) -> Num)(
+       (word_jushr : (W32, W32) -> W32)(
+         (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+         (word : (Num) -> W32)(3)))
+       == DIV((val : (W32) -> Num)(n) + 7, 8)
+     && (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3))) < 33
+     && 8 <= 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3))) <= 256
+     && (val : (W32) -> Num)(n) <= 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && MOD(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))),
+          8)
+          == 0
+     && (word_jshl : (W32, W32) -> W32)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)),
+          (word : (Num) -> W32)(3)) == (word : (Num) -> W32)(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))))
+     && (val : (W32) -> Num)(
+          (word : (Num) -> W32)(
+            8 * (val : (W32) -> Num)(
+              (word_jushr : (W32, W32) -> W32)(
+                (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+                (word : (Num) -> W32)(3))))) == 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && DIV(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))),
+          8) == (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+  10. val(d) <= 4294965088
+  11. fast(val(word_jushr(word_add(n, word(7)), word(3)))) == NIL
+  12. partial(val(word_jushr(word_add(n, word(7)), word(3)))) == NIL
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l0, l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_first_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [V_num(ConstInt32(n)), out0, out1, out2, out3, out4]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     n,
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h),
+    [
+      (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        ∃ out0 : Value,
+          ∃ out1 : Value,
+            ∃ out2 : Value,
+              ∃ out3 : Value,
+                ∃ out4 : Value,
+                  lc == [V_num(ConstInt32(n)), out0, out1, out2, out3, out4]
+                  && tlsf_try_malloc_post(
+                       d,
+                       lim,
+                       top,
+                       xs,
+                       hd,
+                       fl,
+                       sb,
+                       bl,
+                       ps,
+                       sz,
+                       loc,
+                       cached,
+                       live,
+                       fast,
+                       partial,
+                       n,
+                       before,
+                       fp,
+                       res,
+                       gs,
+                       ms,
+                       h)])
+```
+
+lemma `tlsf_malloc_retry_fresh_case`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. !word_ugt(d, word(4294965088))
+     && !word_uge(
+          word_jushr(
+            word_add(
+              word_and(word_add(d, word(15)), word(4294967280)),
+              word(1908)),
+            word(16)),
+          word(DIV(lim, 65536)))
+     && !(top == word(0))
+  5. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+     && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_take_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+  6. 0 < val(n)
+  7. val(n) <= 256
+  8. !(n == word(0))
+  9. (val : (W32) -> Num)(
+       (word_jushr : (W32, W32) -> W32)(
+         (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+         (word : (Num) -> W32)(3)))
+       == DIV((val : (W32) -> Num)(n) + 7, 8)
+     && (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3))) < 33
+     && 8 <= 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3))) <= 256
+     && (val : (W32) -> Num)(n) <= 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && MOD(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))),
+          8)
+          == 0
+     && (word_jshl : (W32, W32) -> W32)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)),
+          (word : (Num) -> W32)(3)) == (word : (Num) -> W32)(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))))
+     && (val : (W32) -> Num)(
+          (word : (Num) -> W32)(
+            8 * (val : (W32) -> Num)(
+              (word_jushr : (W32, W32) -> W32)(
+                (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+                (word : (Num) -> W32)(3))))) == 8 * (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+     && DIV(
+          8 * (val : (W32) -> Num)(
+            (word_jushr : (W32, W32) -> W32)(
+              (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+              (word : (Num) -> W32)(3))),
+          8) == (val : (W32) -> Num)(
+          (word_jushr : (W32, W32) -> W32)(
+            (word_add : (W32, W32) -> W32)(n, (word : (Num) -> W32)(7)),
+            (word : (Num) -> W32)(3)))
+  10. val(d) <= 4294965088
+  11. fast(val(word_jushr(word_add(n, word(7)), word(3)))) == NIL
+  12. partial(val(word_jushr(word_add(n, word(7)), word(3)))) == NIL
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_retry_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [out0, out1, out2, out3, out4, original]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     n,
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h),
+    [
+      (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        ∃ out0 : Value,
+          ∃ out1 : Value,
+            ∃ out2 : Value,
+              ∃ out3 : Value,
+                ∃ out4 : Value,
+                  lc == [out0, out1, out2, out3, out4, original]
+                  && tlsf_try_malloc_post(
+                       d,
+                       lim,
+                       top,
+                       xs,
+                       hd,
+                       fl,
+                       sb,
+                       bl,
+                       ps,
+                       sz,
+                       loc,
+                       cached,
+                       live,
+                       fast,
+                       partial,
+                       n,
+                       before,
+                       fp,
+                       res,
+                       gs,
+                       ms,
+                       h)])
+```
+
+lemma `tlsf_malloc_try_attempt_facts`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. val(n) <= 4160749568
+  5. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  6. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  7. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  8. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_try_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        n,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_try_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_try_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        n,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    [
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        tlsf_try_malloc_post(
+          d,
+          lim,
+          top,
+          xs,
+          hd,
+          fl,
+          sb,
+          bl,
+          ps,
+          sz,
+          loc,
+          cached,
+          live,
+          fast,
+          partial,
+          n,
+          before,
+          fp,
+          vs,
+          gs,
+          ms,
+          h)])
+```
+
+lemma `tlsf_malloc_first_attempt_facts`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. val(n) <= 4160749568
+  5. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  6. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  7. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  8. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l0, l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_first_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [V_num(ConstInt32(n)), out0, out1, out2, out3, out4]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     n,
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h),
+    [
+      (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        ∃ out0 : Value,
+          ∃ out1 : Value,
+            ∃ out2 : Value,
+              ∃ out3 : Value,
+                ∃ out4 : Value,
+                  lc == [V_num(ConstInt32(n)), out0, out1, out2, out3, out4]
+                  && tlsf_try_malloc_post(
+                       d,
+                       lim,
+                       top,
+                       xs,
+                       hd,
+                       fl,
+                       sb,
+                       bl,
+                       ps,
+                       sz,
+                       loc,
+                       cached,
+                       live,
+                       fast,
+                       partial,
+                       n,
+                       before,
+                       fp,
+                       res,
+                       gs,
+                       ms,
+                       h)])
+```
+
+lemma `tlsf_malloc_retry_attempt_facts`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. val(n) <= 4160749568
+  5. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  6. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  7. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  8. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_retry_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [out0, out1, out2, out3, out4, original]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     n,
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h),
+    [
+      (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        ∃ out0 : Value,
+          ∃ out1 : Value,
+            ∃ out2 : Value,
+              ∃ out3 : Value,
+                ∃ out4 : Value,
+                  lc == [out0, out1, out2, out3, out4, original]
+                  && tlsf_try_malloc_post(
+                       d,
+                       lim,
+                       top,
+                       xs,
+                       hd,
+                       fl,
+                       sb,
+                       bl,
+                       ps,
+                       sz,
+                       loc,
+                       cached,
+                       live,
+                       fast,
+                       partial,
+                       n,
+                       before,
+                       fp,
+                       res,
+                       gs,
+                       ms,
+                       h)])
+```
+
+lemma `tlsf_malloc_try_attempt`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(n) <= 4160749568
+  2. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  3. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  4. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  5. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_try_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        n,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_try_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_try_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        n,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    [
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        tlsf_try_malloc_post(
+          d,
+          lim,
+          top,
+          xs,
+          hd,
+          fl,
+          sb,
+          bl,
+          ps,
+          sz,
+          loc,
+          cached,
+          live,
+          fast,
+          partial,
+          n,
+          before,
+          fp,
+          vs,
+          gs,
+          ms,
+          h)])
+```
+
+lemma `tlsf_malloc_first_attempt`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(n) <= 4160749568
+  2. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  3. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  4. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  5. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l0, l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_first_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [V_num(ConstInt32(n)), out0, out1, out2, out3, out4]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     n,
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h),
+    [
+      (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        ∃ out0 : Value,
+          ∃ out1 : Value,
+            ∃ out2 : Value,
+              ∃ out3 : Value,
+                ∃ out4 : Value,
+                  lc == [V_num(ConstInt32(n)), out0, out1, out2, out3, out4]
+                  && tlsf_try_malloc_post(
+                       d,
+                       lim,
+                       top,
+                       xs,
+                       hd,
+                       fl,
+                       sb,
+                       bl,
+                       ps,
+                       sz,
+                       loc,
+                       cached,
+                       live,
+                       fast,
+                       partial,
+                       n,
+                       before,
+                       fp,
+                       res,
+                       gs,
+                       ms,
+                       h)])
+```
+
+lemma `tlsf_malloc_retry_attempt`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(n) <= 4160749568
+  2. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  3. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  4. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  5. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_retry_body(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [out0, out1, out2, out3, out4, original]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     n,
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h),
+    [
+      (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        ∃ out0 : Value,
+          ∃ out1 : Value,
+            ∃ out2 : Value,
+              ∃ out3 : Value,
+                ∃ out4 : Value,
+                  lc == [out0, out1, out2, out3, out4, original]
+                  && tlsf_try_malloc_post(
+                       d,
+                       lim,
+                       top,
+                       xs,
+                       hd,
+                       fl,
+                       sb,
+                       bl,
+                       ps,
+                       sz,
+                       loc,
+                       cached,
+                       live,
+                       fast,
+                       partial,
+                       n,
+                       before,
+                       fp,
+                       res,
+                       gs,
+                       ms,
+                       h)])
+```
+
+lemma `tlsf_try_malloc_body`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (d top fl n : W32) (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (args : List[Value])
+if
+  1. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  2. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  3. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  4. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_try_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        n,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL
+      && lc == APPEND(
+           args,
+           [V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))),
+            V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))])
+      && tlsf_try_malloc_pre(
+           d,
+           lim,
+           top,
+           xs,
+           hd,
+           fl,
+           sb,
+           bl,
+           ps,
+           sz,
+           loc,
+           cached,
+           live,
+           fast,
+           partial,
+           n,
+           before,
+           fp,
+           args,
+           gs,
+           ms,
+           h),
+    tlsf_try_malloc_code(d, initialize_idx, page_idx, take_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_try_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        n,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    [
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        tlsf_try_malloc_post(
+          d,
+          lim,
+          top,
+          xs,
+          hd,
+          fl,
+          sb,
+          bl,
+          ps,
+          sz,
+          loc,
+          cached,
+          live,
+          fast,
+          partial,
+          n,
+          before,
+          fp,
+          vs,
+          gs,
+          ms,
+          h)])
+```
+
+definition `tlsf_try_malloc_spec`
+
+```
+tlsf_try_malloc_spec(
+  (inst : Inst),
+  (d : W32),
+  (initialize_idx : Num),
+  (page_idx : Num),
+  (take_idx : Num),
+  (ensure_idx : Num),
+  (try_idx : Num),
+  (j : Num),
+  (P : FProp),
+  (Q : FProp)) == (
+  j == sfunc_ind(inst, try_idx)
+  && (
+       ∃ lim : Num,
+         ∃ top : W32,
+           ∃ xs : List[W32],
+             ∃ hd : (W32) -> W32,
+               ∃ fl : W32,
+                 ∃ sb : (Num) -> W32,
+                   ∃ bl : (Num, Num) -> List[W32],
+                     ∃ ps : List[W32],
+                       ∃ sz : (W32) -> Num,
+                         ∃ loc : (W32) -> List[W32],
+                           ∃ cached : (W32) -> List[W32],
+                             ∃ live : (W32) -> List[W32],
+                               ∃ fast : (Num) -> List[W32],
+                                 ∃ partial : (Num) -> List[W32],
+                                   ∃ n : W32,
+                                     ∃ before : Heap,
+                                       ∃ fp : GProp,
+                                         P == tlsf_try_malloc_pre(
+                                           d,
+                                           lim,
+                                           top,
+                                           xs,
+                                           hd,
+                                           fl,
+                                           sb,
+                                           bl,
+                                           ps,
+                                           sz,
+                                           loc,
+                                           cached,
+                                           live,
+                                           fast,
+                                           partial,
+                                           n,
+                                           before,
+                                           fp)
+                                         && Q == tlsf_try_malloc_post(
+                                              d,
+                                              lim,
+                                              top,
+                                              xs,
+                                              hd,
+                                              fl,
+                                              sb,
+                                              bl,
+                                              ps,
+                                              sz,
+                                              loc,
+                                              cached,
+                                              live,
+                                              fast,
+                                              partial,
+                                              n,
+                                              before,
+                                              fp)))
+```
+
+lemma `tlsf_try_malloc_spec_call`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push initialize_idx page_idx take_idx ensure_idx try_idx lim : Num)
+  (d top fl n : W32) (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp),
+  tlsf_try_malloc_spec(
+    inst,
+    d,
+    initialize_idx,
+    page_idx,
+    take_idx,
+    ensure_idx,
+    try_idx,
+    sfunc_ind(inst, try_idx),
+    tlsf_try_malloc_pre(
+      d,
+      lim,
+      top,
+      xs,
+      hd,
+      fl,
+      sb,
+      bl,
+      ps,
+      sz,
+      loc,
+      cached,
+      live,
+      fast,
+      partial,
+      n,
+      before,
+      fp),
+    tlsf_try_malloc_post(
+      d,
+      lim,
+      top,
+      xs,
+      hd,
+      fl,
+      sb,
+      bl,
+      ps,
+      sz,
+      loc,
+      cached,
+      live,
+      fast,
+      partial,
+      n,
+      before,
+      fp))
+```
+
+lemma `tlsf_try_malloc_specs`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push initialize_idx page_idx take_idx ensure_idx try_idx k : Num)
+  (d : W32)
+if
+  1. EL(sfunc_ind(inst, try_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_try_malloc_code(d, initialize_idx, page_idx, take_idx))
+  2. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  3. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  4. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  5. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  specs_ok(
+    k,
+    tlsf_try_malloc_spec(
+      inst,
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx,
+      try_idx),
+    fs,
+    tabs,
+    inst)
+```
+
+lemma `tlsf_try_malloc_all`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push initialize_idx page_idx take_idx ensure_idx try_idx lim : Num)
+  (d top fl n : W32) (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (vs0 lc0 : List[Value])
+if
+  1. EL(sfunc_ind(inst, try_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_try_malloc_code(d, initialize_idx, page_idx, take_idx))
+  2. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  3. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  4. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  5. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_m(
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ args : List[Value],
+        vs == APPEND(vs0, args)
+        && lc == lc0
+        && tlsf_try_malloc_pre(
+             d,
+             lim,
+             top,
+             xs,
+             hd,
+             fl,
+             sb,
+             bl,
+             ps,
+             sz,
+             loc,
+             cached,
+             live,
+             fast,
+             partial,
+             n,
+             before,
+             fp,
+             args,
+             gs,
+             ms,
+             h),
+    [Call(try_idx)],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ res : List[Value],
+        vs == APPEND(vs0, res)
+        && lc == lc0
+        && tlsf_try_malloc_post(
+             d,
+             lim,
+             top,
+             xs,
+             hd,
+             fl,
+             sb,
+             bl,
+             ps,
+             sz,
+             loc,
+             cached,
+             live,
+             fast,
+             partial,
+             n,
+             before,
+             fp,
+             res,
+             gs,
+             ms,
+             h),
+    NIL)
+```
+
+lemma `tlsf_try_malloc_post_arity`
+
+```
+∀ (d top fl n : W32) (lim ms : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before h : Heap) (fp : GProp) (res gs : List[Value])
+if
+  1. tlsf_try_malloc_post(
+       d,
+       lim,
+       top,
+       xs,
+       hd,
+       fl,
+       sb,
+       bl,
+       ps,
+       sz,
+       loc,
+       cached,
+       live,
+       fast,
+       partial,
+       n,
+       before,
+       fp,
+       res,
+       gs,
+       ms,
+       h)
+then
+  LENGTH(res) == 1
+```
+
+lemma `tlsf_malloc_first_attempt_label`
+
+```
+∀ (d top fl n : W32) (lim ms : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before h : Heap) (fp : GProp) (original : Value) (vs lc gs : List[Value]),
+  (
+    LENGTH(vs) == 1
+    && (
+         (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+         (ms : Num) => (h : Heap) =>
+           ∃ out0 : Value,
+             ∃ out1 : Value,
+               ∃ out2 : Value,
+                 ∃ out3 : Value,
+                   ∃ out4 : Value,
+                     lc
+                       == [V_num(ConstInt32(n)), out0, out1, out2, out3, out4]
+                     && tlsf_try_malloc_post(
+                          d,
+                          lim,
+                          top,
+                          xs,
+                          hd,
+                          fl,
+                          sb,
+                          bl,
+                          ps,
+                          sz,
+                          loc,
+                          cached,
+                          live,
+                          fast,
+                          partial,
+                          n,
+                          before,
+                          fp,
+                          res,
+                          gs,
+                          ms,
+                          h))(vs, lc, gs, ms, h)) == (
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [V_num(ConstInt32(n)), out0, out1, out2, out3, out4]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     n,
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h))(vs, lc, gs, ms, h)
+```
+
+lemma `tlsf_malloc_first_block_g`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(n) <= 4160749568
+  2. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  3. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  4. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  5. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l0, l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_full_prefix(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [V_num(ConstInt32(n)), out0, out1, out2, out3, out4]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     n,
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h),
+    NIL)
+```
+
+lemma `tlsf_malloc_first_block`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(n) <= 4160749568
+  2. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  3. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  4. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  5. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_m(
+    fs,
+    tabs,
+    inst,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l0, l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_full_prefix(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [V_num(ConstInt32(n)), out0, out1, out2, out3, out4]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     n,
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h),
+    NIL)
+```
+
+lemma `tlsf_malloc_retry_attempt_label`
+
+```
+∀ (d top fl n : W32) (lim ms : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before h : Heap) (fp : GProp) (original : Value) (vs lc gs : List[Value]),
+  (
+    LENGTH(vs) == 1
+    && (
+         (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+         (ms : Num) => (h : Heap) =>
+           ∃ out0 : Value,
+             ∃ out1 : Value,
+               ∃ out2 : Value,
+                 ∃ out3 : Value,
+                   ∃ out4 : Value,
+                     lc == [out0, out1, out2, out3, out4, original]
+                     && tlsf_try_malloc_post(
+                          d,
+                          lim,
+                          top,
+                          xs,
+                          hd,
+                          fl,
+                          sb,
+                          bl,
+                          ps,
+                          sz,
+                          loc,
+                          cached,
+                          live,
+                          fast,
+                          partial,
+                          n,
+                          before,
+                          fp,
+                          res,
+                          gs,
+                          ms,
+                          h))(vs, lc, gs, ms, h)) == (
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [out0, out1, out2, out3, out4, original]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     n,
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h))(vs, lc, gs, ms, h)
+```
+
+lemma `tlsf_malloc_retry_block_g`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(n) <= 4160749568
+  2. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  3. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  4. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  5. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_full_retry(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [out0, out1, out2, out3, out4, original]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     n,
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h),
+    NIL)
+```
+
+lemma `tlsf_malloc_retry_block`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(n) <= 4160749568
+  2. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  3. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  4. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  5. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_m(
+    fs,
+    tabs,
+    inst,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_full_retry(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [out0, out1, out2, out3, out4, original]
+                && tlsf_try_malloc_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     n,
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h),
+    NIL)
+```
+
+lemma `tlsf_malloc_retry_checked`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(n) <= 4160749568
+  2. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  3. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  4. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  5. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_m(
+    fs,
+    tabs,
+    inst,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l1, l2, l3, l4, original],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_full_retry(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [out0, out1, out2, out3, out4, original]
+                && tlsf_malloc_checked_post(
+                     d,
+                     lim,
+                     top,
+                     xs,
+                     hd,
+                     fl,
+                     sb,
+                     bl,
+                     ps,
+                     sz,
+                     loc,
+                     cached,
+                     live,
+                     fast,
+                     partial,
+                     n,
+                     before,
+                     fp,
+                     res,
+                     gs,
+                     ms,
+                     h),
+    NIL)
+```
+
+lemma `tlsf_malloc_slow_prefix`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(n) <= 4160749568
+     && EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_page_allocate_code(take_idx))
+     && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_take_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+  2. !(
+       n == word(0)
+       || val(n) <= 256
+          && (
+               !(fast(DIV(val(n) + 7, 8)) == NIL)
+               || !(partial(DIV(val(n) + 7, 8)) == NIL)
+               || !(tlsf_search(word(1080), fl, sb, bl) == word(0)))
+       || 256 < val(n) && !(tlsf_search(n, fl, sb, bl) == word(0)))
+then
+  sl_triple_m(
+    fs,
+    tabs,
+    inst,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l0, l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_full_prefix(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                st(
+                  [V_num(ConstInt32(word(4294967295)))],
+                  [V_num(ConstInt32(n)), out0, out1, out2, out3, out4],
+                  tlsf_malloc_ro(
+                    d,
+                    lim,
+                    top,
+                    xs,
+                    hd,
+                    fl,
+                    sb,
+                    bl,
+                    ps,
+                    sz,
+                    loc,
+                    cached,
+                    live,
+                    fast,
+                    partial,
+                    before,
+                    fp),
+                  vs,
+                  lc,
+                  gs,
+                  ms,
+                  h),
+    NIL)
+```
+
+lemma `tlsf_malloc_early_failure`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp R : GProp),
+  sl_triple(
+    st(
+      [V_num(ConstInt32(word(4294967295)))],
+      [V_num(ConstInt32(n)), l0, l1, l2, l3, l4],
+      R),
+    tlsf_malloc_full_early(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), V_num(ConstInt32(word(4294967295))), l1, l2, l3,
+       l4],
+      R))
+```
+
+definition `tlsf_full_malloc_fast_pre`
+
+```
+tlsf_full_malloc_fast_pre(
+  (d : W32),
+  (lim : Num),
+  (top : W32),
+  (xs : List[W32]),
+  (hd : (W32) -> W32),
+  (fl : W32),
+  (sb : (Num) -> W32),
+  (bl : (Num, Num) -> List[W32]),
+  (ps : List[W32]),
+  (sz : (W32) -> Num),
+  (loc : (W32) -> List[W32]),
+  (cached : (W32) -> List[W32]),
+  (live : (W32) -> List[W32]),
+  (fast : (Num) -> List[W32]),
+  (partial : (Num) -> List[W32]),
+  (n : W32),
+  (before : Heap),
+  (fp : GProp)) == (
+  (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+    (
+      n == word(0)
+      || val(n) <= 256
+         && (
+              !(fast(DIV(val(n) + 7, 8)) == NIL)
+              || !(partial(DIV(val(n) + 7, 8)) == NIL)
+              || !(tlsf_search(word(1080), fl, sb, bl) == word(0)))
+      || 256 < val(n) && !(tlsf_search(n, fl, sb, bl) == word(0)))
+    && tlsf_try_malloc_pre(
+         d,
+         lim,
+         top,
+         xs,
+         hd,
+         fl,
+         sb,
+         bl,
+         ps,
+         sz,
+         loc,
+         cached,
+         live,
+         fast,
+         partial,
+         n,
+         before,
+         fp,
+         res,
+         gs,
+         ms,
+         h))
+```
+
+lemma `tlsf_malloc_fast_prefix`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(n) <= 4160749568
+  2. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+     && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_take_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+  3. n == word(0)
+     || val(n) <= 256
+        && (
+             !(fast(DIV(val(n) + 7, 8)) == NIL)
+             || !(partial(DIV(val(n) + 7, 8)) == NIL)
+             || !(tlsf_search(word(1080), fl, sb, bl) == word(0)))
+     || 256 < val(n) && !(tlsf_search(n, fl, sb, bl) == word(0))
+then
+  sl_triple_m(
+    fs,
+    tabs,
+    inst,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l0, l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_full_prefix(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [V_num(ConstInt32(n)), out0, out1, out2, out3, out4]
+                && (
+                     ∃ ptr : W32,
+                       res == [V_num(ConstInt32(ptr))]
+                       && !(ptr == word(4294967295))
+                       && tlsf_full_malloc_post(
+                            d,
+                            lim,
+                            top,
+                            xs,
+                            hd,
+                            fl,
+                            sb,
+                            bl,
+                            ps,
+                            sz,
+                            loc,
+                            cached,
+                            live,
+                            fast,
+                            partial,
+                            n,
+                            before,
+                            fp,
+                            res,
+                            gs,
+                            ms,
+                            h)),
+    NIL)
+```
+
+lemma `tlsf_malloc_fast_prefix_g`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(n) <= 4160749568
+  2. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+     && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_take_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+  3. n == word(0)
+     || val(n) <= 256
+        && (
+             !(fast(DIV(val(n) + 7, 8)) == NIL)
+             || !(partial(DIV(val(n) + 7, 8)) == NIL)
+             || !(tlsf_search(word(1080), fl, sb, bl) == word(0)))
+     || 256 < val(n) && !(tlsf_search(n, fl, sb, bl) == word(0))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l0, l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_malloc_full_prefix(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ out0 : Value,
+        ∃ out1 : Value,
+          ∃ out2 : Value,
+            ∃ out3 : Value,
+              ∃ out4 : Value,
+                lc == [V_num(ConstInt32(n)), out0, out1, out2, out3, out4]
+                && (
+                     ∃ ptr : W32,
+                       res == [V_num(ConstInt32(ptr))]
+                       && !(ptr == word(4294967295))
+                       && tlsf_full_malloc_post(
+                            d,
+                            lim,
+                            top,
+                            xs,
+                            hd,
+                            fl,
+                            sb,
+                            bl,
+                            ps,
+                            sz,
+                            loc,
+                            cached,
+                            live,
+                            fast,
+                            partial,
+                            n,
+                            before,
+                            fp,
+                            res,
+                            gs,
+                            ms,
+                            h)),
+    labels)
+```
+
+lemma `tlsf_full_malloc_fast_focused`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn])
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. val(n) <= 4160749568
+  2. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+     && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_take_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+  3. n == word(0)
+     || val(n) <= 256
+        && (
+             !(fast(DIV(val(n) + 7, 8)) == NIL)
+             || !(partial(DIV(val(n) + 7, 8)) == NIL)
+             || !(tlsf_search(word(1080), fl, sb, bl) == word(0)))
+     || 256 < val(n) && !(tlsf_search(n, fl, sb, bl) == word(0))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_full_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        n,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l0, l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_full_malloc_code(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_full_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        n,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    [
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        tlsf_full_malloc_post(
+          d,
+          lim,
+          top,
+          xs,
+          hd,
+          fl,
+          sb,
+          bl,
+          ps,
+          sz,
+          loc,
+          cached,
+          live,
+          fast,
+          partial,
+          n,
+          before,
+          fp,
+          vs,
+          gs,
+          ms,
+          h)])
+```
+
+lemma `tlsf_full_malloc_fast_body`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push initialize_idx page_idx take_idx ensure_idx lim : Num)
+  (d top fl n : W32) (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (args : List[Value])
+if
+  1. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  2. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  3. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  4. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_full_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        n,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL
+      && lc == APPEND(
+           args,
+           [V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))),
+            V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))),
+            V_num(ConstInt32(word(0)))])
+      && tlsf_full_malloc_fast_pre(
+           d,
+           lim,
+           top,
+           xs,
+           hd,
+           fl,
+           sb,
+           bl,
+           ps,
+           sz,
+           loc,
+           cached,
+           live,
+           fast,
+           partial,
+           n,
+           before,
+           fp,
+           args,
+           gs,
+           ms,
+           h),
+    tlsf_full_malloc_code(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_full_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        n,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    [
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        tlsf_full_malloc_post(
+          d,
+          lim,
+          top,
+          xs,
+          hd,
+          fl,
+          sb,
+          bl,
+          ps,
+          sz,
+          loc,
+          cached,
+          live,
+          fast,
+          partial,
+          n,
+          before,
+          fp,
+          vs,
+          gs,
+          ms,
+          h)])
+```
+
+definition `tlsf_full_malloc_fast_spec`
+
+```
+tlsf_full_malloc_fast_spec(
+  (inst : Inst),
+  (d : W32),
+  (initialize_idx : Num),
+  (page_idx : Num),
+  (take_idx : Num),
+  (ensure_idx : Num),
+  (full_idx : Num),
+  (j : Num),
+  (P : FProp),
+  (Q : FProp)) == (
+  j == sfunc_ind(inst, full_idx)
+  && (
+       ∃ lim : Num,
+         ∃ top : W32,
+           ∃ xs : List[W32],
+             ∃ hd : (W32) -> W32,
+               ∃ fl : W32,
+                 ∃ sb : (Num) -> W32,
+                   ∃ bl : (Num, Num) -> List[W32],
+                     ∃ ps : List[W32],
+                       ∃ sz : (W32) -> Num,
+                         ∃ loc : (W32) -> List[W32],
+                           ∃ cached : (W32) -> List[W32],
+                             ∃ live : (W32) -> List[W32],
+                               ∃ fast : (Num) -> List[W32],
+                                 ∃ partial : (Num) -> List[W32],
+                                   ∃ n : W32,
+                                     ∃ before : Heap,
+                                       ∃ fp : GProp,
+                                         P == tlsf_full_malloc_fast_pre(
+                                           d,
+                                           lim,
+                                           top,
+                                           xs,
+                                           hd,
+                                           fl,
+                                           sb,
+                                           bl,
+                                           ps,
+                                           sz,
+                                           loc,
+                                           cached,
+                                           live,
+                                           fast,
+                                           partial,
+                                           n,
+                                           before,
+                                           fp)
+                                         && Q == tlsf_full_malloc_post(
+                                              d,
+                                              lim,
+                                              top,
+                                              xs,
+                                              hd,
+                                              fl,
+                                              sb,
+                                              bl,
+                                              ps,
+                                              sz,
+                                              loc,
+                                              cached,
+                                              live,
+                                              fast,
+                                              partial,
+                                              n,
+                                              before,
+                                              fp)))
+```
+
+lemma `tlsf_full_malloc_fast_spec_call`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push initialize_idx page_idx take_idx ensure_idx full_idx lim : Num)
+  (d top fl n : W32) (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp),
+  tlsf_full_malloc_fast_spec(
+    inst,
+    d,
+    initialize_idx,
+    page_idx,
+    take_idx,
+    ensure_idx,
+    full_idx,
+    sfunc_ind(inst, full_idx),
+    tlsf_full_malloc_fast_pre(
+      d,
+      lim,
+      top,
+      xs,
+      hd,
+      fl,
+      sb,
+      bl,
+      ps,
+      sz,
+      loc,
+      cached,
+      live,
+      fast,
+      partial,
+      n,
+      before,
+      fp),
+    tlsf_full_malloc_post(
+      d,
+      lim,
+      top,
+      xs,
+      hd,
+      fl,
+      sb,
+      bl,
+      ps,
+      sz,
+      loc,
+      cached,
+      live,
+      fast,
+      partial,
+      n,
+      before,
+      fp))
+```
+
+lemma `tlsf_full_malloc_fast_specs`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push initialize_idx page_idx take_idx ensure_idx full_idx k : Num)
+  (d : W32)
+if
+  1. EL(sfunc_ind(inst, full_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_full_malloc_code(d, initialize_idx, page_idx, take_idx, ensure_idx))
+  2. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  3. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  4. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  5. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  specs_ok(
+    k,
+    tlsf_full_malloc_fast_spec(
+      inst,
+      d,
+      initialize_idx,
+      page_idx,
+      take_idx,
+      ensure_idx,
+      full_idx),
+    fs,
+    tabs,
+    inst)
+```
+
+lemma `tlsf_full_malloc_fast_all`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push initialize_idx page_idx take_idx ensure_idx full_idx lim : Num)
+  (d top fl n : W32) (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (vs0 lc0 : List[Value])
+if
+  1. EL(sfunc_ind(inst, full_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_full_malloc_code(d, initialize_idx, page_idx, take_idx, ensure_idx))
+  2. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  3. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  4. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  5. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_m(
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ args : List[Value],
+        vs == APPEND(vs0, args)
+        && lc == lc0
+        && tlsf_full_malloc_fast_pre(
+             d,
+             lim,
+             top,
+             xs,
+             hd,
+             fl,
+             sb,
+             bl,
+             ps,
+             sz,
+             loc,
+             cached,
+             live,
+             fast,
+             partial,
+             n,
+             before,
+             fp,
+             args,
+             gs,
+             ms,
+             h),
+    [Call(full_idx)],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ res : List[Value],
+        vs == APPEND(vs0, res)
+        && lc == lc0
+        && tlsf_full_malloc_post(
+             d,
+             lim,
+             top,
+             xs,
+             hd,
+             fl,
+             sb,
+             bl,
+             ps,
+             sz,
+             loc,
+             cached,
+             live,
+             fast,
+             partial,
+             n,
+             before,
+             fp,
+             res,
+             gs,
+             ms,
+             h),
+    NIL)
+```
+
+lemma `tlsf_full_malloc_slow_body`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (initialize_idx page_idx take_idx ensure_idx pop push lim i : Num)
+  (original l0 l1 l2 l3 l4 : Value) (d top fl n p b : W32)
+  (xs ps bs z : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. 0 < val(n)
+  4. val(n) <= 4160749568
+  5. !(
+       n == word(0)
+       || val(n) <= 256
+          && (
+               !(fast(DIV(val(n) + 7, 8)) == NIL)
+               || !(partial(DIV(val(n) + 7, 8)) == NIL)
+               || !(tlsf_search(word(1080), fl, sb, bl) == word(0)))
+       || 256 < val(n) && !(tlsf_search(n, fl, sb, bl) == word(0)))
+  6. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+  7. EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_take_code(d, pop, push))
+  8. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  9. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+  10. EL(sfunc_ind(inst, ensure_idx), fs) == Func_native(
+        inst,
+        Tf([T_num(T_i32)], [T_num(T_i32)]),
+        [T_num(T_i32)],
+        tlsf_ensure_code(d, pop, push))
+then
+  sl_abort_m(
+    fs,
+    tabs,
+    inst,
+    st(
+      NIL,
+      [V_num(ConstInt32(n)), l0, l1, l2, l3, l4],
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    tlsf_full_malloc_code(d, initialize_idx, page_idx, take_idx, ensure_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_full_malloc_post(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        n,
+        before,
+        fp,
+        vs,
+        gs,
+        ms,
+        h),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_malloc_state(d, lim, fp, gs, ms, h))
+```
+
+lemma `tlsf_full_malloc_slow_call`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push initialize_idx page_idx take_idx ensure_idx full_idx lim : Num)
+  (d top fl n : W32) (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (caller : List[Value])
+if
+  1. val(n) <= 4160749568
+  2. !(
+       n == word(0)
+       || val(n) <= 256
+          && (
+               !(fast(DIV(val(n) + 7, 8)) == NIL)
+               || !(partial(DIV(val(n) + 7, 8)) == NIL)
+               || !(tlsf_search(word(1080), fl, sb, bl) == word(0)))
+       || 256 < val(n) && !(tlsf_search(n, fl, sb, bl) == word(0)))
+  3. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+     && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_take_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+     && EL(sfunc_ind(inst, ensure_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32)],
+          tlsf_ensure_code(d, pop, push))
+  4. EL(sfunc_ind(inst, full_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_full_malloc_code(d, initialize_idx, page_idx, take_idx, ensure_idx))
+then
+  sl_abort_m(
+    fs,
+    tabs,
+    inst,
+    st(
+      [V_num(ConstInt32(n))],
+      caller,
+      tlsf_malloc_ro(
+        d,
+        lim,
+        top,
+        xs,
+        hd,
+        fl,
+        sb,
+        bl,
+        ps,
+        sz,
+        loc,
+        cached,
+        live,
+        fast,
+        partial,
+        before,
+        fp)),
+    [Call(full_idx)],
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == caller
+      && tlsf_full_malloc_post(
+           d,
+           lim,
+           top,
+           xs,
+           hd,
+           fl,
+           sb,
+           bl,
+           ps,
+           sz,
+           loc,
+           cached,
+           live,
+           fast,
+           partial,
+           n,
+           before,
+           fp,
+           res,
+           gs,
+           ms,
+           h),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_malloc_state(d, lim, fp, gs, ms, h))
+```
+
+lemma `tlsf_full_malloc_all`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push initialize_idx page_idx take_idx ensure_idx full_idx lim : Num)
+  (d top fl n : W32) (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (caller : List[Value])
+if
+  1. EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_page_allocate_code(take_idx))
+     && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_take_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+     && EL(sfunc_ind(inst, ensure_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32)],
+          tlsf_ensure_code(d, pop, push))
+  2. EL(sfunc_ind(inst, full_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_full_malloc_code(d, initialize_idx, page_idx, take_idx, ensure_idx))
+then
+  sl_abort_m(
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ args : List[Value],
+        vs == APPEND(NIL, args)
+        && lc == caller
+        && tlsf_try_malloc_pre(
+             d,
+             lim,
+             top,
+             xs,
+             hd,
+             fl,
+             sb,
+             bl,
+             ps,
+             sz,
+             loc,
+             cached,
+             live,
+             fast,
+             partial,
+             n,
+             before,
+             fp,
+             args,
+             gs,
+             ms,
+             h),
+    [Call(full_idx)],
+    (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == caller
+      && tlsf_full_malloc_post(
+           d,
+           lim,
+           top,
+           xs,
+           hd,
+           fl,
+           sb,
+           bl,
+           ps,
+           sz,
+           loc,
+           cached,
+           live,
+           fast,
+           partial,
+           n,
+           before,
+           fp,
+           res,
+           gs,
+           ms,
+           h),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_malloc_state(d, lim, fp, gs, ms, h))
+```
+
+lemma `tlsf_try_malloc_run`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push initialize_idx page_idx take_idx ensure_idx try_idx lim : Num)
+  (d top fl n : W32) (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (vs0 lc0 vs : List[Value]) (fr : HProp)
+  (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
+if
+  1. EL(sfunc_ind(inst, try_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_try_malloc_code(d, initialize_idx, page_idx, take_idx))
+     && EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_page_allocate_code(take_idx))
+     && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_take_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+  2. s_funcs(s) == fs
+  3. s_tabs(s) == tabs
+  4. f_inst(f) == inst
+  5. lift(
+       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+       (ms : Num) => (h : Heap) =>
+         ∃ args : List[Value],
+           vs == APPEND(vs0, args)
+           && lc == lc0
+           && tlsf_try_malloc_pre(
+                d,
+                lim,
+                top,
+                xs,
+                hd,
+                fl,
+                sb,
+                bl,
+                ps,
+                sz,
+                loc,
+                cached,
+                live,
+                fast,
+                partial,
+                n,
+                before,
+                fp,
+                args,
+                gs,
+                ms,
+                h),
+       fr,
+       s,
+       f,
+       vs)
+  6. reduce_trans(
+       (s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, [Call(try_idx)]))),
+       (s2, f2, es2))
+then
+  ∃ (vs2 : List[Value]),
+    es2 == MAP(v_to_e, vs2)
+    && s_funcs(s2) == fs
+    && s_tabs(s2) == tabs
+    && f_inst(f2) == inst
+    && lift(
+         (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+         (ms : Num) => (h : Heap) =>
+           ∃ res : List[Value],
+             vs == APPEND(vs0, res)
+             && lc == lc0
+             && tlsf_try_malloc_post(
+                  d,
+                  lim,
+                  top,
+                  xs,
+                  hd,
+                  fl,
+                  sb,
+                  bl,
+                  ps,
+                  sz,
+                  loc,
+                  cached,
+                  live,
+                  fast,
+                  partial,
+                  n,
+                  before,
+                  fp,
+                  res,
+                  gs,
+                  ms,
+                  h),
+         fr,
+         s2,
+         f2,
+         vs2)
+or
+  ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]),
+    reduce(s2, f2, es2, s3, f3, es3)
+```
+
+lemma `tlsf_full_malloc_run`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push initialize_idx page_idx take_idx ensure_idx full_idx lim : Num)
+  (d top fl n : W32) (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (before : Heap) (fp : GProp) (caller vs : List[Value]) (fr : HProp)
+  (s s2 : Wstore) (f f2 : Wframe) (es2 : List[Einstr])
+if
+  1. (
+       EL(sfunc_ind(inst, page_idx), fs) == Func_native(
+         inst,
+         Tf([T_num(T_i32)], [T_num(T_i32)]),
+         [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+          T_num(T_i32)],
+         tlsf_page_allocate_code(take_idx))
+       && EL(sfunc_ind(inst, take_idx), fs) == Func_native(
+            inst,
+            Tf([T_num(T_i32)], [T_num(T_i32)]),
+            [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+             T_num(T_i32)],
+            tlsf_take_code(d, pop, push))
+       && EL(sfunc_ind(inst, pop), fs) == Func_native(
+            inst,
+            Tf([T_num(T_i32)], NIL),
+            [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+            tlsf_pop_code(d))
+       && EL(sfunc_ind(inst, push), fs) == Func_native(
+            inst,
+            Tf([T_num(T_i32)], [T_num(T_i32)]),
+            [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+            tlsf_push_code(d))
+       && EL(sfunc_ind(inst, ensure_idx), fs) == Func_native(
+            inst,
+            Tf([T_num(T_i32)], [T_num(T_i32)]),
+            [T_num(T_i32)],
+            tlsf_ensure_code(d, pop, push)))
+     && EL(sfunc_ind(inst, full_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32),
+           T_num(T_i32)],
+          tlsf_full_malloc_code(
+            d,
+            initialize_idx,
+            page_idx,
+            take_idx,
+            ensure_idx))
+  2. keep(
+       fs,
+       tabs,
+       inst,
+       lift(
+         (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+         (ms : Num) => (h : Heap) =>
+           ∃ args : List[Value],
+             vs == APPEND(NIL, args)
+             && lc == caller
+             && tlsf_try_malloc_pre(
+                  d,
+                  lim,
+                  top,
+                  xs,
+                  hd,
+                  fl,
+                  sb,
+                  bl,
+                  ps,
+                  sz,
+                  loc,
+                  cached,
+                  live,
+                  fast,
+                  partial,
+                  n,
+                  before,
+                  fp,
+                  args,
+                  gs,
+                  ms,
+                  h),
+         fr),
+       s,
+       f,
+       vs)
+  3. reduce_trans(
+       (s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, [Call(full_idx)]))),
+       (s2, f2, es2))
+then
+  ∃ (res : List[Value]),
+    es2 == MAP(v_to_e, res)
+    && keep(
+         fs,
+         tabs,
+         inst,
+         lift(
+           (res : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+           (ms : Num) => (h : Heap) =>
+             lc == caller
+             && tlsf_full_malloc_post(
+                  d,
+                  lim,
+                  top,
+                  xs,
+                  hd,
+                  fl,
+                  sb,
+                  bl,
+                  ps,
+                  sz,
+                  loc,
+                  cached,
+                  live,
+                  fast,
+                  partial,
+                  n,
+                  before,
+                  fp,
+                  res,
+                  gs,
+                  ms,
+                  h),
+           fr),
+         s2,
+         f2,
+         res)
+or
+  es2 == [Trap]
+  && (
+       (s : Wstore) => (f : Wframe) =>
+         keep(
+           fs,
+           tabs,
+           inst,
+           lift(
+             (vs : List[Value]) => (lc : List[Value]) =>
+             (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+               tlsf_malloc_state(d, lim, fp, gs, ms, h),
+             fr),
+           s,
+           f,
+           NIL))(s2, f2)
+or
+  ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]),
+    reduce(s2, f2, es2, s3, f3, es3)
 ```

@@ -2,7 +2,8 @@
 """Checks that the TLSF programs are the compiler's: compares
 tlsf_push_code, tlsf_pop_code, tlsf_find_code, tlsf_split_code and
 tlsf_take_code, tlsf_ensure_code, tlsf_free_code, tlsf_initialize_code and
-tlsf_page_allocate_code and tlsf_block_free_code, as
+tlsf_page_allocate_code, tlsf_block_free_code and the allocation-side
+page-publication prefixes, try_malloc and full_malloc, as
 tlsf/__snapshot__/theory.md prints them in WebAssembly text, with
 Memory::push, Memory::pop, the initial search block and the split suffix of
 Memory::take, the complete Memory::take, Memory::ensure, Memory::free,
@@ -185,11 +186,71 @@ def block_free_branch(body):
     raise ValueError('missing small-block dispatch else boundary')
 
 
+def page_publication_fragments(body, local_shift=0):
+    """Exact prefixes before return/br, including both full_malloc copies."""
+    normalized = []
+    for line in body:
+        m = re.fullmatch(r'(local\.(?:get|set|tee)) (\d+)', line)
+        normalized.append(m[1] + ' ' + str(int(m[2]) - local_shift) if m else line)
+    markers = {
+        'partial': ['local.get 0', 'i32.const 20', 'i32.add', 'local.tee 3',
+                    'i32.load', 'local.tee 1', 'i32.const 8', 'i32.add',
+                    'i32.load', 'local.set 4'],
+        'fresh': ['local.get 1', 'i32.const 8', 'i32.add', 'local.tee 1',
+                  'i32.load', 'local.set 4', 'local.get 2', 'i32.const d'],
+    }
+    result = {'fresh': [], 'partial': [], 'head': []}
+    for kind, marker in markers.items():
+        for start in range(len(normalized)):
+            if normalized[start:start + len(marker)] != marker:
+                continue
+            if start == 0 or normalized[start - 1] != 'if':
+                raise ValueError('changed publication guard boundary: ' + kind)
+            depth = 0
+            for end in range(start, len(normalized)):
+                op = normalized[end].split()[0]
+                if depth == 0 and op in ('return', 'br'):
+                    if kind == 'fresh':
+                        head = normalized[start-7:start-1]
+                        if head != ['local.get 0', 'i32.const 20', 'i32.add',
+                                    'local.tee 3', 'i32.load', 'local.tee 1']:
+                            raise ValueError('changed fresh-page head boundary')
+                        result['head'].append(head)
+                    result[kind].append(normalized[start:end])
+                    break
+                if op in ('if', 'block', 'loop'):
+                    depth += 1
+                elif op == 'end':
+                    depth -= 1
+                if depth < 0:
+                    raise ValueError('publication exits before its result')
+            else:
+                raise ValueError('missing publication return boundary')
+    if not result['fresh'] or len(result['fresh']) != len(result['partial']):
+        raise ValueError('changed publication path count')
+    return result
+
+
 def full_page_allocate(body):
     call = "call " + FIND_PARENT
     if body.count(call) != 1:
         raise ValueError("Page::allocate must contain exactly one " + call)
     return ["call take_idx" if line == call else line for line in body]
+
+
+def full_malloc(body, retry=False):
+    """Keep both inlined attempts, growth and deliberate aborts intact."""
+    copies = 2 if retry else 1
+    calls = {'call ' + INITIALIZE_NAME: ('call initialize_idx', copies),
+             'call ' + PAGE_ALLOCATE_NAME: ('call page_idx', copies),
+             'call ' + FIND_PARENT: ('call take_idx', copies)}
+    if retry:
+        # Small and large requests have separate ensure call sites.
+        calls['call ' + ENSURE_NAME] = ('call ensure_idx', 2)
+    for call, (_, count) in calls.items():
+        if body.count(call) != count:
+            raise ValueError('malloc helper call count changed: ' + call)
+    return [calls[line][0] if line in calls else line for line in body]
 
 
 def full_initialize(body):
@@ -409,6 +470,38 @@ def main():
         print("%s differs at instruction %d:" % (prog, n))
         print("  ours:     %s" % (ours[n] if n < len(ours) else "(end)"))
         print("  compiled: %s" % (theirs[n] if n < len(theirs) else "(end)"))
+    for prog, caller, nlocals, retry in [
+            ('tlsf_try_malloc_code', '$moonbit.malloc_no_grow', 4, False),
+            ('tlsf_full_malloc_code', '$moonbit.full_malloc', 5, True)]:
+        check_signature(function(wat, caller), caller, 1, nlocals)
+        ours = instructions(listed(md, prog))
+        theirs = full_malloc(instructions(function(wat, caller)), retry)
+        if ours == theirs:
+            print('%s: the same %d instructions as the complete %s' %
+                  (prog, len(ours), caller))
+        else:
+            ok = False
+            n = next((k for k, (a, b) in enumerate(zip(ours, theirs)) if a != b),
+                     min(len(ours), len(theirs)))
+            print('%s differs at instruction %d:' % (prog, n))
+            print('  ours:     %s' % (ours[n] if n < len(ours) else '(end)'))
+            print('  compiled: %s' % (theirs[n] if n < len(theirs) else '(end)'))
+    for caller, shift, nlocals in [('$moonbit.malloc_no_grow', 0, 4),
+                                   ('$moonbit.full_malloc', 1, 5),
+                                   ('$moonbit.full_malloc', 0, 5)]:
+        count = 1
+        check_signature(function(wat, caller), caller, 1, nlocals)
+        fragments = page_publication_fragments(instructions(function(wat, caller)), shift)
+        for kind in ('fresh', 'partial', 'head'):
+            prog = 'tlsf_page_publish_' + kind + '_code'
+            ours = instructions(listed(md, prog))
+            copies = fragments[kind]
+            if len(copies) != count or any(part != ours for part in copies):
+                ok = False
+                print(prog + ': differs in ' + caller)
+            else:
+                print('%s: the same %d instructions in all %d copies in %s' %
+                      (prog, len(ours), count, caller))
     sys.exit(0 if ok else 1)
 
 

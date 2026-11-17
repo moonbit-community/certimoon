@@ -107,6 +107,7 @@ good order to read it in:
 | specs.mbt | function specs, `sl_triple_g` and its rules, `sl_call_g`, `sl_funs_g`, and sym's rules for it |
 | examples.mbt, example_*.mbt | the verified programs |
 | readonly.mbt | Persistent load views preserving arbitrary assertions about the entire saved heap |
+| abort_*.mbt, disjunction.mbt, sym_g_chunks.mbt | specified-trap composition, typed result blocks and native calls, and compositional symbolic execution |
 | logic_test.mbt | the listing's snapshot, the theorems' list, the public API's test, the closed theorems' non-vacuity checks |
 
 Package `tlsf`, loaded separately by `tlsf/init.mbt` after the core logic:
@@ -121,6 +122,7 @@ Package `tlsf`, loaded separately by `tlsf/init.mbt` after the core logic:
 | tlsf_bins.mbt | All 448 bins and both bitmap levels (`tlsf_bins`), focusing one bin (`tlsf_istar_focus`), and whole-table preservation (`tlsf_push_all`, `tlsf_pop_all`) |
 | tlsf_physical.mbt | Physical chain geometry and coalescing, field ownership (`tlsf_chain`), and exact size-class membership of free blocks (`tlsf_bins_match`, `tlsf_large`) |
 | tlsf_find*.mbt | The exact inlined search, bitmap arithmetic, table read views, and refinement against the physical-chain invariant |
+| tlsf_*malloc*.mbt | complete initialized allocation entries, dispatch/page ownership, memory growth and retry, client frames frozen at the old length, and closed run corollaries |
 | tlsf_test.mbt | allocator regression tests, hypothesis checks, and the three TLSF snapshots |
 
 Package `wasm`: ast.mbt, numeric.mbt, store.mbt, typing.mbt, reduction.mbt
@@ -162,6 +164,8 @@ eval.mbt and builder.mbt (the evaluator), and the tests.
 | MoonBit's TLSF allocator: small-page invariant, exact slot partition, ownership, and connection to TLSF | done (Features 4, step 4a) |
 | MoonBit's TLSF allocator: compiled Page::allocate, dirty-page initialization, combined invariant, and client frame | done (Features 4, step 4b) |
 | MoonBit's TLSF allocator: compiled inline Block::free and Page::free, reclamation/coalescing, combined invariant, and client frame | done (Features 4, step 4c) |
+| MoonBit's TLSF allocator: compiled allocation-side page publication and preservation of the combined invariant and client frame | done (Features 4, step 4d) |
+| MoonBit's TLSF allocator: complete compiled `try_malloc` and `full_malloc`, growth, retry, and client preservation | done (Features 4, step 4e) |
 
 Known limits of what exists:
 
@@ -535,11 +539,30 @@ say so.
          the actual compiled Memory::free/pop/push closures, including all
          unlink positions and TLSF coalescing. Cached slots prevent premature
          reclamation. Tests cover the raw paths and shipped-WAT traces.
-      d. Next: verify allocation-side page publication, then close
-         `try_malloc`, `full_malloc`, and public `free` against the combined
-         invariant, including public guard/dispatch/drop. Verify the module
-         the compiler embeds after its second `wasm-opt` pass, not the vendored
-         `output.wat`.
+      d. Done: the 32-instruction fresh-page and 64-instruction partial-page
+         publication prefixes. The remaining local slots become the class cache,
+         one slot becomes live, `used` becomes `total`, and the local list becomes
+         empty. Partial pages leave their head list with the successor's previous
+         link reset. The combined invariant and old client frame are preserved.
+         The unpublished-page bridge handles arbitrary initial used/prev words;
+         a separate six-instruction head-load triple preserves the heap. The WAT
+         checker checks all three caller copies, including local renaming.
+      e. Done: close the complete emitted `malloc_no_grow` / `try_malloc`
+         (232 instructions) and `full_malloc` (499 instructions), including
+         cached/partial/fresh page dispatch, large take, zero and no-fit exits,
+         and both inlined allocation attempts. Full allocation composes the
+         compiled ensure and memory growth with retry. Normal success exports
+         at least the requested payload and a live handle; deliberate growth
+         and retry traps preserve the allocator and old client frame. The frame
+         remains tied to the original memory length. Closed reachability
+         corollaries contain no helper triple or ambient specification premise.
+         Whole-function WAT comparisons, kernel zero-call tests, and bounded
+         growth/retry/OOM traces accompany the proofs.
+      f. Next: close public `free` guard/dispatch/drop against the combined
+         invariant. The allocation entry contracts require initialized metadata;
+         their lazy-initialization branches still need an entry contract. Verify
+         the module the compiler embeds after its second `wasm-opt` pass, not
+         the vendored `output.wat`.
 
 Not planned yet, with what they need:
 

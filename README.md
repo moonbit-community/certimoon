@@ -646,8 +646,52 @@ The surrounding public guard, dispatch, and result drop are not yet
 verified. Kernel execution tests cover release and all unlink paths;
 shipped-WAT traces exercise full-page publication, every unlink position,
 TLSF coalescing, and surviving small and large payload canaries.
-Page publication on allocation and public malloc/free dispatch paths remain
-to be verified.
+Allocation-side publication is verified by
+[tlsf_page_publish_fresh_all](tlsf/tlsf_page_publish_all.mbt) and
+`tlsf_page_publish_partial_all`. These closed module triples cover the exact
+32-instruction fresh-page and 64-instruction partial-page publication prefixes
+before their caller's return or branch. Both restore `tlsf_allocator`, return
+one zero-prefixed client payload, export the remaining local slots into the
+correct empty class cache, clear the page-local list, and set `used = total`.
+Partial publication removes the old head page and resets its successor's
+back link, including the empty-successor case. Existing live payloads and an
+arbitrary disjoint client frame remain unchanged.
+
+`tlsf_page_publish_allocated_ready` derives the fresh-page partition required
+by publication from the unpublished `Page::allocate` result and its physical
+TLSF backing. The proof accepts arbitrary initial `used` and `prev` words;
+publication overwrites `used` and preserves the unused link bytes. The read-only
+six-instruction head-loading prefix is checked separately. The WAT checker
+compares these fragments in `malloc_no_grow` and both differently numbered
+copies in `full_malloc`. Kernel execution tests compare every byte, and
+shipped-WAT traces cover singleton and multi-slot exports while small and large
+clients remain live.
+
+The complete allocation entry points are now verified by
+`tlsf_try_malloc_all` and `tlsf_full_malloc_all`, with reachability corollaries
+`tlsf_try_malloc_run` and `tlsf_full_malloc_run`. The WAT checker compares the
+entire emitted `malloc_no_grow` (232 instructions) and `full_malloc` (499
+instructions), including their native signatures and local declarations.
+For an initialized combined allocator and a request at most
+`MAX_REQUEST_SIZE`, zero returns zero without changing the heap; a successful
+call exports an exclusive payload of at least the requested size and a live
+allocator handle, and restores `tlsf_allocator`. `try_malloc` returns `-1`
+without changing the heap when its lists and TLSF search offer no candidate.
+
+`full_malloc` first runs its inlined allocation attempt. On failure it calls
+the compiled `ensure`, transports the small-page invariant through memory
+growth, and retries the inlined allocation. Its deliberate traps on failed
+growth or failed retry preserve a consistent allocator and the original
+client frame. The frame is evaluated at the original memory length throughout,
+so growth cannot weaken the claim about existing client bytes. The closed
+execution theorems have no assumed helper specifications or allocator triples.
+Tests execute both zero-request native closures, and shipped-WAT traces cover
+rounding, cached and fresh allocations, bounded growth, retry, and out-of-memory
+traps while retaining small and large client canaries.
+
+The public `free` guard and dispatch wrapper remains to be verified. Allocation
+entry contracts currently require initialized metadata; they do not establish
+correctness of their lazy-initialization branches.
 
 ## Reference: the program logic
 

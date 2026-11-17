@@ -1531,3 +1531,282 @@ test "Block free models full partial last and cached pages" {
   }
   assert_true(@kernel.hyp(@tlsf.thm("tlsf_block_free_all")).is_empty())
 }
+
+///|
+/// Compare the complete store after the exact publication prefixes. These
+/// sparse word-path fixtures wrap the linked table base into 128 bytes;
+/// shipped-WAT runtime tests exercise the actual non-wrapping invariant.
+test "compiled page publication updates metadata and preserves every other byte" {
+  @tlsf.load()
+  let conv = @wasm.compute_conv(
+    [
+      "tlsf_page_publish_fresh_code", "tlsf_page_publish_partial_code", "tlsf_page_publish_head_code",
+    ].map(@tlsf.thm),
+  )
+  let value = (s : String) => @equal.rhs(@kernel.concl(conv(@logic.tm(s))))
+  let instance = "Inst(NIL,NIL,NIL,[0],NIL,NIL,NIL)"
+  let byte_terms = Array::makei(256, n => @logic.tm("(word(\{n}) : Word[8])"))
+  let memory_var = @logic.tm("(memory_bytes : List[Word[8]])")
+  let template = @logic.tm(
+    "Wstore(NIL,NIL,[(Limit_t(0,NONE),(memory_bytes : List[Word[8]]))],NIL,NIL,NIL)",
+  )
+  let store = (bytes : Array[UInt32]) => {
+    @kernel.vsubst(
+      @list.List([
+        (
+          @lists.mk_list(
+            @list.List(bytes.map(x => byte_terms[x.reinterpret_as_int()])),
+            @kernel.type_of(byte_terms[0]),
+          ),
+          memory_var,
+        ),
+      ]),
+      template,
+    )
+  }
+  let put = (bytes : Array[UInt32], addr : Int32, x : UInt32) => {
+    for k in 0..<4 {
+      bytes[addr + k] = (x >> (8 * k)) & 255U
+    }
+  }
+  let lc = (xs : Array[Int32]) => {
+    "[" + xs.map(x => "V_num(ConstInt32(word(\{x})))").join(",") + "]"
+  }
+  let check = (
+    before : Array[UInt32],
+    after : Array[UInt32],
+    locals : Array[Int32],
+    outlocals : Array[Int32],
+    code : String,
+    result : Int32,
+  ) => {
+    let run = @wasm.run(
+      @pair.mk_pair(
+        (
+          store(before),
+          @pair.mk_pair(
+            (
+              value("Wframe(\{lc(locals)},\{instance})"),
+              value("MAP(Basic,\{code})"),
+            ),
+          ),
+        ),
+      ),
+    )
+    assert_true(@kernel.hyp(run).is_empty())
+    let final_frame = value("Wframe(\{lc(outlocals)},\{instance})")
+    let final_code = value("[Basic(EConstNum(ConstInt32(word(\{result}))))]")
+    let expected = @pair.mk_pair(
+      (store(after), @pair.mk_pair((final_frame, final_code))),
+    )
+    assert_true(
+      @basics.aconv(@kernel.rand(@kernel.concl(run)), expected),
+      msg=code,
+    )
+  }
+  for size in [8, 256] {
+    let off = (1912 + size) % 16
+    let d = 0U - ((1912 + size) / 16 * 16).reinterpret_as_uint()
+    for next in [0, 104] {
+      let before = Array::makei(128, n => {
+        (n * 31 + 9).reinterpret_as_uint() & 255U
+      })
+      put(before, off, 0U)
+      put(before, 44, (1056 / (8 + size)).reinterpret_as_uint())
+      put(before, 52, 80U)
+      put(before, 88, next.reinterpret_as_uint())
+      let after = before.copy()
+      put(after, off, next.reinterpret_as_uint())
+      put(after, 48, (1056 / (8 + size)).reinterpret_as_uint())
+      put(after, 52, 0U)
+      put(after, 88, 0U)
+      check(
+        before,
+        after,
+        [32, 80, size, 52, 9],
+        [32, 88, size, 52, next],
+        "tlsf_page_publish_fresh_code(word(\{d}))",
+        88,
+      )
+      check(
+        before,
+        before,
+        [32, 9, size, 7, 6],
+        [32, 80, size, 52, 6],
+        "tlsf_page_publish_head_code(word(\{d}))",
+        80,
+      )
+      for next_page in [0, 96] {
+        let before = before.copy()
+        put(before, off + 4, 32U)
+        put(before, 48, 1U)
+        put(before, 56, 0U)
+        put(before, 60, next_page.reinterpret_as_uint())
+        if next_page != 0 {
+          put(before, next_page + 24, 32U)
+        }
+        let after = before.copy()
+        put(after, off, next.reinterpret_as_uint())
+        put(after, off + 4, next_page.reinterpret_as_uint())
+        put(after, 48, (1056 / (8 + size)).reinterpret_as_uint())
+        put(after, 52, 0U)
+        put(after, 88, 0U)
+        if next_page != 0 {
+          put(after, next_page + 24, 0U)
+        }
+        check(
+          before,
+          after,
+          [32, 7, size, 9, 6],
+          [next_page, 80, size, 52, next],
+          "tlsf_page_publish_partial_code(word(\{d}))",
+          88,
+        )
+      }
+    }
+  }
+}
+
+///|
+test "compiled allocation entry theorems are closed and cover growth and retry" {
+  @tlsf.load()
+  @testkit.check_axioms()
+  // Ground the native-closure premises in a concrete function table. This
+  // checks that closing the entry theorems did not make their premises false.
+  let instance = "Inst(NIL,[0,1,2,3,4,5,6],NIL,[0],NIL,NIL,NIL)"
+  let i32 = "T_num(T_i32)"
+  let closure = (result : String, count : Int32, code : String) => {
+    "Func_native(" +
+    instance +
+    ",Tf([" +
+    i32 +
+    "]," +
+    result +
+    "),[" +
+    Array::make(count, i32).join(",") +
+    "]," +
+    code +
+    ")"
+  }
+  let fs = "[" +
+    [
+      closure("NIL", 4, "tlsf_pop_code(word(0))"),
+      closure("[" + i32 + "]", 3, "tlsf_push_code(word(0))"),
+      closure("[" + i32 + "]", 5, "tlsf_take_code(word(0),0,1)"),
+      closure("[" + i32 + "]", 5, "tlsf_page_allocate_code(2)"),
+      closure("[" + i32 + "]", 1, "tlsf_ensure_code(word(0),0,1)"),
+      closure("[" + i32 + "]", 4, "tlsf_try_malloc_code(word(0),7,3,2)"),
+      closure("[" + i32 + "]", 5, "tlsf_full_malloc_code(word(0),7,3,2,4)"),
+    ].join(",") +
+    "]"
+  let substitutions = [
+      (@logic.tm(fs), @logic.tm("(fs : List[Cl])")),
+      (@logic.tm(instance), @logic.tm("(inst : Inst)")),
+      (@logic.tm("(word(0) : Word[32])"), @logic.tm("(d : Word[32])")),
+    ] +
+    [
+      ("pop", 0),
+      ("push", 1),
+      ("take_idx", 2),
+      ("page_idx", 3),
+      ("ensure_idx", 4),
+      ("try_idx", 5),
+      ("full_idx", 6),
+      ("initialize_idx", 7),
+    ].map(pair => {
+      let (name, value) = pair
+      (@logic.tm(value.to_string()), @logic.tm("(" + name + " : Num)"))
+    })
+  let conv = @wasm.compute_conv([])
+  for name in ["tlsf_try_malloc_all", "tlsf_full_malloc_all"] {
+    let body = @basics.strip_forall(@kernel.concl(@tlsf.thm(name))).1
+    let bindings = @kernel.vsubst(
+      @list.List(substitutions),
+      @basics.dest_imp(body).0,
+    )
+    let checked = conv(bindings)
+    assert_true(@kernel.hyp(checked).is_empty(), msg=name)
+    assert_true(
+      @basics.aconv(@equal.rhs(@kernel.concl(checked)), @logic.tm("T")),
+      msg=name,
+    )
+  }
+
+  for
+    name in [
+      "tlsf_try_malloc_body", "tlsf_try_malloc_specs", "tlsf_try_malloc_all", "tlsf_try_malloc_run",
+      "tlsf_malloc_first_block", "tlsf_malloc_retry_block", "tlsf_malloc_full_growth_all",
+      "tlsf_full_malloc_fast_all", "tlsf_full_malloc_slow_body", "tlsf_full_malloc_slow_call",
+      "tlsf_full_malloc_all", "tlsf_full_malloc_run", "tlsf_malloc_frame_state",
+      "tlsf_malloc_result_original_frame",
+    ] {
+    let theorem = @tlsf.thm(name)
+    assert_true(@kernel.hyp(theorem).is_empty(), msg=name)
+    let constants = @wasm.term_constants(@kernel.concl(theorem))
+    if name.has_suffix("_all") || name.has_suffix("_run") {
+      assert_false(constants.contains("specs_ok"), msg=name)
+    }
+    if name.has_suffix("_run") {
+      for triple in ["sl_triple_m", "sl_triple_g", "sl_abort_m"] {
+        assert_false(constants.contains(triple), msg=name)
+      }
+    }
+  }
+  assert_true(
+    @wasm.term_constants(@kernel.concl(@tlsf.thm("tlsf_try_malloc_run"))).contains(
+      "reduce_trans",
+    ),
+  )
+  let full = @wasm.term_constants(
+    @kernel.concl(@tlsf.thm("tlsf_full_malloc_run")),
+  )
+  assert_true(full.contains("reduce_trans"))
+  assert_true(full.contains("Trap"))
+  assert_true(full.contains("tlsf_malloc_state"))
+  assert_true(full.contains("tlsf_full_malloc_post"))
+}
+
+///|
+/// Run the actual native closures, including full_malloc's result block and
+/// early return. A zero request must leave the store and caller locals exact.
+test "compiled try and full malloc return zero without touching any byte" {
+  @tlsf.load()
+  let conv = @wasm.compute_conv([
+    @tlsf.thm("tlsf_try_malloc_code"),
+    @tlsf.thm("tlsf_full_malloc_code"),
+  ])
+  let value = (source : String) => {
+    @equal.rhs(@kernel.concl(conv(@logic.tm(source))))
+  }
+  let instance = "Inst(NIL,[0],NIL,[0],NIL,NIL,NIL)"
+  let frame = value(
+    "Wframe([V_num(ConstInt32(word(123))),V_num(ConstInt32(word(456)))],\{instance})",
+  )
+  let code = value(
+    "[Basic(EConstNum(ConstInt32((word(0) : Word[32])))),Basic(Call(0))]",
+  )
+  for
+    (name, count, arguments) in [
+      ("tlsf_try_malloc_code", 4, "word(0),0,0,0"),
+      ("tlsf_full_malloc_code", 5, "word(0),0,0,0,0"),
+    ] {
+    let locals = "[" + Array::make(count, "T_num(T_i32)").join(",") + "]"
+    let store = value(
+      "Wstore([Func_native(\{instance},Tf([T_num(T_i32)],[T_num(T_i32)]),\{locals},\{name}(\{arguments}))],NIL,[(Limit_t(0,NONE),[(word(17) : Word[8]),word(29),word(83),word(251)])],NIL,NIL,NIL)",
+    )
+    let cfg = @pair.mk_pair((store, @pair.mk_pair((frame, code))))
+    let theorem = @wasm.run(cfg)
+    assert_true(@kernel.hyp(theorem).is_empty(), msg=name)
+    let (after, rest) = @pair.dest_pair(@kernel.rand(@kernel.concl(theorem)))
+    let (after_frame, instructions) = @pair.dest_pair(rest)
+    assert_true(@basics.aconv(after, store), msg=name)
+    assert_true(@basics.aconv(after_frame, frame), msg=name)
+    assert_true(
+      @basics.aconv(
+        instructions,
+        @logic.tm("[Basic(EConstNum(ConstInt32((word(0) : Word[32]))))]"),
+      ),
+      msg=name,
+    )
+  }
+}

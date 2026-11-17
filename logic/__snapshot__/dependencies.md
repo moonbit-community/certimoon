@@ -1021,3 +1021,6 @@ Triples of verified programs, with what their statements depend on.
 | `example_chunks_hidden_locals` | 244 | 233 | 11 |
 | `example_chunks_return` | 248 | 235 | 13 |
 | `example_false_ordinary_continuation` | 243 | 233 | 10 |
+| `example_stack_in_heap_predicate` | 244 | 233 | 11 |
+| `example_general_chunks_return` | 248 | 235 | 13 |
+| `example_general_disjunction` | 248 | 235 | 13 |

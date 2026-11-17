@@ -6399,6 +6399,29 @@ then
     ls)
 ```
 
+lemma `sl_or_g`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp P R Q : SAssn)
+  (bs : List[B_e]) (ls : List[SAssn])
+if
+  1. sl_triple_g(G, fs, tabs, inst, rp, P, bs, Q, ls)
+  2. sl_triple_g(G, fs, tabs, inst, rp, R, bs, Q, ls)
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      P(vs, lc, gs, ms, h) || R(vs, lc, gs, ms, h),
+    bs,
+    Q,
+    ls)
+```
+
 lemma `sl_call_g`
 
 ```
@@ -9677,4 +9700,331 @@ or
 or
   ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]),
     reduce(s2, f2, es2, s3, f3, es3)
+```
+
+lemma `safe_abort_typed_block`
+
+```
+∀ (n : Num) (s : Wstore) (f : Wframe) (q : Assn) (a : (Wstore, Wframe) -> Bool)
+  (v : Option[Valtype]) (bs : List[B_e])
+if
+  1. safe_abort(n, s, f, MAP(Basic, bs), q, a)
+then
+  safe_abort(SUC(n), s, f, [Basic(Block(Tbv(v), bs))], q, a)
+```
+
+lemma `safe_abort_typed_if`
+
+```
+∀ (n : Num) (s : Wstore) (f : Wframe) (q : Assn) (a : (Wstore, Wframe) -> Bool)
+  (v : Option[Valtype]) (c : W32) (bs1 bs2 : List[B_e])
+if
+  1. !(c == word(0)) → safe_abort(n, s, f, [Basic(Block(Tbv(v), bs1))], q, a)
+  2. c == word(0) → safe_abort(n, s, f, [Basic(Block(Tbv(v), bs2))], q, a)
+then
+  safe_abort(
+    SUC(n),
+    s,
+    f,
+    [Basic(EConstNum(ConstInt32(c))), Basic(If(Tbv(v), bs1, bs2))],
+    q,
+    a)
+```
+
+lemma `safe_abort_call_value`
+
+```
+∀ (n j : Num) (s : Wstore) (f : Wframe) (arg : Value) (i : Inst)
+  (ts : List[Valtype]) (code : List[B_e]) (zs : List[Value]) (qin q : Assn)
+  (ain a : (Wstore, Wframe) -> Bool)
+if
+  1. EL(sfunc_ind(f_inst(f), j), s_funcs(s))
+       == Func_native(i, Tf([T_num(T_i32)], [T_num(T_i32)]), ts, code)
+     && n_zeros(ts) == SOME(zs)
+  2. ∀ k : Num,
+       safe_abort(k, s, Wframe(CONS(arg, zs), i), MAP(Basic, code), qin, ain)
+  3. ∀ s2 : Wstore,
+       ∀ f2 : Wframe, ∀ vs : List[Value], qin(s2, f2, vs) → q(s2, f, vs)
+  4. ∀ s2 : Wstore, ∀ f2 : Wframe, ain(s2, f2) → a(s2, f)
+then
+  safe_abort(n, s, f, APPEND(MAP(v_to_e, [arg]), [Basic(Call(j))]), q, a)
+```
+
+lemma `sl_abort_typed_block_st_m`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (v : Option[Valtype])
+  (lc : List[Value]) (R : GProp) (bs : List[B_e]) (Q A : SAssn)
+if
+  1. sl_abort_m(fs, tabs, inst, st(NIL, lc, R), bs, Q, A)
+then
+  sl_abort_m(fs, tabs, inst, st(NIL, lc, R), [Block(Tbv(v), bs)], Q, A)
+```
+
+lemma `sl_abort_typed_if_blocks_m`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (v : Option[Valtype])
+  (lc : List[Value]) (R : GProp) (c : W32) (bs1 bs2 : List[B_e]) (Q A : SAssn)
+if
+  1. !(c == word(0)) → sl_abort_m(
+       fs,
+       tabs,
+       inst,
+       st(NIL, lc, R),
+       [Block(Tbv(v), bs1)],
+       Q,
+       A)
+  2. c == word(0) → sl_abort_m(
+       fs,
+       tabs,
+       inst,
+       st(NIL, lc, R),
+       [Block(Tbv(v), bs2)],
+       Q,
+       A)
+then
+  sl_abort_m(
+    fs,
+    tabs,
+    inst,
+    st([V_num(ConstInt32(c))], lc, R),
+    [If(Tbv(v), bs1, bs2)],
+    Q,
+    A)
+```
+
+lemma `sl_abort_typed_if_st_m`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (v : Option[Valtype])
+  (lc : List[Value]) (R : GProp) (c : W32) (bs1 bs2 : List[B_e]) (Q A : SAssn)
+if
+  1. !(c == word(0)) → sl_abort_m(fs, tabs, inst, st(NIL, lc, R), bs1, Q, A)
+  2. c == word(0) → sl_abort_m(fs, tabs, inst, st(NIL, lc, R), bs2, Q, A)
+then
+  sl_abort_m(
+    fs,
+    tabs,
+    inst,
+    st([V_num(ConstInt32(c))], lc, R),
+    [If(Tbv(v), bs1, bs2)],
+    Q,
+    A)
+```
+
+lemma `sl_abort_call_value_m`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (arg : Value) (j : Num)
+  (ts : List[Valtype]) (code : List[B_e]) (zs lc0 : List[Value]) (P A : GProp)
+  (Q : FProp)
+if
+  1. EL(sfunc_ind(inst, j), fs)
+       == Func_native(inst, Tf([T_num(T_i32)], [T_num(T_i32)]), ts, code)
+  2. n_zeros(ts) == SOME(zs)
+  3. sl_abort_m(
+       fs,
+       tabs,
+       inst,
+       st(NIL, CONS(arg, zs), P),
+       code,
+       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+       (ms : Num) => (h : Heap) =>
+         Q(vs, gs, ms, h),
+       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+       (ms : Num) => (h : Heap) =>
+         A(gs, ms, h))
+then
+  sl_abort_m(
+    fs,
+    tabs,
+    inst,
+    st([arg], lc0, P),
+    [Call(j)],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == lc0 && Q(vs, gs, ms, h),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      A(gs, ms, h))
+```
+
+lemma `sl_abort_ex_m`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pp : (X, List[Value], List[Value], List[Value], Num, Heap) -> Bool)
+  (bs : List[B_e]) (Q A : SAssn)
+if
+  1. ∀ x : X, sl_abort_m(fs, tabs, inst, pp(x), bs, Q, A)
+then
+  sl_abort_m(
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ x : X, pp(x, vs, lc, gs, ms, h),
+    bs,
+    Q,
+    A)
+```
+
+lemma `sl_abort_pure_m`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (c : Bool) (p Q A : SAssn)
+  (bs : List[B_e])
+if
+  1. c → sl_abort_m(fs, tabs, inst, p, bs, Q, A)
+then
+  sl_abort_m(
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      c && p(vs, lc, gs, ms, h),
+    bs,
+    Q,
+    A)
+```
+
+lemma `sl_abort_false_m`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (bs : List[B_e]) (Q A : SAssn),
+  sl_abort_m(
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      false,
+    bs,
+    Q,
+    A)
+```
+
+lemma `sl_abort_pre_m`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (p p2 Q A : SAssn)
+  (bs : List[B_e])
+if
+  1. ∀ vs : List[Value],
+       ∀ lc : List[Value],
+         ∀ gs : List[Value],
+           ∀ ms : Num, ∀ h : Heap, p2(vs, lc, gs, ms, h) → p(vs, lc, gs, ms, h)
+  2. sl_abort_m(fs, tabs, inst, p, bs, Q, A)
+then
+  sl_abort_m(fs, tabs, inst, p2, bs, Q, A)
+```
+
+lemma `example_abort_typed_if`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (n : W32) (lc : List[Value])
+  (R : GProp),
+  sl_abort_m(
+    fs,
+    tabs,
+    inst,
+    st(NIL, lc, R),
+    [
+      EConstNum(ConstInt32(n)),
+      If(
+        Tbv(SOME(T_num(T_i32))),
+        [Unreachable],
+        [EConstNum(ConstInt32(word(42)))])],
+    st([V_num(ConstInt32(word(42)))], lc, R),
+    st(NIL, lc, R))
+```
+
+example `example_stack_in_heap_predicate`
+
+```
+∀ (P : FProp) (x : W32) (lc0 : List[Value]),
+  sl_triple(
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == [V_num(ConstInt32(x))] && lc == lc0 && P(vs, gs, ms, h),
+    [Drop],
+    st(
+      NIL,
+      lc0,
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        P([V_num(ConstInt32(x))], gs, ms, h)))
+```
+
+lemma `chunk_general_return`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (lc : List[Value])
+  (R : GProp),
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc2 : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == [V_num(ConstInt32(word(1)))] && R(gs, ms, h),
+    st(NIL, lc, R),
+    [EConstNum(ConstInt32(word(1))), Return],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      false,
+    [
+      (vs : List[Value]) => (lc2 : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        vs == [V_num(ConstInt32(word(1)))] && R(gs, ms, h)])
+```
+
+example `example_general_chunks_return`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (lc : List[Value])
+  (R : GProp),
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc2 : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == [V_num(ConstInt32(word(1)))] && R(gs, ms, h),
+    st(NIL, lc, R),
+    [EConstNum(ConstInt32(word(1))), Return, Unreachable],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      false,
+    [
+      (vs : List[Value]) => (lc2 : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        vs == [V_num(ConstInt32(word(1)))] && R(gs, ms, h)])
+```
+
+example `example_general_disjunction`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (locals : List[Value]) (R : GProp) (ls : List[SAssn]),
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      lc == locals
+      && R(gs, ms, h)
+      && (
+           vs == [V_num(ConstInt32(word(1)))]
+           || vs == [V_num(ConstInt32(word(2)))]),
+    [Drop],
+    st(NIL, locals, R),
+    ls)
 ```
