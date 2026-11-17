@@ -96,7 +96,9 @@ while constructing declarations. The output says `CONDITIONAL PASS` and lists
 the earlier premises used. It does not establish those premises. No assumptions
 enter the normal theorem registry, and the kernel's axiom set is unchanged.
 
-Pass several lemma names to share setup, `check --all` to test every proof
+Pass several lemma names to share setup, `check --keep-going NAME1 NAME2` to
+report all selected checks even if some fail (with a nonzero exit status),
+`check --all` to test every proof
 independently, or `list` to list the available names and source locations.
 These commands prepare the complete catalog. Each proof can use only earlier
 declarations, even when a later declaration is already in the catalog.
@@ -695,8 +697,8 @@ the freed slot from the live set; all other client payloads remain framed.
 The compiler inlines `Block::free` and `Page::free` in public `free`.
 The theorem covers that exact 167-instruction small-block branch, checked
 against the shipped WAT, with the actual Memory::free/pop/push closures.
-The surrounding public guard, dispatch, and result drop are not yet
-verified. Kernel execution tests cover release and all unlink paths;
+The public guard, dispatch, and result drop are covered by the complete
+public-free theorem below. Kernel execution tests cover release and all unlink paths;
 shipped-WAT traces exercise full-page publication, every unlink position,
 TLSF coalescing, and surviving small and large payload canaries.
 Allocation-side publication is verified by
@@ -742,9 +744,31 @@ Tests execute both zero-request native closures, and shipped-WAT traces cover
 rounding, cached and fresh allocations, bounded growth, retry, and out-of-memory
 traps while retaining small and large client canaries.
 
-The public `free` guard and dispatch wrapper remains to be verified. Allocation
-entry contracts currently require initialized metadata; they do not establish
-correctness of their lazy-initialization branches.
+The complete compiled public `free` is verified by
+[`tlsf_public_free_all`](tlsf/tlsf_public_free_module.mbt), with the closed
+reachability corollary `tlsf_public_free_run`. Its 199 instructions include the
+static-data guard, the branch that ignores pointers below the first payload,
+the allocator-owned tag read, both free paths, the dropped helper result, and
+its real unit-returning native signature with two locals. The precondition
+accepts null or a live `tlsf_malloc_owned` handle together with ownership of
+its entire payload. Valid allocations pass the lower-bound guard without
+wrapping and select the correct large-block or small-slot branch. The proof
+composes the existing compiled free and coalescing proofs; it assumes no helper
+specifications in the exported call or run theorem.
+
+On return, the combined allocator invariant is restored, memory length is
+unchanged, and every other client's frame is preserved. Null returns without
+loading an allocation header. `tlsf_public_free_malloc_result` connects a
+successful allocation result directly to free's ownership precondition, keeping
+the existing client frame fixed at its original memory length after growth.
+The WAT checker compares the entire function and signature; kernel execution
+tests exercise null and the lower guard with the restored caller frame.
+Real Wasm-engine tests exercise large coalescing and small-slot release from
+consistent allocator fixtures, comparing every byte including surviving client
+payloads.
+
+Allocation entry contracts still require initialized metadata; their
+lazy-initialization branches remain to be connected to the verified initializer.
 
 ## Reference: the program logic
 

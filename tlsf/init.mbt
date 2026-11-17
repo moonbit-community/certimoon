@@ -431,6 +431,23 @@ fn build_tlsf() -> Unit raise {
   prove_tlsf_full_malloc_slow_call()
   prove_tlsf_full_malloc_module()
   prove_tlsf_malloc_runs()
+  section("The complete compiled public free wrapper (tlsf_public_free_*.mbt)")
+  define_tlsf_public_free_code()
+  define_tlsf_public_free_contract()
+  prove_tlsf_public_free_geometry()
+  prove_tlsf_public_free_reads()
+  prove_tlsf_public_free_small()
+  prove_tlsf_public_free_control()
+  prove_tlsf_public_free_post()
+  prove_tlsf_public_free_branches()
+  prove_tlsf_public_free_loads()
+  prove_tlsf_public_free_raw()
+  prove_tlsf_public_free_paths()
+  prove_tlsf_public_free_null()
+  prove_tlsf_public_free_cases()
+  prove_tlsf_public_free_body()
+  prove_tlsf_public_free_module()
+  prove_tlsf_public_free_malloc()
 }
 
 ///|

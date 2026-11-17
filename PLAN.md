@@ -166,6 +166,7 @@ eval.mbt and builder.mbt (the evaluator), and the tests.
 | MoonBit's TLSF allocator: compiled inline Block::free and Page::free, reclamation/coalescing, combined invariant, and client frame | done (Features 4, step 4c) |
 | MoonBit's TLSF allocator: compiled allocation-side page publication and preservation of the combined invariant and client frame | done (Features 4, step 4d) |
 | MoonBit's TLSF allocator: complete compiled `try_malloc` and `full_malloc`, growth, retry, and client preservation | done (Features 4, step 4e) |
+| MoonBit's TLSF allocator: complete public `free`, guard/dispatch, coalescing, malloc ownership bridge, and client preservation | done (Features 4, step 4f) |
 
 Known limits of what exists:
 
@@ -558,11 +559,19 @@ say so.
          corollaries contain no helper triple or ambient specification premise.
          Whole-function WAT comparisons, kernel zero-call tests, and bounded
          growth/retry/OOM traces accompany the proofs.
-      f. Next: close public `free` guard/dispatch/drop against the combined
-         invariant. The allocation entry contracts require initialized metadata;
-         their lazy-initialization branches still need an entry contract. Verify
-         the module the compiler embeds after its second `wasm-opt` pass, not
-         the vendored `output.wat`.
+      f. Done: close all 199 instructions of public `free`, including the
+         static-data guard, null/lower-bound exit, tag load and dispatch, both
+         compiled free branches, and dropped helper result. `tlsf_public_free_all`
+         and `tlsf_public_free_run` restore the combined invariant and preserve
+         other client bytes, memory length, and caller state. The malloc-result
+         bridge supplies free's ownership precondition, including frozen frames
+         after growth. Kernel checks cover the guarded exits and component
+         branches; whole-function WAT comparison and real-engine byte checks
+         cover coalescing, small-slot release, and surviving clients.
+      g. Next: connect the lazy-initialization branches of the allocation entries
+         to the verified initializer, removing the initialized-metadata entry
+         requirement. Verify the module the compiler embeds after its second
+         `wasm-opt` pass, not the vendored `output.wat`.
 
 Not planned yet, with what they need:
 

@@ -302,5 +302,23 @@ class MallocBodyTest(unittest.TestCase):
                         check.full_malloc(changed, retry=True)
 
 
+class PublicFreeBodyTest(unittest.TestCase):
+    def test_keeps_guard_dispatch_drop_and_both_calls(self):
+        body = ['block', 'i32.const 4294965088', 'i32.gt_u', 'if',
+                'unreachable', 'end', 'br_if 0', 'i32.load',
+                'i32.const 4', 'i32.and', 'if (result i32)',
+                'call ' + check.FREE_NAME, 'else',
+                'call ' + check.FREE_NAME, 'end', 'drop', 'end']
+        expected = [x.replace(check.FREE_NAME, 'free_idx') for x in body]
+        self.assertEqual(check.full_public_free(body), expected)
+
+    def test_rejects_missing_or_extra_free_call(self):
+        call = 'call ' + check.FREE_NAME
+        for count in [0, 1, 3]:
+            with self.subTest(count=count):
+                with self.assertRaisesRegex(ValueError, 'call count'):
+                    check.full_public_free([call] * count)
+
+
 if __name__ == "__main__":
     unittest.main()

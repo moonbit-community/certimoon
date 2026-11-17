@@ -1810,3 +1810,132 @@ test "compiled try and full malloc return zero without touching any byte" {
     )
   }
 }
+
+///|
+test "compiled public free has closed theorems and read-free guarded exits" {
+  @tlsf.load()
+  @testkit.check_axioms()
+  for
+    name in [
+      "tlsf_public_free_entry_cases", "tlsf_public_free_small_case", "tlsf_public_free_large_case",
+      "tlsf_public_free_null_case", "tlsf_public_free_native_body", "tlsf_public_free_all",
+      "tlsf_public_free_run",
+    ] {
+    let theorem = @tlsf.thm(name)
+    assert_true(@kernel.hyp(theorem).is_empty(), msg=name)
+    let constants = @wasm.term_constants(@kernel.concl(theorem))
+    if name.has_suffix("_all") || name.has_suffix("_run") {
+      assert_false(constants.contains("specs_ok"), msg=name)
+    }
+    if name.has_suffix("_run") {
+      assert_true(constants.contains("reduce_trans"))
+      for predicate in ["sl_triple_g", "sl_triple_m", "sl_triple"] {
+        assert_false(constants.contains(predicate))
+      }
+    }
+  }
+  let conv = @wasm.compute_conv([
+    @tlsf.thm("tlsf_public_free_code"),
+    @tlsf.thm("tlsf_free_code"),
+    @tlsf.thm("tlsf_pop_code"),
+    @tlsf.thm("tlsf_push_code"),
+  ])
+  let value = (s : String) => @equal.rhs(@kernel.concl(conv(@logic.tm(s))))
+  let instance = "Inst(NIL,[0,1,2,3],NIL,[0],NIL,NIL,NIL)"
+  let i32 = "T_num(T_i32)"
+  let funcs = "[Func_native(" +
+    instance +
+    ",Tf([" +
+    i32 +
+    "],NIL),[" +
+    Array::make(4, i32).join(",") +
+    "],tlsf_pop_code(word(0)))," +
+    "Func_native(" +
+    instance +
+    ",Tf([" +
+    i32 +
+    "],[" +
+    i32 +
+    "]),[" +
+    Array::make(3, i32).join(",") +
+    "],tlsf_push_code(word(0)))," +
+    "Func_native(" +
+    instance +
+    ",Tf([" +
+    i32 +
+    "],[" +
+    i32 +
+    "]),[" +
+    Array::make(2, i32).join(",") +
+    "],tlsf_free_code(word(0),0,1))," +
+    "Func_native(" +
+    instance +
+    ",Tf([" +
+    i32 +
+    "],NIL),[" +
+    Array::make(2, i32).join(",") +
+    "],tlsf_public_free_code(word(0),2))]"
+  let all = @basics.strip_forall(
+      @kernel.concl(@tlsf.thm("tlsf_public_free_all")),
+    ).1
+  let premise = @kernel.vsubst(
+    @list.List(
+      [
+        (@logic.tm(funcs), @logic.tm("(fs : List[Cl])")),
+        (@logic.tm(instance), @logic.tm("(inst : Inst)")),
+        (@logic.tm("(word(0) : Word[32])"), @logic.tm("(d : Word[32])")),
+      ] +
+      [("pop", 0), ("push", 1), ("free_idx", 2), ("public_idx", 3)].map(pair => {
+        (@logic.tm(pair.1.to_string()), @logic.tm("(" + pair.0 + " : Num)"))
+      }),
+    ),
+    @basics.dest_imp(all).0,
+  )
+  let checked = conv(premise)
+  assert_true(@kernel.hyp(checked).is_empty())
+  assert_true(@basics.aconv(@equal.rhs(@kernel.concl(checked)), @logic.tm("T")))
+  let byte_terms = Array::makei(256, n => @logic.tm("(word(\{n}) : Word[8])"))
+  let memory_var = @logic.tm("(memory_bytes : List[Word[8]])")
+  let template = value(
+    "Wstore(" +
+    funcs +
+    ",NIL,[(Limit_t(0,NONE),(memory_bytes : List[Word[8]]))],NIL,NIL,NIL)",
+  )
+  let store = (bytes : Array[UInt32]) => {
+    @kernel.vsubst(
+      @list.List([
+        (
+          @lists.mk_list(
+            @list.List(bytes.map(x => byte_terms[x.reinterpret_as_int()])),
+            @kernel.type_of(byte_terms[0]),
+          ),
+          memory_var,
+        ),
+      ]),
+      template,
+    )
+  }
+  let frame = value("Wframe([V_num(ConstInt32(word(123)))]," + instance + ")")
+  // Larger memories are exercised by the real Wasm engine tests. Keeping
+  // these read-free cases small avoids deep literal-list conversion stacks.
+  for ptr in [0, 2183] {
+    let before = Array::makei(64, n => {
+      (n * 37 + 11).reinterpret_as_uint() & 255U
+    })
+    let after = before.copy()
+    let code = value(
+      "[Basic(EConstNum(ConstInt32(word(\{ptr})))),Basic(Call(3))]",
+    )
+    let run = @wasm.run(
+      @pair.mk_pair((store(before), @pair.mk_pair((frame, code)))),
+    )
+    assert_true(@kernel.hyp(run).is_empty())
+    let expected = @pair.mk_pair(
+      (store(after), @pair.mk_pair((frame, value("(NIL : List[Einstr])")))),
+    )
+    assert_true(
+      @basics.aconv(@kernel.rand(@kernel.concl(run)), expected),
+      msg="public free pointer \{ptr}",
+    )
+  }
+}

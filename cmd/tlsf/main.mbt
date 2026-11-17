@@ -20,6 +20,15 @@ fn run(args : Array[String]) -> Unit raise {
     )
   }
   let mode = args[1]
+  let keep_going = mode == "check" &&
+    args.length() >= 3 &&
+    args[2] == "--keep-going"
+  let names_start = if keep_going { 3 } else { 2 }
+  if mode == "check" && args.length() <= names_start {
+    raise Failure(
+      "usage: tlsf check [--keep-going] NAME ... | check [--keep-going] --all",
+    )
+  }
   if (mode == "check" && args.length() < 3) ||
     (mode != "check" && args.length() != 2) {
     raise Failure(
@@ -44,8 +53,10 @@ fn run(args : Array[String]) -> Unit raise {
     }
     println(row.stringify())
   } else {
-    let until = if mode == "check" && args.length() == 3 && args[2] != "--all" {
-      Some(args[2])
+    let until = if mode == "check" &&
+      args.length() == names_start + 1 &&
+      args[names_start] != "--all" {
+      Some(args[names_start])
     } else {
       None
     }
@@ -62,14 +73,32 @@ fn run(args : Array[String]) -> Unit raise {
         println(row.stringify())
       }
     } else {
-      let selected = if args.length() == 3 && args[2] == "--all" {
+      let selected = if args.length() == names_start + 1 &&
+        args[names_start] == "--all" {
         plan.names()
       } else {
-        args[2:].to_owned()
+        args[names_start:].to_owned()
       }
+      let mut failed = 0
       for name in selected {
         let start = @bench.monotonic_clock_start()
-        let result = plan.check(name)
+        let result = Some(plan.check(name)) catch {
+          e => {
+            @testkit.check_axioms()
+            if !keep_going {
+              raise e
+            }
+            let row : Json = {
+              "status": "CONDITIONAL FAIL",
+              "name": name,
+              "error": e.to_string(),
+            }
+            println(row.stringify())
+            failed += 1
+            None
+          }
+        }
+        guard result is Some(result) else { continue }
         let ms = elapsed(start)
         @testkit.check_axioms()
         let row : Json = {
@@ -82,6 +111,10 @@ fn run(args : Array[String]) -> Unit raise {
           ),
         }
         println(row.stringify())
+      }
+      if failed > 0 {
+        event("total", elapsed(total))
+        @env.exit(1)
       }
     }
   }

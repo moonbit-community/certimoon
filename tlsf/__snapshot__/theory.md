@@ -49760,3 +49760,3148 @@ or
   ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]),
     reduce(s2, f2, es2, s3, f3, es3)
 ```
+
+## The complete compiled public free wrapper (tlsf_public_free_*.mbt)
+
+program `tlsf_public_free_code`
+
+```
+tlsf_public_free_code((d : W32), (free_idx : Num)) ==
+  block
+    i32.const d
+    local.tee 1
+    i32.const 4294965088
+    i32.gt_u
+    if
+      unreachable
+    end
+    local.get 0
+    local.get 1
+    i32.const 15
+    i32.add
+    i32.const 4294967280
+    i32.and
+    i32.const 2184
+    i32.add
+    i32.lt_u
+    br_if 0
+    local.get 0
+    i32.const 8
+    i32.sub
+    local.tee 1
+    i32.load offset=0 align=2**2
+    i32.const 4
+    i32.and
+    if (result i32)
+      local.get 1
+      i32.const 8
+      i32.add
+      local.get 1
+      i32.const 4
+      i32.add
+      i32.load offset=0 align=2**2
+      local.tee 0
+      i32.const 20
+      i32.add
+      i32.load offset=0 align=2**2
+      i32.store offset=0 align=2**2
+      local.get 0
+      i32.const 20
+      i32.add
+      local.get 1
+      i32.store offset=0 align=2**2
+      local.get 0
+      i32.const 16
+      i32.add
+      local.tee 1
+      local.get 1
+      i32.load offset=0 align=2**2
+      local.tee 1
+      i32.const 1
+      i32.sub
+      i32.store offset=0 align=2**2
+      local.get 1
+      local.get 0
+      i32.const 12
+      i32.add
+      i32.load offset=0 align=2**2
+      i32.eq
+      if (result i32)
+        local.get 0
+        i32.const 8
+        i32.add
+        i32.load offset=0 align=2**2
+        i32.const 7
+        i32.add
+        i32.const 3
+        i32.shr_u
+        local.tee 2
+        local.set 1
+        local.get 0
+        i32.const 28
+        i32.add
+        i32.const d
+        i32.const 15
+        i32.add
+        i32.const 4294967280
+        i32.and
+        local.get 1
+        i32.const 3
+        i32.shl
+        i32.add
+        i32.const 1916
+        i32.add
+        i32.load offset=0 align=2**2
+        local.tee 1
+        i32.store offset=0 align=2**2
+        local.get 1
+        if
+          local.get 1
+          i32.const 24
+          i32.add
+          local.get 0
+          i32.store offset=0 align=2**2
+        end
+        i32.const d
+        i32.const 15
+        i32.add
+        i32.const 4294967280
+        i32.and
+        local.get 2
+        i32.const 3
+        i32.shl
+        i32.add
+        i32.const 1916
+        i32.add
+        local.get 0
+        i32.store offset=0 align=2**2
+        local.get 0
+        if
+          local.get 0
+          i32.const 24
+          i32.add
+          i32.const 0
+          i32.store offset=0 align=2**2
+        end
+        i32.const 0
+      else
+        local.get 1
+        i32.const 1
+        i32.eq
+        if (result i32)
+          local.get 0
+          i32.const 24
+          i32.add
+          local.tee 1
+          i32.load offset=0 align=2**2
+          if (result i32)
+            local.get 1
+            i32.load offset=0 align=2**2
+            local.tee 2
+            i32.const 28
+            i32.add
+            local.get 0
+            i32.const 28
+            i32.add
+            i32.load offset=0 align=2**2
+            local.tee 1
+            i32.store offset=0 align=2**2
+            local.get 1
+            if
+              local.get 1
+              i32.const 24
+              i32.add
+              local.get 2
+              i32.store offset=0 align=2**2
+            end
+            i32.const 0
+          else
+            local.get 0
+            i32.const 8
+            i32.add
+            i32.load offset=0 align=2**2
+            i32.const 7
+            i32.add
+            i32.const 3
+            i32.shr_u
+            local.set 2
+            local.get 0
+            i32.const 28
+            i32.add
+            i32.load offset=0 align=2**2
+            local.set 1
+            i32.const d
+            i32.const 15
+            i32.add
+            i32.const 4294967280
+            i32.and
+            local.get 2
+            i32.const 3
+            i32.shl
+            i32.add
+            i32.const 1916
+            i32.add
+            local.get 1
+            i32.store offset=0 align=2**2
+            local.get 1
+            if
+              local.get 1
+              i32.const 24
+              i32.add
+              i32.const 0
+              i32.store offset=0 align=2**2
+            end
+            i32.const 0
+          end
+          drop
+          local.get 0
+          call free_idx
+        else
+          i32.const 0
+        end
+      end
+    else
+      local.get 1
+      call free_idx
+    end
+    drop
+  end
+```
+
+program `tlsf_public_free_body`
+
+```
+tlsf_public_free_body((d : W32), (free_idx : Num)) ==
+  i32.const d
+  local.tee 1
+  i32.const 4294965088
+  i32.gt_u
+  if
+    unreachable
+  end
+  local.get 0
+  local.get 1
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 2184
+  i32.add
+  i32.lt_u
+  br_if 0
+  local.get 0
+  i32.const 8
+  i32.sub
+  local.tee 1
+  i32.load offset=0 align=2**2
+  i32.const 4
+  i32.and
+  if (result i32)
+    local.get 1
+    i32.const 8
+    i32.add
+    local.get 1
+    i32.const 4
+    i32.add
+    i32.load offset=0 align=2**2
+    local.tee 0
+    i32.const 20
+    i32.add
+    i32.load offset=0 align=2**2
+    i32.store offset=0 align=2**2
+    local.get 0
+    i32.const 20
+    i32.add
+    local.get 1
+    i32.store offset=0 align=2**2
+    local.get 0
+    i32.const 16
+    i32.add
+    local.tee 1
+    local.get 1
+    i32.load offset=0 align=2**2
+    local.tee 1
+    i32.const 1
+    i32.sub
+    i32.store offset=0 align=2**2
+    local.get 1
+    local.get 0
+    i32.const 12
+    i32.add
+    i32.load offset=0 align=2**2
+    i32.eq
+    if (result i32)
+      local.get 0
+      i32.const 8
+      i32.add
+      i32.load offset=0 align=2**2
+      i32.const 7
+      i32.add
+      i32.const 3
+      i32.shr_u
+      local.tee 2
+      local.set 1
+      local.get 0
+      i32.const 28
+      i32.add
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      local.get 1
+      i32.const 3
+      i32.shl
+      i32.add
+      i32.const 1916
+      i32.add
+      i32.load offset=0 align=2**2
+      local.tee 1
+      i32.store offset=0 align=2**2
+      local.get 1
+      if
+        local.get 1
+        i32.const 24
+        i32.add
+        local.get 0
+        i32.store offset=0 align=2**2
+      end
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      local.get 2
+      i32.const 3
+      i32.shl
+      i32.add
+      i32.const 1916
+      i32.add
+      local.get 0
+      i32.store offset=0 align=2**2
+      local.get 0
+      if
+        local.get 0
+        i32.const 24
+        i32.add
+        i32.const 0
+        i32.store offset=0 align=2**2
+      end
+      i32.const 0
+    else
+      local.get 1
+      i32.const 1
+      i32.eq
+      if (result i32)
+        local.get 0
+        i32.const 24
+        i32.add
+        local.tee 1
+        i32.load offset=0 align=2**2
+        if (result i32)
+          local.get 1
+          i32.load offset=0 align=2**2
+          local.tee 2
+          i32.const 28
+          i32.add
+          local.get 0
+          i32.const 28
+          i32.add
+          i32.load offset=0 align=2**2
+          local.tee 1
+          i32.store offset=0 align=2**2
+          local.get 1
+          if
+            local.get 1
+            i32.const 24
+            i32.add
+            local.get 2
+            i32.store offset=0 align=2**2
+          end
+          i32.const 0
+        else
+          local.get 0
+          i32.const 8
+          i32.add
+          i32.load offset=0 align=2**2
+          i32.const 7
+          i32.add
+          i32.const 3
+          i32.shr_u
+          local.set 2
+          local.get 0
+          i32.const 28
+          i32.add
+          i32.load offset=0 align=2**2
+          local.set 1
+          i32.const d
+          i32.const 15
+          i32.add
+          i32.const 4294967280
+          i32.and
+          local.get 2
+          i32.const 3
+          i32.shl
+          i32.add
+          i32.const 1916
+          i32.add
+          local.get 1
+          i32.store offset=0 align=2**2
+          local.get 1
+          if
+            local.get 1
+            i32.const 24
+            i32.add
+            i32.const 0
+            i32.store offset=0 align=2**2
+          end
+          i32.const 0
+        end
+        drop
+        local.get 0
+        call free_idx
+      else
+        i32.const 0
+      end
+    end
+  else
+    local.get 1
+    call free_idx
+  end
+  drop
+```
+
+program `tlsf_public_free_guard`
+
+```
+tlsf_public_free_guard((d : W32), (free_idx : Num)) ==
+  i32.const d
+  local.tee 1
+  i32.const 4294965088
+  i32.gt_u
+  if
+    unreachable
+  end
+  local.get 0
+  local.get 1
+  i32.const 15
+  i32.add
+  i32.const 4294967280
+  i32.and
+  i32.const 2184
+  i32.add
+  i32.lt_u
+  br_if 0
+```
+
+program `tlsf_public_free_read`
+
+```
+tlsf_public_free_read((d : W32), (free_idx : Num)) ==
+  local.get 0
+  i32.const 8
+  i32.sub
+  local.tee 1
+  i32.load offset=0 align=2**2
+  i32.const 4
+  i32.and
+```
+
+program `tlsf_public_free_dispatch`
+
+```
+tlsf_public_free_dispatch((d : W32), (free_idx : Num)) ==
+  local.get 0
+  i32.const 8
+  i32.sub
+  local.tee 1
+  i32.load offset=0 align=2**2
+  i32.const 4
+  i32.and
+  if (result i32)
+    local.get 1
+    i32.const 8
+    i32.add
+    local.get 1
+    i32.const 4
+    i32.add
+    i32.load offset=0 align=2**2
+    local.tee 0
+    i32.const 20
+    i32.add
+    i32.load offset=0 align=2**2
+    i32.store offset=0 align=2**2
+    local.get 0
+    i32.const 20
+    i32.add
+    local.get 1
+    i32.store offset=0 align=2**2
+    local.get 0
+    i32.const 16
+    i32.add
+    local.tee 1
+    local.get 1
+    i32.load offset=0 align=2**2
+    local.tee 1
+    i32.const 1
+    i32.sub
+    i32.store offset=0 align=2**2
+    local.get 1
+    local.get 0
+    i32.const 12
+    i32.add
+    i32.load offset=0 align=2**2
+    i32.eq
+    if (result i32)
+      local.get 0
+      i32.const 8
+      i32.add
+      i32.load offset=0 align=2**2
+      i32.const 7
+      i32.add
+      i32.const 3
+      i32.shr_u
+      local.tee 2
+      local.set 1
+      local.get 0
+      i32.const 28
+      i32.add
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      local.get 1
+      i32.const 3
+      i32.shl
+      i32.add
+      i32.const 1916
+      i32.add
+      i32.load offset=0 align=2**2
+      local.tee 1
+      i32.store offset=0 align=2**2
+      local.get 1
+      if
+        local.get 1
+        i32.const 24
+        i32.add
+        local.get 0
+        i32.store offset=0 align=2**2
+      end
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      local.get 2
+      i32.const 3
+      i32.shl
+      i32.add
+      i32.const 1916
+      i32.add
+      local.get 0
+      i32.store offset=0 align=2**2
+      local.get 0
+      if
+        local.get 0
+        i32.const 24
+        i32.add
+        i32.const 0
+        i32.store offset=0 align=2**2
+      end
+      i32.const 0
+    else
+      local.get 1
+      i32.const 1
+      i32.eq
+      if (result i32)
+        local.get 0
+        i32.const 24
+        i32.add
+        local.tee 1
+        i32.load offset=0 align=2**2
+        if (result i32)
+          local.get 1
+          i32.load offset=0 align=2**2
+          local.tee 2
+          i32.const 28
+          i32.add
+          local.get 0
+          i32.const 28
+          i32.add
+          i32.load offset=0 align=2**2
+          local.tee 1
+          i32.store offset=0 align=2**2
+          local.get 1
+          if
+            local.get 1
+            i32.const 24
+            i32.add
+            local.get 2
+            i32.store offset=0 align=2**2
+          end
+          i32.const 0
+        else
+          local.get 0
+          i32.const 8
+          i32.add
+          i32.load offset=0 align=2**2
+          i32.const 7
+          i32.add
+          i32.const 3
+          i32.shr_u
+          local.set 2
+          local.get 0
+          i32.const 28
+          i32.add
+          i32.load offset=0 align=2**2
+          local.set 1
+          i32.const d
+          i32.const 15
+          i32.add
+          i32.const 4294967280
+          i32.and
+          local.get 2
+          i32.const 3
+          i32.shl
+          i32.add
+          i32.const 1916
+          i32.add
+          local.get 1
+          i32.store offset=0 align=2**2
+          local.get 1
+          if
+            local.get 1
+            i32.const 24
+            i32.add
+            i32.const 0
+            i32.store offset=0 align=2**2
+          end
+          i32.const 0
+        end
+        drop
+        local.get 0
+        call free_idx
+      else
+        i32.const 0
+      end
+    end
+  else
+    local.get 1
+    call free_idx
+  end
+  drop
+```
+
+program `tlsf_public_free_large`
+
+```
+tlsf_public_free_large((d : W32), (free_idx : Num)) ==
+  local.get 1
+  call free_idx
+```
+
+program `tlsf_public_free_choose`
+
+```
+tlsf_public_free_choose((d : W32), (free_idx : Num)) ==
+  if (result i32)
+    local.get 1
+    i32.const 8
+    i32.add
+    local.get 1
+    i32.const 4
+    i32.add
+    i32.load offset=0 align=2**2
+    local.tee 0
+    i32.const 20
+    i32.add
+    i32.load offset=0 align=2**2
+    i32.store offset=0 align=2**2
+    local.get 0
+    i32.const 20
+    i32.add
+    local.get 1
+    i32.store offset=0 align=2**2
+    local.get 0
+    i32.const 16
+    i32.add
+    local.tee 1
+    local.get 1
+    i32.load offset=0 align=2**2
+    local.tee 1
+    i32.const 1
+    i32.sub
+    i32.store offset=0 align=2**2
+    local.get 1
+    local.get 0
+    i32.const 12
+    i32.add
+    i32.load offset=0 align=2**2
+    i32.eq
+    if (result i32)
+      local.get 0
+      i32.const 8
+      i32.add
+      i32.load offset=0 align=2**2
+      i32.const 7
+      i32.add
+      i32.const 3
+      i32.shr_u
+      local.tee 2
+      local.set 1
+      local.get 0
+      i32.const 28
+      i32.add
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      local.get 1
+      i32.const 3
+      i32.shl
+      i32.add
+      i32.const 1916
+      i32.add
+      i32.load offset=0 align=2**2
+      local.tee 1
+      i32.store offset=0 align=2**2
+      local.get 1
+      if
+        local.get 1
+        i32.const 24
+        i32.add
+        local.get 0
+        i32.store offset=0 align=2**2
+      end
+      i32.const d
+      i32.const 15
+      i32.add
+      i32.const 4294967280
+      i32.and
+      local.get 2
+      i32.const 3
+      i32.shl
+      i32.add
+      i32.const 1916
+      i32.add
+      local.get 0
+      i32.store offset=0 align=2**2
+      local.get 0
+      if
+        local.get 0
+        i32.const 24
+        i32.add
+        i32.const 0
+        i32.store offset=0 align=2**2
+      end
+      i32.const 0
+    else
+      local.get 1
+      i32.const 1
+      i32.eq
+      if (result i32)
+        local.get 0
+        i32.const 24
+        i32.add
+        local.tee 1
+        i32.load offset=0 align=2**2
+        if (result i32)
+          local.get 1
+          i32.load offset=0 align=2**2
+          local.tee 2
+          i32.const 28
+          i32.add
+          local.get 0
+          i32.const 28
+          i32.add
+          i32.load offset=0 align=2**2
+          local.tee 1
+          i32.store offset=0 align=2**2
+          local.get 1
+          if
+            local.get 1
+            i32.const 24
+            i32.add
+            local.get 2
+            i32.store offset=0 align=2**2
+          end
+          i32.const 0
+        else
+          local.get 0
+          i32.const 8
+          i32.add
+          i32.load offset=0 align=2**2
+          i32.const 7
+          i32.add
+          i32.const 3
+          i32.shr_u
+          local.set 2
+          local.get 0
+          i32.const 28
+          i32.add
+          i32.load offset=0 align=2**2
+          local.set 1
+          i32.const d
+          i32.const 15
+          i32.add
+          i32.const 4294967280
+          i32.and
+          local.get 2
+          i32.const 3
+          i32.shl
+          i32.add
+          i32.const 1916
+          i32.add
+          local.get 1
+          i32.store offset=0 align=2**2
+          local.get 1
+          if
+            local.get 1
+            i32.const 24
+            i32.add
+            i32.const 0
+            i32.store offset=0 align=2**2
+          end
+          i32.const 0
+        end
+        drop
+        local.get 0
+        call free_idx
+      else
+        i32.const 0
+      end
+    end
+  else
+    local.get 1
+    call free_idx
+  end
+```
+
+definition `tlsf_public_free_state`
+
+```
+∀ (d : W32) (lim : Num) (fp : GProp),
+  tlsf_public_free_state(d, lim, fp) == (
+    (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+      ms == lim
+      && (
+           ∃ top : W32,
+             ∃ xs : List[W32],
+               ∃ hd : (W32) -> W32,
+                 ∃ fl : W32,
+                   ∃ sb : (Num) -> W32,
+                     ∃ bl : (Num, Num) -> List[W32],
+                       ∃ ps : List[W32],
+                         ∃ sz : (W32) -> Num,
+                           ∃ loc : (W32) -> List[W32],
+                             ∃ cached : (W32) -> List[W32],
+                               ∃ live : (W32) -> List[W32],
+                                 ∃ fast : (Num) -> List[W32],
+                                   ∃ partial : (Num) -> List[W32],
+                                     star(
+                                       tlsf_allocator(
+                                         d,
+                                         lim,
+                                         top,
+                                         xs,
+                                         hd,
+                                         fl,
+                                         sb,
+                                         bl,
+                                         ps,
+                                         sz,
+                                         loc,
+                                         cached,
+                                         live,
+                                         fast,
+                                         partial),
+                                       fp(gs, ms),
+                                       h)))
+```
+
+definition `tlsf_public_free_pre`
+
+```
+∀ (d top fl ptr : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp),
+  tlsf_public_free_pre(
+    d,
+    lim,
+    top,
+    xs,
+    hd,
+    fl,
+    sb,
+    bl,
+    ps,
+    sz,
+    loc,
+    cached,
+    live,
+    fast,
+    partial,
+    ptr,
+    fp) == (
+    (args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+      args == [V_num(ConstInt32(ptr))]
+      && ms == lim
+      && (
+           ptr == word(0)
+           && star(
+                tlsf_allocator(
+                  d,
+                  lim,
+                  top,
+                  xs,
+                  hd,
+                  fl,
+                  sb,
+                  bl,
+                  ps,
+                  sz,
+                  loc,
+                  cached,
+                  live,
+                  fast,
+                  partial),
+                fp(gs, ms),
+                h)
+           || (
+                ∃ cap : Num,
+                  tlsf_malloc_owned(
+                    d,
+                    lim,
+                    top,
+                    xs,
+                    hd,
+                    fl,
+                    sb,
+                    bl,
+                    ps,
+                    sz,
+                    loc,
+                    cached,
+                    live,
+                    fast,
+                    partial,
+                    ptr,
+                    cap)
+                  && star(
+                       tlsf_allocator(
+                         d,
+                         lim,
+                         top,
+                         xs,
+                         hd,
+                         fl,
+                         sb,
+                         bl,
+                         ps,
+                         sz,
+                         loc,
+                         cached,
+                         live,
+                         fast,
+                         partial),
+                       star(
+                         tlsf_bytes(val(ptr), cap),
+                         star(fp(gs, ms), emp)),
+                       h))))
+```
+
+definition `tlsf_public_free_post`
+
+```
+∀ (d : W32) (lim : Num) (fp : GProp),
+  tlsf_public_free_post(d, lim, fp) == (
+    (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+      res == NIL && tlsf_public_free_state(d, lim, fp, gs, ms, h))
+```
+
+lemma `tlsf_public_free_unpayload`
+
+```
+∀ (m : W32), word_sub(word_add(m, word(8)), word(8)) == m
+```
+
+lemma `tlsf_public_free_tag_mask`
+
+```
+∀ (h : W32),
+  word_and(tlsf_size(h), word(4)) == word_and(h, word(4))
+  && word_and(word_and(tlsf_size(h), word(7)), word(4))
+       == word_and(tlsf_size(h), word(4))
+```
+
+lemma `tlsf_public_free_large_tag`
+
+```
+∀ (h : W32)
+if
+  1. MOD(val(tlsf_size(h)), 8) == 0
+then
+  word_and(h, word(4)) == word(0)
+```
+
+lemma `tlsf_public_free_guard_value`
+
+```
+∀ (d : W32)
+if
+  1. val(d) <= 4294965088
+then
+  val(word_add(tlsf_base(d), word(2184))) == val(tlsf_base(d)) + 2184
+  && 0 < val(word_add(tlsf_base(d), word(2184)))
+```
+
+lemma `tlsf_public_free_block_geometry`
+
+```
+∀ (d top fl m : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. MEM(m, xs)
+then
+  tlsf_block_ok(val(m), lim, m, hd)
+  && lim <= 4294967296
+  && tlsf_origin(d) <= val(m)
+  && val(d) <= 4294965088
+  && word_and(hd(m), word(4)) == word(0)
+```
+
+lemma `tlsf_public_free_pointer_guard`
+
+```
+∀ (d m : W32)
+if
+  1. val(d) <= 4294965088
+  2. tlsf_origin(d) <= val(m)
+  3. val(m) + 8 < 4294967296
+then
+  val(word_add(m, word(8))) == val(m) + 8
+  && !word_ult(word_add(m, word(8)), word_add(tlsf_base(d), word(2184)))
+```
+
+lemma `tlsf_public_free_read_large`
+
+```
+∀ (d top fl m : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (client : HProp) (h : Heap)
+if
+  1. MEM(m, xs)
+  2. star(
+       tlsf_allocator(
+         d,
+         lim,
+         top,
+         xs,
+         hd,
+         fl,
+         sb,
+         bl,
+         ps,
+         sz,
+         loc,
+         cached,
+         live,
+         fast,
+         partial),
+       client,
+       h)
+then
+  has_i32(h, val(m), hd(m))
+```
+
+lemma `tlsf_public_free_slot_view`
+
+```
+∀ (p b : W32) (cap s i : Num) (loc cached live : List[W32])
+if
+  1. i < tlsf_small_total(s)
+  2. b == tlsf_small_slot(p, s, i)
+  3. MEM(b, live)
+then
+  ∃ (rest : HProp),
+    tlsf_small_page_heap(p, cap, s, loc, cached, live)
+      == star(pts(val(b), serialise_i32(word(4))), rest)
+```
+
+lemma `tlsf_public_free_small_geometry`
+
+```
+∀ (d top fl p b : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. MEM(p, ps)
+  5. MEM(b, live(p))
+then
+  val(word_add(b, word(8))) == val(b) + 8
+  && !word_ult(word_add(b, word(8)), word_add(tlsf_base(d), word(2184)))
+```
+
+lemma `tlsf_public_free_read_small`
+
+```
+∀ (d top fl p b : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (client : HProp) (h : Heap)
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  3. MEM(p, ps)
+  4. MEM(b, live(p))
+  5. star(
+       tlsf_allocator(
+         d,
+         lim,
+         top,
+         xs,
+         hd,
+         fl,
+         sb,
+         bl,
+         ps,
+         sz,
+         loc,
+         cached,
+         live,
+         fast,
+         partial),
+       client,
+       h)
+then
+  has_i32(h, val(b), word(4))
+```
+
+lemma `tlsf_public_free_guard_live`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (d ptr : W32) (free_idx : Num) (l1 l2 : Value)
+  (R : GProp)
+if
+  1. !word_ugt(d, word(4294965088))
+  2. !word_ult(ptr, word_add(tlsf_base(d), word(2184)))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(NIL, [V_num(ConstInt32(ptr)), l1, l2], R),
+    tlsf_public_free_guard(d, free_idx),
+    st(NIL, [V_num(ConstInt32(ptr)), V_num(ConstInt32(d)), l2], R),
+    labels)
+```
+
+lemma `tlsf_public_free_drop`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (R : GProp),
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ l : List[Value],
+        st([V_num(ConstInt32(word(0)))], l, R, vs, lc, gs, ms, h),
+    [Drop],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL && R(gs, ms, h),
+    labels)
+```
+
+lemma `tlsf_public_free_state_current`
+
+```
+∀ (d top fl : W32) (lim ms : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp) (gs : List[Value]) (h : Heap)
+if
+  1. ms == lim
+  2. star(
+       tlsf_allocator(
+         d,
+         lim,
+         top,
+         xs,
+         hd,
+         fl,
+         sb,
+         bl,
+         ps,
+         sz,
+         loc,
+         cached,
+         live,
+         fast,
+         partial),
+       fp(gs, ms),
+       h)
+then
+  tlsf_public_free_state(d, lim, fp, gs, ms, h)
+```
+
+lemma `tlsf_public_free_drop_result`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (d top fl : W32) (lim : Num) (xs ps : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (fp : GProp),
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ l : List[Value],
+        st(
+          [V_num(ConstInt32(word(0)))],
+          l,
+          tlsf_public_free_state(d, lim, fp),
+          vs,
+          lc,
+          gs,
+          ms,
+          h),
+    [Drop],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL && tlsf_public_free_state(d, lim, fp, gs, ms, h),
+    labels)
+```
+
+lemma `tlsf_public_free_large_call`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (pop push free_idx lim : Num)
+  (d top fl m : W32) (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp) (caller : List[Value])
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. MEM(m, xs)
+  3. !MEM(m, ps)
+  4. tlsf_used(hd(m))
+  5. EL(sfunc_ind(inst, free_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32)],
+       tlsf_free_code(d, pop, push))
+  6. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  7. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_m(
+    fs,
+    tabs,
+    inst,
+    st(
+      [V_num(ConstInt32(m))],
+      caller,
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(
+               tlsf_bytes(val(m) + 8, val(tlsf_size(hd(m)))),
+               star(fp(gs, ms), emp)),
+             h)),
+    [Call(free_idx)],
+    st(
+      [V_num(ConstInt32(word(0)))],
+      caller,
+      tlsf_public_free_state(d, lim, fp)),
+    NIL)
+```
+
+lemma `tlsf_public_free_large_call_g`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push free_idx lim : Num) (d top fl m : W32)
+  (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp) (caller : List[Value])
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. MEM(m, xs)
+  3. !MEM(m, ps)
+  4. tlsf_used(hd(m))
+  5. EL(sfunc_ind(inst, free_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32)],
+       tlsf_free_code(d, pop, push))
+  6. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  7. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      [V_num(ConstInt32(m))],
+      caller,
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(
+               tlsf_bytes(val(m) + 8, val(tlsf_size(hd(m)))),
+               star(fp(gs, ms), emp)),
+             h)),
+    [Call(free_idx)],
+    st(
+      [V_num(ConstInt32(word(0)))],
+      caller,
+      tlsf_public_free_state(d, lim, fp)),
+    labels)
+```
+
+lemma `tlsf_public_free_small_branch`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push free_idx lim : Num) (d top fl p b : W32)
+  (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (l2 : Value) (fp : GProp)
+if
+  1. MEM(p, ps)
+  2. MEM(b, live(p))
+  3. EL(sfunc_ind(inst, free_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32)],
+       tlsf_free_code(d, pop, push))
+  4. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  5. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(word_add(b, word(8)))), V_num(ConstInt32(b)), l2],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(tlsf_bytes(val(b) + 8, sz(p)), star(fp(gs, ms), emp)),
+             h)),
+    tlsf_block_free_code(d, free_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ l : List[Value],
+        st(
+          [V_num(ConstInt32(word(0)))],
+          l,
+          tlsf_public_free_state(d, lim, fp),
+          vs,
+          lc,
+          gs,
+          ms,
+          h),
+    labels)
+```
+
+lemma `st_public_free_large_header`
+
+```
+∀ (d top fl p b : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp) (v lc : List[Value])
+if
+  1. MEM(b, xs)
+then
+  sl_triple(
+    st(
+      APPEND(v, [V_num(ConstInt32(word_sub(word_add(b, word(8)), word(8))))]),
+      lc,
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(
+               tlsf_bytes(val(b) + 8, val(tlsf_size(hd(b)))),
+               star(fp(gs, ms), emp)),
+             h)),
+    [Load(T_i32, NONE, 2, 0)],
+    st(
+      APPEND(v, [V_num(ConstInt32(hd(b)))]),
+      lc,
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(
+               tlsf_bytes(val(b) + 8, val(tlsf_size(hd(b)))),
+               star(fp(gs, ms), emp)),
+             h)))
+```
+
+lemma `st_public_free_small_header`
+
+```
+∀ (d top fl p b : W32) (lim : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp) (v lc : List[Value])
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  3. MEM(p, ps)
+  4. MEM(b, live(p))
+then
+  sl_triple(
+    st(
+      APPEND(v, [V_num(ConstInt32(word_sub(word_add(b, word(8)), word(8))))]),
+      lc,
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(tlsf_bytes(val(b) + 8, sz(p)), star(fp(gs, ms), emp)),
+             h)),
+    [Load(T_i32, NONE, 2, 0)],
+    st(
+      APPEND(v, [V_num(ConstInt32(word(4)))]),
+      lc,
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(tlsf_bytes(val(b) + 8, sz(p)), star(fp(gs, ms), emp)),
+             h)))
+```
+
+lemma `tlsf_public_free_large_read`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push free_idx lim : Num) (d top fl p b : W32)
+  (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (l2 : Value) (fp : GProp)
+if
+  1. MEM(b, xs)
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(word_add(b, word(8)))), V_num(ConstInt32(d)), l2],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(
+               tlsf_bytes(val(b) + 8, val(tlsf_size(hd(b)))),
+               star(fp(gs, ms), emp)),
+             h)),
+    tlsf_public_free_read(d, free_idx),
+    st(
+      [V_num(ConstInt32(word_and(hd(b), word(4))))],
+      [V_num(ConstInt32(word_add(b, word(8)))), V_num(ConstInt32(b)), l2],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(
+               tlsf_bytes(val(b) + 8, val(tlsf_size(hd(b)))),
+               star(fp(gs, ms), emp)),
+             h)),
+    labels)
+```
+
+lemma `tlsf_public_free_small_read`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push free_idx lim : Num) (d top fl p b : W32)
+  (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (l2 : Value) (fp : GProp)
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  3. MEM(p, ps)
+  4. MEM(b, live(p))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(word_add(b, word(8)))), V_num(ConstInt32(d)), l2],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(tlsf_bytes(val(b) + 8, sz(p)), star(fp(gs, ms), emp)),
+             h)),
+    tlsf_public_free_read(d, free_idx),
+    st(
+      [V_num(ConstInt32(word_and(word(4), word(4))))],
+      [V_num(ConstInt32(word_add(b, word(8)))), V_num(ConstInt32(b)), l2],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(tlsf_bytes(val(b) + 8, sz(p)), star(fp(gs, ms), emp)),
+             h)),
+    labels)
+```
+
+lemma `tlsf_public_free_large_branch`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push free_idx lim : Num) (d top fl p b : W32)
+  (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (l2 : Value) (fp : GProp)
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. MEM(b, xs)
+  3. !MEM(b, ps)
+  4. tlsf_used(hd(b))
+  5. EL(sfunc_ind(inst, free_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32)],
+       tlsf_free_code(d, pop, push))
+  6. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  7. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(word_add(b, word(8)))), V_num(ConstInt32(b)), l2],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(
+               tlsf_bytes(val(b) + 8, val(tlsf_size(hd(b)))),
+               star(fp(gs, ms), emp)),
+             h)),
+    tlsf_public_free_large(d, free_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ l : List[Value],
+        st(
+          [V_num(ConstInt32(word(0)))],
+          l,
+          tlsf_public_free_state(d, lim, fp),
+          vs,
+          lc,
+          gs,
+          ms,
+          h),
+    labels)
+```
+
+lemma `tlsf_public_free_large_choose`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push free_idx lim : Num) (d top fl p b : W32)
+  (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (l2 : Value) (fp : GProp)
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. MEM(b, xs)
+  3. !MEM(b, ps)
+  4. tlsf_used(hd(b))
+  5. word_and(hd(b), word(4)) == word(0)
+  6. EL(sfunc_ind(inst, free_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32)],
+       tlsf_free_code(d, pop, push))
+  7. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  8. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      [V_num(ConstInt32(word_and(hd(b), word(4))))],
+      [V_num(ConstInt32(word_add(b, word(8)))), V_num(ConstInt32(b)), l2],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(
+               tlsf_bytes(val(b) + 8, val(tlsf_size(hd(b)))),
+               star(fp(gs, ms), emp)),
+             h)),
+    tlsf_public_free_choose(d, free_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ l : List[Value],
+        st(
+          [V_num(ConstInt32(word(0)))],
+          l,
+          tlsf_public_free_state(d, lim, fp),
+          vs,
+          lc,
+          gs,
+          ms,
+          h),
+    labels)
+```
+
+lemma `tlsf_public_free_small_choose`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push free_idx lim : Num) (d top fl p b : W32)
+  (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (l2 : Value) (fp : GProp)
+if
+  1. MEM(p, ps)
+  2. MEM(b, live(p))
+  3. EL(sfunc_ind(inst, free_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32)],
+       tlsf_free_code(d, pop, push))
+  4. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  5. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      [V_num(ConstInt32(word_and(word(4), word(4))))],
+      [V_num(ConstInt32(word_add(b, word(8)))), V_num(ConstInt32(b)), l2],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(tlsf_bytes(val(b) + 8, sz(p)), star(fp(gs, ms), emp)),
+             h)),
+    tlsf_public_free_choose(d, free_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ l : List[Value],
+        st(
+          [V_num(ConstInt32(word(0)))],
+          l,
+          tlsf_public_free_state(d, lim, fp),
+          vs,
+          lc,
+          gs,
+          ms,
+          h),
+    labels)
+```
+
+lemma `tlsf_public_free_large_path`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push free_idx lim : Num) (d top fl p b : W32)
+  (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (l1 l2 : Value) (fp : GProp)
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. MEM(b, xs)
+  3. !MEM(b, ps)
+  4. tlsf_used(hd(b))
+  5. !word_ugt(d, word(4294965088))
+  6. !word_ult(word_add(b, word(8)), word_add(tlsf_base(d), word(2184)))
+  7. word_and(hd(b), word(4)) == word(0)
+  8. EL(sfunc_ind(inst, free_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32)],
+       tlsf_free_code(d, pop, push))
+  9. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  10. EL(sfunc_ind(inst, push), fs) == Func_native(
+        inst,
+        Tf([T_num(T_i32)], [T_num(T_i32)]),
+        [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+        tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(word_add(b, word(8)))), l1, l2],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(
+               tlsf_bytes(val(b) + 8, val(tlsf_size(hd(b)))),
+               star(fp(gs, ms), emp)),
+             h)),
+    tlsf_public_free_body(d, free_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL && tlsf_public_free_state(d, lim, fp, gs, ms, h),
+    labels)
+```
+
+lemma `tlsf_public_free_large_case`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push free_idx lim : Num) (d top fl p b : W32)
+  (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (l1 l2 : Value) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. MEM(b, xs)
+  4. !MEM(b, ps)
+  5. tlsf_used(hd(b))
+  6. EL(sfunc_ind(inst, free_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32)],
+       tlsf_free_code(d, pop, push))
+  7. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  8. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(word_add(b, word(8)))), l1, l2],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(
+               tlsf_bytes(val(b) + 8, val(tlsf_size(hd(b)))),
+               star(fp(gs, ms), emp)),
+             h)),
+    tlsf_public_free_body(d, free_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL && tlsf_public_free_state(d, lim, fp, gs, ms, h),
+    labels)
+```
+
+lemma `tlsf_public_free_small_path`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push free_idx lim : Num) (d top fl p b : W32)
+  (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (l1 l2 : Value) (fp : GProp)
+if
+  1. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  2. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  3. MEM(p, ps)
+  4. MEM(b, live(p))
+  5. !word_ugt(d, word(4294965088))
+  6. !word_ult(word_add(b, word(8)), word_add(tlsf_base(d), word(2184)))
+  7. true
+  8. EL(sfunc_ind(inst, free_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32)],
+       tlsf_free_code(d, pop, push))
+  9. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  10. EL(sfunc_ind(inst, push), fs) == Func_native(
+        inst,
+        Tf([T_num(T_i32)], [T_num(T_i32)]),
+        [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+        tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(word_add(b, word(8)))), l1, l2],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(tlsf_bytes(val(b) + 8, sz(p)), star(fp(gs, ms), emp)),
+             h)),
+    tlsf_public_free_body(d, free_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL && tlsf_public_free_state(d, lim, fp, gs, ms, h),
+    labels)
+```
+
+lemma `tlsf_public_free_small_case`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push free_idx lim : Num) (d top fl p b : W32)
+  (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (l1 l2 : Value) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+  2. tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+  3. tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+  4. MEM(p, ps)
+  5. MEM(b, live(p))
+  6. EL(sfunc_ind(inst, free_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32)],
+       tlsf_free_code(d, pop, push))
+  7. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  8. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(word_add(b, word(8)))), l1, l2],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             star(tlsf_bytes(val(b) + 8, sz(p)), star(fp(gs, ms), emp)),
+             h)),
+    tlsf_public_free_body(d, free_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL && tlsf_public_free_state(d, lim, fp, gs, ms, h),
+    labels)
+```
+
+lemma `tlsf_public_free_null_guard`
+
+```
+∀ (d : W32)
+if
+  1. val(d) <= 4294965088
+then
+  word_ult(word(0), word_add(tlsf_base(d), word(2184)))
+```
+
+lemma `tlsf_public_free_dead_dispatch`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp P : SAssn)
+  (labels : List[SAssn]) (d : W32) (free_idx : Num)
+if
+  1. false
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    P,
+    tlsf_public_free_dispatch(d, free_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      false,
+    labels)
+```
+
+lemma `tlsf_public_free_null_path`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push free_idx lim : Num) (d top fl : W32)
+  (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (l1 l2 : Value) (fp : GProp)
+if
+  1. !word_ugt(d, word(4294965088))
+  2. word_ult(word(0), word_add(tlsf_base(d), word(2184)))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(word(0))), l1, l2],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             fp(gs, lim),
+             h)),
+    tlsf_public_free_body(d, free_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL && tlsf_public_free_state(d, lim, fp, gs, ms, h),
+    CONS(
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        vs == NIL && tlsf_public_free_state(d, lim, fp, gs, ms, h),
+      labels))
+```
+
+lemma `tlsf_public_free_null_case`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push free_idx lim : Num) (d top fl : W32)
+  (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (l1 l2 : Value) (fp : GProp)
+if
+  1. tlsf_physical_ok(d, lim, top, xs, hd)
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    st(
+      NIL,
+      [V_num(ConstInt32(word(0))), l1, l2],
+      (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+        ms == lim
+        && star(
+             tlsf_allocator(
+               d,
+               lim,
+               top,
+               xs,
+               hd,
+               fl,
+               sb,
+               bl,
+               ps,
+               sz,
+               loc,
+               cached,
+               live,
+               fast,
+               partial),
+             fp(gs, lim),
+             h)),
+    tlsf_public_free_body(d, free_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL && tlsf_public_free_state(d, lim, fp, gs, ms, h),
+    CONS(
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        vs == NIL && tlsf_public_free_state(d, lim, fp, gs, ms, h),
+      labels))
+```
+
+lemma `tlsf_public_free_entry_cases`
+
+```
+∀ (d top fl ptr : W32) (lim ms : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (l1 l2 : Value) (fp : GProp) (vs lc gs : List[Value]) (h : Heap)
+if
+  1. (
+       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+       (ms : Num) => (h : Heap) =>
+         vs == NIL
+         && lc == [V_num(ConstInt32(ptr)), l1, l2]
+         && tlsf_public_free_pre(
+              d,
+              lim,
+              top,
+              xs,
+              hd,
+              fl,
+              sb,
+              bl,
+              ps,
+              sz,
+              loc,
+              cached,
+              live,
+              fast,
+              partial,
+              ptr,
+              fp,
+              [V_num(ConstInt32(ptr))],
+              gs,
+              ms,
+              h))(vs, lc, gs, ms, h)
+then
+  (
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      (
+        tlsf_physical_ok(d, lim, top, xs, hd)
+        && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+        && tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+        && ptr == word(0))
+      && st(
+           NIL,
+           [V_num(ConstInt32(ptr)), l1, l2],
+           (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+             ms == lim
+             && star(
+                  tlsf_allocator(
+                    d,
+                    lim,
+                    top,
+                    xs,
+                    hd,
+                    fl,
+                    sb,
+                    bl,
+                    ps,
+                    sz,
+                    loc,
+                    cached,
+                    live,
+                    fast,
+                    partial),
+                  fp(gs, lim),
+                  h),
+           vs,
+           lc,
+           gs,
+           ms,
+           h)
+      || (
+           ∃ b : W32,
+             (
+               tlsf_physical_ok(d, lim, top, xs, hd)
+               && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+               && tlsf_small_lists_ok(
+                    ps,
+                    sz,
+                    loc,
+                    cached,
+                    live,
+                    fast,
+                    partial)
+               && MEM(b, xs)
+               && !MEM(b, ps)
+               && tlsf_used(hd(b))
+               && ptr == word_add(b, word(8)))
+             && st(
+                  NIL,
+                  [V_num(ConstInt32(ptr)), l1, l2],
+                  (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+                    ms == lim
+                    && star(
+                         tlsf_allocator(
+                           d,
+                           lim,
+                           top,
+                           xs,
+                           hd,
+                           fl,
+                           sb,
+                           bl,
+                           ps,
+                           sz,
+                           loc,
+                           cached,
+                           live,
+                           fast,
+                           partial),
+                         star(
+                           tlsf_bytes(val(b) + 8, val(tlsf_size(hd(b)))),
+                           star(fp(gs, ms), emp)),
+                         h),
+                  vs,
+                  lc,
+                  gs,
+                  ms,
+                  h))
+      || (
+           ∃ p : W32,
+             ∃ b : W32,
+               (
+                 tlsf_physical_ok(d, lim, top, xs, hd)
+                 && tlsf_small_backing(
+                      xs,
+                      hd,
+                      ps,
+                      sz,
+                      loc,
+                      cached,
+                      live,
+                      lim)
+                 && tlsf_small_lists_ok(
+                      ps,
+                      sz,
+                      loc,
+                      cached,
+                      live,
+                      fast,
+                      partial)
+                 && MEM(p, ps)
+                 && MEM(b, live(p))
+                 && ptr == word_add(b, word(8)))
+               && st(
+                    NIL,
+                    [V_num(ConstInt32(ptr)), l1, l2],
+                    (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+                      ms == lim
+                      && star(
+                           tlsf_allocator(
+                             d,
+                             lim,
+                             top,
+                             xs,
+                             hd,
+                             fl,
+                             sb,
+                             bl,
+                             ps,
+                             sz,
+                             loc,
+                             cached,
+                             live,
+                             fast,
+                             partial),
+                           star(
+                             tlsf_bytes(val(b) + 8, sz(p)),
+                             star(fp(gs, ms), emp)),
+                           h),
+                    vs,
+                    lc,
+                    gs,
+                    ms,
+                    h)))(vs, lc, gs, ms, h)
+```
+
+lemma `tlsf_public_free_label`
+
+```
+∀ (d top fl : W32) (lim ms : Num) (xs ps : List[W32]) (hd : (W32) -> W32)
+  (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp) (vs lc gs : List[Value]) (h : Heap),
+  (
+    LENGTH(vs) == 0
+    && (
+         (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+         (ms : Num) => (h : Heap) =>
+           vs == NIL && tlsf_public_free_state(d, lim, fp, gs, ms, h))(
+         vs,
+         lc,
+         gs,
+         ms,
+         h)) == (
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL && tlsf_public_free_state(d, lim, fp, gs, ms, h))(
+    vs,
+    lc,
+    gs,
+    ms,
+    h)
+```
+
+lemma `tlsf_public_free_wrapped_cases`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp : SAssn)
+  (labels : List[SAssn]) (pop push free_idx lim : Num) (d top fl ptr : W32)
+  (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (l1 l2 : Value) (fp : GProp)
+if
+  1. EL(sfunc_ind(inst, free_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32)],
+       tlsf_free_code(d, pop, push))
+  2. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  3. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    rp,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      (
+        tlsf_physical_ok(d, lim, top, xs, hd)
+        && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+        && tlsf_small_lists_ok(ps, sz, loc, cached, live, fast, partial)
+        && ptr == word(0))
+      && st(
+           NIL,
+           [V_num(ConstInt32(ptr)), l1, l2],
+           (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+             ms == lim
+             && star(
+                  tlsf_allocator(
+                    d,
+                    lim,
+                    top,
+                    xs,
+                    hd,
+                    fl,
+                    sb,
+                    bl,
+                    ps,
+                    sz,
+                    loc,
+                    cached,
+                    live,
+                    fast,
+                    partial),
+                  fp(gs, lim),
+                  h),
+           vs,
+           lc,
+           gs,
+           ms,
+           h)
+      || (
+           ∃ b : W32,
+             (
+               tlsf_physical_ok(d, lim, top, xs, hd)
+               && tlsf_small_backing(xs, hd, ps, sz, loc, cached, live, lim)
+               && tlsf_small_lists_ok(
+                    ps,
+                    sz,
+                    loc,
+                    cached,
+                    live,
+                    fast,
+                    partial)
+               && MEM(b, xs)
+               && !MEM(b, ps)
+               && tlsf_used(hd(b))
+               && ptr == word_add(b, word(8)))
+             && st(
+                  NIL,
+                  [V_num(ConstInt32(ptr)), l1, l2],
+                  (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+                    ms == lim
+                    && star(
+                         tlsf_allocator(
+                           d,
+                           lim,
+                           top,
+                           xs,
+                           hd,
+                           fl,
+                           sb,
+                           bl,
+                           ps,
+                           sz,
+                           loc,
+                           cached,
+                           live,
+                           fast,
+                           partial),
+                         star(
+                           tlsf_bytes(val(b) + 8, val(tlsf_size(hd(b)))),
+                           star(fp(gs, ms), emp)),
+                         h),
+                  vs,
+                  lc,
+                  gs,
+                  ms,
+                  h))
+      || (
+           ∃ p : W32,
+             ∃ b : W32,
+               (
+                 tlsf_physical_ok(d, lim, top, xs, hd)
+                 && tlsf_small_backing(
+                      xs,
+                      hd,
+                      ps,
+                      sz,
+                      loc,
+                      cached,
+                      live,
+                      lim)
+                 && tlsf_small_lists_ok(
+                      ps,
+                      sz,
+                      loc,
+                      cached,
+                      live,
+                      fast,
+                      partial)
+                 && MEM(p, ps)
+                 && MEM(b, live(p))
+                 && ptr == word_add(b, word(8)))
+               && st(
+                    NIL,
+                    [V_num(ConstInt32(ptr)), l1, l2],
+                    (gs : List[Value]) => (ms : Num) => (h : Heap) =>
+                      ms == lim
+                      && star(
+                           tlsf_allocator(
+                             d,
+                             lim,
+                             top,
+                             xs,
+                             hd,
+                             fl,
+                             sb,
+                             bl,
+                             ps,
+                             sz,
+                             loc,
+                             cached,
+                             live,
+                             fast,
+                             partial),
+                           star(
+                             tlsf_bytes(val(b) + 8, sz(p)),
+                             star(fp(gs, ms), emp)),
+                           h),
+                    vs,
+                    lc,
+                    gs,
+                    ms,
+                    h)),
+    tlsf_public_free_code(d, free_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL && tlsf_public_free_state(d, lim, fp, gs, ms, h),
+    labels)
+```
+
+lemma `tlsf_public_free_native_body`
+
+```
+∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push free_idx lim : Num) (d top fl ptr : W32) (xs ps : List[W32])
+  (hd : (W32) -> W32) (sb : (Num) -> W32) (bl : (Num, Num) -> List[W32])
+  (sz : (W32) -> Num) (loc cached live : (W32) -> List[W32])
+  (fast partial : (Num) -> List[W32]) (fp : GProp) (args : List[Value])
+if
+  1. EL(sfunc_ind(inst, free_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32)],
+       tlsf_free_code(d, pop, push))
+  2. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  3. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_g(
+    G,
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_public_free_post(d, lim, fp, vs, gs, ms, h),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      vs == NIL
+      && lc == APPEND(
+           args,
+           [V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))])
+      && tlsf_public_free_pre(
+           d,
+           lim,
+           top,
+           xs,
+           hd,
+           fl,
+           sb,
+           bl,
+           ps,
+           sz,
+           loc,
+           cached,
+           live,
+           fast,
+           partial,
+           ptr,
+           fp,
+           args,
+           gs,
+           ms,
+           h),
+    tlsf_public_free_code(d, free_idx),
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      tlsf_public_free_post(d, lim, fp, vs, gs, ms, h),
+    [
+      (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+      (ms : Num) => (h : Heap) =>
+        tlsf_public_free_post(d, lim, fp, vs, gs, ms, h)])
+```
+
+definition `tlsf_public_free_spec`
+
+```
+∀ (inst : Inst) (d : W32) (free_idx public_idx j : Num) (P Q : FProp),
+  tlsf_public_free_spec(inst, d, free_idx, public_idx, j, P, Q) == (
+    j == sfunc_ind(inst, public_idx)
+    && (
+         ∃ lim : Num,
+           ∃ top : W32,
+             ∃ xs : List[W32],
+               ∃ hd : (W32) -> W32,
+                 ∃ fl : W32,
+                   ∃ sb : (Num) -> W32,
+                     ∃ bl : (Num, Num) -> List[W32],
+                       ∃ ps : List[W32],
+                         ∃ sz : (W32) -> Num,
+                           ∃ loc : (W32) -> List[W32],
+                             ∃ cached : (W32) -> List[W32],
+                               ∃ live : (W32) -> List[W32],
+                                 ∃ fast : (Num) -> List[W32],
+                                   ∃ partial : (Num) -> List[W32],
+                                     ∃ ptr : W32,
+                                       ∃ fp : GProp,
+                                         P == tlsf_public_free_pre(
+                                           d,
+                                           lim,
+                                           top,
+                                           xs,
+                                           hd,
+                                           fl,
+                                           sb,
+                                           bl,
+                                           ps,
+                                           sz,
+                                           loc,
+                                           cached,
+                                           live,
+                                           fast,
+                                           partial,
+                                           ptr,
+                                           fp)
+                                         && Q == tlsf_public_free_post(
+                                              d,
+                                              lim,
+                                              fp)))
+```
+
+lemma `tlsf_public_free_spec_call`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push free_idx public_idx lim : Num) (top fl ptr d : W32)
+  (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp),
+  tlsf_public_free_spec(
+    inst,
+    d,
+    free_idx,
+    public_idx,
+    sfunc_ind(inst, public_idx),
+    tlsf_public_free_pre(
+      d,
+      lim,
+      top,
+      xs,
+      hd,
+      fl,
+      sb,
+      bl,
+      ps,
+      sz,
+      loc,
+      cached,
+      live,
+      fast,
+      partial,
+      ptr,
+      fp),
+    tlsf_public_free_post(d, lim, fp))
+```
+
+lemma `tlsf_public_free_specs`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push free_idx public_idx k : Num) (d : W32)
+if
+  1. EL(sfunc_ind(inst, public_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32)],
+       tlsf_public_free_code(d, free_idx))
+  2. EL(sfunc_ind(inst, free_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32)],
+       tlsf_free_code(d, pop, push))
+  3. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  4. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  specs_ok(
+    k,
+    tlsf_public_free_spec(inst, d, free_idx, public_idx),
+    fs,
+    tabs,
+    inst)
+```
+
+lemma `tlsf_public_free_all`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push free_idx public_idx lim : Num) (d top fl ptr : W32)
+  (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp) (vs0 lc0 : List[Value])
+if
+  1. EL(sfunc_ind(inst, public_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32)],
+       tlsf_public_free_code(d, free_idx))
+  2. EL(sfunc_ind(inst, free_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32)],
+       tlsf_free_code(d, pop, push))
+  3. EL(sfunc_ind(inst, pop), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_pop_code(d))
+  4. EL(sfunc_ind(inst, push), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], [T_num(T_i32)]),
+       [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+       tlsf_push_code(d))
+then
+  sl_triple_m(
+    fs,
+    tabs,
+    inst,
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ args : List[Value],
+        vs == APPEND(vs0, args)
+        && lc == lc0
+        && tlsf_public_free_pre(
+             d,
+             lim,
+             top,
+             xs,
+             hd,
+             fl,
+             sb,
+             bl,
+             ps,
+             sz,
+             loc,
+             cached,
+             live,
+             fast,
+             partial,
+             ptr,
+             fp,
+             args,
+             gs,
+             ms,
+             h),
+    [Call(public_idx)],
+    (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+    (ms : Num) => (h : Heap) =>
+      ∃ res : List[Value],
+        vs == APPEND(vs0, res)
+        && lc == lc0
+        && tlsf_public_free_post(d, lim, fp, res, gs, ms, h),
+    NIL)
+```
+
+lemma `tlsf_public_free_run`
+
+```
+∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst)
+  (pop push free_idx public_idx lim : Num) (d top fl ptr : W32)
+  (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+  (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+  (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32])
+  (fp : GProp) (vs0 lc0 vs : List[Value]) (fr : HProp) (s s2 : Wstore)
+  (f f2 : Wframe) (es2 : List[Einstr])
+if
+  1. EL(sfunc_ind(inst, public_idx), fs) == Func_native(
+       inst,
+       Tf([T_num(T_i32)], NIL),
+       [T_num(T_i32), T_num(T_i32)],
+       tlsf_public_free_code(d, free_idx))
+     && EL(sfunc_ind(inst, free_idx), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32)],
+          tlsf_free_code(d, pop, push))
+     && EL(sfunc_ind(inst, pop), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], NIL),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_pop_code(d))
+     && EL(sfunc_ind(inst, push), fs) == Func_native(
+          inst,
+          Tf([T_num(T_i32)], [T_num(T_i32)]),
+          [T_num(T_i32), T_num(T_i32), T_num(T_i32)],
+          tlsf_push_code(d))
+  2. s_funcs(s) == fs
+  3. s_tabs(s) == tabs
+  4. f_inst(f) == inst
+  5. lift(
+       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+       (ms : Num) => (h : Heap) =>
+         ∃ args : List[Value],
+           vs == APPEND(vs0, args)
+           && lc == lc0
+           && tlsf_public_free_pre(
+                d,
+                lim,
+                top,
+                xs,
+                hd,
+                fl,
+                sb,
+                bl,
+                ps,
+                sz,
+                loc,
+                cached,
+                live,
+                fast,
+                partial,
+                ptr,
+                fp,
+                args,
+                gs,
+                ms,
+                h),
+       fr,
+       s,
+       f,
+       vs)
+  6. reduce_trans(
+       (s, f, APPEND(MAP(v_to_e, vs), MAP(Basic, [Call(public_idx)]))),
+       (s2, f2, es2))
+then
+  ∃ (vs2 : List[Value]),
+    es2 == MAP(v_to_e, vs2)
+    && s_funcs(s2) == fs
+    && s_tabs(s2) == tabs
+    && f_inst(f2) == inst
+    && lift(
+         (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
+         (ms : Num) => (h : Heap) =>
+           ∃ res : List[Value],
+             vs == APPEND(vs0, res)
+             && lc == lc0
+             && tlsf_public_free_post(d, lim, fp, res, gs, ms, h),
+         fr,
+         s2,
+         f2,
+         vs2)
+or
+  ∃ (s3 : Wstore) (f3 : Wframe) (es3 : List[Einstr]),
+    reduce(s2, f2, es2, s3, f3, es3)
+```
+
+lemma `tlsf_public_free_malloc_result`
+
+```
+∀ (d n ptr : W32) (oldlim ms : Num) (fp : GProp) (gs : List[Value]) (h : Heap)
+if
+  1. tlsf_malloc_result(d, n, oldlim, fp, ptr, gs, ms, h)
+then
+  ∃ (top fl : W32) (xs ps : List[W32]) (hd : (W32) -> W32) (sb : (Num) -> W32)
+    (bl : (Num, Num) -> List[W32]) (sz : (W32) -> Num)
+    (loc cached live : (W32) -> List[W32]) (fast partial : (Num) -> List[W32]),
+    tlsf_public_free_pre(
+      d,
+      ms,
+      top,
+      xs,
+      hd,
+      fl,
+      sb,
+      bl,
+      ps,
+      sz,
+      loc,
+      cached,
+      live,
+      fast,
+      partial,
+      ptr,
+      (gs0 : List[Value]) => (ms0 : Num) => fp(gs0, oldlim),
+      [V_num(ConstInt32(ptr))],
+      gs,
+      ms,
+      h)
+```

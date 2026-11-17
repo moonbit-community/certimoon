@@ -186,6 +186,14 @@ def block_free_branch(body):
     raise ValueError('missing small-block dispatch else boundary')
 
 
+def full_public_free(body):
+    """Keep the complete public guard/dispatch/drop and link both free calls."""
+    call = 'call ' + FREE_NAME
+    if body.count(call) != 2:
+        raise ValueError('public free helper call count changed: ' + call)
+    return ['call free_idx' if line == call else line for line in body]
+
+
 def page_publication_fragments(body, local_shift=0):
     """Exact prefixes before return/br, including both full_malloc copies."""
     normalized = []
@@ -486,6 +494,19 @@ def main():
             print('%s differs at instruction %d:' % (prog, n))
             print('  ours:     %s' % (ours[n] if n < len(ours) else '(end)'))
             print('  compiled: %s' % (theirs[n] if n < len(theirs) else '(end)'))
+    prog = 'tlsf_public_free_code'
+    ours = instructions(listed(md, prog))
+    theirs = full_public_free(instructions(function(wat, PUBLIC_FREE_NAME)))
+    if ours == theirs:
+        print('%s: the same %d instructions as the complete %s' %
+              (prog, len(ours), PUBLIC_FREE_NAME))
+    else:
+        ok = False
+        n = next((k for k, (a, b) in enumerate(zip(ours, theirs)) if a != b),
+                 min(len(ours), len(theirs)))
+        print('%s differs at instruction %d:' % (prog, n))
+        print('  ours:     %s' % (ours[n] if n < len(ours) else '(end)'))
+        print('  compiled: %s' % (theirs[n] if n < len(theirs) else '(end)'))
     for caller, shift, nlocals in [('$moonbit.malloc_no_grow', 0, 4),
                                    ('$moonbit.full_malloc', 1, 5),
                                    ('$moonbit.full_malloc', 0, 5)]:

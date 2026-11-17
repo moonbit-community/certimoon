@@ -1,0 +1,86 @@
+{
+  "source_base_commit": "e6cb312402c70f7eb91157bd3cc44ef81ad89a13",
+  "target": "wasm-gc",
+  "mode": "debug",
+  "named_allocator_declarations": 1333,
+  "new_individual_checks": {
+    "passed": 41,
+    "failed": 0,
+    "all_returned_implications_closed": true,
+    "names": [
+      "st_public_free_large_header",
+      "st_public_free_small_header",
+      "tlsf_public_free_all",
+      "tlsf_public_free_block_geometry",
+      "tlsf_public_free_dead_dispatch",
+      "tlsf_public_free_drop",
+      "tlsf_public_free_drop_result",
+      "tlsf_public_free_entry_cases",
+      "tlsf_public_free_guard_live",
+      "tlsf_public_free_guard_value",
+      "tlsf_public_free_label",
+      "tlsf_public_free_large_branch",
+      "tlsf_public_free_large_call",
+      "tlsf_public_free_large_call_g",
+      "tlsf_public_free_large_case",
+      "tlsf_public_free_large_choose",
+      "tlsf_public_free_large_path",
+      "tlsf_public_free_large_read",
+      "tlsf_public_free_large_tag",
+      "tlsf_public_free_malloc_result",
+      "tlsf_public_free_native_body",
+      "tlsf_public_free_null_case",
+      "tlsf_public_free_null_guard",
+      "tlsf_public_free_null_path",
+      "tlsf_public_free_pointer_guard",
+      "tlsf_public_free_read_large",
+      "tlsf_public_free_read_small",
+      "tlsf_public_free_run",
+      "tlsf_public_free_slot_view",
+      "tlsf_public_free_small_branch",
+      "tlsf_public_free_small_case",
+      "tlsf_public_free_small_choose",
+      "tlsf_public_free_small_geometry",
+      "tlsf_public_free_small_path",
+      "tlsf_public_free_small_read",
+      "tlsf_public_free_spec_call",
+      "tlsf_public_free_specs",
+      "tlsf_public_free_state_current",
+      "tlsf_public_free_tag_mask",
+      "tlsf_public_free_unpayload",
+      "tlsf_public_free_wrapped_cases"
+    ]
+  },
+  "allocator_tests": {
+    "passed": 24,
+    "failed": 0,
+    "full_strict_replay": true,
+    "all_snapshots_match": true
+  },
+  "python_tests": {
+    "passed": 42,
+    "failed": 0,
+    "skipped": 0
+  },
+  "shipped_wat_comparisons": {
+    "passed": 22,
+    "failed": 0,
+    "public_free_instructions": 199
+  },
+  "native_package_check": "pass (moon check --target native)",
+  "kernel_axioms": 3,
+  "previous_snapshot_entries_unchanged": 1301,
+  "runtime_coverage": {
+    "kernel": "Complete native public-free guarded exits and caller state; existing compiled free component tests.",
+    "real_wasm_engine": "Complete shipped public free: large coalescing and small-slot release from consistent heaps; every byte compared, with another client live."
+  },
+  "fixture_note": "The initial 2496-byte kernel execution fixture exceeded the converter stack limit. Guarded-exit kernel fixtures use 64 bytes; full live-allocation byte checks run in the real Wasm engine.",
+  "shipped_wat_sha256": "07a09fb7bd1d720aac21e9bbfba468a7ae680ddea98215d16db2aeb01a2e0f00",
+  "commands": [
+    "moon run cmd/tlsf --target wasm-gc -- check --keep-going <41 new proof names>",
+    "moon test tlsf --target wasm-gc --update",
+    "python3 -m unittest discover -s tools -p '*_test.py'",
+    "python3 tools/tlsf_wat_check.py ../ideas/lib/xml/wasm_linear/tlsf-mbt.wat",
+    "moon check tlsf cmd/tlsf --target native"
+  ]
+}

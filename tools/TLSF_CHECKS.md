@@ -13,6 +13,7 @@ ulimit -s 65520
 moon run cmd/tlsf --target wasm-gc -- check tlsf_find_sound
 moon run cmd/tlsf --target wasm-gc -- check tlsf_try_malloc_run tlsf_full_malloc_run
 moon run cmd/tlsf --target wasm-gc -- check --all
+moon run cmd/tlsf --target wasm-gc -- check --keep-going NAME1 NAME2
 moon run cmd/tlsf --target wasm-gc -- list
 moon run cmd/tlsf --target wasm-gc -- verify
 ```
@@ -23,6 +24,11 @@ can use only declarations preceding its own position. Results are not cached:
 checking a name again executes its proof again. Sharing setup currently applies
 to checks within the same executable process; recompiling after a source edit
 starts a new process and loads the checked base again.
+
+`--keep-going` reports every selected proof independently, including failures,
+and exits nonzero if any check fails. Each check restores its scoped context;
+failed or conditional results do not enter the verified registry. This lets
+independent proof fixes share one declaration setup.
 
 The API equivalents are `@tlsf.check_lemma(name)`,
 `@tlsf.prepare_checks().check(name)`, and `@tlsf.verify()`.
@@ -41,7 +47,7 @@ and listings. No kernel change, axiom, trusted theorem deserialization, or
 unchecked theorem constructor was added. Both command modes run the existing
 upstream axiom audit. Full replay runs the same proof builders with proved
 predecessors and requires every TLSF definition/program/lemma/example to have no
-hypotheses (1,281 named declarations in the integrated allocator).
+hypotheses.
 
 HOL, WasmCert definitions/properties, and the core logic remain fully replayed
 in this first implementation. TLSF definitions are also constructed through
@@ -162,3 +168,14 @@ comparisons. Native package checking also passes. There are no new axioms, and
 theorem statements and dependency snapshots are unchanged.
 
 Raw results: [integration validation](benchmarks/tlsf-checks-integration-2026-11-17.json).
+
+## Public free verification
+
+The public-free extension adds 41 independently checked lemmas, bringing the
+allocator to 1,333 closed named declarations. Full replay, all 24 allocator
+tests and their snapshots, 42 Python tests, and 22 shipped-WAT comparisons
+pass. The compiled public function has 199 instructions. Validation covers
+complete native guarded exits in the kernel and both live-allocation paths
+with full-memory comparisons in a real Wasm engine.
+
+Raw results: [public-free validation](benchmarks/tlsf-public-free-validation-2026-11-17.json).
