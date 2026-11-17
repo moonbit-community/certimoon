@@ -123,7 +123,7 @@ fn prove_tlsf_malloc_case_large() -> Unit raise {
         q +
         "])",
         [],
-        Array::make(4, malloc_vc()),
+        () => Array::make(4, malloc_vc()),
         afters~,
         chunks=[ready, take, dead],
         rws=malloc_extra_rewrites(),

@@ -27,35 +27,37 @@ fn prove_tlsf_malloc_cached_owner() -> Unit raise {
     ", ∀ b : " +
     w +
     ", tlsf_small_partition(p,s,loc,cached,live) && MEM(b,cached) → MEM(b,tlsf_small_slots(p,s,tlsf_small_total(s))) && tlsf_count(b,cached) == 1 && !MEM(b,live) && !MEM(b,loc)",
-    seq([
-      gen,
-      strip,
-      free_have(
-        "0 < tlsf_count(" + b + ",(cached : " + lw + "))",
-        seq([rw([@equal.gsym(thm("tlsf_count_member"))]), arw([])]),
-      ),
-      @class.asm_cases_tac(
-        tm(
-          "MEM(" +
-          b +
-          ",tlsf_small_slots(" +
-          p +
-          ",(s : Num),tlsf_small_total(s)))",
+    () => {
+      seq([
+        gen,
+        strip,
+        free_have(
+          "0 < tlsf_count(" + b + ",(cached : " + lw + "))",
+          seq([rw([@equal.gsym(thm("tlsf_count_member"))]), arw([])]),
         ),
-      ),
-      @tactics.mp_tac(
-        inst(thm("tlsf_small_partition_counts"), [
-          p,
-          "(s : Num)",
-          "(loc : " + lw + ")",
-          "(cached : " + lw + ")",
-          "(live : " + lw + ")",
-          b,
-        ]),
-      ),
-      arw([@equal.gsym(thm("tlsf_count_zero"))]),
-      @int.asm_arith_tac,
-    ]),
+        @class.asm_cases_tac(
+          tm(
+            "MEM(" +
+            b +
+            ",tlsf_small_slots(" +
+            p +
+            ",(s : Num),tlsf_small_total(s)))",
+          ),
+        ),
+        @tactics.mp_tac(
+          inst(thm("tlsf_small_partition_counts"), [
+            p,
+            "(s : Num)",
+            "(loc : " + lw + ")",
+            "(cached : " + lw + ")",
+            "(live : " + lw + ")",
+            b,
+          ]),
+        ),
+        arw([@equal.gsym(thm("tlsf_count_zero"))]),
+        @int.asm_arith_tac,
+      ])
+    },
   )
   let part = "tlsf_small_partition(" +
     p +
@@ -105,30 +107,32 @@ fn prove_tlsf_malloc_cached_owner() -> Unit raise {
     "(" +
     p +
     "),i))",
-    seq([
-      gen,
-      strip,
-      free_have(
-        part,
-        seq([
-          @tactics.undisch_tac(tm(block_backing(a))),
-          rw([thm("tlsf_small_backing"), thm("tlsf_small_page_ok")]),
-          small_meson(ths([])),
-        ]),
-      ),
-      @tactics.mp_tac(
-        inst(thm("tlsf_malloc_cached_unique"), [
-          p,
-          a[9] + "(" + p + ")",
-          a[10] + "(" + p + ")",
-          a[11] + "(" + p + ")",
-          a[12] + "(" + p + ")",
-          b,
-        ]),
-      ),
-      arw([thm("tlsf_small_slots_member")]),
-      small_meson(ths([])),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        free_have(
+          part,
+          seq([
+            @tactics.undisch_tac(tm(block_backing(a))),
+            rw([thm("tlsf_small_backing"), thm("tlsf_small_page_ok")]),
+            small_meson(ths([])),
+          ]),
+        ),
+        @tactics.mp_tac(
+          inst(thm("tlsf_malloc_cached_unique"), [
+            p,
+            a[9] + "(" + p + ")",
+            a[10] + "(" + p + ")",
+            a[11] + "(" + p + ")",
+            a[12] + "(" + p + ")",
+            b,
+          ]),
+        ),
+        arw([thm("tlsf_small_slots_member")]),
+        small_meson(ths([])),
+      ])
+    },
   )
   let geo = [3, 4, 8, 9, 10, 11, 12, 1, 13, 14].map(i => a[i])
   let pars = [
@@ -163,29 +167,33 @@ fn prove_tlsf_malloc_cached_owner() -> Unit raise {
     "))) && !(" +
     b +
     " == word(0))",
-    seq([
-      gen,
-      strip,
-      g => @tactics.strip_assume_tac(block_under(inst(slot, a + [p, b]), g))(g),
-      g => {
-        @tactics.strip_assume_tac(
-          block_under(
-            inst(thm("tlsf_small_page_member_geometry"), geo + [p]),
-            g,
-          ),
-        )(g)
-      },
-      g => {
-        @tactics.mp_tac(
-          block_under(
-            inst(thm("tlsf_small_slot_bounds"), pars + ["(i : Num)"]),
-            g,
-          ),
-        )(g)
-      },
-      arw([]),
-      small_meson(ths([])),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        g => {
+          @tactics.strip_assume_tac(block_under(inst(slot, a + [p, b]), g))(g)
+        },
+        g => {
+          @tactics.strip_assume_tac(
+            block_under(
+              inst(thm("tlsf_small_page_member_geometry"), geo + [p]),
+              g,
+            ),
+          )(g)
+        },
+        g => {
+          @tactics.mp_tac(
+            block_under(
+              inst(thm("tlsf_small_slot_bounds"), pars + ["(i : Num)"]),
+              g,
+            ),
+          )(g)
+        },
+        arw([]),
+        small_meson(ths([])),
+      ])
+    },
   )
   let physical = "tlsf_physical_ok(" + a[:5].to_owned().join(",") + ")"
   let _ = lemma(
@@ -209,51 +217,53 @@ fn prove_tlsf_malloc_cached_owner() -> Unit raise {
     "(" +
     q +
     "))",
-    seq([
-      gen,
-      strip,
-      @tactics.disch_tac,
-      g => {
-        @tactics.strip_assume_tac(block_under(inst(bounds, a + [p, b]), g))(g)
-      },
-      g => {
-        @tactics.strip_assume_tac(block_under(inst(bounds, a + [q, b]), g))(g)
-      },
-      free_have(
-        "tlsf_layout(word(0),tlsf_origin(" +
-        a[0] +
-        ")," +
-        a[1] +
-        "," +
-        a[2] +
-        "," +
-        a[3] +
-        "," +
-        a[4] +
-        ")",
-        seq([
-          @tactics.undisch_tac(tm(physical)),
-          rw([thm("tlsf_physical_ok")]),
-          small_meson(ths([])),
-        ]),
-      ),
-      @tactics.mp_tac(
-        inst(
-          thm("tlsf_small_backing_separate"),
-          [
-            a[3],
-            a[4],
-            "(word(0) : " + w + ")",
-            "tlsf_origin(" + a[0] + ")",
-            a[1],
-            a[2],
-          ] +
-          a[8:13].to_owned() +
-          [p, q],
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.disch_tac,
+        g => {
+          @tactics.strip_assume_tac(block_under(inst(bounds, a + [p, b]), g))(g)
+        },
+        g => {
+          @tactics.strip_assume_tac(block_under(inst(bounds, a + [q, b]), g))(g)
+        },
+        free_have(
+          "tlsf_layout(word(0),tlsf_origin(" +
+          a[0] +
+          ")," +
+          a[1] +
+          "," +
+          a[2] +
+          "," +
+          a[3] +
+          "," +
+          a[4] +
+          ")",
+          seq([
+            @tactics.undisch_tac(tm(physical)),
+            rw([thm("tlsf_physical_ok")]),
+            small_meson(ths([])),
+          ]),
         ),
-      ),
-      arw([@theorems.eq_sym_eq()]),
-      @int.asm_arith_tac,
-    ]),
+        @tactics.mp_tac(
+          inst(
+            thm("tlsf_small_backing_separate"),
+            [
+              a[3],
+              a[4],
+              "(word(0) : " + w + ")",
+              "tlsf_origin(" + a[0] + ")",
+              a[1],
+              a[2],
+            ] +
+            a[8:13].to_owned() +
+            [p, q],
+          ),
+        ),
+        arw([@theorems.eq_sym_eq()]),
+        @int.asm_arith_tac,
+      ])
+    },
   )
 }

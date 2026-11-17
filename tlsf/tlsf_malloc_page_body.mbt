@@ -79,93 +79,112 @@ fn prove_tlsf_malloc_page_body() -> Unit raise {
   let prefix = lemma(
     "tlsf_malloc_page_prefix",
     "\{envvars}\{modelvars} \{backed} && \{legal} && \{natives} → sl_triple_m(fs,tabs,inst,\{p},tlsf_page_allocate_call(take_idx),\{reserved},NIL)",
-    seq([
-      gen,
-      strip,
-      rw([thm("tlsf_page_allocate_call")]),
-      @tactics.subst1_tac(
-        @equal.gsym(
-          @simp.rewrite_conv(ths([@lists.append()]))(
-            tm(
-              "APPEND([EConstNum(ConstInt32((word(1080) : " +
-              w +
-              ")))],[Call((take_idx : Num))])",
+    () => {
+      seq([
+        gen,
+        strip,
+        rw([thm("tlsf_page_allocate_call")]),
+        @tactics.subst1_tac(
+          @equal.gsym(
+            @simp.rewrite_conv(ths([@lists.append()]))(
+              tm(
+                "APPEND([EConstNum(ConstInt32((word(1080) : " +
+                w +
+                ")))],[Call((take_idx : Num))])",
+              ),
             ),
           ),
         ),
-      ),
-      @tactics.match_mp_tac(thm("sl_seq_m")),
-      @tactics.exists_tac(ct[2]),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          initialize_m_conseq(
-            constant,
-            ent_tac([@lists.append()], []),
-            same_tac(),
-          ),
-          initialize_m_conseq(
-            takeall,
+        @logic.match_mp_tac(thm("sl_seq_m")),
+        @tactics.exists_tac(ct[2]),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            initialize_m_conseq(
+              constant,
+              ent_tac([@lists.append()], []),
+              same_tac(),
+            ),
+            initialize_m_conseq(
+              takeall,
+              seq([
+                ent_tac(
+                  [
+                    thm("tlsf_take_pre"),
+                    @lists.append(),
+                    @words.val_word(),
+                    @words.dimindex_32(),
+                  ],
+                  [],
+                ),
+                @tactics.conv_tac(@calc_num.num_reduce_conv),
+              ]),
+              seq([
+                gen,
+                beta_goal(),
+                rw([@lists.append()]),
+                strip,
+                subst_vars(),
+                arw([]),
+                @logic.match_mp_tac(
+                  inst(
+                    thm("tlsf_malloc_page_take_post"),
+                    model.map(v => "(" + v.0 + " : " + v.1 + ")") +
+                    [
+                      "(s : " + w + ")",
+                      "(before : " + heap + ")",
+                      "(fp : " + rty + ")",
+                      "(vs : List[Value])",
+                      "(gs : List[Value])",
+                      "(ms : Num)",
+                      "(h : " + heap + ")",
+                    ],
+                  ),
+                ),
+                arw([]),
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
+  )
+  let focused = lemma(
+    "tlsf_malloc_page_body_focused",
+    "∀ G : \{gt}, \{envvars}\{modelvars} \{backed} && \{legal} && \{natives} → sl_triple_g(G,fs,tabs,inst,\{q},\{p},tlsf_page_allocate_code(take_idx),\{q},[\{q}])",
+    () => {
+      seq([
+        gen,
+        strip,
+        rw([thm("tlsf_page_allocate_call_tail")]),
+        @logic.match_mp_tac(thm("sl_seq_g")),
+        @tactics.exists_tac(tm(reserved)),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
             seq([
-              ent_tac(
-                [
-                  thm("tlsf_take_pre"),
-                  @lists.append(),
-                  @words.val_word(),
-                  @words.dimindex_32(),
-                ],
-                [],
-              ),
-              @tactics.conv_tac(@calc_num.num_reduce_conv),
-            ]),
-            seq([
-              gen,
-              beta_goal(),
-              rw([@lists.append()]),
-              strip,
-              subst_vars(),
-              arw([]),
-              @tactics.match_mp_tac(
+              @logic.match_mp_tac(thm("sl_triple_g_of_m_closed")),
+              free_apply(
                 inst(
-                  thm("tlsf_malloc_page_take_post"),
+                  prefix,
+                  env[0:3].to_owned() +
+                  env[4:].to_owned() +
                   model.map(v => "(" + v.0 + " : " + v.1 + ")") +
                   [
                     "(s : " + w + ")",
                     "(before : " + heap + ")",
                     "(fp : " + rty + ")",
-                    "(vs : List[Value])",
-                    "(gs : List[Value])",
-                    "(ms : Num)",
-                    "(h : " + heap + ")",
-                  ],
+                  ] +
+                  [1, 2, 3, 4, 5].map(j => "(l\{j} : Value)"),
                 ),
               ),
-              arw([]),
             ]),
-          ),
-        ]),
-      ),
-    ]),
-  )
-  let focused = lemma(
-    "tlsf_malloc_page_body_focused",
-    "∀ G : \{gt}, \{envvars}\{modelvars} \{backed} && \{legal} && \{natives} → sl_triple_g(G,fs,tabs,inst,\{q},\{p},tlsf_page_allocate_code(take_idx),\{q},[\{q}])",
-    seq([
-      gen,
-      strip,
-      rw([thm("tlsf_page_allocate_call_tail")]),
-      @tactics.match_mp_tac(thm("sl_seq_g")),
-      @tactics.exists_tac(tm(reserved)),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          seq([
-            @tactics.match_mp_tac(thm("sl_triple_g_of_m_closed")),
-            free_apply(
+            @tactics.match_accept_tac(
               inst(
-                prefix,
+                thm("tlsf_malloc_page_tail_reserved"),
+                ["(G : " + gt + ")"] +
                 env[0:3].to_owned() +
-                env[4:].to_owned() +
+                ["(take_idx : Num)"] +
                 model.map(v => "(" + v.0 + " : " + v.1 + ")") +
                 [
                   "(s : " + w + ")",
@@ -176,24 +195,9 @@ fn prove_tlsf_malloc_page_body() -> Unit raise {
               ),
             ),
           ]),
-          @tactics.match_accept_tac(
-            inst(
-              thm("tlsf_malloc_page_tail_reserved"),
-              ["(G : " + gt + ")"] +
-              env[0:3].to_owned() +
-              ["(take_idx : Num)"] +
-              model.map(v => "(" + v.0 + " : " + v.1 + ")") +
-              [
-                "(s : " + w + ")",
-                "(before : " + heap + ")",
-                "(fp : " + rty + ")",
-              ] +
-              [1, 2, 3, 4, 5].map(j => "(l\{j} : Value)"),
-            ),
-          ),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
   let zeros = "[" + Array::make(5, i("word(0)")).join(",") + "]"
   let focusargs = ["(G : " + gt + ")"] +
@@ -216,44 +220,46 @@ fn prove_tlsf_malloc_page_body() -> Unit raise {
       model + [("s", w), ("before", heap), ("fp", rty), ("args", "List[Value]")],
     ) +
     "\{natives} → sl_triple_g(G,fs,tabs,inst,\{q},\{body_pre(pre,"(args : List[Value])",zeros)},tlsf_page_allocate_code(take_idx),\{q},[\{q}])",
-    seq([
-      gen,
-      strip,
-      @tactics.match_mp_tac(thm("sl_conseq_g")),
-      @tactics.exists_tac(tm(purep)),
-      @tactics.exists_tac(tm(q)),
-      @tactics.exists_tac(tm("[" + q + "]")),
-      rw([]),
-      @tactics.repeat_tac(@tactics.conj_tac),
-      @tactics.first(
-        @list.List([
-          solve(
-            ent_tac(
-              [
-                thm("tlsf_malloc_page_pre"),
-                thm("tlsf_allocator"),
-                @lists.append(),
-              ],
-              [],
+    () => {
+      seq([
+        gen,
+        strip,
+        @logic.match_mp_tac(thm("sl_conseq_g")),
+        @tactics.exists_tac(tm(purep)),
+        @tactics.exists_tac(tm(q)),
+        @tactics.exists_tac(tm("[" + q + "]")),
+        rw([]),
+        @tactics.repeat_tac(@tactics.conj_tac),
+        @tactics.first(
+          @list.List([
+            solve(
+              ent_tac(
+                [
+                  thm("tlsf_malloc_page_pre"),
+                  thm("tlsf_allocator"),
+                  @lists.append(),
+                ],
+                [],
+              ),
             ),
-          ),
-          solve(
-            seq([
-              @tactics.match_mp_tac(thm("sl_pure_g")),
-              strip,
-              free_apply(focus),
-            ]),
-          ),
-          solve(
-            seq([
-              gen,
-              beta_goal(),
-              @tactics.repeat_tac(@tactics.strip_tac),
-              arw([]),
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+            solve(
+              seq([
+                @logic.match_mp_tac(thm("sl_pure_g")),
+                strip,
+                free_apply(focus),
+              ]),
+            ),
+            solve(
+              seq([
+                gen,
+                beta_goal(),
+                @tactics.repeat_tac(@tactics.strip_tac),
+                arw([]),
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
 }

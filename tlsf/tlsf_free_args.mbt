@@ -26,7 +26,7 @@ fn prove_tlsf_free_args() -> Unit raise {
     "tlsf_free_prev_args_raw",
     "\{vars}, sl_triple(st(NIL,[\{i("r")},(l1 : Value),(l2 : Value)],\{p}),tlsf_free_prev_args(d,pop,push),st([\{i("m")}],[\{i("r")},\{i("m")},(l2 : Value)],\{p}))",
     [],
-    [vc],
+    () => [vc],
   )
   let r0 = "word_add(word_add((m : \{w}),word_and((hm : \{w}),word(4294967292))),word(8))"
   let q = pred(cell("m", "hm"))
@@ -34,6 +34,6 @@ fn prove_tlsf_free_args() -> Unit raise {
     "tlsf_free_next_args_raw",
     "\{vars}, sl_triple(st(NIL,[\{i("m")},(l1 : Value),(l2 : Value)],\{q}),tlsf_free_next_args(d,pop,push),st([\{i(r0)}],[\{i("m")},\{i(r0)},(l2 : Value)],\{q}))",
     [],
-    [vc],
+    () => [vc],
   )
 }

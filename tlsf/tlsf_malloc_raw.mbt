@@ -61,7 +61,7 @@ fn prove_tlsf_malloc_cached_raw() -> Unit raise {
         own([cell(ft, nx), cell(pb, "(word(0) : " + w + ")")]) +
         "))",
         [],
-        [vc],
+        () => [vc],
         kind="lemma",
       ),
     )

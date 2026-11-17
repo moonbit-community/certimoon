@@ -13,9 +13,7 @@ fn prove_tlsf_ensure_focus() -> Unit raise {
   let block = "tlsf_block_ok(val((m : \{w})),(lim : Num),(m : \{w}),(hd : \{ht}))"
   let facts = "(lim : Num) <= 4294967296 && MOD(lim,65536) == 0 && 0 < val((m : \{w})) && MOD(val(m),8) == 0 && 16 <= val(tlsf_size((hd : \{ht})(m))) && val(m)+8+val(tlsf_size(hd(m))) == lim && tlsf_last(hd(m)) && !MEM(m,(ys : \{lw}))"
   let vars = "∀ ys : \{lw}, ∀ d : \{w}, ∀ lim : Num, ∀ m : \{w}, ∀ hd : \{ht}"
-  let _ = lemma(
-    "tlsf_ensure_top_facts",
-    "\{vars}, \{old} → \{facts}",
+  let _ = lemma("tlsf_ensure_top_facts", "\{vars}, \{old} → \{facts}", () => {
     seq([
       gen,
       @tactics.disch_tac,
@@ -92,30 +90,32 @@ fn prove_tlsf_ensure_focus() -> Unit raise {
         ]),
       ),
       arw([]),
-    ]),
-  )
+    ])
+  })
   let _ = lemma(
     "tlsf_ensure_old_bound",
     "\{vars}, ∀ x : \{w}, \{old} && MEM(x,\{xs}) → val(x) < lim",
-    seq([
-      gen,
-      rw([thm("tlsf_physical_ok")]),
-      strip,
-      @tactics.mp_tac(
-        inst(thm("tlsf_layout_members"), [
-          xs,
-          "(word(0) : \{w})",
-          "tlsf_origin((d : \{w}))",
-          "(lim : Num)",
-          "(m : \{w})",
-          "(hd : \{ht})",
-          "(x : \{w})",
-        ]),
-      ),
-      arw([]),
-      rw([thm("tlsf_block_ok")]),
-      strip,
-      @int.asm_arith_tac,
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([thm("tlsf_physical_ok")]),
+        strip,
+        @tactics.mp_tac(
+          inst(thm("tlsf_layout_members"), [
+            xs,
+            "(word(0) : \{w})",
+            "tlsf_origin((d : \{w}))",
+            "(lim : Num)",
+            "(m : \{w})",
+            "(hd : \{ht})",
+            "(x : \{w})",
+          ]),
+        ),
+        arw([]),
+        rw([thm("tlsf_block_ok")]),
+        strip,
+        @int.asm_arith_tac,
+      ])
+    },
   )
 }

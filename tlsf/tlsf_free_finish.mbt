@@ -49,7 +49,7 @@ fn prove_tlsf_free_finish() -> Unit raise {
     "tlsf_free_publish_arg",
     "∀ m : \{w}, ∀ l1 : Value, ∀ l2 : Value, ∀ R : \{rty}, sl_triple(st(NIL,\{lc},R),[Local_get(0)],st([\{i("m")}],\{lc},R))",
     [],
-    [],
+    () => [],
     kind="lemma",
   )
   let get = inst(get, ["(m : \{w})", "(l1 : Value)", "(l2 : Value)", rr])
@@ -60,63 +60,67 @@ fn prove_tlsf_free_finish() -> Unit raise {
   let _ = lemma(
     "tlsf_free_finish_focused",
     "\{env}, \{original}, \{current}, \{cond} → sl_triple_g(G,fs,tabs,inst,rp,st(NIL,\{lc},\{rr}),tlsf_free_publish(d,pop,push),\{bq},labels)",
-    seq([
-      gen,
-      strip,
-      @tactics.rule_assum_tac(
-        @simp.rewrite_rule(
-          ths([thm("tlsf_free_covers"), thm("tlsf_free_live")]),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.rule_assum_tac(
+          @simp.rewrite_rule(
+            ths([thm("tlsf_free_covers"), thm("tlsf_free_live")]),
+          ),
         ),
-      ),
-      split_conjs(),
-      rw([thm("tlsf_free_publish")]),
-      @tactics.match_mp_tac(thm("sl_cons_g")),
-      @tactics.exists_tac(pt[3]),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          free_at("finish arg", free_lift(get)),
-          free_at(
-            "finish call",
-            free_g_conseq(
-              pushth,
-              same,
-              ent_tac(
-                [
-                  thm("tlsf_free_post"),
-                  thm("tlsf_free_covers"),
-                  thm("tlsf_free_live"),
-                  @lists.mem_append(),
-                  @lists.mem(),
-                ],
-                [
-                  "(top : \{w})",
-                  xs,
-                  "(hd : \{ht})",
-                  nfl,
-                  nsb,
-                  nbl,
-                  "(m : \{w})",
-                ],
+        split_conjs(),
+        rw([thm("tlsf_free_publish")]),
+        @tactics.match_mp_tac(thm("sl_cons_g")),
+        @tactics.exists_tac(pt[3]),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            free_at("finish arg", free_lift(get)),
+            free_at(
+              "finish call",
+              free_g_conseq(
+                pushth,
+                same,
+                ent_tac(
+                  [
+                    thm("tlsf_free_post"),
+                    thm("tlsf_free_covers"),
+                    thm("tlsf_free_live"),
+                    @lists.mem_append(),
+                    @lists.mem(),
+                  ],
+                  [
+                    "(top : \{w})",
+                    xs,
+                    "(hd : \{ht})",
+                    nfl,
+                    nsb,
+                    nbl,
+                    "(m : \{w})",
+                  ],
+                ),
               ),
             ),
-          ),
-        ]),
-      ),
-    ]),
+          ]),
+        ),
+      ])
+    },
   )
   let work = "tlsf_free_work((d : \{w}),(lim : Num),(m0 : \{w}),(xs0 : \{lw}),(hd0 : \{ht}),(fp : \{rty}),T,T)"
   let _ = lemma(
     "tlsf_free_finish",
     "\{env}, \{original}, \{native} → sl_triple_g(G,fs,tabs,inst,rp,\{work},tlsf_free_publish(d,pop,push),\{bq},labels)",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      @tactics.conv_tac(
-        pre_conv(@simp.rewrite_conv(ths([thm("tlsf_free_work")]))),
-      ),
-      free_intro(),
-      free_at("finish work", free_apply(thm("tlsf_free_finish_focused"))),
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        @tactics.conv_tac(
+          pre_conv(@simp.rewrite_conv(ths([thm("tlsf_free_work")]))),
+        ),
+        free_intro(),
+        free_at("finish work", free_apply(thm("tlsf_free_finish_focused"))),
+      ])
+    },
   )
 }

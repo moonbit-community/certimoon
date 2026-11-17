@@ -43,59 +43,64 @@ fn prove_tlsf_ensure_bins() -> Unit raise {
   let _ = lemma(
     "tlsf_bins_match_publish",
     "∀ xs : \{lw}, ∀ ys : \{lw}, ∀ hd : \{ht}, ∀ nh : \{ht}, ∀ bl : \{bt}, ∀ r : \{w}, ∀ f : Num, ∀ j : Num, tlsf_bins_match(xs, hd, bl) && !(MEM(r, xs) && !tlsf_used(hd(r))) && f < 28 && j < 16 && MEM(r, ys) && !tlsf_used(nh(r)) && tlsf_level_of(nh(r)) == f && tlsf_slot_of(nh(r)) == j && (∀ m : \{w}, !(m == r) → ((MEM(m, xs) && !tlsf_used(hd(m))) == (MEM(m, ys) && !tlsf_used(nh(m)))) && (MEM(m, xs) && !tlsf_used(hd(m)) → tlsf_level_of(hd(m)) == tlsf_level_of(nh(m)) && tlsf_slot_of(hd(m)) == tlsf_slot_of(nh(m)))) → tlsf_bins_match(ys, nh, tlsf_bin_add(bl, f, j, r))",
-    seq([
-      gen,
-      strip,
-      @tactics.undisch_tac(
-        tm("tlsf_bins_match((xs : \{lw}), (hd : \{ht}), (bl : \{bt}))"),
-      ),
-      rw([thm("tlsf_bins_match")]),
-      strip,
-      rw([thm("tlsf_bins_match")]),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          seq([
-            gen,
-            strip,
-            @class.asm_cases_tac(tm("(m : \{w}) == (r : \{w})")),
-            @tactics.first(
-              @list.List([
-                solve(
-                  seq([
-                    have(
-                      "tlsf_count((r : \{w}), (bl : \{bt})((f : Num))((j : Num))) == 0",
-                      seq([
-                        rw([thm("tlsf_count_zero")]),
-                        point([
-                          inst(snd, ["(f : Num)", "(j : Num)", "(r : \{w})"]),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.undisch_tac(
+          tm("tlsf_bins_match((xs : \{lw}), (hd : \{ht}), (bl : \{bt}))"),
+        ),
+        rw([thm("tlsf_bins_match")]),
+        strip,
+        rw([thm("tlsf_bins_match")]),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            seq([
+              gen,
+              strip,
+              @class.asm_cases_tac(tm("(m : \{w}) == (r : \{w})")),
+              @tactics.first(
+                @list.List([
+                  solve(
+                    seq([
+                      have(
+                        "tlsf_count((r : \{w}), (bl : \{bt})((f : Num))((j : Num))) == 0",
+                        seq([
+                          rw([thm("tlsf_count_zero")]),
+                          point([
+                            inst(snd, ["(f : Num)", "(j : Num)", "(r : \{w})"]),
+                          ]),
                         ]),
+                      ),
+                      arw([thm("tlsf_bin_add"), thm("tlsf_count_cons")]),
+                      @tactics.conv_tac(@calc_num.num_reduce_conv),
+                    ]),
+                  ),
+                  solve(
+                    seq([
+                      @simp.asm_simp_tac(ths([other])),
+                      point([
+                        inst(cov, ["(m : \{w})"]),
+                        inst(rel, ["(m : \{w})"]),
                       ]),
-                    ),
-                    arw([thm("tlsf_bin_add"), thm("tlsf_count_cons")]),
-                    @tactics.conv_tac(@calc_num.num_reduce_conv),
-                  ]),
-                ),
-                solve(
-                  seq([
-                    @simp.asm_simp_tac(ths([other])),
-                    point([inst(cov, ["(m : \{w})"]), inst(rel, ["(m : \{w})"])]),
-                  ]),
-                ),
+                    ]),
+                  ),
+                ]),
+              ),
+            ]),
+            seq([
+              gen,
+              rw([thm("tlsf_bin_add_mem")]),
+              strip,
+              point([
+                inst(snd, ["(f' : Num)", "(j' : Num)", "(m : \{w})"]),
+                inst(rel, ["(m : \{w})"]),
               ]),
-            ),
-          ]),
-          seq([
-            gen,
-            rw([thm("tlsf_bin_add_mem")]),
-            strip,
-            point([
-              inst(snd, ["(f' : Num)", "(j' : Num)", "(m : \{w})"]),
-              inst(rel, ["(m : \{w})"]),
             ]),
           ]),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
 }

@@ -82,7 +82,7 @@ fn prove_tlsf_malloc_lookup_raw() -> Unit raise {
       r +
       "))",
       [],
-      [same, same],
+      () => [same, same],
       rules~,
       kind="lemma",
     )
@@ -119,7 +119,7 @@ fn prove_tlsf_malloc_lookup_raw() -> Unit raise {
       r +
       "))",
       [],
-      [same, same],
+      () => [same, same],
       rules~,
       kind="lemma",
     )

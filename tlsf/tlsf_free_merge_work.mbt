@@ -38,61 +38,91 @@ fn prove_tlsf_free_merge_work() -> Unit raise {
         "tlsf_free_merge_next_work"
       },
       "\{vars}, \{pre} → \{post}",
-      seq([
-        gen,
-        strip,
-        @tactics.mp_tac(
-          inst(thm("tlsf_free_merge_model"), [
-            "(ys : \{lw})",
-            "(zs : \{lw})",
-            m,
-            r,
-            active,
-            "(d : \{w})",
-            "(lim : Num)",
-            "(top : \{w})",
-            hd,
-          ]),
-        ),
-        arw([]),
-        strip,
-        @tactics.mp_tac(
-          inst(thm("tlsf_free_pop_bins_pair"), [
-            xs,
-            hd,
-            "(bl : \{bt})",
-            active,
-            other,
-            "(us : \{lw})",
-            "(vs : \{lw})",
-          ]),
-        ),
-        arw([@lists.mem_append(), @lists.mem()]),
-        @tactics.disch_tac,
-        @tactics.mp_tac(
-          inst(thm("tlsf_free_merge_bins"), [
-            "(ys : \{lw})",
-            "(zs : \{lw})",
-            m,
-            r,
-            active,
-            other,
-            hd,
-            nb,
-          ]),
-        ),
-        arw([]),
-        @tactics.disch_tac,
-        @tactics.mp_tac(
-          inst(
-            thm(
-              if prev {
-                "tlsf_free_merge_prev_ready"
-              } else {
-                "tlsf_free_merge_next_ready"
-              },
+      () => {
+        seq([
+          gen,
+          strip,
+          @tactics.mp_tac(
+            inst(thm("tlsf_free_merge_model"), [
+              "(ys : \{lw})",
+              "(zs : \{lw})",
+              m,
+              r,
+              active,
+              "(d : \{w})",
+              "(lim : Num)",
+              "(top : \{w})",
+              hd,
+            ]),
+          ),
+          arw([]),
+          strip,
+          @tactics.mp_tac(
+            inst(thm("tlsf_free_pop_bins_pair"), [
+              xs,
+              hd,
+              "(bl : \{bt})",
+              active,
+              other,
+              "(us : \{lw})",
+              "(vs : \{lw})",
+            ]),
+          ),
+          arw([@lists.mem_append(), @lists.mem()]),
+          @tactics.disch_tac,
+          @tactics.mp_tac(
+            inst(thm("tlsf_free_merge_bins"), [
+              "(ys : \{lw})",
+              "(zs : \{lw})",
+              m,
+              r,
+              active,
+              other,
+              hd,
+              nb,
+            ]),
+          ),
+          arw([]),
+          @tactics.disch_tac,
+          @tactics.mp_tac(
+            inst(
+              thm(
+                if prev {
+                  "tlsf_free_merge_prev_ready"
+                } else {
+                  "tlsf_free_merge_next_ready"
+                },
+              ),
+              [
+                "(ys : \{lw})",
+                "(zs : \{lw})",
+                m,
+                r,
+                "(d : \{w})",
+                "(lim : Num)",
+                "(top : \{w})",
+                hd,
+              ],
             ),
-            [
+          ),
+          arw([]),
+          strip,
+          @tactics.mp_tac(
+            inst(thm("tlsf_free_merge_live"), [
+              "(xs0 : \{lw})",
+              "(hd0 : \{ht})",
+              "(m0 : \{w})",
+              "(ys : \{lw})",
+              "(zs : \{lw})",
+              m,
+              r,
+              hd,
+            ]),
+          ),
+          arw([]),
+          @tactics.disch_tac,
+          @tactics.mp_tac(
+            inst(thm("tlsf_free_pair_geometry"), [
               "(ys : \{lw})",
               "(zs : \{lw})",
               m,
@@ -101,55 +131,27 @@ fn prove_tlsf_free_merge_work() -> Unit raise {
               "(lim : Num)",
               "(top : \{w})",
               hd,
-            ],
+              active,
+            ]),
           ),
-        ),
-        arw([]),
-        strip,
-        @tactics.mp_tac(
-          inst(thm("tlsf_free_merge_live"), [
-            "(xs0 : \{lw})",
-            "(hd0 : \{ht})",
-            "(m0 : \{w})",
-            "(ys : \{lw})",
-            "(zs : \{lw})",
-            m,
-            r,
-            hd,
-          ]),
-        ),
-        arw([]),
-        @tactics.disch_tac,
-        @tactics.mp_tac(
-          inst(thm("tlsf_free_pair_geometry"), [
-            "(ys : \{lw})",
-            "(zs : \{lw})",
-            m,
-            r,
-            "(d : \{w})",
-            "(lim : Num)",
-            "(top : \{w})",
-            hd,
-            active,
-          ]),
-        ),
-        arw([]),
-        strip,
-        @tactics.mp_tac(
-          inst(thm("tlsf_free_merge_covers"), [
-            "(m0 : \{w})",
-            "(hd0 : \{ht})",
-            active,
-            m,
-            r,
-            hd,
-            nh,
-          ]),
-        ),
-        arw([]),
-        @tactics.disch_tac,
-        arw([]),
-      ]),
+          arw([]),
+          strip,
+          @tactics.mp_tac(
+            inst(thm("tlsf_free_merge_covers"), [
+              "(m0 : \{w})",
+              "(hd0 : \{ht})",
+              active,
+              m,
+              r,
+              hd,
+              nh,
+            ]),
+          ),
+          arw([]),
+          @tactics.disch_tac,
+          arw([]),
+        ])
+      },
     )
   }
 }

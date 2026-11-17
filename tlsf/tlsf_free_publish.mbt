@@ -87,119 +87,124 @@ fn prove_tlsf_free_publish() -> Unit raise {
   let _ = lemma(
     "tlsf_free_publish_call",
     "\{vars}, \{native} && (\{ready}) → sl_triple_m(fs,tabs,inst,st([\{i("m")}],(lc0 : List[Value]),\{rp(pending)}),[Call(push)],st([\{i("word(0)")}],lc0,\{rp(large)}),NIL)",
-    seq([
-      gen,
-      strip,
-      @tactics.mp_tac(
-        inst(thm("tlsf_free_ready_physical"), [
-          "(ys : \{lw})",
-          "(zs : \{lw})",
-          m,
-          "(d : \{w})",
-          "(lim : Num)",
-          "(top : \{w})",
-          hd,
-        ]),
-      ),
-      arw([]),
-      @tactics.disch_tac,
-      @tactics.mp_tac(
-        inst(thm("tlsf_focus_block"), [
-          "(ys : \{lw})",
-          "(zs : \{lw})",
-          m,
-          "(d : \{w})",
-          "(lim : Num)",
-          "(top : \{w})",
-          hd,
-        ]),
-      ),
-      arw([]),
-      strip,
-      free_have(
-        "!(\{m} == word(0)) && 16 <= val(tlsf_size(\{h}))",
-        seq([
-          @tactics.undisch_tac(
-            tm("tlsf_block_ok(val(\{m}),(lim : Num),\{m},\{hd})"),
-          ),
-          rw([thm("tlsf_block_ok")]),
-          @meson.meson_tac(ths([])),
-        ]),
-      ),
-      split_conjs(),
-      free_have(
-        "tlsf_bins_match(\{xs},\{hd},\{nbl})",
-        seq([
-          @tactics.match_mp_tac(
-            inst(thm("tlsf_extend_bins"), [xs, hd, hd, "(bl : \{bt})", m]),
-          ),
-          arw([@lists.mem_append(), @lists.mem()]),
-        ]),
-      ),
-      seq(
-        [8, 12].map(k => {
-          free_have(
-            field(k),
-            seq([
-              @tactics.match_mp_tac(
-                inst(thm("tlsf_block_field_address"), [
-                  "val(\{m})",
-                  "(lim : Num)",
-                  m,
-                  hd,
-                  k.to_string(),
-                ]),
-              ),
-              arw([]),
-              @tactics.conv_tac(@calc_num.num_reduce_conv),
-            ]),
-          )
-        }),
-      ),
-      free_have(
-        show(view),
-        seq([
-          @tactics.match_mp_tac(
-            inst(thm("tlsf_payload_links"), [
-              "val(\{m})+8",
-              "val(tlsf_size(\{h}))",
-            ]),
-          ),
-          @int.asm_arith_tac,
-        ]),
-      ),
-      free_at("publish consequence", @tactics.match_mp_tac(thm("sl_conseq_m"))),
-      @tactics.exists_tac(tm(ex)),
-      @tactics.exists_tac(rt[5]),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          ent_tac(before, ["(pf : \{w})", "(nf : \{w})"]),
-          @tactics.thenl(
-            @tactics.conj_tac,
-            @list.List([
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.mp_tac(
+          inst(thm("tlsf_free_ready_physical"), [
+            "(ys : \{lw})",
+            "(zs : \{lw})",
+            m,
+            "(d : \{w})",
+            "(lim : Num)",
+            "(top : \{w})",
+            hd,
+          ]),
+        ),
+        arw([]),
+        @tactics.disch_tac,
+        @tactics.mp_tac(
+          inst(thm("tlsf_focus_block"), [
+            "(ys : \{lw})",
+            "(zs : \{lw})",
+            m,
+            "(d : \{w})",
+            "(lim : Num)",
+            "(top : \{w})",
+            hd,
+          ]),
+        ),
+        arw([]),
+        strip,
+        free_have(
+          "!(\{m} == word(0)) && 16 <= val(tlsf_size(\{h}))",
+          seq([
+            @tactics.undisch_tac(
+              tm("tlsf_block_ok(val(\{m}),(lim : Num),\{m},\{hd})"),
+            ),
+            rw([thm("tlsf_block_ok")]),
+            @meson.meson_tac(ths([])),
+          ]),
+        ),
+        split_conjs(),
+        free_have(
+          "tlsf_bins_match(\{xs},\{hd},\{nbl})",
+          seq([
+            @tactics.match_mp_tac(
+              inst(thm("tlsf_extend_bins"), [xs, hd, hd, "(bl : \{bt})", m]),
+            ),
+            arw([@lists.mem_append(), @lists.mem()]),
+          ]),
+        ),
+        seq(
+          [8, 12].map(k => {
+            free_have(
+              field(k),
               seq([
-                free_at(
-                  "publish existential",
-                  @tactics.match_mp_tac(thm("sl_ex_m")),
+                @tactics.match_mp_tac(
+                  inst(thm("tlsf_block_field_address"), [
+                    "val(\{m})",
+                    "(lim : Num)",
+                    m,
+                    hd,
+                    k.to_string(),
+                  ]),
                 ),
-                beta_goal(),
-                @tactics.x_gen_tac(tm("(pf0 : \{w})")),
-                free_at(
-                  "publish existential",
-                  @tactics.match_mp_tac(thm("sl_ex_m")),
-                ),
-                beta_goal(),
-                @tactics.x_gen_tac(tm("(nf0 : \{w})")),
-                rw([@class.eta_ax()]),
-                free_at("publish native call", @tactics.match_mp_tac(raw)),
                 arw([]),
+                @tactics.conv_tac(@calc_num.num_reduce_conv),
               ]),
-              ent_tac(after, []),
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+            )
+          }),
+        ),
+        free_have(
+          show(view),
+          seq([
+            @tactics.match_mp_tac(
+              inst(thm("tlsf_payload_links"), [
+                "val(\{m})+8",
+                "val(tlsf_size(\{h}))",
+              ]),
+            ),
+            @int.asm_arith_tac,
+          ]),
+        ),
+        free_at(
+          "publish consequence",
+          @tactics.match_mp_tac(thm("sl_conseq_m")),
+        ),
+        @tactics.exists_tac(tm(ex)),
+        @tactics.exists_tac(rt[5]),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            ent_tac(before, ["(pf : \{w})", "(nf : \{w})"]),
+            @tactics.thenl(
+              @tactics.conj_tac,
+              @list.List([
+                seq([
+                  free_at(
+                    "publish existential",
+                    @logic.match_mp_tac(thm("sl_ex_m")),
+                  ),
+                  beta_goal(),
+                  @tactics.x_gen_tac(tm("(pf0 : \{w})")),
+                  free_at(
+                    "publish existential",
+                    @logic.match_mp_tac(thm("sl_ex_m")),
+                  ),
+                  beta_goal(),
+                  @tactics.x_gen_tac(tm("(nf0 : \{w})")),
+                  rw([@class.eta_ax()]),
+                  free_at("publish native call", @tactics.match_mp_tac(raw)),
+                  arw([]),
+                ]),
+                ent_tac(after, []),
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
 }

@@ -29,21 +29,23 @@ fn prove_tlsf_block_free_last_model() -> Unit raise {
   let _ = lemma(
     "tlsf_small_backing_remove_page",
     "\{vars}, \{backing} → tlsf_small_backing(xs,hd,\{pages},sz,\{loc},cached,\{live},lim)",
-    seq([
-      gen,
-      rw([
-        thm("tlsf_small_backing"),
-        thm("tlsf_small_remove_member"),
-        thm("tlsf_block_free_loc"),
-        thm("tlsf_block_free_live"),
-        thm("tlsf_small_put"),
-      ]),
-      strip,
-      gen,
-      strip,
-      arw([]),
-      small_meson(ths([])),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([
+          thm("tlsf_small_backing"),
+          thm("tlsf_small_remove_member"),
+          thm("tlsf_block_free_loc"),
+          thm("tlsf_block_free_live"),
+          thm("tlsf_small_put"),
+        ]),
+        strip,
+        gen,
+        strip,
+        arw([]),
+        small_meson(ths([])),
+      ])
+    },
   )
   let geometry = ["(xs : " + lw + ")", "(hd : " + ht + ")"] +
     smallargs[:5].to_owned() +
@@ -63,72 +65,74 @@ fn prove_tlsf_block_free_last_model() -> Unit raise {
   let _ = lemma(
     "tlsf_small_lists_release_last_class",
     "\{vars}, \{backing} && \{lists} && MEM(p,ps) && cached(p) == NIL → tlsf_small_lists_ok(\{newargs.join(",")},\{actual})",
-    seq([
-      gen,
-      strip,
-      g => {
-        @tactics.strip_assume_tac(
-          block_under(
-            inst(
-              thm("tlsf_small_page_member_geometry"),
-              geometry + ["(p : " + w + ")"],
+    () => {
+      seq([
+        gen,
+        strip,
+        g => {
+          @tactics.strip_assume_tac(
+            block_under(
+              inst(
+                thm("tlsf_small_page_member_geometry"),
+                geometry + ["(p : " + w + ")"],
+              ),
+              g,
             ),
-            g,
-          ),
-        )(g)
-      },
-      free_have(
-        "tlsf_small_lists_ok(\{newargs.join(",")},(\{filter}))",
-        free_apply(
-          inst(
-            thm("tlsf_small_lists_remove_empty_page"),
-            smallargs + ["(p : " + w + ")", "(b : " + w + ")"],
-          ),
-        ),
-      ),
-      g => {
-        @tactics.assume_tac(
-          block_under(
+          )(g)
+        },
+        free_have(
+          "tlsf_small_lists_ok(\{newargs.join(",")},(\{filter}))",
+          free_apply(
             inst(
-              thm("tlsf_small_partial_remove_class"),
+              thm("tlsf_small_lists_remove_empty_page"),
               smallargs + ["(p : " + w + ")", "(b : " + w + ")"],
             ),
-            g,
           ),
-        )(g)
-      },
-      free_have(
-        "∀ j : Num, j < 33 → (\{filter})(j) == (\{actual})(j)",
-        small_meson(ths([])),
-      ),
-      free_have(
-        "∀ q : \{w}, MEM(q,\{pages}) → DIV((sz : (\{w}) -> Num)(q),8) < 33",
-        seq([
-          gen,
-          rw([thm("tlsf_small_remove_member")]),
-          strip,
-          @tactics.mp_tac(
-            inst(
-              thm("tlsf_small_page_member_geometry"),
-              geometry + ["(q : " + w + ")"],
+        ),
+        g => {
+          @tactics.assume_tac(
+            block_under(
+              inst(
+                thm("tlsf_small_partial_remove_class"),
+                smallargs + ["(p : " + w + ")", "(b : " + w + ")"],
+              ),
+              g,
             ),
-          ),
-          arw([]),
+          )(g)
+        },
+        free_have(
+          "∀ j : Num, j < 33 → (\{filter})(j) == (\{actual})(j)",
           small_meson(ths([])),
-        ]),
-      ),
-      g => {
-        @tactics.mp_tac(
-          block_under(
-            inst(
-              thm("tlsf_small_lists_partial_ext"),
-              newargs + [filter, actual],
+        ),
+        free_have(
+          "∀ q : \{w}, MEM(q,\{pages}) → DIV((sz : (\{w}) -> Num)(q),8) < 33",
+          seq([
+            gen,
+            rw([thm("tlsf_small_remove_member")]),
+            strip,
+            @tactics.mp_tac(
+              inst(
+                thm("tlsf_small_page_member_geometry"),
+                geometry + ["(q : " + w + ")"],
+              ),
             ),
-            g,
-          ),
-        )(g)
-      },
-      arw([]),
-    ]),
+            arw([]),
+            small_meson(ths([])),
+          ]),
+        ),
+        g => {
+          @tactics.mp_tac(
+            block_under(
+              inst(
+                thm("tlsf_small_lists_partial_ext"),
+                newargs + [filter, actual],
+              ),
+              g,
+            ),
+          )(g)
+        },
+        arw([]),
+      ])
+    },
   )
 }

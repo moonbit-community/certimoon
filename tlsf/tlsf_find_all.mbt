@@ -132,36 +132,39 @@ fn prove_tlsf_find_all() -> Unit raise {
     }),
     arw(eqs),
   ])
-  let result = @tactics.prove(
-    tm(
+  ignore(
+    lemma(
+      "tlsf_find_all",
       "∀ s : \{w}, ∀ d : \{w}, ∀ limit : Num, ∀ top : \{w}, ∀ xs : \{lw}, ∀ hd : \{ht}, ∀ fl : \{w}, ∀ sb : (Num) -> \{w}, ∀ bl : \{bt}, ∀ before : \{heap}, ∀ fp : \{rty}, 16 <= val(s) && val(s) <= 4160749568 → sl_triple(st(NIL, \{locals}, \{inv}), tlsf_find_code(d), (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : \{heap}) => LENGTH(lc) == 6 && EL(3, lc) == \{value("tlsf_align(s)")} && (\{inv})(gs, ms, h) && (∃ m : \{w}, vs == [\{value("m")}] && m == \{search} && tlsf_find_result(s, xs, hd, m)))",
-    ),
-    seq([
-      gen,
-      strip,
-      @tactics.match_mp_tac(thm("sl_conseq")),
-      @tactics.exists_tac(tm(pure_pre)),
-      @tactics.exists_tac(parts[2]),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          pre,
+      () => {
+        seq([
+          gen,
+          strip,
+          @tactics.match_mp_tac(thm("sl_conseq")),
+          @tactics.exists_tac(tm(pure_pre)),
+          @tactics.exists_tac(parts[2]),
           @tactics.thenl(
             @tactics.conj_tac,
             @list.List([
-              seq([
-                @tactics.match_mp_tac(thm("sl_pure")),
-                @tactics.disch_tac,
-                rw([@class.eta_ax()]),
-                @tactics.match_mp_tac(path),
-                arw([]),
-              ]),
-              post,
+              pre,
+              @tactics.thenl(
+                @tactics.conj_tac,
+                @list.List([
+                  seq([
+                    @tactics.match_mp_tac(thm("sl_pure")),
+                    @tactics.disch_tac,
+                    rw([@class.eta_ax()]),
+                    @tactics.match_mp_tac(path),
+                    arw([]),
+                  ]),
+                  post,
+                ]),
+              ),
             ]),
           ),
-        ]),
-      ),
-    ]),
+        ])
+      },
+      kind="example",
+    ),
   )
-  record("tlsf_find_all", result, kind="example")
 }

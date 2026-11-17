@@ -31,56 +31,58 @@ fn prove_tlsf_initialize_grow_result() -> Unit raise {
   let _ = lemma(
     "tlsf_initialize_memory_grow",
     "\{vars}, \{valid} && \{cond} → sl_triple_m(\{env},st([\{i(delta)}],\{lc},\{saved}),[Memory_grow],\{post},NIL)",
-    seq([
-      gen,
-      strip,
-      @tactics.mp_tac(inst(thm("tlsf_initialize_growth_delta"), [d, lim])),
-      arw([]),
-      strip,
-      @tactics.mp_tac(inst(thm("tlsf_initialize_limit_cases"), [d, lim])),
-      arw([]),
-      strip,
-      @tactics.undisch_tac(tm(valid)),
-      rw([thm("tlsf_initialize_valid")]),
-      strip,
-      initialize_m_conseq(
-        raw,
-        seq([
-          gen,
-          rw([thm("st"), thm("tlsf_initialize_saved"), @lists.append()]),
-          @meson.meson_tac(ths([])),
-        ]),
-        seq([
-          gen,
-          beta_goal(),
-          rw([thm("st"), thm("tlsf_initialize_fresh"), @lists.append()]),
-          strip,
-          subst_vars(),
-          @tactics.first(
-            @list.List([
-              solve(arw([])),
-              solve(
-                seq([
-                  @tactics.disj2_tac,
-                  arw([]),
-                  @tactics.mp_tac(
-                    inst(thm("tlsf_initialize_grown_zero_frame"), [
-                      d,
-                      lim,
-                      "val(\{delta})*65536",
-                      before,
-                      fp,
-                      "(gs : List[Value])",
-                      "(h : \{heap})",
-                    ]),
-                  ),
-                  arw([]),
-                ]),
-              ),
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.mp_tac(inst(thm("tlsf_initialize_growth_delta"), [d, lim])),
+        arw([]),
+        strip,
+        @tactics.mp_tac(inst(thm("tlsf_initialize_limit_cases"), [d, lim])),
+        arw([]),
+        strip,
+        @tactics.undisch_tac(tm(valid)),
+        rw([thm("tlsf_initialize_valid")]),
+        strip,
+        initialize_m_conseq(
+          raw,
+          seq([
+            gen,
+            rw([thm("st"), thm("tlsf_initialize_saved"), @lists.append()]),
+            @meson.meson_tac(ths([])),
+          ]),
+          seq([
+            gen,
+            beta_goal(),
+            rw([thm("st"), thm("tlsf_initialize_fresh"), @lists.append()]),
+            strip,
+            subst_vars(),
+            @tactics.first(
+              @list.List([
+                solve(arw([])),
+                solve(
+                  seq([
+                    @tactics.disj2_tac,
+                    arw([]),
+                    @tactics.mp_tac(
+                      inst(thm("tlsf_initialize_grown_zero_frame"), [
+                        d,
+                        lim,
+                        "val(\{delta})*65536",
+                        before,
+                        fp,
+                        "(gs : List[Value])",
+                        "(h : \{heap})",
+                      ]),
+                    ),
+                    arw([]),
+                  ]),
+                ),
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
 }

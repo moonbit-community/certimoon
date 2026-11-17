@@ -11,19 +11,21 @@ fn prove_tlsf_take_pop_remove() -> Unit raise {
   let _ = lemma(
     "tlsf_pop_bl_at",
     "∀ h : \{w}, ∀ bl : \{bt}, ∀ xs : \{lw}, ∀ i : Num, ∀ j : Num, tlsf_pop_bl(h, bl, xs, i, j) == (if i == tlsf_level_of(h) && j == tlsf_slot_of(h) { xs } else { bl(i)(j) })",
-    seq([
-      gen,
-      rw([
-        thm("tlsf_pop_bl"),
-        thm("tlsf_upd"),
-        thm("tlsf_level_of"),
-        thm("tlsf_slot_of"),
-      ]),
-      @class.cond_cases_tac,
-      arw([]),
-      @class.cond_cases_tac,
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([
+          thm("tlsf_pop_bl"),
+          thm("tlsf_upd"),
+          thm("tlsf_level_of"),
+          thm("tlsf_slot_of"),
+        ]),
+        @class.cond_cases_tac,
+        arw([]),
+        @class.cond_cases_tac,
+        arw([]),
+      ])
+    },
   )
   let xs = "(xs : \{lw})"
   let hd = "(hd : \{ht})"
@@ -43,75 +45,77 @@ fn prove_tlsf_take_pop_remove() -> Unit raise {
   let _ = lemma(
     "tlsf_pop_bins_match",
     "∀ xs : \{lw}, ∀ hd : \{ht}, ∀ bl : \{bt}, ∀ m : \{w}, ∀ us : \{lw}, ∀ vs : \{lw}, \{oldmatch} && MEM(m, xs) && !tlsf_used(hd(m)) && bl(\{f})(\{j}) == \{before} → tlsf_bins_match(xs, tlsf_mark(hd, m), \{nb})",
-    seq([
-      gen,
-      strip,
-      have(
-        "tlsf_count(\{m}, \{before}) == 1",
-        seq([@tactics.mp_tac(cov), arw([])]),
-      ),
-      @tactics.match_mp_tac(
-        inst(thm("tlsf_bins_match_detach"), [xs, hd, bl, nb, m]),
-      ),
-      arw([]),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          seq([
-            gen,
-            @tactics.disch_tac,
-            @tactics.match_mp_tac(
-              inst(thm("tlsf_pop_bl_other_count"), [
-                scalar,
-                bl,
-                "(us : \{lw})",
-                "(vs : \{lw})",
-                m,
-                "(x : \{w})",
-                "(i : Num)",
-                "(j : Num)",
-              ]),
-            ),
-            arw([]),
+    () => {
+      seq([
+        gen,
+        strip,
+        have(
+          "tlsf_count(\{m}, \{before}) == 1",
+          seq([@tactics.mp_tac(cov), arw([])]),
+        ),
+        @tactics.match_mp_tac(
+          inst(thm("tlsf_bins_match_detach"), [xs, hd, bl, nb, m]),
+        ),
+        arw([]),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            seq([
+              gen,
+              @tactics.disch_tac,
+              @tactics.match_mp_tac(
+                inst(thm("tlsf_pop_bl_other_count"), [
+                  scalar,
+                  bl,
+                  "(us : \{lw})",
+                  "(vs : \{lw})",
+                  m,
+                  "(x : \{w})",
+                  "(i : Num)",
+                  "(j : Num)",
+                ]),
+              ),
+              arw([]),
+            ]),
+            seq([
+              gen,
+              strip,
+              rw([thm("tlsf_pop_bl_at")]),
+              @class.cond_cases_tac,
+              @tactics.first(
+                @list.List([
+                  solve(
+                    seq([
+                      @tactics.match_mp_tac(
+                        inst(thm("tlsf_remove_self_count"), [
+                          "(us : \{lw})",
+                          "(vs : \{lw})",
+                          m,
+                        ]),
+                      ),
+                      arw([]),
+                    ]),
+                  ),
+                  solve(
+                    seq([
+                      have(
+                        "!(\{f} == (i : Num) && \{j} == (j : Num))",
+                        @meson.asm_meson_tac(ths([])),
+                      ),
+                      @tactics.mp_tac(
+                        inst(thm("tlsf_bins_match_exact"), [
+                          xs, hd, bl, m, "(i : Num)", "(j : Num)",
+                        ]),
+                      ),
+                      arw([]),
+                    ]),
+                  ),
+                ]),
+              ),
+            ]),
           ]),
-          seq([
-            gen,
-            strip,
-            rw([thm("tlsf_pop_bl_at")]),
-            @class.cond_cases_tac,
-            @tactics.first(
-              @list.List([
-                solve(
-                  seq([
-                    @tactics.match_mp_tac(
-                      inst(thm("tlsf_remove_self_count"), [
-                        "(us : \{lw})",
-                        "(vs : \{lw})",
-                        m,
-                      ]),
-                    ),
-                    arw([]),
-                  ]),
-                ),
-                solve(
-                  seq([
-                    have(
-                      "!(\{f} == (i : Num) && \{j} == (j : Num))",
-                      @meson.asm_meson_tac(ths([])),
-                    ),
-                    @tactics.mp_tac(
-                      inst(thm("tlsf_bins_match_exact"), [
-                        xs, hd, bl, m, "(i : Num)", "(j : Num)",
-                      ]),
-                    ),
-                    arw([]),
-                  ]),
-                ),
-              ]),
-            ),
-          ]),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
 }

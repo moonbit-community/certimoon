@@ -23,36 +23,40 @@ fn prove_tlsf_malloc_cached_frames() -> Unit raise {
     block_pages(nr) +
     " == " +
     block_pages(rest),
-    seq([
-      gen,
-      rw([thm("tlsf_small_pages_hlist")]),
-      @tactics.match_mp_tac(thm("tlsf_small_hlist_cong")),
-      @tactics.x_gen_tac(tm("(q : " + w + ")")),
-      @tactics.disch_tac,
-      free_have(
-        "!((q : " + w + ") == " + p + ")",
-        small_meson(ths([thm("tlsf_small_remove_member")])),
-      ),
-      arw([thm("tlsf_small_put")]),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([thm("tlsf_small_pages_hlist")]),
+        @logic.match_mp_tac(thm("tlsf_small_hlist_cong")),
+        @tactics.x_gen_tac(tm("(q : " + w + ")")),
+        @tactics.disch_tac,
+        free_have(
+          "!((q : " + w + ") == " + p + ")",
+          small_meson(ths([thm("tlsf_small_remove_member")])),
+        ),
+        arw([thm("tlsf_small_put")]),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_malloc_small_shift",
     "∀ k : Num, k < 33 → word_jshl((word(k) : " +
     w +
     "),word(3)) == word(8*k)",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      free_have("(k : Num) < 4294967296", @int.asm_arith_tac),
-      rw([
-        @words.word_jshl(),
-        @words.word_shl(),
-        @words.val_word(),
-        @words.dimindex_32(),
-      ]),
-      @tactics.conv_tac(@calc_num.num_reduce_conv),
-      @simp.asm_simp_tac(ths([@arith.mod_lt(), @arith.mult_sym()])),
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        free_have("(k : Num) < 4294967296", @int.asm_arith_tac),
+        rw([
+          @words.word_jshl(),
+          @words.word_shl(),
+          @words.val_word(),
+          @words.dimindex_32(),
+        ]),
+        @tactics.conv_tac(@calc_num.num_reduce_conv),
+        @simp.asm_simp_tac(ths([@arith.mod_lt(), @arith.mult_sym()])),
+      ])
+    },
   )
 }

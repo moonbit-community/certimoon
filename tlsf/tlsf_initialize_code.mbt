@@ -333,30 +333,36 @@ fn prove_tlsf_initialize_control_parts() -> Unit raise {
   let _ = lemma(
     "tlsf_initialize_check_parts",
     "\{vars}, tlsf_initialize_check(d,push) == APPEND([Memory_size],APPEND(tlsf_initialize_check_test(d,push),\{abort_guard}))",
-    rw([
-      thm("tlsf_initialize_check"),
-      thm("tlsf_initialize_check_test"),
-      @lists.append(),
-    ]),
+    () => {
+      rw([
+        thm("tlsf_initialize_check"),
+        thm("tlsf_initialize_check_test"),
+        @lists.append(),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_initialize_grow_yes_parts",
     "\{vars}, tlsf_initialize_grow_yes(d,push) == APPEND(tlsf_initialize_grow_amount(d,push),APPEND([Memory_grow],APPEND(tlsf_initialize_guard_test(d,push),\{abort_guard})))",
-    rw([
-      thm("tlsf_initialize_grow_yes"),
-      thm("tlsf_initialize_grow_amount"),
-      thm("tlsf_initialize_guard_test"),
-      @lists.append(),
-    ]),
+    () => {
+      rw([
+        thm("tlsf_initialize_grow_yes"),
+        thm("tlsf_initialize_grow_amount"),
+        thm("tlsf_initialize_guard_test"),
+        @lists.append(),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_initialize_grow_parts",
     "\{vars}, tlsf_initialize_grow(d,push) == APPEND(tlsf_initialize_grow_test(d,push),[If(Tbv(NONE),tlsf_initialize_grow_yes(d,push),NIL)])",
-    rw([
-      thm("tlsf_initialize_grow"),
-      thm("tlsf_initialize_grow_test"),
-      thm("tlsf_initialize_grow_yes"),
-      @lists.append(),
-    ]),
+    () => {
+      rw([
+        thm("tlsf_initialize_grow"),
+        thm("tlsf_initialize_grow_test"),
+        thm("tlsf_initialize_grow_yes"),
+        @lists.append(),
+      ])
+    },
   )
 }

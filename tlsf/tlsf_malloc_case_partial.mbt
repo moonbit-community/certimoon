@@ -170,7 +170,7 @@ fn prove_tlsf_malloc_case_partial() -> Unit raise {
         q +
         "])",
         [],
-        Array::make(6, malloc_vc()),
+        () => Array::make(6, malloc_vc()),
         afters~,
         chunks=[ready, lookup, partlookup, export_path, dead],
         rws=malloc_extra_rewrites(),

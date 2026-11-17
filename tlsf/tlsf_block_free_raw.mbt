@@ -49,7 +49,7 @@ fn prove_tlsf_block_free_raw() -> Unit raise {
       "tlsf_block_free_release_raw",
       "\{vars}, sl_triple(st(NIL,[l0,\{i("b")},l2],\{own(before)}),tlsf_block_free_release(d,free_idx),st(NIL,[\{i("p")},\{i("u")},l2],\{own(after)}))",
       [],
-      [vc],
+      () => [vc],
       kind="lemma",
     ),
   )
@@ -95,7 +95,7 @@ fn prove_tlsf_block_free_raw() -> Unit raise {
         "tlsf_block_free_publish_\{if nonempty { "cons" } else { "nil" }}_raw",
         "\{env}, \{cond} → sl_triple(st(NIL,[\{i(p)},u,l2],\{own(before)}),tlsf_block_free_publish(d,free_idx),st([\{i("word(0)")}],[\{i(p)},\{i(nx)},\{i(cls)}],\{own(after)}))",
         [],
-        [vc, vc],
+        () => [vc, vc],
         afters=[after1, after2],
         kind="lemma",
       ),
@@ -186,7 +186,7 @@ fn prove_tlsf_block_free_raw() -> Unit raise {
           out +
           ")",
           [],
-          [vc],
+          () => [vc],
           afters=[mid],
           kind="lemma",
         ),

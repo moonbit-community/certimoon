@@ -7,26 +7,28 @@ fn prove_tlsf_block_free_list_members() -> Unit raise {
   let last = lemma(
     "tlsf_small_last_member",
     "∀ xs : \{lw}, !(xs == NIL) → MEM(tlsf_small_last((word(0) : \{w}),xs),xs)",
-    seq([
-      @lists.list_induct_tac,
-      rw([
-        @lists.not_cons_nil(),
-        thm("tlsf_small_last"),
-        @lists.last(),
-        @lists.mem(),
-      ]),
-      @class.cond_cases_tac,
-      arw([@lists.mem()]),
-      @tactics.first_x_assum(th => {
-        if @basics.is_imp(@kernel.concl(th)) {
-          @tactics.mp_tac(th)
-        } else {
-          @tactics.no_tac
-        }
-      }),
-      arw([thm("tlsf_small_last")]),
-      small_meson(ths([])),
-    ]),
+    () => {
+      seq([
+        @lists.list_induct_tac,
+        rw([
+          @lists.not_cons_nil(),
+          thm("tlsf_small_last"),
+          @lists.last(),
+          @lists.mem(),
+        ]),
+        @class.cond_cases_tac,
+        arw([@lists.mem()]),
+        @tactics.first_x_assum(th => {
+          if @basics.is_imp(@kernel.concl(th)) {
+            @tactics.mp_tac(th)
+          } else {
+            @tactics.no_tac
+          }
+        }),
+        arw([thm("tlsf_small_last")]),
+        small_meson(ths([])),
+      ])
+    },
   )
   let _ = last
 }

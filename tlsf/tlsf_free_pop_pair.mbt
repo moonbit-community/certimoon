@@ -105,93 +105,95 @@ fn prove_tlsf_free_pop_pair() -> Unit raise {
         "tlsf_free_pop_next_pair"
       },
       "\{vars}, \{cond} → sl_triple_m(fs,tabs,inst,st([\{i(other)}],(lc0 : List[Value]),\{p}),[Call(pop)],st(NIL,lc0,\{q}),NIL)",
-      seq([
-        gen,
-        strip,
-        @tactics.mp_tac(
-          inst(thm("tlsf_free_pair_facts"), [
-            "(ys : \{lw})",
-            "(zs : \{lw})",
-            m,
-            r,
-            "(word(0) : \{w})",
-            "tlsf_origin((d : \{w}))",
-            "(lim : Num)",
-            "(top : \{w})",
-            hd,
-          ]),
-        ),
-        @tactics.undisch_tac(
-          tm(
-            "tlsf_free_geom((d : \{w}),(lim : Num),(top : \{w}),\{xs},\{hd},\{active})",
+      () => {
+        seq([
+          gen,
+          strip,
+          @tactics.mp_tac(
+            inst(thm("tlsf_free_pair_facts"), [
+              "(ys : \{lw})",
+              "(zs : \{lw})",
+              m,
+              r,
+              "(word(0) : \{w})",
+              "tlsf_origin((d : \{w}))",
+              "(lim : Num)",
+              "(top : \{w})",
+              hd,
+            ]),
           ),
-        ),
-        rw([thm("tlsf_free_geom_facts")]),
-        strip,
-        arw([]),
-        strip,
-        free_have(
-          "16 <= val(tlsf_size(\{h}))",
-          seq([
-            @tactics.undisch_tac(
-              tm("tlsf_block_ok(val(\{other}),(lim : Num),\{other},\{hd})"),
+          @tactics.undisch_tac(
+            tm(
+              "tlsf_free_geom((d : \{w}),(lim : Num),(top : \{w}),\{xs},\{hd},\{active})",
             ),
-            rw([thm("tlsf_block_ok")]),
-            @meson.meson_tac(ths([])),
-          ]),
-        ),
-        seq(
-          [8, 12].map(k => {
-            free_have(
-              field(k),
-              seq([
-                @tactics.match_mp_tac(
-                  inst(thm("tlsf_block_field_address"), [
-                    "val(\{other})",
-                    "(lim : Num)",
-                    other,
-                    hd,
-                    k.to_string(),
-                  ]),
-                ),
-                arw([]),
-                @tactics.conv_tac(@calc_num.num_reduce_conv),
-              ]),
-            )
-          }),
-        ),
-        free_have(
-          show(view),
-          seq([
-            @tactics.match_mp_tac(
-              inst(thm("tlsf_payload_links"), [
-                "val(\{other})+8",
-                "val(tlsf_size(\{h}))",
-              ]),
-            ),
-            @int.asm_arith_tac,
-          ]),
-        ),
-        @tactics.match_mp_tac(thm("sl_conseq_m")),
-        @tactics.exists_tac(rt[3]),
-        @tactics.exists_tac(rt[5]),
-        @tactics.thenl(
-          @tactics.conj_tac,
-          @list.List([
-            ent_tac(rws, []),
-            @tactics.thenl(
-              @tactics.conj_tac,
-              @list.List([
-                seq([@tactics.match_mp_tac(raw), arw([])]),
-                ent_tac(rws, [
-                  "tlsf_prev((us : " + lw + "))",
-                  "tlsf_hd((vs : " + lw + "))",
+          ),
+          rw([thm("tlsf_free_geom_facts")]),
+          strip,
+          arw([]),
+          strip,
+          free_have(
+            "16 <= val(tlsf_size(\{h}))",
+            seq([
+              @tactics.undisch_tac(
+                tm("tlsf_block_ok(val(\{other}),(lim : Num),\{other},\{hd})"),
+              ),
+              rw([thm("tlsf_block_ok")]),
+              @meson.meson_tac(ths([])),
+            ]),
+          ),
+          seq(
+            [8, 12].map(k => {
+              free_have(
+                field(k),
+                seq([
+                  @tactics.match_mp_tac(
+                    inst(thm("tlsf_block_field_address"), [
+                      "val(\{other})",
+                      "(lim : Num)",
+                      other,
+                      hd,
+                      k.to_string(),
+                    ]),
+                  ),
+                  arw([]),
+                  @tactics.conv_tac(@calc_num.num_reduce_conv),
                 ]),
-              ]),
-            ),
-          ]),
-        ),
-      ]),
+              )
+            }),
+          ),
+          free_have(
+            show(view),
+            seq([
+              @tactics.match_mp_tac(
+                inst(thm("tlsf_payload_links"), [
+                  "val(\{other})+8",
+                  "val(tlsf_size(\{h}))",
+                ]),
+              ),
+              @int.asm_arith_tac,
+            ]),
+          ),
+          @tactics.match_mp_tac(thm("sl_conseq_m")),
+          @tactics.exists_tac(rt[3]),
+          @tactics.exists_tac(rt[5]),
+          @tactics.thenl(
+            @tactics.conj_tac,
+            @list.List([
+              ent_tac(rws, []),
+              @tactics.thenl(
+                @tactics.conj_tac,
+                @list.List([
+                  seq([@tactics.match_mp_tac(raw), arw([])]),
+                  ent_tac(rws, [
+                    "tlsf_prev((us : " + lw + "))",
+                    "tlsf_hd((vs : " + lw + "))",
+                  ]),
+                ]),
+              ),
+            ]),
+          ),
+        ])
+      },
     )
   }
 }

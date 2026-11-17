@@ -81,32 +81,34 @@ fn prove_tlsf_block_free_tail_last() -> Unit raise {
   let _ = lemma(
     "tlsf_block_free_tail_last",
     "\{env}, \{page_quantify(vs)}\{block_old_facts(args,p,b)} && \{block_native_hyp()} && \{usage} == 1 → sl_triple_g(G,fs,tabs,inst,rp,\{before},tlsf_block_free_tail(d,free_idx),\{q},labels)",
-    seq([
-      gen,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      block_prepare(args, p, b),
-      free_have(usage + " < " + total, @int.asm_arith_tac),
-      free_have(
-        "tlsf_count(" + p + "," + part + ") == 1",
-        seq([
-          @tactics.undisch_tac(tm(block_lists(args))),
-          rw([thm("tlsf_small_lists_ok")]),
-          small_meson(ths([])),
-        ]),
-      ),
-      free_have(
-        "MEM(" + p + "," + part + ")",
-        seq([rw([thm("tlsf_count_member")]), @int.asm_arith_tac]),
-      ),
-      g => {
-        @tactics.strip_assume_tac(
-          block_under(inst(thm("tlsf_small_member_split"), [p, part]), g),
-        )(g)
-      },
-      @tactics.thenl(
-        @class.asm_cases_tac(tm("(a : " + lw + ") == NIL")),
-        @list.List([seq([subst_vars(), solveZ(false)]), solveZ(true)]),
-      ),
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        block_prepare(args, p, b),
+        free_have(usage + " < " + total, @int.asm_arith_tac),
+        free_have(
+          "tlsf_count(" + p + "," + part + ") == 1",
+          seq([
+            @tactics.undisch_tac(tm(block_lists(args))),
+            rw([thm("tlsf_small_lists_ok")]),
+            small_meson(ths([])),
+          ]),
+        ),
+        free_have(
+          "MEM(" + p + "," + part + ")",
+          seq([rw([thm("tlsf_count_member")]), @int.asm_arith_tac]),
+        ),
+        g => {
+          @tactics.strip_assume_tac(
+            block_under(inst(thm("tlsf_small_member_split"), [p, part]), g),
+          )(g)
+        },
+        @tactics.thenl(
+          @class.asm_cases_tac(tm("(a : " + lw + ") == NIL")),
+          @list.List([seq([subst_vars(), solveZ(false)]), solveZ(true)]),
+        ),
+      ])
+    },
   )
 }

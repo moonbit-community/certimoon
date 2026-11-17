@@ -41,48 +41,50 @@ fn prove_tlsf_ensure_write_full() -> Unit raise {
       "\{vars}, MOD(lim2,65536) == 0 → sl_triple(\{show(bt[0])},tlsf_ensure_" +
       part +
       "_write((d : \{w}),(pop : Num),(push : Num)),\{show(at[2])})",
-      seq([
-        gen,
-        @tactics.disch_tac,
-        rw([thm("tlsf_ensure_" + part + "_write_parts")]),
-        @tactics.match_mp_tac(thm("sl_seq")),
-        @tactics.exists_tac(bt[2]),
-        @tactics.thenl(
-          @tactics.conj_tac,
-          @list.List([
-            @tactics.accept_tac(before),
-            seq([
-              @tactics.subst1_tac(
-                @equal.gsym(
-                  @simp.rewrite_conv(ths([@lists.append()]))(
-                    tm(
-                      "APPEND([Memory_size],tlsf_ensure_" +
-                      part +
-                      "_after_size((d : \{w}),(pop : Num),(push : Num)))",
+      () => {
+        seq([
+          gen,
+          @tactics.disch_tac,
+          rw([thm("tlsf_ensure_" + part + "_write_parts")]),
+          @tactics.match_mp_tac(thm("sl_seq")),
+          @tactics.exists_tac(bt[2]),
+          @tactics.thenl(
+            @tactics.conj_tac,
+            @list.List([
+              @tactics.accept_tac(before),
+              seq([
+                @tactics.subst1_tac(
+                  @equal.gsym(
+                    @simp.rewrite_conv(ths([@lists.append()]))(
+                      tm(
+                        "APPEND([Memory_size],tlsf_ensure_" +
+                        part +
+                        "_after_size((d : \{w}),(pop : Num),(push : Num)))",
+                      ),
                     ),
                   ),
                 ),
-              ),
-              @tactics.match_mp_tac(thm("sl_seq")),
-              @tactics.exists_tac(stp[2]),
-              @tactics.thenl(
-                @tactics.conj_tac,
-                @list.List([
-                  seq([
-                    @tactics.match_mp_tac(sz),
-                    gen,
-                    beta_goal(),
-                    rw(lift_rws()),
-                    strip,
-                    arw([]),
+                @tactics.match_mp_tac(thm("sl_seq")),
+                @tactics.exists_tac(stp[2]),
+                @tactics.thenl(
+                  @tactics.conj_tac,
+                  @list.List([
+                    seq([
+                      @tactics.match_mp_tac(sz),
+                      gen,
+                      beta_goal(),
+                      rw(lift_rws()),
+                      strip,
+                      arw([]),
+                    ]),
+                    seq([@tactics.match_mp_tac(after), arw([])]),
                   ]),
-                  seq([@tactics.match_mp_tac(after), arw([])]),
-                ]),
-              ),
+                ),
+              ]),
             ]),
-          ]),
-        ),
-      ]),
+          ),
+        ])
+      },
     )
   }
 }

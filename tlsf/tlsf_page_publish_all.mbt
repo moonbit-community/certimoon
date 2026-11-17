@@ -139,7 +139,7 @@ fn prove_tlsf_page_publish_all() -> Unit raise {
       free_have(
         "val(" + a[0] + ") <= 4294965088",
         seq([
-          @tactics.match_mp_tac(
+          @logic.match_mp_tac(
             inst(
               thm("tlsf_block_free_large_bound"),
               a +
@@ -295,50 +295,52 @@ fn prove_tlsf_page_publish_all() -> Unit raise {
       "_code(d)," +
       post +
       ")",
-      seq([
-        gen,
-        @tactics.match_mp_tac(thm("sl_conseq")),
-        @tactics.exists_tac(tm(mid)),
-        @tactics.exists_tac(tm(post)),
-        @tactics.thenl(
-          @tactics.conj_tac,
-          @list.List([
-            free_at("publication entry", preEnt),
-            @tactics.thenl(
-              @tactics.conj_tac,
-              @list.List([
-                free_at(
-                  "publication body",
-                  seq([
-                    @tactics.match_mp_tac(thm("sl_ex")),
-                    beta_goal(),
-                    @tactics.x_gen_tac(tm("(i : Num)")),
-                    @tactics.match_mp_tac(thm("sl_pure")),
-                    @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-                    @tactics.match_mp_tac(thm("sl_conseq")),
-                    @tactics.exists_tac(parts[0]),
-                    @tactics.exists_tac(parts[2]),
-                    @tactics.thenl(
-                      @tactics.conj_tac,
-                      @list.List([
-                        same_tac(),
-                        @tactics.thenl(
-                          @tactics.conj_tac,
-                          @list.List([
-                            free_apply(path),
-                            free_at("publication allocator fold", postEnt),
-                          ]),
-                        ),
-                      ]),
-                    ),
-                  ]),
-                ),
-                same_tac(),
-              ]),
-            ),
-          ]),
-        ),
-      ]),
+      () => {
+        seq([
+          gen,
+          @logic.match_mp_tac(thm("sl_conseq")),
+          @tactics.exists_tac(tm(mid)),
+          @tactics.exists_tac(tm(post)),
+          @tactics.thenl(
+            @tactics.conj_tac,
+            @list.List([
+              free_at("publication entry", preEnt),
+              @tactics.thenl(
+                @tactics.conj_tac,
+                @list.List([
+                  free_at(
+                    "publication body",
+                    seq([
+                      @logic.match_mp_tac(thm("sl_ex")),
+                      beta_goal(),
+                      @tactics.x_gen_tac(tm("(i : Num)")),
+                      @logic.match_mp_tac(thm("sl_pure")),
+                      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+                      @logic.match_mp_tac(thm("sl_conseq")),
+                      @tactics.exists_tac(parts[0]),
+                      @tactics.exists_tac(parts[2]),
+                      @tactics.thenl(
+                        @tactics.conj_tac,
+                        @list.List([
+                          same_tac(),
+                          @tactics.thenl(
+                            @tactics.conj_tac,
+                            @list.List([
+                              free_apply(path),
+                              free_at("publication allocator fold", postEnt),
+                            ]),
+                          ),
+                        ]),
+                      ),
+                    ]),
+                  ),
+                  same_tac(),
+                ]),
+              ),
+            ]),
+          ),
+        ])
+      },
     )
     let _ = lemma(
       "tlsf_page_publish_" + tag + "_all",
@@ -351,20 +353,22 @@ fn prove_tlsf_page_publish_all() -> Unit raise {
       "_code(d)," +
       post +
       ",NIL)",
-      seq([
-        gen,
-        @tactics.match_mp_tac(thm("sl_triple_m_of")),
-        @tactics.thenl(
-          @tactics.conj_tac,
-          @list.List([
-            call_free_tac(),
-            seq([
-              @tactics.match_mp_tac(thm("sl_triple_l_of")),
-              @tactics.match_accept_tac(ordinary),
+      () => {
+        seq([
+          gen,
+          @logic.match_mp_tac(thm("sl_triple_m_of")),
+          @tactics.thenl(
+            @tactics.conj_tac,
+            @list.List([
+              call_free_tac(),
+              seq([
+                @logic.match_mp_tac(thm("sl_triple_l_of")),
+                @tactics.match_accept_tac(ordinary),
+              ]),
             ]),
-          ]),
-        ),
-      ]),
+          ),
+        ])
+      },
     )
   }
 }

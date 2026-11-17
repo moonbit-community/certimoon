@@ -22,48 +22,50 @@ fn prove_tlsf_block_free_words() -> Unit raise {
   let _ = lemma(
     "tlsf_small_words6",
     "∀ a : Num, ∀ len : Num, 24 <= len → tlsf_bytes(a,len) == ((h : \{heap}) => \{ghosts}\{own}(h))",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      seq(
-        Array::makei(n, j => {
-          free_have(
-            if j == 0 {
-              "4 <= (len : Num)"
-            } else {
-              "4 <= (len : Num)-\{4*j}"
-            },
-            @int.asm_arith_tac,
-          )
-        }),
-      ),
-      seq(
-        steps.map(th => {
-          seq([
-            rw([
-              @bool.mp(
-                th,
-                @kernel.assume_rule(@basics.dest_imp(@kernel.concl(th)).0),
-              ),
-            ]),
-            rw([
-              @arith.add_clauses(),
-              arith("∀ a : Num, ∀ n : Num, ∀ m : Num, a+n+m == a+(n+m)"),
-              arith("∀ a : Num, ∀ n : Num, ∀ m : Num, a-n-m == a-(n+m)"),
-            ]),
-            @tactics.conv_tac(@calc_num.num_reduce_conv),
-          ])
-        }),
-      ),
-      rw(
-        [
-          @arith.add_clauses(),
-          arith("∀ a : Num, ∀ n : Num, ∀ m : Num, a+n+m == a+(n+m)"),
-          arith("∀ a : Num, ∀ n : Num, ∀ m : Num, a-n-m == a-(n+m)"),
-        ] +
-        lift_rws(),
-      ),
-      @tactics.conv_tac(@calc_num.num_reduce_conv),
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        seq(
+          Array::makei(n, j => {
+            free_have(
+              if j == 0 {
+                "4 <= (len : Num)"
+              } else {
+                "4 <= (len : Num)-\{4*j}"
+              },
+              @int.asm_arith_tac,
+            )
+          }),
+        ),
+        seq(
+          steps.map(th => {
+            seq([
+              rw([
+                @bool.mp(
+                  th,
+                  @kernel.assume_rule(@basics.dest_imp(@kernel.concl(th)).0),
+                ),
+              ]),
+              rw([
+                @arith.add_clauses(),
+                arith("∀ a : Num, ∀ n : Num, ∀ m : Num, a+n+m == a+(n+m)"),
+                arith("∀ a : Num, ∀ n : Num, ∀ m : Num, a-n-m == a-(n+m)"),
+              ]),
+              @tactics.conv_tac(@calc_num.num_reduce_conv),
+            ])
+          }),
+        ),
+        rw(
+          [
+            @arith.add_clauses(),
+            arith("∀ a : Num, ∀ n : Num, ∀ m : Num, a+n+m == a+(n+m)"),
+            arith("∀ a : Num, ∀ n : Num, ∀ m : Num, a-n-m == a-(n+m)"),
+          ] +
+          lift_rws(),
+        ),
+        @tactics.conv_tac(@calc_num.num_reduce_conv),
+      ])
+    },
   )
 }

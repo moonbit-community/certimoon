@@ -81,41 +81,43 @@ fn prove_tlsf_malloc_fast_prefix() -> Unit raise {
     "," +
     post +
     ",NIL)",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      initialize_m_conseq(
-        source,
-        same_tac(),
-        seq([
-          @tactics.repeat_tac(@tactics.gen_tac),
-          beta_goal(),
-          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-          subst_vars(),
-          seq(
-            ["out0", "out1", "out2", "out3", "out4"].map(x => {
-              @tactics.exists_tac(tm("(" + x + " : Value)"))
-            }),
-          ),
-          @simp.asm_rewrite_tac(ths([])),
-          free_apply(
-            inst(
-              thm("tlsf_malloc_try_available"),
-              a +
-              [
-                n,
-                "(before : " + heap + ")",
-                "(fp : " + rty + ")",
-                "(vs : List[Value])",
-                "(gs : List[Value])",
-                "(ms : Num)",
-                "(h : " + heap + ")",
-              ],
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        initialize_m_conseq(
+          source,
+          same_tac(),
+          seq([
+            @tactics.repeat_tac(@tactics.gen_tac),
+            beta_goal(),
+            @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+            subst_vars(),
+            seq(
+              ["out0", "out1", "out2", "out3", "out4"].map(x => {
+                @tactics.exists_tac(tm("(" + x + " : Value)"))
+              }),
             ),
-          ),
-        ]),
-      ),
-    ]),
+            @simp.asm_rewrite_tac(ths([])),
+            free_apply(
+              inst(
+                thm("tlsf_malloc_try_available"),
+                a +
+                [
+                  n,
+                  "(before : " + heap + ")",
+                  "(fp : " + rty + ")",
+                  "(vs : List[Value])",
+                  "(gs : List[Value])",
+                  "(ms : Num)",
+                  "(h : " + heap + ")",
+                ],
+              ),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_malloc_fast_prefix_g",
@@ -134,11 +136,13 @@ fn prove_tlsf_malloc_fast_prefix() -> Unit raise {
     ",(labels : List[" +
     sassn +
     "]))",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      free_lift(inst(closed, vars.map(x => "(" + x.0 + " : " + x.1 + ")"))),
-    ]),
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        free_lift(inst(closed, vars.map(x => "(" + x.0 + " : " + x.1 + ")"))),
+      ])
+    },
   )
 }
 
@@ -204,7 +208,7 @@ fn prove_tlsf_full_malloc_fast_body() -> Unit raise {
     q +
     "])",
     [],
-    Array::make(15, malloc_vc(extra=[thm("tlsf_full_malloc_post")])),
+    () => Array::make(15, malloc_vc(extra=[thm("tlsf_full_malloc_post")])),
     afters~,
     chunks=[inst(thm("tlsf_malloc_fast_prefix_g"), args)],
     rws=[thm("tlsf_full_malloc_post")] + malloc_extra_rewrites(),
@@ -258,38 +262,40 @@ fn prove_tlsf_full_malloc_fast_body() -> Unit raise {
     ",[" +
     q +
     "])",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      @tactics.match_mp_tac(thm("sl_conseq_g")),
-      @tactics.exists_tac(tm(p)),
-      @tactics.exists_tac(tm(q)),
-      @tactics.exists_tac(tm("[" + q + "]")),
-      @tactics.repeat_tac(@tactics.conj_tac),
-      @tactics.first(
-        @list.List([
-          solve(
-            ent_tac(
-              [
-                thm("tlsf_full_malloc_fast_pre"),
-                thm("tlsf_try_malloc_pre"),
-                thm("tlsf_malloc_ro"),
-                @lists.append(),
-              ],
-              [],
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        @logic.match_mp_tac(thm("sl_conseq_g")),
+        @tactics.exists_tac(tm(p)),
+        @tactics.exists_tac(tm(q)),
+        @tactics.exists_tac(tm("[" + q + "]")),
+        @tactics.repeat_tac(@tactics.conj_tac),
+        @tactics.first(
+          @list.List([
+            solve(
+              ent_tac(
+                [
+                  thm("tlsf_full_malloc_fast_pre"),
+                  thm("tlsf_try_malloc_pre"),
+                  thm("tlsf_malloc_ro"),
+                  @lists.append(),
+                ],
+                [],
+              ),
             ),
-          ),
-          solve(
-            seq([
-              @tactics.match_mp_tac(thm("sl_pure_g")),
-              @tactics.repeat_tac(@tactics.strip_tac),
-              free_apply(focus),
-            ]),
-          ),
-          solve(same_tac()),
-        ]),
-      ),
-    ]),
+            solve(
+              seq([
+                @logic.match_mp_tac(thm("sl_pure_g")),
+                @tactics.repeat_tac(@tactics.strip_tac),
+                free_apply(focus),
+              ]),
+            ),
+            solve(same_tac()),
+          ]),
+        ),
+      ])
+    },
   )
 }
 

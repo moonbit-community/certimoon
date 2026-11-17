@@ -68,26 +68,28 @@ fn prove_tlsf_malloc_page_shift_call() -> Unit raise {
       ",(labels : List[" +
       sassn +
       "]))",
-      seq([
-        @tactics.repeat_tac(@tactics.gen_tac),
-        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-        g => {
-          @tactics.assume_tac(
-            @simp.rewrite_rule(ths([@words.word_val()]))(
-              block_under(
-                inst(thm("tlsf_malloc_small_shift"), ["val(" + kw + ")"]),
-                g,
+      () => {
+        seq([
+          @tactics.repeat_tac(@tactics.gen_tac),
+          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+          g => {
+            @tactics.assume_tac(
+              @simp.rewrite_rule(ths([@words.word_val()]))(
+                block_under(
+                  inst(thm("tlsf_malloc_small_shift"), ["val(" + kw + ")"]),
+                  g,
+                ),
               ),
-            ),
-          )(g)
-        },
-        g => {
-          seq([
-            @simp.asm_rewrite_tac(ths([])),
-            free_apply(@simp.rewrite_rule(g.0.map(x => x.1))(source)),
-          ])(g)
-        },
-      ]),
+            )(g)
+          },
+          g => {
+            seq([
+              @simp.asm_rewrite_tac(ths([])),
+              free_apply(@simp.rewrite_rule(g.0.map(x => x.1))(source)),
+            ])(g)
+          },
+        ])
+      },
     )
   }
 }

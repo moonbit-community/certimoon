@@ -24,14 +24,16 @@ fn prove_tlsf_block_free_reclaim_all() -> Unit raise {
     ([ba[0], ba[1], "tlsf_small_remove((p : " + w + ")," + ba[2] + ")"] +
     ba[3:].to_owned()).join(",") +
     ")",
-    seq([
-      gen,
-      rw([thm("tlsf_small_backing"), thm("tlsf_small_remove_member")]),
-      strip,
-      gen,
-      strip,
-      small_meson(ths([])),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([thm("tlsf_small_backing"), thm("tlsf_small_remove_member")]),
+        strip,
+        gen,
+        strip,
+        small_meson(ths([])),
+      ])
+    },
   )
   let ft = "(List[Value],List[Value],Num,\{heap}) -> Bool"
   let gt = "(Num,\{ft},\{ft}) -> Bool"
@@ -201,86 +203,88 @@ fn prove_tlsf_block_free_reclaim_all() -> Unit raise {
       let _ = lemma(
         "tlsf_block_free_reclaim_" + label + "_all",
         "\{env}, \{vs} \{cond} → sl_triple_g(G,fs,tabs,inst,rp,\{before},tlsf_block_free_reclaim(d,free_idx),\{show(callargs[5])},labels)",
-        seq([
-          gen,
-          strip,
-          @tactics.assume_tac(
-            @simp.rewrite_rule(ths([@lists.append()]))(
-              @kernel.assume_rule(tm(listsRemaining)),
-            ),
-          ),
-          g => {
+        () => {
+          seq([
+            gen,
+            strip,
             @tactics.assume_tac(
-              block_under(
-                inst(
-                  subback,
-                  model.map(v => "(" + v.0 + " : " + v.1 + ")") +
-                  ["(p : " + w + ")"],
+              @simp.rewrite_rule(ths([@lists.append()]))(
+                @kernel.assume_rule(tm(listsRemaining)),
+              ),
+            ),
+            g => {
+              @tactics.assume_tac(
+                block_under(
+                  inst(
+                    subback,
+                    model.map(v => "(" + v.0 + " : " + v.1 + ")") +
+                    ["(p : " + w + ")"],
+                  ),
+                  g,
                 ),
-                g,
-              ),
-            )(g)
-          },
-          free_have(
-            "!MEM((p : \{w}),tlsf_small_remove(p,(ps : \{lw})))",
-            rw([thm("tlsf_small_remove_member")]),
-          ),
-          free_have(
-            "MEM((p : \{w}),(xs : \{lw})) && tlsf_used((hd : (\{w}) -> \{w})(p))",
-            seq([
-              @tactics.undisch_tac(
-                tm("tlsf_small_backing(" + ba.join(",") + ")"),
-              ),
-              rw([thm("tlsf_small_backing")]),
-              small_meson(ths([])),
-            ]),
-          ),
-          rw([thm("tlsf_block_free_reclaim_parts")]),
-          @tactics.match_mp_tac(thm("sl_seq_g")),
-          @tactics.exists_tac(uq),
-          @tactics.thenl(
-            @tactics.conj_tac,
-            @list.List([
-              free_at(
-                "reclaim unlink",
-                free_g_conseq(
-                  unlink,
-                  free_at("reclaim unlink pre", ent_tac([], [])),
-                  same_tac(),
-                ),
-              ),
+              )(g)
+            },
+            free_have(
+              "!MEM((p : \{w}),tlsf_small_remove(p,(ps : \{lw})))",
+              rw([thm("tlsf_small_remove_member")]),
+            ),
+            free_have(
+              "MEM((p : \{w}),(xs : \{lw})) && tlsf_used((hd : (\{w}) -> \{w})(p))",
               seq([
-                @tactics.match_mp_tac(thm("sl_cons_g")),
-                @tactics.exists_tac(callargs[3]),
-                @tactics.thenl(
-                  @tactics.conj_tac,
-                  @list.List([
-                    free_at(
-                      "reclaim arg",
-                      block_g_conseq(
-                        get,
-                        same_tac(),
-                        free_at(
-                          "reclaim arg post",
-                          ent_tac(
-                            [
-                              thm("tlsf_free_pre"),
-                              thm("tlsf_small"),
-                              thm("tlsf_small_remove_member"),
-                              @lists.append(),
-                            ],
-                            [],
+                @tactics.undisch_tac(
+                  tm("tlsf_small_backing(" + ba.join(",") + ")"),
+                ),
+                rw([thm("tlsf_small_backing")]),
+                small_meson(ths([])),
+              ]),
+            ),
+            rw([thm("tlsf_block_free_reclaim_parts")]),
+            @tactics.match_mp_tac(thm("sl_seq_g")),
+            @tactics.exists_tac(uq),
+            @tactics.thenl(
+              @tactics.conj_tac,
+              @list.List([
+                free_at(
+                  "reclaim unlink",
+                  free_g_conseq(
+                    unlink,
+                    free_at("reclaim unlink pre", ent_tac([], [])),
+                    same_tac(),
+                  ),
+                ),
+                seq([
+                  @tactics.match_mp_tac(thm("sl_cons_g")),
+                  @tactics.exists_tac(callargs[3]),
+                  @tactics.thenl(
+                    @tactics.conj_tac,
+                    @list.List([
+                      free_at(
+                        "reclaim arg",
+                        block_g_conseq(
+                          get,
+                          same_tac(),
+                          free_at(
+                            "reclaim arg post",
+                            ent_tac(
+                              [
+                                thm("tlsf_free_pre"),
+                                thm("tlsf_small"),
+                                thm("tlsf_small_remove_member"),
+                                @lists.append(),
+                              ],
+                              [],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    free_at("reclaim call", free_lift(returnCall)),
-                  ]),
-                ),
+                      free_at("reclaim call", free_lift(returnCall)),
+                    ]),
+                  ),
+                ]),
               ]),
-            ]),
-          ),
-        ]),
+            ),
+          ])
+        },
       )
     }
   }

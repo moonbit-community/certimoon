@@ -45,32 +45,34 @@ fn prove_tlsf_ensure_saved() -> Unit raise {
   let eq = lemma(
     "tlsf_ensure_ro_saved",
     "\{vars}, \{cond} → \{ro} == tlsf_ensure_saved(\{args},before)",
-    seq([
-      gen,
-      strip,
-      rw([@class.fun_eq_thm()]),
-      gen,
-      rw(
-        [
-          thm("tlsf_ensure_saved"),
-          thm("tlsf_ensure_ro"),
-          thm("tlsf_ensure_frame"),
-          thm("tlsf_large"),
-          thm("tlsf_chain"),
-          thm("tlsf_regions_append"),
-          thm("tlsf_regions"),
-          thm("tlsf_top_cell"),
-          thm("tlsf_base"),
-        ] +
-        lift_rws(),
-      ),
-      arw(lift_rws() + ac),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        rw([@class.fun_eq_thm()]),
+        gen,
+        rw(
+          [
+            thm("tlsf_ensure_saved"),
+            thm("tlsf_ensure_ro"),
+            thm("tlsf_ensure_frame"),
+            thm("tlsf_large"),
+            thm("tlsf_chain"),
+            thm("tlsf_regions_append"),
+            thm("tlsf_regions"),
+            thm("tlsf_top_cell"),
+            thm("tlsf_base"),
+          ] +
+          lift_rws(),
+        ),
+        arw(lift_rws() + ac),
+      ])
+    },
   )
   ignore(eq)
   let _ = lemma(
     "tlsf_star_forget_heap_eq",
     "∀ p : \{hprop}, ∀ q : \{hprop}, ∀ before : \{heap}, ∀ h : \{heap}, star((h0 : \{heap}) => h0 == before && p(h0),q,h) → star(p,q,h)",
-    seq([rw([thm("star")]), @meson.meson_tac(ths([]))]),
+    () => seq([rw([thm("star")]), @meson.meson_tac(ths([]))]),
   )
 }

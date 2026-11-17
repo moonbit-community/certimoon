@@ -93,53 +93,55 @@ fn prove_tlsf_ensure_free_success() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_free_success",
     "\{vars}, \{cond} → sl_triple_m(fs,tabs,inst,\{show(pt[3])},APPEND(\{show(pt[4])},\{show(rt[4])}),\{show(rt[5])},NIL)",
-    seq([
-      gen,
-      strip,
-      have(
-        "tlsf_bins_match(\{xs},tlsf_mark(\{hd},\{m}),\{nbl})",
-        seq([
-          @tactics.match_mp_tac(
-            inst(thm("tlsf_pop_bins_match"), [
-              xs,
-              hd,
-              "(bl : \{bt})",
-              m,
-              "(us : \{lw})",
-              "(bs : \{lw})",
-            ]),
-          ),
-          arw([@lists.mem_append(), @lists.mem()]),
-        ]),
-      ),
-      @tactics.match_mp_tac(thm("sl_seq_m")),
-      @tactics.exists_tac(pt[5]),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          seq([@tactics.match_mp_tac(pop), arw([])]),
+    () => {
+      seq([
+        gen,
+        strip,
+        have(
+          "tlsf_bins_match(\{xs},tlsf_mark(\{hd},\{m}),\{nbl})",
           seq([
-            @tactics.match_mp_tac(thm("sl_conseq_m")),
-            @tactics.exists_tac(rt[3]),
-            @tactics.exists_tac(rt[5]),
-            rw([]),
-            @tactics.repeat_tac(@tactics.conj_tac),
-            @tactics.first(
-              @list.List([
-                solve(
-                  seq([
-                    @tactics.match_mp_tac(resize),
-                    arw([]),
-                    @int.asm_arith_tac,
-                  ]),
-                ),
-                solve(pre),
-                solve(seq([gen, beta_goal(), strip, arw([])])),
+            @tactics.match_mp_tac(
+              inst(thm("tlsf_pop_bins_match"), [
+                xs,
+                hd,
+                "(bl : \{bt})",
+                m,
+                "(us : \{lw})",
+                "(bs : \{lw})",
               ]),
             ),
+            arw([@lists.mem_append(), @lists.mem()]),
           ]),
-        ]),
-      ),
-    ]),
+        ),
+        @tactics.match_mp_tac(thm("sl_seq_m")),
+        @tactics.exists_tac(pt[5]),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            seq([@tactics.match_mp_tac(pop), arw([])]),
+            seq([
+              @tactics.match_mp_tac(thm("sl_conseq_m")),
+              @tactics.exists_tac(rt[3]),
+              @tactics.exists_tac(rt[5]),
+              rw([]),
+              @tactics.repeat_tac(@tactics.conj_tac),
+              @tactics.first(
+                @list.List([
+                  solve(
+                    seq([
+                      @tactics.match_mp_tac(resize),
+                      arw([]),
+                      @int.asm_arith_tac,
+                    ]),
+                  ),
+                  solve(pre),
+                  solve(seq([gen, beta_goal(), strip, arw([])])),
+                ]),
+              ),
+            ]),
+          ]),
+        ),
+      ])
+    },
   )
 }

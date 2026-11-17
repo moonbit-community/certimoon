@@ -56,13 +56,15 @@ fn prove_tlsf_page_allocate_parts() -> Unit raise {
   let _ = lemma(
     "tlsf_page_allocate_parts",
     "∀ take_idx : Num, tlsf_page_allocate_code(take_idx) == APPEND(tlsf_page_allocate_call(take_idx),APPEND(tlsf_page_allocate_guard(take_idx),APPEND(tlsf_page_allocate_begin(take_idx),APPEND(tlsf_page_allocate_loop(take_idx),[Local_get(1)]))))",
-    rw([
-      thm("tlsf_page_allocate_code"),
-      thm("tlsf_page_allocate_call"),
-      thm("tlsf_page_allocate_guard"),
-      thm("tlsf_page_allocate_begin"),
-      thm("tlsf_page_allocate_loop"),
-      @lists.append(),
-    ]),
+    () => {
+      rw([
+        thm("tlsf_page_allocate_code"),
+        thm("tlsf_page_allocate_call"),
+        thm("tlsf_page_allocate_guard"),
+        thm("tlsf_page_allocate_begin"),
+        thm("tlsf_page_allocate_loop"),
+        @lists.append(),
+      ])
+    },
   )
 }

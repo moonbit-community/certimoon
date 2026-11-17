@@ -59,61 +59,63 @@ fn prove_tlsf_free_start() -> Unit raise {
   let _ = lemma(
     "tlsf_free_start",
     "\{vars}, \{cond} → sl_triple_g(G,fs,tabs,inst,rp,\{show(rt[0])},tlsf_free_clear(d,pop,push),\{goal},labels)",
-    seq([
-      gen,
-      strip,
-      @tactics.mp_tac(
-        inst(thm("tlsf_free_begin_model"), [
-          xs,
-          "(m : \{w})",
-          "(d : \{w})",
-          "(lim : Num)",
-          "(top : \{w})",
-          "(hd : \{ht})",
-          "(bl : \{bt})",
-        ]),
-      ),
-      arw([]),
-      strip,
-      @tactics.match_mp_tac(thm("sl_conseq_g")),
-      @tactics.exists_tac(rt[0]),
-      @tactics.exists_tac(rt[2]),
-      @tactics.exists_tac(tm("(labels : List[\{sassn}])")),
-      rw([]),
-      @tactics.repeat_tac(@tactics.conj_tac),
-      @tactics.first(
-        @list.List([
-          solve(same),
-          solve(
-            seq([
-              @tactics.match_mp_tac(thm("sl_triple_g_of")),
-              @tactics.conj_tac,
-              @tactics.first(
-                @list.List([
-                  solve(call_free_tac()),
-                  solve(
-                    seq([
-                      @tactics.match_mp_tac(thm("sl_triple_l_of")),
-                      @tactics.match_mp_tac(raw),
-                      arw([]),
-                    ]),
-                  ),
-                ]),
-              ),
-            ]),
-          ),
-          solve(
-            seq([
-              rw([@class.eta_ax()]),
-              @tactics.match_mp_tac(fold),
-              arw([
-                thm("tlsf_free_release_live"),
-                thm("tlsf_free_release_covers"),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.mp_tac(
+          inst(thm("tlsf_free_begin_model"), [
+            xs,
+            "(m : \{w})",
+            "(d : \{w})",
+            "(lim : Num)",
+            "(top : \{w})",
+            "(hd : \{ht})",
+            "(bl : \{bt})",
+          ]),
+        ),
+        arw([]),
+        strip,
+        @tactics.match_mp_tac(thm("sl_conseq_g")),
+        @tactics.exists_tac(rt[0]),
+        @tactics.exists_tac(rt[2]),
+        @tactics.exists_tac(tm("(labels : List[\{sassn}])")),
+        rw([]),
+        @tactics.repeat_tac(@tactics.conj_tac),
+        @tactics.first(
+          @list.List([
+            solve(same),
+            solve(
+              seq([
+                @tactics.match_mp_tac(thm("sl_triple_g_of")),
+                @tactics.conj_tac,
+                @tactics.first(
+                  @list.List([
+                    solve(call_free_tac()),
+                    solve(
+                      seq([
+                        @tactics.match_mp_tac(thm("sl_triple_l_of")),
+                        @tactics.match_mp_tac(raw),
+                        arw([]),
+                      ]),
+                    ),
+                  ]),
+                ),
               ]),
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+            ),
+            solve(
+              seq([
+                rw([@class.eta_ax()]),
+                @tactics.match_mp_tac(fold),
+                arw([
+                  thm("tlsf_free_release_live"),
+                  thm("tlsf_free_release_covers"),
+                ]),
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
 }

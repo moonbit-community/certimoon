@@ -30,7 +30,7 @@ fn prove_tlsf_take_return() -> Unit raise {
     "tlsf_take_return_raw",
     "\{env}, ∀ l1 : Value, ∀ l2 : Value, ∀ l4 : Value, ∀ l5 : Value, (\{condition}) → sl_triple_g(G, fs, tabs, inst, \{rp}, st(NIL, \{lc}, (R : \{rty})), [Local_get(0), Return], \{falsep}, ls)",
     [],
-    [vc],
+    () => [vc],
     rws=[@lists.el(), @lists.hd(), @lists.tl()],
     kind="lemma",
   )
@@ -68,16 +68,18 @@ fn prove_tlsf_take_return() -> Unit raise {
   let _ = lemma(
     "tlsf_take_return",
     "\{env}, (\{condition}) → sl_triple_g(G, fs, tabs, inst, \{rp}, \{pred}, [Local_get(0), Return], \{falsep}, ls)",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      @tactics.match_mp_tac(thm("sl_conseq_g")),
-      @tactics.exists_tac(tm(expre)),
-      @tactics.exists_tac(tm(falsep)),
-      @tactics.exists_tac(tm("(ls : List[\{sassn}])")),
-      rw([]),
-      @tactics.repeat_tac(@tactics.conj_tac),
-      @tactics.first(@list.List([solve(core), solve(pre), solve(same_tac())])),
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        @tactics.match_mp_tac(thm("sl_conseq_g")),
+        @tactics.exists_tac(tm(expre)),
+        @tactics.exists_tac(tm(falsep)),
+        @tactics.exists_tac(tm("(ls : List[\{sassn}])")),
+        rw([]),
+        @tactics.repeat_tac(@tactics.conj_tac),
+        @tactics.first(@list.List([solve(core), solve(pre), solve(same_tac())])),
+      ])
+    },
   )
 }

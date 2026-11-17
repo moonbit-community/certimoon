@@ -30,14 +30,16 @@ fn prove_tlsf_malloc_attempt_blocks() -> Unit raise {
     ")((res : List[Value]),(gs : List[Value]),(ms : Num),(h : " +
     heap +
     ")) → LENGTH(res) == 1",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @simp.rewrite_tac(ths([thm("tlsf_try_malloc_post")])),
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      subst_vars(),
-      @simp.rewrite_tac(ths([@lists.length()])),
-      @tactics.conv_tac(@calc_num.num_reduce_conv),
-    ]),
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @simp.rewrite_tac(ths([thm("tlsf_try_malloc_post")])),
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        subst_vars(),
+        @simp.rewrite_tac(ths([@lists.length()])),
+        @tactics.conv_tac(@calc_num.num_reduce_conv),
+      ])
+    },
   )
   for v in ["first", "retry"] {
     let q = malloc_attempt_post(v, a, n)
@@ -72,7 +74,7 @@ fn prove_tlsf_malloc_attempt_blocks() -> Unit raise {
       ")(vs,lc,gs,ms,h)) == (" +
       q +
       ")(vs,lc,gs,ms,h)",
-      small_meson(ths([arity])),
+      () => small_meson(ths([arity])),
     )
     let all = lemma(
       "tlsf_malloc_" + v + "_block_g",
@@ -92,21 +94,23 @@ fn prove_tlsf_malloc_attempt_blocks() -> Unit raise {
       "," +
       q +
       ",NIL)",
-      seq([
-        @tactics.repeat_tac(@tactics.gen_tac),
-        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-        @simp.pure_rewrite_tac(ths([thm(head_name(tm(code)))])),
-        @tactics.match_mp_tac(thm("sl_block_st_g")),
-        beta_goal(),
-        @tactics.conv_tac(
-          norm_conv(extra=[@equal.beta_rule(label), thm("tbv_results")]),
-        ),
-        free_apply(
-          @simp.pure_rewrite_rule(ths([thm("tlsf_malloc_" + v + "_body")]))(
-            chunk,
+      () => {
+        seq([
+          @tactics.repeat_tac(@tactics.gen_tac),
+          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+          @simp.pure_rewrite_tac(ths([thm(head_name(tm(code)))])),
+          @logic.match_mp_tac(thm("sl_block_st_g")),
+          beta_goal(),
+          @tactics.conv_tac(
+            norm_conv(extra=[@equal.beta_rule(label), thm("tbv_results")]),
           ),
-        ),
-      ]),
+          free_apply(
+            @simp.pure_rewrite_rule(ths([thm("tlsf_malloc_" + v + "_body")]))(
+              chunk,
+            ),
+          ),
+        ])
+      },
     )
     let vars = malloc_case_variables().filter(x => {
       x.0 != "G" && x.0 != "rp" && x.0 != "labels"
@@ -141,22 +145,24 @@ fn prove_tlsf_malloc_attempt_blocks() -> Unit raise {
       "," +
       q +
       ",NIL)",
-      seq([
-        @tactics.repeat_tac(@tactics.gen_tac),
-        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-        @tactics.match_mp_tac(thm("sl_triple_m_of_g")),
-        @tactics.exists_tac(tm(falseg)),
-        @tactics.thenl(
-          @tactics.conj_tac,
-          @list.List([
-            seq([
-              @simp.rewrite_tac(ths([thm("specs_ok")])),
-              @meson.meson_tac(ths([])),
+      () => {
+        seq([
+          @tactics.repeat_tac(@tactics.gen_tac),
+          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+          @logic.match_mp_tac(thm("sl_triple_m_of_g")),
+          @tactics.exists_tac(tm(falseg)),
+          @tactics.thenl(
+            @tactics.conj_tac,
+            @list.List([
+              seq([
+                @simp.rewrite_tac(ths([thm("specs_ok")])),
+                @meson.meson_tac(ths([])),
+              ]),
+              free_apply(inst(all, instargs)),
             ]),
-            free_apply(inst(all, instargs)),
-          ]),
-        ),
-      ]),
+          ),
+        ])
+      },
     )
   }
   let _ = gvars

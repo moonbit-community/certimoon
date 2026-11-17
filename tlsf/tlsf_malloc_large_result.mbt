@@ -85,117 +85,122 @@ fn prove_tlsf_malloc_large_result() -> Unit raise {
     "," +
     h +
     ")",
-    seq([
-      gen,
-      strip,
-      free_have(
-        "tlsf_layout(word(0),tlsf_origin(" +
-        a[0] +
-        ")," +
-        a[1] +
-        "," +
-        a[2] +
-        "," +
-        a[3] +
-        "," +
-        a[4] +
-        ") && " +
-        a[1] +
-        " <= 4294967296",
-        seq([
-          @tactics.undisch_tac(tm(physical)),
-          rw([thm("tlsf_physical_ok")]),
-          page_publish_atomic([]),
-        ]),
-      ),
-      split_conjs(),
-      g => {
-        @tactics.assume_tac(
-          block_under(
-            inst(thm("tlsf_layout_members"), [
-              a[3],
-              "(word(0) : " + w + ")",
-              "tlsf_origin(" + a[0] + ")",
-              a[1],
-              a[2],
-              a[4],
-              m,
-            ]),
-            g,
-          ),
-        )(g)
-      },
-      free_have(
-        "val(" + m + ")+8+" + cap + " <= " + a[1] + " && 16 <= " + cap,
-        seq([
-          @tactics.undisch_tac(
-            tm(
-              "tlsf_block_ok(val(" +
-              m +
-              ")," +
-              a[1] +
-              "," +
-              m +
-              "," +
-              a[4] +
-              ")",
-            ),
-          ),
-          rw([thm("tlsf_block_ok")]),
-          page_publish_atomic([]),
-        ]),
-      ),
-      split_conjs(),
-      free_have(
-        "val(" + ptr + ") == val(" + m + ")+8",
-        seq([@tactics.match_mp_tac(thm("val_add_small")), @int.asm_arith_tac]),
-      ),
-      free_have(
-        "!(" + ptr + " == word(0)) && !(" + ptr + " == word(4294967295))",
-        seq([
-          rw([
-            @equal.gsym(@words.val_eq()),
-            @words.val_word(),
-            @words.dimindex_32(),
+    () => {
+      seq([
+        gen,
+        strip,
+        free_have(
+          "tlsf_layout(word(0),tlsf_origin(" +
+          a[0] +
+          ")," +
+          a[1] +
+          "," +
+          a[2] +
+          "," +
+          a[3] +
+          "," +
+          a[4] +
+          ") && " +
+          a[1] +
+          " <= 4294967296",
+          seq([
+            @tactics.undisch_tac(tm(physical)),
+            rw([thm("tlsf_physical_ok")]),
+            page_publish_atomic([]),
           ]),
-          @tactics.conv_tac(@calc_num.num_reduce_conv),
-          arw([]),
-          @int.asm_arith_tac,
-        ]),
-      ),
-      split_conjs(),
-      rw([thm("tlsf_malloc_result")]),
-      beta_goal(),
-      seq(
-        page_model_variables()[2:]
-        .to_owned()
-        .map(x => @tactics.exists_tac(tm("(" + x.0 + " : " + x.1 + ")"))),
-      ),
-      @tactics.exists_tac(tm(cap)),
-      arw(malloc_ac()),
-      @tactics.repeat_tac(@tactics.conj_tac),
-      @tactics.first(
-        @list.List([
-          solve(
-            seq([
-              rw([thm("tlsf_malloc_owned")]),
-              @tactics.disj1_tac,
-              @tactics.exists_tac(tm(m)),
-              arw([]),
+        ),
+        split_conjs(),
+        g => {
+          @tactics.assume_tac(
+            block_under(
+              inst(thm("tlsf_layout_members"), [
+                a[3],
+                "(word(0) : " + w + ")",
+                "tlsf_origin(" + a[0] + ")",
+                a[1],
+                a[2],
+                a[4],
+                m,
+              ]),
+              g,
+            ),
+          )(g)
+        },
+        free_have(
+          "val(" + m + ")+8+" + cap + " <= " + a[1] + " && 16 <= " + cap,
+          seq([
+            @tactics.undisch_tac(
+              tm(
+                "tlsf_block_ok(val(" +
+                m +
+                ")," +
+                a[1] +
+                "," +
+                m +
+                "," +
+                a[4] +
+                ")",
+              ),
+            ),
+            rw([thm("tlsf_block_ok")]),
+            page_publish_atomic([]),
+          ]),
+        ),
+        split_conjs(),
+        free_have(
+          "val(" + ptr + ") == val(" + m + ")+8",
+          seq([@logic.match_mp_tac(thm("val_add_small")), @int.asm_arith_tac]),
+        ),
+        free_have(
+          "!(" + ptr + " == word(0)) && !(" + ptr + " == word(4294967295))",
+          seq([
+            rw([
+              @equal.gsym(@words.val_eq()),
+              @words.val_word(),
+              @words.dimindex_32(),
             ]),
-          ),
-          solve(
-            @tactics.first_assum(th => {
-              if head_name(@kernel.concl(th)) == "star" {
-                seq([@tactics.undisch_tac(@kernel.concl(th)), arw(malloc_ac())])
-              } else {
-                @tactics.no_tac
-              }
-            }),
-          ),
-          solve(@int.asm_arith_tac),
-        ]),
-      ),
-    ]),
+            @tactics.conv_tac(@calc_num.num_reduce_conv),
+            arw([]),
+            @int.asm_arith_tac,
+          ]),
+        ),
+        split_conjs(),
+        rw([thm("tlsf_malloc_result")]),
+        beta_goal(),
+        seq(
+          page_model_variables()[2:]
+          .to_owned()
+          .map(x => @tactics.exists_tac(tm("(" + x.0 + " : " + x.1 + ")"))),
+        ),
+        @tactics.exists_tac(tm(cap)),
+        arw(malloc_ac()),
+        @tactics.repeat_tac(@tactics.conj_tac),
+        @tactics.first(
+          @list.List([
+            solve(
+              seq([
+                rw([thm("tlsf_malloc_owned")]),
+                @tactics.disj1_tac,
+                @tactics.exists_tac(tm(m)),
+                arw([]),
+              ]),
+            ),
+            solve(
+              @tactics.first_assum(th => {
+                if head_name(@kernel.concl(th)) == "star" {
+                  seq([
+                    @tactics.undisch_tac(@kernel.concl(th)),
+                    arw(malloc_ac()),
+                  ])
+                } else {
+                  @tactics.no_tac
+                }
+              }),
+            ),
+            solve(@int.asm_arith_tac),
+          ]),
+        ),
+      ])
+    },
   )
 }

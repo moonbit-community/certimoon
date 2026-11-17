@@ -31,46 +31,52 @@ fn prove_tlsf_initialize_body() -> Unit raise {
   let _ = lemma(
     "tlsf_initialize_body_saved",
     "\{vars}, tlsf_initialize_valid(d,lim) && \{native} → sl_abort_m(\{env},st(NIL,[\{z},\{z},\{z}],\{saved}),tlsf_initialize_code(d,push),\{body_post(post)},\{abortp})",
-    seq([
-      gen,
-      strip,
-      rw([thm("tlsf_initialize_parts")]),
-      @tactics.match_mp_tac(thm("sl_abort_seq_m")),
-      @tactics.exists_tac(tm("st(NIL,\{lc1},\{saved})")),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          initialize_abort_conseq(arithmetic, same_tac(), same_tac()),
-          seq([
-            @tactics.match_mp_tac(thm("sl_abort_seq_m")),
-            @tactics.exists_tac(tm("st(NIL,\{lc2},\{saved})")),
-            @tactics.thenl(
-              @tactics.conj_tac,
-              @list.List([
-                @tactics.match_accept_tac(thm("tlsf_initialize_check_saved")),
-                seq([
-                  @tactics.match_mp_tac(thm("sl_abort_seq_m")),
-                  @tactics.exists_tac(tm("st(NIL,\{lc2},\{fresh})")),
-                  @tactics.thenl(
-                    @tactics.conj_tac,
-                    @list.List([
-                      seq([
-                        @tactics.match_mp_tac(thm("tlsf_initialize_grow_saved")),
-                        arw([]),
+    () => {
+      seq([
+        gen,
+        strip,
+        rw([thm("tlsf_initialize_parts")]),
+        @tactics.match_mp_tac(thm("sl_abort_seq_m")),
+        @tactics.exists_tac(tm("st(NIL,\{lc1},\{saved})")),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            initialize_abort_conseq(arithmetic, same_tac(), same_tac()),
+            seq([
+              @tactics.match_mp_tac(thm("sl_abort_seq_m")),
+              @tactics.exists_tac(tm("st(NIL,\{lc2},\{saved})")),
+              @tactics.thenl(
+                @tactics.conj_tac,
+                @list.List([
+                  @tactics.match_accept_tac(thm("tlsf_initialize_check_saved")),
+                  seq([
+                    @tactics.match_mp_tac(thm("sl_abort_seq_m")),
+                    @tactics.exists_tac(tm("st(NIL,\{lc2},\{fresh})")),
+                    @tactics.thenl(
+                      @tactics.conj_tac,
+                      @list.List([
+                        seq([
+                          @tactics.match_mp_tac(
+                            thm("tlsf_initialize_grow_saved"),
+                          ),
+                          arw([]),
+                        ]),
+                        seq([
+                          @tactics.match_mp_tac(
+                            thm("tlsf_initialize_tail_fresh"),
+                          ),
+                          arw([]),
+                        ]),
                       ]),
-                      seq([
-                        @tactics.match_mp_tac(thm("tlsf_initialize_tail_fresh")),
-                        arw([]),
-                      ]),
-                    ]),
-                  ),
+                    ),
+                  ]),
                 ]),
-              ]),
-            ),
+              ),
+            ]),
           ]),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
   let path = inst(
     thm("tlsf_initialize_body_saved"),
@@ -79,22 +85,24 @@ fn prove_tlsf_initialize_body() -> Unit raise {
   let _ = lemma(
     "tlsf_initialize_body",
     "\{vars}, tlsf_initialize_valid(d,lim) && \{native} → sl_abort_m(\{env},st(NIL,[\{z},\{z},\{z}],(gs : List[Value]) => (ms : Num) => (h : \{heap}) => \{pre}(NIL,gs,ms,h)),tlsf_initialize_code(d,push),\{body_post(post)},\{abortp})",
-    seq([
-      gen,
-      strip,
-      initialize_abort_conseq(
-        path,
-        seq([
-          gen,
-          rw([
-            thm("st"),
-            thm("tlsf_initialize_pre"),
-            thm("tlsf_initialize_saved"),
+    () => {
+      seq([
+        gen,
+        strip,
+        initialize_abort_conseq(
+          path,
+          seq([
+            gen,
+            rw([
+              thm("st"),
+              thm("tlsf_initialize_pre"),
+              thm("tlsf_initialize_saved"),
+            ]),
+            @meson.asm_meson_tac(ths([])),
           ]),
-          @meson.asm_meson_tac(ths([])),
-        ]),
-        same_tac(),
-      ),
-    ]),
+          same_tac(),
+        ),
+      ])
+    },
   )
 }

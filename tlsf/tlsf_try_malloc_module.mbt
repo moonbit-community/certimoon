@@ -64,14 +64,16 @@ fn malloc_close_entry(which : String, locals : Int32) -> Unit raise {
     "," +
     q +
     ")",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @simp.rewrite_tac(ths([thm(prefix + "_spec")])),
-      seq(
-        exvars.map(x => @tactics.exists_tac(tm("(" + x.0 + " : " + x.1 + ")"))),
-      ),
-      @simp.rewrite_tac(ths([])),
-    ]),
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @simp.rewrite_tac(ths([thm(prefix + "_spec")])),
+        seq(
+          exvars.map(x => @tactics.exists_tac(tm("(" + x.0 + " : " + x.1 + ")"))),
+        ),
+        @simp.rewrite_tac(ths([])),
+      ])
+    },
   )
   let ts = "[" + Array::make(locals, "T_num(T_i32)").join(",") + "]"
   let zs = "[" + Array::make(locals, malloc_i("word(0)")).join(",") + "]"
@@ -99,82 +101,84 @@ fn malloc_close_entry(which : String, locals : Int32) -> Unit raise {
     " → (∀ k : Num, specs_ok(k," +
     spec +
     ",(fs : List[Cl]),(tabs : List[(Tab_t,List[V_ref])]),(inst : Inst)))",
-    seq([
-      gen,
-      strip,
-      @tactics.match_mp_tac(thm("sl_funs_g")),
-      gen,
-      @simp.rewrite_tac(ths([thm(prefix + "_spec")])),
-      strip,
-      subst_vars(),
-      seq(
-        ["[T_num(T_i32)]", "[T_num(T_i32)]", ts, code, zs].map(x => {
-          @tactics.exists_tac(tm(x))
-        }),
-      ),
-      @tactics.repeat_tac(@tactics.conj_tac),
-      @tactics.first(
-        @list.List([
-          solve(@simp.asm_rewrite_tac(ths([]))),
-          solve(
-            @simp.rewrite_tac(
-              ths([
-                @wasm.thm("n_zeros"),
-                @wasm.thm("bitzero"),
-                @wasm.thm("bitzero_num"),
-                @wasm.thm("map_option"),
-                @lists.map(),
-                @wasm.thm("those"),
-              ]),
-            ),
-          ),
-          solve(
-            seq([
-              gen,
-              free_apply(
-                inst(
-                  thm(prefix + "_body"),
-                  [spec] +
-                  malloc_entry_variables().map(x => {
-                    "(" + x.0 + " : " + x.1 + ")"
-                  }) +
-                  model.map(x => "(" + x.0 + " : " + x.1 + ")") +
-                  ["(args : List[Value])"],
-                ),
-              ),
-            ]),
-          ),
-          solve(
-            seq([
-              gen,
+    () => {
+      seq([
+        gen,
+        strip,
+        @logic.match_mp_tac(thm("sl_funs_g")),
+        gen,
+        @simp.rewrite_tac(ths([thm(prefix + "_spec")])),
+        strip,
+        subst_vars(),
+        seq(
+          ["[T_num(T_i32)]", "[T_num(T_i32)]", ts, code, zs].map(x => {
+            @tactics.exists_tac(tm(x))
+          }),
+        ),
+        @tactics.repeat_tac(@tactics.conj_tac),
+        @tactics.first(
+          @list.List([
+            solve(@simp.asm_rewrite_tac(ths([]))),
+            solve(
               @simp.rewrite_tac(
                 ths([
-                  thm(
-                    if which == "try" {
-                      "tlsf_try_malloc_pre"
-                    } else {
-                      "tlsf_full_malloc_fast_pre"
-                    },
-                  ),
-                  thm("tlsf_try_malloc_pre"),
-                  thm(
-                    if which == "try" {
-                      "tlsf_try_malloc_post"
-                    } else {
-                      "tlsf_full_malloc_post"
-                    },
-                  ),
+                  @wasm.thm("n_zeros"),
+                  @wasm.thm("bitzero"),
+                  @wasm.thm("bitzero_num"),
+                  @wasm.thm("map_option"),
+                  @lists.map(),
+                  @wasm.thm("those"),
                 ]),
               ),
-              @tactics.repeat_tac(@tactics.strip_tac),
-              subst_vars(),
-              @simp.rewrite_tac(ths([@lists.length()])),
-              @tactics.try_tac(@tactics.conv_tac(@calc_num.num_reduce_conv)),
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+            ),
+            solve(
+              seq([
+                gen,
+                free_apply(
+                  inst(
+                    thm(prefix + "_body"),
+                    [spec] +
+                    malloc_entry_variables().map(x => {
+                      "(" + x.0 + " : " + x.1 + ")"
+                    }) +
+                    model.map(x => "(" + x.0 + " : " + x.1 + ")") +
+                    ["(args : List[Value])"],
+                  ),
+                ),
+              ]),
+            ),
+            solve(
+              seq([
+                gen,
+                @simp.rewrite_tac(
+                  ths([
+                    thm(
+                      if which == "try" {
+                        "tlsf_try_malloc_pre"
+                      } else {
+                        "tlsf_full_malloc_fast_pre"
+                      },
+                    ),
+                    thm("tlsf_try_malloc_pre"),
+                    thm(
+                      if which == "try" {
+                        "tlsf_try_malloc_post"
+                      } else {
+                        "tlsf_full_malloc_post"
+                      },
+                    ),
+                  ]),
+                ),
+                @tactics.repeat_tac(@tactics.strip_tac),
+                subst_vars(),
+                @simp.rewrite_tac(ths([@lists.length()])),
+                @tactics.try_tac(@tactics.conv_tac(@calc_num.num_reduce_conv)),
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
   let cp = call_pre(p, "(vs0 : List[Value])", "(lc0 : List[Value])")
   let cq = call_post(q, "(vs0 : List[Value])", "(lc0 : List[Value])")
@@ -191,26 +195,28 @@ fn malloc_close_entry(which : String, locals : Int32) -> Unit raise {
     ")]," +
     cq +
     ",NIL)",
-    seq([
-      gen,
-      strip,
-      @tactics.match_mp_tac(thm("sl_triple_m_of_g")),
-      @tactics.exists_tac(tm(spec)),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          free_apply(
-            inst(specs, envvars.map(x => "(" + x.0 + " : " + x.1 + ")")),
-          ),
-          seq([
-            @tactics.match_mp_tac(thm("sl_call_g")),
-            @simp.rewrite_tac(ths([@class.eta_ax()])),
-            @tactics.match_accept_tac(
-              @simp.rewrite_rule(ths([@class.eta_ax()]))(call),
+    () => {
+      seq([
+        gen,
+        strip,
+        @logic.match_mp_tac(thm("sl_triple_m_of_g")),
+        @tactics.exists_tac(tm(spec)),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            free_apply(
+              inst(specs, envvars.map(x => "(" + x.0 + " : " + x.1 + ")")),
             ),
+            seq([
+              @logic.match_mp_tac(thm("sl_call_g")),
+              @simp.rewrite_tac(ths([@class.eta_ax()])),
+              @tactics.match_accept_tac(
+                @simp.rewrite_rule(ths([@class.eta_ax()]))(call),
+              ),
+            ]),
           ]),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
 }

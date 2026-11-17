@@ -98,55 +98,57 @@ fn prove_tlsf_malloc_head() -> Unit raise {
     "]),lc," +
     r +
     "))",
-    seq([
-      gen,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      @tactics.match_mp_tac(
-        inst(thm("st_load_read"), [
-          "(v : List[Value])", "(lc : List[Value])", r, addr, b, "2", "0",
-        ]),
-      ),
-      free_have(
-        "val(" + addr + ") == val(" + p + ")+20",
-        seq([
-          @tactics.match_mp_tac(thm("val_add_small")),
-          @tactics.undisch_tac(tm(ready)),
-          rw([thm("tlsf_small_page_ok")]),
-          @tactics.repeat_tac(@tactics.strip_tac),
-          @int.asm_arith_tac,
-        ]),
-      ),
-      g => {
-        let view = block_under(
-          inst(thm("tlsf_page_publish_fresh_view"), [
-            a[1],
-            p,
-            cap,
-            s,
-            b,
-            bs,
-            "(i : Num)",
-            used,
-            prev,
+    () => {
+      seq([
+        gen,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        @logic.match_mp_tac(
+          inst(thm("st_load_read"), [
+            "(v : List[Value])", "(lc : List[Value])", r, addr, b, "2", "0",
           ]),
-          g,
-        )
-        let factors = malloc_star_factors(@equal.rhs(@kernel.concl(view)))
-        let rest = (factors[:2].to_owned() + factors[3:].to_owned()).map(show)
-        let frame = small_star(
-          rest +
-          [
-            "tlsf_allocator(" + a.join(",") + ")",
-            "(" + fp + ")((gs : List[Value]),(ms : Num))",
-          ],
-        )
-        ent_tac(
-          [thm("has_i32"), view, @arith.add_clauses()] +
-          g.0.to_array().map(x => x.1),
-          [frame],
-        )(g)
-      },
-    ]),
+        ),
+        free_have(
+          "val(" + addr + ") == val(" + p + ")+20",
+          seq([
+            @logic.match_mp_tac(thm("val_add_small")),
+            @tactics.undisch_tac(tm(ready)),
+            rw([thm("tlsf_small_page_ok")]),
+            @tactics.repeat_tac(@tactics.strip_tac),
+            @int.asm_arith_tac,
+          ]),
+        ),
+        g => {
+          let view = block_under(
+            inst(thm("tlsf_page_publish_fresh_view"), [
+              a[1],
+              p,
+              cap,
+              s,
+              b,
+              bs,
+              "(i : Num)",
+              used,
+              prev,
+            ]),
+            g,
+          )
+          let factors = malloc_star_factors(@equal.rhs(@kernel.concl(view)))
+          let rest = (factors[:2].to_owned() + factors[3:].to_owned()).map(show)
+          let frame = small_star(
+            rest +
+            [
+              "tlsf_allocator(" + a.join(",") + ")",
+              "(" + fp + ")((gs : List[Value]),(ms : Num))",
+            ],
+          )
+          ent_tac(
+            [thm("has_i32"), view, @arith.add_clauses()] +
+            g.0.to_array().map(x => x.1),
+            [frame],
+          )(g)
+        },
+      ])
+    },
   )
   let chunk = @simp.rewrite_rule(ths([@lists.append()]))(
     @bool.spec(
@@ -190,7 +192,7 @@ fn prove_tlsf_malloc_head() -> Unit raise {
         r +
         "))",
         [],
-        [same],
+        () => [same],
         chunks=[chunk],
         kind="lemma",
       ),

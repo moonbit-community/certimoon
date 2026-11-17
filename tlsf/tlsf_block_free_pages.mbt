@@ -17,40 +17,46 @@ fn prove_tlsf_block_free_pages() -> Unit raise {
   let hlist = lemma(
     "tlsf_small_pages_hlist",
     "\{vs}, tlsf_small_pages_heap(\{args}) == tlsf_small_hlist((\{page}),ps)",
-    seq([
-      @lists.list_induct_tac,
-      rw([thm("tlsf_small_pages_heap"), thm("tlsf_small_hlist")]),
-      gen,
-      arw([]),
-    ]),
+    () => {
+      seq([
+        @lists.list_induct_tac,
+        rw([thm("tlsf_small_pages_heap"), thm("tlsf_small_hlist")]),
+        gen,
+        arw([]),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_small_pages_focus",
     "\{vs}, ∀ p : \{w}, tlsf_count(p,ps) == 1 → tlsf_small_pages_heap(\{args}) == star(tlsf_small_page_heap(p,val(tlsf_size(hd(p))),sz(p),loc(p),cached(p),live(p)),tlsf_small_pages_heap(tlsf_small_remove(p,ps),hd,sz,loc,cached,live))",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      rw([hlist]),
-      @tactics.match_mp_tac(thm("tlsf_small_hlist_focus")),
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        rw([hlist]),
+        @tactics.match_mp_tac(thm("tlsf_small_hlist_focus")),
+        arw([]),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_small_pages_release_rest",
     "\{vs}, ∀ p : \{w}, ∀ b : \{w}, tlsf_small_pages_heap(tlsf_small_remove(p,ps),hd,sz,tlsf_block_free_loc(loc,p,b),cached,tlsf_block_free_live(live,p,b)) == tlsf_small_pages_heap(tlsf_small_remove(p,ps),hd,sz,loc,cached,live)",
-    seq([
-      gen,
-      rw([hlist]),
-      @tactics.match_mp_tac(thm("tlsf_small_hlist_cong")),
-      gen,
-      rw([
-        thm("tlsf_small_remove_member"),
-        thm("tlsf_block_free_loc"),
-        thm("tlsf_block_free_live"),
-        thm("tlsf_small_put"),
-      ]),
-      strip,
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([hlist]),
+        @tactics.match_mp_tac(thm("tlsf_small_hlist_cong")),
+        gen,
+        rw([
+          thm("tlsf_small_remove_member"),
+          thm("tlsf_block_free_loc"),
+          thm("tlsf_block_free_live"),
+          thm("tlsf_small_put"),
+        ]),
+        strip,
+        arw([]),
+      ])
+    },
   )
 }

@@ -23,47 +23,51 @@ fn prove_tlsf_free_pop_models() -> Unit raise {
   let _ = lemma(
     "tlsf_free_bin_decompose",
     "\{vars}, \{base} && 16 <= val(tlsf_size(\{h})) → (∃ us : \{lw}, ∃ vs : \{lw}, \{pos} == APPEND(us,CONS(b,vs)))",
-    seq([
-      gen,
-      strip,
-      free_have(at, point),
-      @tactics.mp_tac(inst(thm("tlsf_header_class_bounds"), [h])),
-      arw([]),
-      strip,
-      @tactics.mp_tac(
-        inst(thm("tlsf_bins_match_member"), [
-          "(xs : \{lw})",
-          marked,
-          "(bl : \{bt})",
-          "(b : \{w})",
-          "tlsf_level_of(\{h})",
-          "tlsf_slot_of(\{h})",
-        ]),
-      ),
-      arw([]),
-      rw([@lists.mem_append_decompose()]),
-      @meson.meson_tac(ths([])),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        free_have(at, point),
+        @tactics.mp_tac(inst(thm("tlsf_header_class_bounds"), [h])),
+        arw([]),
+        strip,
+        @tactics.mp_tac(
+          inst(thm("tlsf_bins_match_member"), [
+            "(xs : \{lw})",
+            marked,
+            "(bl : \{bt})",
+            "(b : \{w})",
+            "tlsf_level_of(\{h})",
+            "tlsf_slot_of(\{h})",
+          ]),
+        ),
+        arw([]),
+        rw([@lists.mem_append_decompose()]),
+        @meson.meson_tac(ths([])),
+      ])
+    },
   )
   let removed = "APPEND((us : \{lw}),(vs : \{lw}))"
   let _ = lemma(
     "tlsf_free_pop_bins_pair",
     "\{vars}, ∀ us : \{lw}, ∀ vs : \{lw}, \{base} && \{pos} == APPEND(us,CONS(b,vs)) → tlsf_bins_match(xs,tlsf_mark(\{marked},b),tlsf_pop_bl(\{h},bl,\{removed}))",
-    seq([
-      gen,
-      strip,
-      free_have(at, point),
-      @tactics.mp_tac(
-        inst(thm("tlsf_pop_bins_match"), [
-          "(xs : \{lw})",
-          marked,
-          "(bl : \{bt})",
-          "(b : \{w})",
-          "(us : \{lw})",
-          "(vs : \{lw})",
-        ]),
-      ),
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        free_have(at, point),
+        @tactics.mp_tac(
+          inst(thm("tlsf_pop_bins_match"), [
+            "(xs : \{lw})",
+            marked,
+            "(bl : \{bt})",
+            "(b : \{w})",
+            "(us : \{lw})",
+            "(vs : \{lw})",
+          ]),
+        ),
+        arw([]),
+      ])
+    },
   )
 }

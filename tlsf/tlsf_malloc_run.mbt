@@ -49,13 +49,15 @@ fn prove_tlsf_malloc_runs() -> Unit raise {
     let _ = lemma(
       name + "_run",
       page_quantify(vars + runvars) + pre + " → " + show(result),
-      seq([
-        @tactics.repeat_tac(@tactics.gen_tac),
-        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-        @tactics.match_mp_tac(adequate),
-        @simp.asm_rewrite_tac(ths([@class.eta_ax()])),
-        free_apply(source),
-      ]),
+      () => {
+        seq([
+          @tactics.repeat_tac(@tactics.gen_tac),
+          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+          @logic.match_mp_tac(adequate),
+          @simp.asm_rewrite_tac(ths([@class.eta_ax()])),
+          free_apply(source),
+        ])
+      },
     )
   }
 }

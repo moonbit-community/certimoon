@@ -104,159 +104,161 @@ fn prove_tlsf_ensure_append() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_append",
     "\{vars}, \{cond} → sl_triple_m(fs,tabs,inst,st(NIL,\{lc0},\{preR}),\{show(rt[4])},st(NIL,\{lc1},\{postR}),NIL)",
-    seq([
-      gen,
-      strip,
-      @tactics.mp_tac(
-        inst(thm("tlsf_append_model"), [
-          "(ys : \{lw})",
-          "(d : \{w})",
-          "(lim : Num)",
-          "(lim2 : Num)",
-          m,
-          hd,
-        ]),
-      ),
-      arw([]),
-      strip,
-      @tactics.mp_tac(
-        inst(thm("tlsf_ensure_top_facts"), [
-          "(ys : \{lw})",
-          "(d : \{w})",
-          "(lim : Num)",
-          m,
-          hd,
-        ]),
-      ),
-      arw([]),
-      strip,
-      have("val(\{m})+8 < 4294967296", @int.asm_arith_tac),
-      have(
-        "val(word_add(\{m},word(8))) == val(\{m})+8",
-        seq([@tactics.match_mp_tac(thm("val_add_small")), arw([])]),
-      ),
-      have(
-        "val(\{rraw}) == (lim : Num)",
-        seq([
-          @tactics.mp_tac(
-            inst(thm("tlsf_val_add_exact"), [
-              "word_add(\{m},word(8))",
-              "tlsf_size(\{h})",
-            ]),
-          ),
-          arw([]),
-          @int.asm_arith_tac,
-        ]),
-      ),
-      have(
-        "\{rraw} == \{r}",
-        seq([rw([@equal.gsym(@words.val_eq())]), arw([])]),
-      ),
-      have(
-        "MOD((lim2 : Num),8) == 0 && MOD((lim : Num),8) == 0",
-        seq([
-          @tactics.conj_tac,
-          @tactics.match_mp_tac(thm("tlsf_page_aligned8")),
-          arw([]),
-        ]),
-      ),
-      have("0 < (lim : Num)", @int.asm_arith_tac),
-      @tactics.mp_tac(inst(thm("tlsf_capacity_fields"), ["(lim2 : Num)", r])),
-      arw([]),
-      strip,
-      @tactics.mp_tac(inst(thm("tlsf_new_top_fields"), [cap])),
-      arw([]),
-      strip,
-      @tactics.mp_tac(inst(thm("tlsf_clear_last_fields"), [h])),
-      strip,
-      have(
-        "tlsf_used((\{nh})(\{m}))",
-        seq([
-          rw([thm("tlsf_append_headers"), thm("tlsf_put")]),
-          arw([]),
-          @meson.asm_meson_tac(ths([])),
-        ]),
-      ),
-      have(
-        "tlsf_bins_match(\{nx},\{nh},\{nbl})",
-        seq([
-          @tactics.mp_tac(
-            inst(thm("tlsf_append_bins"), [xs, hd, "(bl : \{bt})", m, r, rh]),
-          ),
-          arw([
-            thm("tlsf_append_headers"),
-            @equal.gsym(@lists.append_assoc()),
-            @lists.append(),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.mp_tac(
+          inst(thm("tlsf_append_model"), [
+            "(ys : \{lw})",
+            "(d : \{w})",
+            "(lim : Num)",
+            "(lim2 : Num)",
+            m,
+            hd,
           ]),
-        ]),
-      ),
-      seq(
-        [4, 8, 12].map(k => {
-          have(
-            "val(word_add(\{r},word(\{k}))) == val(\{r})+\{k}",
-            seq([
-              @tactics.match_mp_tac(thm("val_add_small")),
-              @int.asm_arith_tac,
+        ),
+        arw([]),
+        strip,
+        @tactics.mp_tac(
+          inst(thm("tlsf_ensure_top_facts"), [
+            "(ys : \{lw})",
+            "(d : \{w})",
+            "(lim : Num)",
+            m,
+            hd,
+          ]),
+        ),
+        arw([]),
+        strip,
+        have("val(\{m})+8 < 4294967296", @int.asm_arith_tac),
+        have(
+          "val(word_add(\{m},word(8))) == val(\{m})+8",
+          seq([@tactics.match_mp_tac(thm("val_add_small")), arw([])]),
+        ),
+        have(
+          "val(\{rraw}) == (lim : Num)",
+          seq([
+            @tactics.mp_tac(
+              inst(thm("tlsf_val_add_exact"), [
+                "word_add(\{m},word(8))",
+                "tlsf_size(\{h})",
+              ]),
+            ),
+            arw([]),
+            @int.asm_arith_tac,
+          ]),
+        ),
+        have(
+          "\{rraw} == \{r}",
+          seq([rw([@equal.gsym(@words.val_eq())]), arw([])]),
+        ),
+        have(
+          "MOD((lim2 : Num),8) == 0 && MOD((lim : Num),8) == 0",
+          seq([
+            @tactics.conj_tac,
+            @tactics.match_mp_tac(thm("tlsf_page_aligned8")),
+            arw([]),
+          ]),
+        ),
+        have("0 < (lim : Num)", @int.asm_arith_tac),
+        @tactics.mp_tac(inst(thm("tlsf_capacity_fields"), ["(lim2 : Num)", r])),
+        arw([]),
+        strip,
+        @tactics.mp_tac(inst(thm("tlsf_new_top_fields"), [cap])),
+        arw([]),
+        strip,
+        @tactics.mp_tac(inst(thm("tlsf_clear_last_fields"), [h])),
+        strip,
+        have(
+          "tlsf_used((\{nh})(\{m}))",
+          seq([
+            rw([thm("tlsf_append_headers"), thm("tlsf_put")]),
+            arw([]),
+            @meson.asm_meson_tac(ths([])),
+          ]),
+        ),
+        have(
+          "tlsf_bins_match(\{nx},\{nh},\{nbl})",
+          seq([
+            @tactics.mp_tac(
+              inst(thm("tlsf_append_bins"), [xs, hd, "(bl : \{bt})", m, r, rh]),
+            ),
+            arw([
+              thm("tlsf_append_headers"),
+              @equal.gsym(@lists.append_assoc()),
+              @lists.append(),
             ]),
-          )
-        }),
-      ),
-      have("8 <= val(\{cap})", @int.asm_arith_tac),
-      @tactics.match_mp_tac(thm("sl_conseq_m")),
-      @tactics.exists_tac(tm(existsP)),
-      @tactics.exists_tac(tm("st(NIL,\{lc1},\{postR})")),
-      rw([]),
-      @tactics.repeat_tac(@tactics.conj_tac),
-      @tactics.first(
-        @list.List([
-          solve(
-            seq([
-              ent_tac(
-                [
-                  @bool.undisch(
-                    inst(thm("tlsf_payload_links"), [
-                      "(lim : Num)+8",
-                      "val(\{cap})",
-                    ]),
-                  ),
-                  arith("(a : Num)+8+4 == a+12 && a+8+8 == a+16"),
-                  thm("tlsf_top_cell"),
-                ],
-                ["(pf : \{w})", "(nf : \{w})"],
-              ),
-            ]),
-          ),
-          solve(
-            seq([
-              @tactics.match_mp_tac(thm("sl_ex_m")),
-              beta_goal(),
-              @tactics.x_gen_tac(tm("(pf0 : \{w})")),
-              @tactics.match_mp_tac(thm("sl_ex_m")),
-              beta_goal(),
-              @tactics.x_gen_tac(tm("(nf0 : \{w})")),
-              @tactics.match_mp_tac(thm("sl_conseq_m")),
-              @tactics.exists_tac(rt[3]),
-              @tactics.exists_tac(rt[5]),
-              rw([]),
-              @tactics.repeat_tac(@tactics.conj_tac),
-              @tactics.first(
-                @list.List([
-                  solve(
-                    seq([
-                      @tactics.match_mp_tac(raw),
-                      arw([@equal.gsym(@words.val_eq_0())]),
-                      @int.asm_arith_tac,
-                    ]),
-                  ),
-                  solve(seq([gen, beta_goal(), strip, arw([])])),
-                  solve(post),
-                ]),
-              ),
-            ]),
-          ),
-          solve(seq([gen, beta_goal(), strip, arw([])])),
-        ]),
-      ),
-    ]),
+          ]),
+        ),
+        seq(
+          [4, 8, 12].map(k => {
+            have(
+              "val(word_add(\{r},word(\{k}))) == val(\{r})+\{k}",
+              seq([
+                @tactics.match_mp_tac(thm("val_add_small")),
+                @int.asm_arith_tac,
+              ]),
+            )
+          }),
+        ),
+        have("8 <= val(\{cap})", @int.asm_arith_tac),
+        @tactics.match_mp_tac(thm("sl_conseq_m")),
+        @tactics.exists_tac(tm(existsP)),
+        @tactics.exists_tac(tm("st(NIL,\{lc1},\{postR})")),
+        rw([]),
+        @tactics.repeat_tac(@tactics.conj_tac),
+        @tactics.first(
+          @list.List([
+            solve(
+              seq([
+                ent_tac(
+                  [
+                    @bool.undisch(
+                      inst(thm("tlsf_payload_links"), [
+                        "(lim : Num)+8",
+                        "val(\{cap})",
+                      ]),
+                    ),
+                    arith("(a : Num)+8+4 == a+12 && a+8+8 == a+16"),
+                    thm("tlsf_top_cell"),
+                  ],
+                  ["(pf : \{w})", "(nf : \{w})"],
+                ),
+              ]),
+            ),
+            solve(
+              seq([
+                @logic.match_mp_tac(thm("sl_ex_m")),
+                beta_goal(),
+                @tactics.x_gen_tac(tm("(pf0 : \{w})")),
+                @logic.match_mp_tac(thm("sl_ex_m")),
+                beta_goal(),
+                @tactics.x_gen_tac(tm("(nf0 : \{w})")),
+                @tactics.match_mp_tac(thm("sl_conseq_m")),
+                @tactics.exists_tac(rt[3]),
+                @tactics.exists_tac(rt[5]),
+                rw([]),
+                @tactics.repeat_tac(@tactics.conj_tac),
+                @tactics.first(
+                  @list.List([
+                    solve(
+                      seq([
+                        @tactics.match_mp_tac(raw),
+                        arw([@equal.gsym(@words.val_eq_0())]),
+                        @int.asm_arith_tac,
+                      ]),
+                    ),
+                    solve(seq([gen, beta_goal(), strip, arw([])])),
+                    solve(post),
+                  ]),
+                ),
+              ]),
+            ),
+            solve(seq([gen, beta_goal(), strip, arw([])])),
+          ]),
+        ),
+      ])
+    },
   )
 }

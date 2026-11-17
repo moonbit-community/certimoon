@@ -204,46 +204,48 @@ fn prove_tlsf_free_tests() -> Unit raise {
         (if prev { "prev" } else { "next" }) +
         (if missing { "_boundary_test" } else { "_neighbour_test" }),
         "\{vars}, \{cond} → sl_triple(st(NIL,\{lc},\{r0}),\{code},st(\{stack},\{lc1},\{r0}))",
-        seq([
-          gen,
-          strip,
-          @tactics.rule_assum_tac(@simp.rewrite_rule(ths([thm("tlsf_used")]))),
-          if prev || missing {
-            @tactics.all_tac
-          } else {
-            free_have(
-              "word_and(\{hd}(\{m}),word(2)) == word(0)",
-              seq([
-                @tactics.undisch_tac(tm("!tlsf_last(\{hd}(\{m}))")),
-                rw([thm("tlsf_last")]),
+        () => {
+          seq([
+            gen,
+            strip,
+            @tactics.rule_assum_tac(@simp.rewrite_rule(ths([thm("tlsf_used")]))),
+            if prev || missing {
+              @tactics.all_tac
+            } else {
+              free_have(
+                "word_and(\{hd}(\{m}),word(2)) == word(0)",
+                seq([
+                  @tactics.undisch_tac(tm("!tlsf_last(\{hd}(\{m}))")),
+                  rw([thm("tlsf_last")]),
+                ]),
+              )
+            },
+            if !prev && missing {
+              free_have(
+                "!(word_and(\{hd}(\{m}),word(2)) == word(0))",
+                seq([
+                  @tactics.undisch_tac(tm("tlsf_last(\{hd}(\{m}))")),
+                  rw([thm("tlsf_last")]),
+                ]),
+              )
+            } else {
+              @tactics.all_tac
+            },
+            @tactics.match_mp_tac(thm("sl_conseq")),
+            @tactics.exists_tac(rt[0]),
+            @tactics.exists_tac(rt[2]),
+            @tactics.thenl(
+              @tactics.conj_tac,
+              @list.List([
+                ent_tac(shared, []),
+                @tactics.thenl(
+                  @tactics.conj_tac,
+                  @list.List([core, ent_tac(shared, [])]),
+                ),
               ]),
-            )
-          },
-          if !prev && missing {
-            free_have(
-              "!(word_and(\{hd}(\{m}),word(2)) == word(0))",
-              seq([
-                @tactics.undisch_tac(tm("tlsf_last(\{hd}(\{m}))")),
-                rw([thm("tlsf_last")]),
-              ]),
-            )
-          } else {
-            @tactics.all_tac
-          },
-          @tactics.match_mp_tac(thm("sl_conseq")),
-          @tactics.exists_tac(rt[0]),
-          @tactics.exists_tac(rt[2]),
-          @tactics.thenl(
-            @tactics.conj_tac,
-            @list.List([
-              ent_tac(shared, []),
-              @tactics.thenl(
-                @tactics.conj_tac,
-                @list.List([core, ent_tac(shared, [])]),
-              ),
-            ]),
-          ),
-        ]),
+            ),
+          ])
+        },
       )
     }
   }

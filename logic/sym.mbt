@@ -965,15 +965,13 @@ fn cell_step(
     }
     let inst = @bool.ispecl(@list.List(terms), rule)
     let (hyp, _) = @basics.dest_imp(@kernel.concl(inst))
-    guard (Some(@tactics.prove(hyp, @simp.rewrite_tac(addr_rws))) catch {
-        _ => None
-      })
+    guard (Some(prove(hyp, @simp.rewrite_tac(addr_rws))) catch { _ => None })
       is Some(hth) else {
       continue
     }
     let th = norm(@bool.mp(inst, hth))
     // R with the cell first
-    let eq = @tactics.prove(
+    let eq = prove(
       @basics.mk_eq(mk_star(first, rest0), mk_star(part, others)),
       @simp.rewrite_tac(
         ths([thm("star_assoc"), thm("star_comm"), thm("star_left_comm")]),
@@ -1024,7 +1022,7 @@ fn step_tac(
   let step = @drule.match_mp(rule_of(goal, "sl_step_l"))(th)
   if is_g(goal) {
     // the instruction has no calls
-    let cf = @tactics.prove(
+    let cf = prove(
       @basics.list_mk_comb(tm("call_free_b"), @list.List([code])),
       call_free_tac(),
     )
@@ -1526,7 +1524,39 @@ pub fn sym_prove(
   kind~ : String = "example",
   loc~ : SourceLoc,
 ) -> @kernel.Thm raise {
-  let goal = tm(stmt)
+  sym_prove_term(
+    name,
+    tm(stmt),
+    invs,
+    vcs,
+    afters~,
+    rules~,
+    chunks~,
+    rws~,
+    specs~,
+    calls~,
+    kind~,
+    loc~,
+  )
+}
+
+///|
+/// Symbolic execution with an already parsed goal, for lazy proof declarations.
+#callsite(autofill(loc))
+pub fn sym_prove_term(
+  name : String,
+  goal : @kernel.Term,
+  invs : Array[String],
+  vcs : Array[@tactics.Tactic],
+  afters~ : Array[String] = [],
+  rules~ : Array[String] = step_rules,
+  chunks~ : Array[@kernel.Thm] = [],
+  rws~ : Array[@kernel.Thm] = [],
+  specs~ : Array[@kernel.Thm] = [],
+  calls~ : Array[(Int32, Array[String])] = [],
+  kind~ : String = "example",
+  loc~ : SourceLoc,
+) -> @kernel.Thm raise {
   let (_, body) = @basics.strip_forall(goal)
   let triple = if @basics.is_imp(body) {
     @basics.dest_imp(body).1
@@ -1591,7 +1621,7 @@ pub fn sym_prove(
     },
     sym_tac(sym),
   ])
-  let th = @tactics.prove(goal, @tactics.thenl(run, @list.List(vcs))) catch {
+  let th = prove(goal, @tactics.thenl(run, @list.List(vcs))) catch {
     e => {
       // say what is left
       let left = (run((@list.List([]), goal)) catch { _ => raise e }).1

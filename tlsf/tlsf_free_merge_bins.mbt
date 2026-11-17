@@ -29,50 +29,52 @@ fn prove_tlsf_free_merge_bins() -> Unit raise {
   let _ = lemma(
     "tlsf_free_merge_bins",
     "\{vars}, \{pre} → tlsf_bins_match(\{nx},\{marked},bl)",
-    seq([
-      gen,
-      strip,
-      @tactics.match_mp_tac(
-        inst(thm("tlsf_free_bins_transport"), [
-          old,
-          nx,
-          blocked,
-          marked,
-          "(bl : \{bt})",
-        ]),
-      ),
-      arw([]),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          seq([
-            @tactics.x_gen_tac(tm("(x : \{w})")),
-            cases,
-            arw(flags + [@lists.mem_append(), @lists.mem()] + maps),
-            @meson.asm_meson_tac(ths([])),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.match_mp_tac(
+          inst(thm("tlsf_free_bins_transport"), [
+            old,
+            nx,
+            blocked,
+            marked,
+            "(bl : \{bt})",
           ]),
-          seq([
-            @tactics.x_gen_tac(tm("(x : \{w})")),
-            strip,
-            free_have(
-              "!((x : \{w}) == (m : \{w})) && !(x == (r : \{w}))",
-              seq([
-                @tactics.first_x_assum(th => {
-                  if head_name(@kernel.concl(th)) == "~" {
-                    @tactics.mp_tac(th)
-                  } else {
-                    @tactics.no_tac
-                  }
-                }),
-                rw(flags),
-                @meson.meson_tac(ths([])),
-              ]),
-            ),
-            split_conjs(),
-            arw(maps),
+        ),
+        arw([]),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            seq([
+              @tactics.x_gen_tac(tm("(x : \{w})")),
+              cases,
+              arw(flags + [@lists.mem_append(), @lists.mem()] + maps),
+              @meson.asm_meson_tac(ths([])),
+            ]),
+            seq([
+              @tactics.x_gen_tac(tm("(x : \{w})")),
+              strip,
+              free_have(
+                "!((x : \{w}) == (m : \{w})) && !(x == (r : \{w}))",
+                seq([
+                  @tactics.first_x_assum(th => {
+                    if head_name(@kernel.concl(th)) == "~" {
+                      @tactics.mp_tac(th)
+                    } else {
+                      @tactics.no_tac
+                    }
+                  }),
+                  rw(flags),
+                  @meson.meson_tac(ths([])),
+                ]),
+              ),
+              split_conjs(),
+              arw(maps),
+            ]),
           ]),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
 }

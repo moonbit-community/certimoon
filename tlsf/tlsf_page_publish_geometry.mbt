@@ -96,7 +96,7 @@ fn publish_geometry(
           t.0 +
           ")+" +
           t.1.to_string(),
-          seq([@tactics.match_mp_tac(thm("val_add_small")), @int.asm_arith_tac]),
+          seq([@logic.match_mp_tac(thm("val_add_small")), @int.asm_arith_tac]),
         )
       }),
     ),
@@ -137,32 +137,34 @@ fn prove_tlsf_page_publish_geometry() -> Unit raise {
       ") == val(tlsf_base(d))+" +
       off.to_string() +
       "+s",
-      seq([
-        gen,
-        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-        free_have(
-          table +
-          " == word_add(tlsf_base((d : " +
-          w +
-          ")),word(" +
-          off.to_string() +
-          "+(s : Num)))",
-          seq([
-            rw([thm("tlsf_base"), @words.word_add_v1()]),
-            g => @tactics.accept_tac(@words.word_rule(g.1))(g),
-          ]),
-        ),
-        arw([]),
-        @tactics.mp_tac(
-          inst(thm("tlsf_initialize_offset"), [
-            "(d : " + w + ")",
-            off.to_string() + "+(s : Num)",
-          ]),
-        ),
-        free_have(off.to_string() + "+(s : Num) <= 2176", @int.asm_arith_tac),
-        arw([]),
-        @int.arith_tac,
-      ]),
+      () => {
+        seq([
+          gen,
+          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+          free_have(
+            table +
+            " == word_add(tlsf_base((d : " +
+            w +
+            ")),word(" +
+            off.to_string() +
+            "+(s : Num)))",
+            seq([
+              rw([thm("tlsf_base"), @words.word_add_v1()]),
+              g => @tactics.accept_tac(@words.word_rule(g.1))(g),
+            ]),
+          ),
+          arw([]),
+          @tactics.mp_tac(
+            inst(thm("tlsf_initialize_offset"), [
+              "(d : " + w + ")",
+              off.to_string() + "+(s : Num)",
+            ]),
+          ),
+          free_have(off.to_string() + "+(s : Num) <= 2176", @int.asm_arith_tac),
+          arw([]),
+          @int.arith_tac,
+        ])
+      },
     )
   }
 }

@@ -110,7 +110,7 @@ fn prove_tlsf_malloc_page_body_tail() -> Unit raise {
         arw([]),
       ])
       let core = seq([
-        @tactics.match_mp_tac(@simp.rewrite_rule(ths([@class.eta_ax()]))(path)),
+        @logic.match_mp_tac(@simp.rewrite_rule(ths([@class.eta_ax()]))(path)),
         callback,
       ])
       page_g_conseq(path, same_tac(), seq([gen, beta_goal(), rw([])]), core)(g)
@@ -125,22 +125,24 @@ fn prove_tlsf_malloc_page_body_tail() -> Unit raise {
   let _ = lemma(
     "tlsf_malloc_page_tail_reserved",
     "\{vars} sl_triple_g(G,fs,tabs,inst,\{q},\{p},tlsf_page_allocate_tail(take_idx),\{q},[\{q}])",
-    seq([
-      gen,
-      @tactics.conv_tac(
-        pre_conv(
-          @simp.rewrite_conv(
-            ths([
-              thm("tlsf_malloc_page_reserved"),
-              @theorems.left_or_distrib(),
-              @theorems.right_or_distrib(),
-            ]),
+    () => {
+      seq([
+        gen,
+        @tactics.conv_tac(
+          pre_conv(
+            @simp.rewrite_conv(
+              ths([
+                thm("tlsf_malloc_page_reserved"),
+                @theorems.left_or_distrib(),
+                @theorems.right_or_distrib(),
+              ]),
+            ),
           ),
         ),
-      ),
-      beta_goal(),
-      @tactics.match_mp_tac(thm("tlsf_page_or_g")),
-      @tactics.thenl(@tactics.conj_tac, @list.List([failure, success])),
-    ]),
+        beta_goal(),
+        @logic.match_mp_tac(thm("tlsf_page_or_g")),
+        @tactics.thenl(@tactics.conj_tac, @list.List([failure, success])),
+      ])
+    },
   )
 }

@@ -33,7 +33,7 @@ fn prove_tlsf_free_reads() -> Unit raise {
     "tlsf_free_clear_raw",
     "\{vars}, sl_triple(st(NIL,\{lc},\{pred([cell("m","h")])}),tlsf_free_clear(d,pop,push),st(NIL,\{lc},\{pred([cell("m","word_and((h : "+w+"),word(4294967294))")])}))",
     [],
-    [vc],
+    () => [vc],
   )
   for zero in [true, false] {
     let p = if zero { "(word(0) : \{w})" } else { "(p : \{w})" }
@@ -57,11 +57,7 @@ fn prove_tlsf_free_reads() -> Unit raise {
       },
       "\{vars}, ∀ p : \{w}, \{cond} → sl_triple(st(NIL,\{lc},\{r}),tlsf_free_prev_test(d,pop,push),st([\{i("wasm_bool(\{flag} == word(0))")}],\{lc1},\{r}))",
       [],
-      if zero {
-        [vc, vc]
-      } else {
-        [vc]
-      },
+      () => if zero { [vc, vc] } else { [vc] },
       afters=["st([\{i(flag)}],\{lc1},\{r})"],
     )
   }
@@ -90,11 +86,7 @@ fn prove_tlsf_free_reads() -> Unit raise {
       },
       "\{vars}, ∀ nh : \{w}, \{cond} → sl_triple(st(NIL,\{lc},\{r}),tlsf_free_next_test(d,pop,push),st([\{i("wasm_bool(\{flag} == word(0))")}],\{lc},\{r}))",
       [],
-      if last {
-        [vc, vc]
-      } else {
-        [vc]
-      },
+      () => if last { [vc, vc] } else { [vc] },
       afters=["st([\{i(flag)}],\{lc},\{r})"],
       rws=[thm("tlsf_size"), thm("tlsf_last")],
     )

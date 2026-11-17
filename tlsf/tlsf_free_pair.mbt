@@ -21,104 +21,108 @@ fn prove_tlsf_free_pair() -> Unit raise {
   let _ = lemma(
     "tlsf_free_pair_facts",
     "\{vars}, \{old} && lim <= 4294967296 → \{out}",
-    seq([
-      gen,
-      strip,
-      @tactics.mp_tac(
-        inst(thm("tlsf_focus_distinct"), [
-          "(ys : \{lw})",
-          "CONS((r : \{w}),(zs : \{lw}))",
-          "(m : \{w})",
-          "(p : \{w})",
-          "(a : Num)",
-          "(lim : Num)",
-          "(top : \{w})",
-          hd,
-        ]),
-      ),
-      arw([]),
-      rw([@lists.mem()]),
-      strip,
-      @tactics.mp_tac(
-        inst(thm("tlsf_focus_distinct"), [
-          "APPEND((ys : \{lw}),[(m : \{w})])",
-          "(zs : \{lw})",
-          "(r : \{w})",
-          "(p : \{w})",
-          "(a : Num)",
-          "(lim : Num)",
-          "(top : \{w})",
-          hd,
-        ]),
-      ),
-      arw([
-        @equal.gsym(@lists.append_assoc()),
-        @lists.append(),
-        @lists.mem_append(),
-        @lists.mem(),
-      ]),
-      strip,
-      free_have(
-        b1,
-        seq([
-          @tactics.match_mp_tac(
-            inst(thm("tlsf_layout_members"), [
-              xs,
-              "(p : \{w})",
-              "(a : Num)",
-              "(lim : Num)",
-              "(top : \{w})",
-              hd,
-              "(m : \{w})",
-            ]),
-          ),
-          arw([@lists.mem_append(), @lists.mem()]),
-        ]),
-      ),
-      free_have(
-        b2,
-        seq([
-          @tactics.match_mp_tac(
-            inst(thm("tlsf_layout_members"), [
-              xs,
-              "(p : \{w})",
-              "(a : Num)",
-              "(lim : Num)",
-              "(top : \{w})",
-              hd,
-              "(r : \{w})",
-            ]),
-          ),
-          arw([@lists.mem_append(), @lists.mem()]),
-        ]),
-      ),
-      @tactics.mp_tac(
-        inst(thm("tlsf_layout_cut_at"), [
-          "(ys : \{lw})",
-          "CONS((r : \{w}),(zs : \{lw}))",
-          "(m : \{w})",
-          "(p : \{w})",
-          "(a : Num)",
-          "(lim : Num)",
-          "(top : \{w})",
-          hd,
-        ]),
-      ),
-      arw([]),
-      strip,
-      @tactics.undisch_tac(
-        tm(
-          "tlsf_layout(tlsf_end((p : \{w}),(ys : \{lw})),val((m : \{w})),(lim : Num),(top : \{w}),CONS(m,CONS((r : \{w}),(zs : \{lw}))),(hd : \{ht}))",
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.mp_tac(
+          inst(thm("tlsf_focus_distinct"), [
+            "(ys : \{lw})",
+            "CONS((r : \{w}),(zs : \{lw}))",
+            "(m : \{w})",
+            "(p : \{w})",
+            "(a : Num)",
+            "(lim : Num)",
+            "(top : \{w})",
+            hd,
+          ]),
         ),
-      ),
-      rw([thm("tlsf_layout"), thm("tlsf_block_ok"), @lists.not_cons_nil()]),
-      strip,
-      arw([]),
-      free_have("!(val((m : \{w})) == 0)", arw([@words.val_eq_0()])),
-      @tactics.rule_assum_tac(@simp.rewrite_rule(ths([@class.de_morgan_thm()]))),
-      split_conjs(),
-      arw([]),
-      @int.asm_arith_tac,
-    ]),
+        arw([]),
+        rw([@lists.mem()]),
+        strip,
+        @tactics.mp_tac(
+          inst(thm("tlsf_focus_distinct"), [
+            "APPEND((ys : \{lw}),[(m : \{w})])",
+            "(zs : \{lw})",
+            "(r : \{w})",
+            "(p : \{w})",
+            "(a : Num)",
+            "(lim : Num)",
+            "(top : \{w})",
+            hd,
+          ]),
+        ),
+        arw([
+          @equal.gsym(@lists.append_assoc()),
+          @lists.append(),
+          @lists.mem_append(),
+          @lists.mem(),
+        ]),
+        strip,
+        free_have(
+          b1,
+          seq([
+            @tactics.match_mp_tac(
+              inst(thm("tlsf_layout_members"), [
+                xs,
+                "(p : \{w})",
+                "(a : Num)",
+                "(lim : Num)",
+                "(top : \{w})",
+                hd,
+                "(m : \{w})",
+              ]),
+            ),
+            arw([@lists.mem_append(), @lists.mem()]),
+          ]),
+        ),
+        free_have(
+          b2,
+          seq([
+            @tactics.match_mp_tac(
+              inst(thm("tlsf_layout_members"), [
+                xs,
+                "(p : \{w})",
+                "(a : Num)",
+                "(lim : Num)",
+                "(top : \{w})",
+                hd,
+                "(r : \{w})",
+              ]),
+            ),
+            arw([@lists.mem_append(), @lists.mem()]),
+          ]),
+        ),
+        @tactics.mp_tac(
+          inst(thm("tlsf_layout_cut_at"), [
+            "(ys : \{lw})",
+            "CONS((r : \{w}),(zs : \{lw}))",
+            "(m : \{w})",
+            "(p : \{w})",
+            "(a : Num)",
+            "(lim : Num)",
+            "(top : \{w})",
+            hd,
+          ]),
+        ),
+        arw([]),
+        strip,
+        @tactics.undisch_tac(
+          tm(
+            "tlsf_layout(tlsf_end((p : \{w}),(ys : \{lw})),val((m : \{w})),(lim : Num),(top : \{w}),CONS(m,CONS((r : \{w}),(zs : \{lw}))),(hd : \{ht}))",
+          ),
+        ),
+        rw([thm("tlsf_layout"), thm("tlsf_block_ok"), @lists.not_cons_nil()]),
+        strip,
+        arw([]),
+        free_have("!(val((m : \{w})) == 0)", arw([@words.val_eq_0()])),
+        @tactics.rule_assum_tac(
+          @simp.rewrite_rule(ths([@class.de_morgan_thm()])),
+        ),
+        split_conjs(),
+        arw([]),
+        @int.asm_arith_tac,
+      ])
+    },
   )
 }

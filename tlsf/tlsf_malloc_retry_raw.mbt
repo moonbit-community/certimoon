@@ -108,7 +108,7 @@ fn prove_tlsf_malloc_retry_publish_raw() -> Unit raise {
       own(after) +
       "))",
       [],
-      [vc],
+      () => [vc],
       kind="lemma",
     ),
   )
@@ -160,7 +160,7 @@ fn prove_tlsf_malloc_retry_publish_raw() -> Unit raise {
         own(post) +
         "))",
         [],
-        [vc],
+        () => [vc],
         afters=[mid],
         kind="lemma",
       ),
@@ -190,7 +190,7 @@ fn prove_tlsf_malloc_retry_publish_raw() -> Unit raise {
       own([cell(at("p", 20), "b")]) +
       "))",
       [],
-      [vc],
+      () => [vc],
       kind="lemma",
     ),
   )

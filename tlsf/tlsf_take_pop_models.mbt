@@ -27,75 +27,87 @@ fn prove_tlsf_take_pop_models() -> Unit raise {
   let _ = lemma(
     "tlsf_mark_other",
     "∀ hd : \{ht}, ∀ m : \{w}, ∀ x : \{w}, !(x == m) → tlsf_mark(hd, m, x) == hd(x)",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      rw([thm("tlsf_mark"), thm("tlsf_put")]),
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        rw([thm("tlsf_mark"), thm("tlsf_put")]),
+        arw([]),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_mark_used",
     "∀ hd : \{ht}, ∀ m : \{w}, tlsf_used(tlsf_mark(hd, m, m))",
-    seq([
-      gen,
-      rw([thm("tlsf_mark"), thm("tlsf_put")]),
-      @tactics.mp_tac(
-        inst(thm("tlsf_used_store_fields"), ["(hd : \{ht})((m : \{w}))"]),
-      ),
-      @meson.meson_tac(ths([])),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([thm("tlsf_mark"), thm("tlsf_put")]),
+        @tactics.mp_tac(
+          inst(thm("tlsf_used_store_fields"), ["(hd : \{ht})((m : \{w}))"]),
+        ),
+        @meson.meson_tac(ths([])),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_count_append",
     "∀ xs : \{lw}, ∀ ys : \{lw}, ∀ m : \{w}, tlsf_count(m, APPEND(xs, ys)) == tlsf_count(m, xs) + tlsf_count(m, ys)",
-    seq([
-      gen,
-      rw([thm("tlsf_count"), @lists.filter_append(), @lists.length_append()]),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([thm("tlsf_count"), @lists.filter_append(), @lists.length_append()]),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_remove_other_count",
     "∀ us : \{lw}, ∀ vs : \{lw}, ∀ m : \{w}, ∀ x : \{w}, !(x == m) → tlsf_count(x, APPEND(us, CONS(m, vs))) == tlsf_count(x, APPEND(us, vs))",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      arw([thm("tlsf_count_append"), thm("tlsf_count_cons")]),
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        arw([thm("tlsf_count_append"), thm("tlsf_count_cons")]),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_remove_self_count",
     "∀ us : \{lw}, ∀ vs : \{lw}, ∀ m : \{w}, tlsf_count(m, APPEND(us, CONS(m, vs))) == 1 → tlsf_count(m, APPEND(us, vs)) == 0",
-    seq([
-      gen,
-      rw([thm("tlsf_count_append"), thm("tlsf_count_cons")]),
-      @tactics.conv_tac(@calc_num.num_reduce_conv),
-      @int.arith_tac,
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([thm("tlsf_count_append"), thm("tlsf_count_cons")]),
+        @tactics.conv_tac(@calc_num.num_reduce_conv),
+        @int.arith_tac,
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_pop_bl_other_count",
     "∀ hd : \{w}, ∀ bl : \{bt}, ∀ us : \{lw}, ∀ vs : \{lw}, ∀ m : \{w}, ∀ x : \{w}, ∀ i : Num, ∀ k : Num, bl(tlsf_level_of(hd))(tlsf_slot_of(hd)) == APPEND(us, CONS(m, vs)) && !(x == m) → tlsf_count(x, tlsf_pop_bl(hd, bl, APPEND(us, vs), i, k)) == tlsf_count(x, bl(i)(k))",
-    seq([
-      gen,
-      strip,
-      rw([thm("tlsf_pop_bl"), thm("tlsf_upd")]),
-      @class.asm_cases_tac(tm("(i : Num) == tlsf_level_of((hd : \{w}))")),
-      @class.asm_cases_tac(tm("(k : Num) == tlsf_slot_of((hd : \{w}))")),
-      @tactics.rule_assum_tac(
-        @simp.rewrite_rule(ths([thm("tlsf_level_of"), thm("tlsf_slot_of")])),
-      ),
-      arw([]),
-      @tactics.mp_tac(
-        inst(thm("tlsf_remove_other_count"), [
-          "(us : \{lw})",
-          "(vs : \{lw})",
-          "(m : \{w})",
-          "(x : \{w})",
-        ]),
-      ),
-      arw([]),
-      @meson.meson_tac(ths([])),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        rw([thm("tlsf_pop_bl"), thm("tlsf_upd")]),
+        @class.asm_cases_tac(tm("(i : Num) == tlsf_level_of((hd : \{w}))")),
+        @class.asm_cases_tac(tm("(k : Num) == tlsf_slot_of((hd : \{w}))")),
+        @tactics.rule_assum_tac(
+          @simp.rewrite_rule(ths([thm("tlsf_level_of"), thm("tlsf_slot_of")])),
+        ),
+        arw([]),
+        @tactics.mp_tac(
+          inst(thm("tlsf_remove_other_count"), [
+            "(us : \{lw})",
+            "(vs : \{lw})",
+            "(m : \{w})",
+            "(x : \{w})",
+          ]),
+        ),
+        arw([]),
+        @meson.meson_tac(ths([])),
+      ])
+    },
   )
 }

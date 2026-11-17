@@ -39,22 +39,24 @@ fn prove_tlsf_ensure_prefix() -> Unit raise {
     let read = lemma(
       "tlsf_ensure_ro_" + name,
       "\{vars}, ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, \{r}(gs,ms,h) → has_i32(h,val((\{a} : \{w})),\{x})",
-      ent_tac([thm("tlsf_ensure_ro"), thm("has_i32")], [rest]),
+      () => ent_tac([thm("tlsf_ensure_ro"), thm("has_i32")], [rest]),
     )
     let i = (a : String) => "V_num(ConstInt32((\{a} : \{w})))"
     let _ = lemma(
       "st_ensure_load_" + name,
       "\{vars}, ∀ v : List[Value], ∀ lc : List[Value], sl_triple(st(APPEND(v,[\{i(a)}]),lc,\{r}),[Load(T_i32,NONE,2,0)],st(APPEND(v,[\{i(x)}]),lc,\{r}))",
-      seq([
-        gen,
-        @tactics.match_mp_tac(
-          inst(thm("st_load_read"), [
-            "(v : List[Value])", "(lc : List[Value])", r, a, x, "2", "0",
-          ]),
-        ),
-        rw([@arith.add_clauses()]),
-        @tactics.accept_tac(inst(read, args)),
-      ]),
+      () => {
+        seq([
+          gen,
+          @tactics.match_mp_tac(
+            inst(thm("st_load_read"), [
+              "(v : List[Value])", "(lc : List[Value])", r, a, x, "2", "0",
+            ]),
+          ),
+          rw([@arith.add_clauses()]),
+          @tactics.accept_tac(inst(read, args)),
+        ])
+      },
     )
   }
   let i = (a : String) => "V_num(ConstInt32((\{a} : \{w})))"
@@ -79,7 +81,7 @@ fn prove_tlsf_ensure_prefix() -> Unit raise {
     "tlsf_ensure_prefix_before_size_raw",
     "\{vars}, ∀ s : \{w}, ∀ pop : Num, ∀ push : Num, \{cond} → sl_triple(st(NIL,[\{i("s")},\{i("word(0)")}],\{r}),tlsf_ensure_prefix_before_size(d,pop,push),\{middle})",
     [],
-    [rw([thm("tlsf_align"), thm("tlsf_base")])],
+    () => [rw([thm("tlsf_align"), thm("tlsf_base")])],
     afters=["st(NIL,[\{i("d")},\{i(e)}],\{r})"],
     rules~,
     rws~,
@@ -88,7 +90,7 @@ fn prove_tlsf_ensure_prefix() -> Unit raise {
     "tlsf_ensure_prefix_after_size_raw",
     "\{vars}, ∀ s : \{w}, ∀ pop : Num, ∀ push : Num, \{getter} → sl_triple(\{p2},tlsf_ensure_prefix_after_size(d,pop,push),\{post})",
     [],
-    [],
+    () => [],
     afters=["st([\{i("m")}],\{locals},\{r})"],
     rules~,
     rws~,
@@ -99,51 +101,53 @@ fn prove_tlsf_ensure_prefix() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_prefix_raw",
     "\{vars}, ∀ s : \{w}, ∀ pop : Num, ∀ push : Num, \{cond} && \{getter} → sl_triple(st(NIL,[\{i("s")},\{i("word(0)")}],\{r}),tlsf_ensure_prefix(d,pop,push),\{post})",
-    seq([
-      gen,
-      strip,
-      rw([thm("tlsf_ensure_prefix_parts")]),
-      @tactics.match_mp_tac(thm("sl_seq")),
-      @tactics.exists_tac(tm(middle)),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          seq([
-            @tactics.match_mp_tac(thm("tlsf_ensure_prefix_before_size_raw")),
-            arw([]),
-          ]),
-          seq([
-            @tactics.subst1_tac(
-              @equal.gsym(
-                @simp.rewrite_conv(ths([@lists.append()]))(
-                  tm(
-                    "APPEND([Memory_size],tlsf_ensure_prefix_after_size((d : \{w}),(pop : Num),(push : Num)))",
+    () => {
+      seq([
+        gen,
+        strip,
+        rw([thm("tlsf_ensure_prefix_parts")]),
+        @tactics.match_mp_tac(thm("sl_seq")),
+        @tactics.exists_tac(tm(middle)),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            seq([
+              @tactics.match_mp_tac(thm("tlsf_ensure_prefix_before_size_raw")),
+              arw([]),
+            ]),
+            seq([
+              @tactics.subst1_tac(
+                @equal.gsym(
+                  @simp.rewrite_conv(ths([@lists.append()]))(
+                    tm(
+                      "APPEND([Memory_size],tlsf_ensure_prefix_after_size((d : \{w}),(pop : Num),(push : Num)))",
+                    ),
                   ),
                 ),
               ),
-            ),
-            @tactics.match_mp_tac(thm("sl_seq")),
-            @tactics.exists_tac(tm(p2)),
-            @tactics.thenl(
-              @tactics.conj_tac,
-              @list.List([
-                seq([
-                  @tactics.match_mp_tac(size),
-                  gen,
-                  rw([thm("tlsf_ensure_ro")]),
-                  @meson.meson_tac(ths([])),
+              @tactics.match_mp_tac(thm("sl_seq")),
+              @tactics.exists_tac(tm(p2)),
+              @tactics.thenl(
+                @tactics.conj_tac,
+                @list.List([
+                  seq([
+                    @tactics.match_mp_tac(size),
+                    gen,
+                    rw([thm("tlsf_ensure_ro")]),
+                    @meson.meson_tac(ths([])),
+                  ]),
+                  seq([
+                    @tactics.match_mp_tac(
+                      thm("tlsf_ensure_prefix_after_size_raw"),
+                    ),
+                    arw([]),
+                  ]),
                 ]),
-                seq([
-                  @tactics.match_mp_tac(
-                    thm("tlsf_ensure_prefix_after_size_raw"),
-                  ),
-                  arw([]),
-                ]),
-              ]),
-            ),
+              ),
+            ]),
           ]),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
 }

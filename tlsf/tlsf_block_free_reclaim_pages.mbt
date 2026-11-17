@@ -152,132 +152,134 @@ fn prove_tlsf_block_free_reclaim_pages() -> Unit raise {
       let _ = lemma(
         "tlsf_block_free_reclaim_" + label + "_pages",
         "∀ free_idx : Num, \{vars} \{cond} → sl_triple(st(NIL,[\{i("p")},u,l2],\{pre}),tlsf_block_free_unlink(d,free_idx),st(NIL,[\{i("p")},\{i(nx)},\{i(if has_prev { pr } else { "word("+k+")" })}],\{post}))",
-        seq([
-          gen,
-          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-          g => {
-            @tactics.strip_assume_tac(
-              block_under(
-                inst(
-                  thm("tlsf_small_page_member_geometry"),
-                  geo + ["(p : " + w + ")"],
-                ),
-                g,
-              ),
-            )(g)
-          },
-          g => {
-            let focus0 = block_under(
-              inst(thm("tlsf_small_pages_focus"), pa + ["(p : " + w + ")"]),
-              g,
-            )
-            let nf = [
-              @kernel.assume_rule(tm(nilca)),
-              @kernel.assume_rule(tm(nilli)),
-              thm("tlsf_small_page_size_focus"),
-            ]
-            let focus = @equal.conv_rule(
-              @equal.rand_conv(@simp.rewrite_conv(ths(nf))),
-              focus0,
-            )
-            let path = inst(
-              thm("tlsf_block_free_unlink_" + label + "_table"),
-              args(["d"]) +
-              ["(free_idx : Num)"] +
-              args(["fast", "partial"]) +
-              [
-                "(p : " + w + ")",
-                s,
-                a,
-                nx,
-                "(tail : " + lw + ")",
-                "(u : Value)",
-                "(l2 : Value)",
-                frame,
-              ],
-            )
-            let postTac = seq([
-              gen,
-              rw([thm("st")]),
-              beta_goal(),
-              @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-              arw([]),
-              g => {
-                let client = small_star([
-                  rest,
-                  table2,
-                  "(fp : " + rty + ")((gs : List[Value]),(ms : Num))",
-                ])
-                let geom = "tlsf_small_page_ok((lim : Num),(p : " +
-                  w +
-                  ")," +
-                  cap +
-                  "," +
-                  s +
-                  "," +
-                  loc +
-                  ",(NIL : " +
-                  lw +
-                  "),(NIL : " +
-                  lw +
-                  "))"
-                let recover = inst(thm("tlsf_small_recover_page"), [
-                  "(lim : Num)",
-                  "(p : " + w + ")",
-                  cap,
-                  s,
-                  loc,
-                  pr,
-                  nx,
-                  client,
-                ])
-                seq([
-                  free_have(
-                    geom,
-                    seq([
-                      @tactics.undisch_tac(
-                        tm(
-                          "tlsf_small_page_ok((lim : Num),(p : " +
-                          w +
-                          ")," +
-                          cap +
-                          "," +
-                          s +
-                          "," +
-                          loc +
-                          "," +
-                          arg("cached") +
-                          "(p)," +
-                          arg("live") +
-                          "(p))",
-                        ),
-                      ),
-                      arw([]),
-                    ]),
+        () => {
+          seq([
+            gen,
+            @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+            g => {
+              @tactics.strip_assume_tac(
+                block_under(
+                  inst(
+                    thm("tlsf_small_page_member_geometry"),
+                    geo + ["(p : " + w + ")"],
                   ),
-                  g => {
-                    @tactics.match_mp_tac(
-                      @bool.spec(
-                        tm("(h : " + heap + ")"),
-                        block_under(recover, g),
-                      ),
-                    )(g)
-                  },
-                  @tactics.first_x_assum(th => {
-                    if head_name(@kernel.concl(th)) == "star" {
-                      @tactics.mp_tac(th)
-                    } else {
-                      @tactics.no_tac
-                    }
-                  }),
-                  rw([thm("tlsf_small_page_size_focus")] + ac),
-                  arw([]),
-                ])(g)
-              },
-            ])
-            page_conseq(path, ent_tac([focus], []), postTac)(g)
-          },
-        ]),
+                  g,
+                ),
+              )(g)
+            },
+            g => {
+              let focus0 = block_under(
+                inst(thm("tlsf_small_pages_focus"), pa + ["(p : " + w + ")"]),
+                g,
+              )
+              let nf = [
+                @kernel.assume_rule(tm(nilca)),
+                @kernel.assume_rule(tm(nilli)),
+                thm("tlsf_small_page_size_focus"),
+              ]
+              let focus = @equal.conv_rule(
+                @equal.rand_conv(@simp.rewrite_conv(ths(nf))),
+                focus0,
+              )
+              let path = inst(
+                thm("tlsf_block_free_unlink_" + label + "_table"),
+                args(["d"]) +
+                ["(free_idx : Num)"] +
+                args(["fast", "partial"]) +
+                [
+                  "(p : " + w + ")",
+                  s,
+                  a,
+                  nx,
+                  "(tail : " + lw + ")",
+                  "(u : Value)",
+                  "(l2 : Value)",
+                  frame,
+                ],
+              )
+              let postTac = seq([
+                gen,
+                rw([thm("st")]),
+                beta_goal(),
+                @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+                arw([]),
+                g => {
+                  let client = small_star([
+                    rest,
+                    table2,
+                    "(fp : " + rty + ")((gs : List[Value]),(ms : Num))",
+                  ])
+                  let geom = "tlsf_small_page_ok((lim : Num),(p : " +
+                    w +
+                    ")," +
+                    cap +
+                    "," +
+                    s +
+                    "," +
+                    loc +
+                    ",(NIL : " +
+                    lw +
+                    "),(NIL : " +
+                    lw +
+                    "))"
+                  let recover = inst(thm("tlsf_small_recover_page"), [
+                    "(lim : Num)",
+                    "(p : " + w + ")",
+                    cap,
+                    s,
+                    loc,
+                    pr,
+                    nx,
+                    client,
+                  ])
+                  seq([
+                    free_have(
+                      geom,
+                      seq([
+                        @tactics.undisch_tac(
+                          tm(
+                            "tlsf_small_page_ok((lim : Num),(p : " +
+                            w +
+                            ")," +
+                            cap +
+                            "," +
+                            s +
+                            "," +
+                            loc +
+                            "," +
+                            arg("cached") +
+                            "(p)," +
+                            arg("live") +
+                            "(p))",
+                          ),
+                        ),
+                        arw([]),
+                      ]),
+                    ),
+                    g => {
+                      @tactics.match_mp_tac(
+                        @bool.spec(
+                          tm("(h : " + heap + ")"),
+                          block_under(recover, g),
+                        ),
+                      )(g)
+                    },
+                    @tactics.first_x_assum(th => {
+                      if head_name(@kernel.concl(th)) == "star" {
+                        @tactics.mp_tac(th)
+                      } else {
+                        @tactics.no_tac
+                      }
+                    }),
+                    rw([thm("tlsf_small_page_size_focus")] + ac),
+                    arw([]),
+                  ])(g)
+                },
+              ])
+              page_conseq(path, ent_tac([focus], []), postTac)(g)
+            },
+          ])
+        },
       )
     }
   }

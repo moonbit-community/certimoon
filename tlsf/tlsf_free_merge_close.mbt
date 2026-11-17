@@ -71,38 +71,40 @@ fn prove_tlsf_free_merge_close() -> Unit raise {
   let _ = lemma(
     "tlsf_free_merge_close",
     "\{vars}, \{cond} → (∀ h : \{heap}, \{flat}(h) → star(\{pending},fp,h))",
-    seq([
-      gen,
-      strip,
-      seq(
-        [("(ys : \{lw})", "(word(0) : \{w})"), ("(zs : \{lw})", m)].map(pair => {
-          let (ls, p) = pair
-          free_have(
-            "tlsf_regions(\{p},\{ls},\{nh}) == tlsf_regions(\{p},\{ls},\{hd})",
-            seq([
-              @tactics.match_mp_tac(
-                inst(thm("tlsf_regions_cong"), [ls, p, nh, hd]),
-              ),
-              @tactics.x_gen_tac(tm("(x : \{w})")),
-              @tactics.disch_tac,
-              @meson.asm_meson_tac(ths([@lists.mem_append()])),
-            ]),
-          )
+    () => {
+      seq([
+        gen,
+        strip,
+        seq(
+          [("(ys : \{lw})", "(word(0) : \{w})"), ("(zs : \{lw})", m)].map(pair => {
+            let (ls, p) = pair
+            free_have(
+              "tlsf_regions(\{p},\{ls},\{nh}) == tlsf_regions(\{p},\{ls},\{hd})",
+              seq([
+                @tactics.match_mp_tac(
+                  inst(thm("tlsf_regions_cong"), [ls, p, nh, hd]),
+                ),
+                @tactics.x_gen_tac(tm("(x : \{w})")),
+                @tactics.disch_tac,
+                @meson.asm_meson_tac(ths([@lists.mem_append()])),
+              ]),
+            )
+          }),
+        ),
+        gen,
+        rw([thm("tlsf_free_pending")] + lift_rws()),
+        strip,
+        arw([]),
+        @tactics.first_x_assum(th => {
+          if head_name(@kernel.concl(th)) == "star" {
+            @tactics.mp_tac(th)
+          } else {
+            @tactics.no_tac
+          }
         }),
-      ),
-      gen,
-      rw([thm("tlsf_free_pending")] + lift_rws()),
-      strip,
-      arw([]),
-      @tactics.first_x_assum(th => {
-        if head_name(@kernel.concl(th)) == "star" {
-          @tactics.mp_tac(th)
-        } else {
-          @tactics.no_tac
-        }
-      }),
-      @tactics.mp_tac(join),
-      arw(ac),
-    ]),
+        @tactics.mp_tac(join),
+        arw(ac),
+      ])
+    },
   )
 }

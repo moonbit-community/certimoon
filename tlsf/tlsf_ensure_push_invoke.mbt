@@ -66,7 +66,7 @@ fn prove_tlsf_ensure_push_invoke() -> Unit raise {
     "tlsf_ensure_push_invoke_g",
     "\{vars}, \{cond} → sl_triple_g(\{gspec}, fs, tabs, inst, \{falsep}, st([\{i("m")}], \{lc}, \{p}), [Call(push), Drop], st(NIL, \{lc}, \{q}), NIL)",
     [],
-    Array::make(2, vc),
+    () => Array::make(2, vc),
     specs=[spec],
     calls=[(0, [])],
     rws~,
@@ -90,29 +90,31 @@ fn prove_tlsf_ensure_push_invoke() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_push_invoke",
     "\{vars}, \{native} && \{cond} → sl_triple_m(fs, tabs, inst, st([\{i("m")}], \{lc}, \{p}), [Call(push), Drop], st(NIL, \{lc}, \{q}), NIL)",
-    seq([
-      gen,
-      strip,
-      @tactics.match_mp_tac(thm("sl_triple_m_of_g")),
-      @tactics.exists_tac(tm(gspec)),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          seq([
-            @tactics.match_mp_tac(holds),
-            arw([
-              thm("tlsf_push_call_free"),
-              @wasm.thm("n_zeros"),
-              @wasm.thm("bitzero"),
-              @wasm.thm("bitzero_num"),
-              @wasm.thm("those"),
-              @wasm.thm("map_option"),
-              @lists.map(),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.match_mp_tac(thm("sl_triple_m_of_g")),
+        @tactics.exists_tac(tm(gspec)),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            seq([
+              @tactics.match_mp_tac(holds),
+              arw([
+                thm("tlsf_push_call_free"),
+                @wasm.thm("n_zeros"),
+                @wasm.thm("bitzero"),
+                @wasm.thm("bitzero_num"),
+                @wasm.thm("those"),
+                @wasm.thm("map_option"),
+                @lists.map(),
+              ]),
             ]),
+            seq([@tactics.match_mp_tac(raw), arw([])]),
           ]),
-          seq([@tactics.match_mp_tac(raw), arw([])]),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
 }

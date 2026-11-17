@@ -236,7 +236,7 @@ fn prove_tlsf_split_all() -> Unit raise {
         "tlsf_split_next"
       },
       "\{vars}, \{cond} → sl_triple_m(fs, tabs, inst, \{show(p)}, tlsf_split_code(d, push), \{q}, NIL)",
-      tactic,
+      () => tactic,
     )
     // Recover the ordinary whole-payload post-pop state. Its four new
     // metadata words have arbitrary contents, discharged with sl_ex_m.
@@ -310,7 +310,7 @@ fn prove_tlsf_split_all() -> Unit raise {
     let core = seq(
       ghosts.map(x => {
         seq([
-          @tactics.match_mp_tac(thm("sl_ex_m")),
+          @logic.match_mp_tac(thm("sl_ex_m")),
           beta_goal(),
           @tactics.x_gen_tac(tm(x)),
         ])
@@ -328,73 +328,75 @@ fn prove_tlsf_split_all() -> Unit raise {
         "tlsf_split_next_all"
       },
       "\{allvars}, \{cond} → sl_triple_m(fs, tabs, inst, \{natural}, tlsf_split_code(d, push), \{q}, NIL)",
-      seq([
-        gen,
-        strip,
-        @tactics.mp_tac(inst(thm("tlsf_split_focus_geometry"), args)),
-        arw([]),
-        strip,
-        have(
-          "tlsf_block_ok(val((m : \{w})), (lim : Num), m, (hd : \{ht})) && (lim : Num) <= 4294967296",
-          seq([
-            @tactics.undisch_tac(
-              tm(
-                "tlsf_physical_ok((d : \{w}), (lim : Num), \{top}, \{oldxs}, (hd : \{ht}))",
+      () => {
+        seq([
+          gen,
+          strip,
+          @tactics.mp_tac(inst(thm("tlsf_split_focus_geometry"), args)),
+          arw([]),
+          strip,
+          have(
+            "tlsf_block_ok(val((m : \{w})), (lim : Num), m, (hd : \{ht})) && (lim : Num) <= 4294967296",
+            seq([
+              @tactics.undisch_tac(
+                tm(
+                  "tlsf_physical_ok((d : \{w}), (lim : Num), \{top}, \{oldxs}, (hd : \{ht}))",
+                ),
               ),
-            ),
-            rw([thm("tlsf_physical_ok")]),
-            strip,
-            arw([]),
-            @tactics.match_mp_tac(
-              inst(thm("tlsf_layout_members"), [
-                oldxs,
-                "(word(0) : \{w})",
-                "tlsf_origin((d : \{w}))",
-                "(lim : Num)",
-                top,
-                "(hd : \{ht})",
-                "(m : \{w})",
-              ]),
-            ),
-            arw([@lists.mem_append(), @lists.mem()]),
-          ]),
-        ),
-        @tactics.first_x_assum(th => {
-          if head_name(@kernel.concl(th)) == "/\\" {
-            @tactics.strip_assume_tac(th)
-          } else {
-            @tactics.no_tac
-          }
-        }),
-        @tactics.first_x_assum(th => {
-          if head_name(@kernel.concl(th)) == "tlsf_block_ok" {
-            @tactics.strip_assume_tac(
-              @simp.rewrite_rule(ths([thm("tlsf_block_ok")]))(th),
-            )
-          } else {
-            @tactics.no_tac
-          }
-        }),
-        seq(
-          [4, 8, 12].map(k => {
-            have(
-              "val(word_add(\{r}, word(\{k}))) == val(\{r}) + \{k}",
-              seq([
-                @tactics.match_mp_tac(thm("val_add_small")),
-                @int.asm_arith_tac,
-              ]),
-            )
+              rw([thm("tlsf_physical_ok")]),
+              strip,
+              arw([]),
+              @tactics.match_mp_tac(
+                inst(thm("tlsf_layout_members"), [
+                  oldxs,
+                  "(word(0) : \{w})",
+                  "tlsf_origin((d : \{w}))",
+                  "(lim : Num)",
+                  top,
+                  "(hd : \{ht})",
+                  "(m : \{w})",
+                ]),
+              ),
+              arw([@lists.mem_append(), @lists.mem()]),
+            ]),
+          ),
+          @tactics.first_x_assum(th => {
+            if head_name(@kernel.concl(th)) == "/\\" {
+              @tactics.strip_assume_tac(th)
+            } else {
+              @tactics.no_tac
+            }
           }),
-        ),
-        @tactics.match_mp_tac(thm("sl_conseq_m")),
-        @tactics.exists_tac(expre),
-        @tactics.exists_tac(tm(q)),
-        @simp.rewrite_tac(ths([])),
-        @tactics.repeat_tac(@tactics.conj_tac),
-        @tactics.first(
-          @list.List([solve(core), solve(pre_ent), solve(same_tac())]),
-        ),
-      ]),
+          @tactics.first_x_assum(th => {
+            if head_name(@kernel.concl(th)) == "tlsf_block_ok" {
+              @tactics.strip_assume_tac(
+                @simp.rewrite_rule(ths([thm("tlsf_block_ok")]))(th),
+              )
+            } else {
+              @tactics.no_tac
+            }
+          }),
+          seq(
+            [4, 8, 12].map(k => {
+              have(
+                "val(word_add(\{r}, word(\{k}))) == val(\{r}) + \{k}",
+                seq([
+                  @tactics.match_mp_tac(thm("val_add_small")),
+                  @int.asm_arith_tac,
+                ]),
+              )
+            }),
+          ),
+          @tactics.match_mp_tac(thm("sl_conseq_m")),
+          @tactics.exists_tac(expre),
+          @tactics.exists_tac(tm(q)),
+          @simp.rewrite_tac(ths([])),
+          @tactics.repeat_tac(@tactics.conj_tac),
+          @tactics.first(
+            @list.List([solve(core), solve(pre_ent), solve(same_tac())]),
+          ),
+        ])
+      },
     )
   }
 }

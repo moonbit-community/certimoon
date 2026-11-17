@@ -84,57 +84,59 @@ fn prove_tlsf_page_publish_fresh_view() -> Unit raise {
     old +
     " == " +
     fields,
-    seq([
-      gen,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      g => {
-        @tactics.strip_assume_tac(
-          block_under(
-            inst(thm("tlsf_page_publish_view_facts"), [
-              "(lim : Num)",
-              p,
-              "(cap : Num)",
-              s,
-              b,
-              bs,
-              "(NIL : " + lw + ")",
-              "(i : Num)",
-            ]),
-            g,
-          ),
-        )(g)
-      },
-      g => {
-        @tactics.assume_tac(
-          block_under(
-            inst(thm("tlsf_page_publish_slots_pre"), [
-              total,
-              p,
-              s,
-              "(NIL : " + lw + ")",
-              b,
-              "(i : Num)",
-            ]),
-            g,
-          ),
-        )(g)
-      },
-      rw([
-        thm("tlsf_page_allocate_build"),
-        thm("tlsf_page_allocate_slots_refine"),
-        @equal.gsym(thm("tlsf_page_allocate_list_head")),
-        thm("tlsf_page_publish_frame"),
-      ]),
-      arw(
-        [
-          thm("tlsf_small_links"),
-          thm("tlsf_small_head"),
-          @lists.not_cons_nil(),
-          @lists.hd(),
-        ] +
-        ac,
-      ),
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        g => {
+          @tactics.strip_assume_tac(
+            block_under(
+              inst(thm("tlsf_page_publish_view_facts"), [
+                "(lim : Num)",
+                p,
+                "(cap : Num)",
+                s,
+                b,
+                bs,
+                "(NIL : " + lw + ")",
+                "(i : Num)",
+              ]),
+              g,
+            ),
+          )(g)
+        },
+        g => {
+          @tactics.assume_tac(
+            block_under(
+              inst(thm("tlsf_page_publish_slots_pre"), [
+                total,
+                p,
+                s,
+                "(NIL : " + lw + ")",
+                b,
+                "(i : Num)",
+              ]),
+              g,
+            ),
+          )(g)
+        },
+        rw([
+          thm("tlsf_page_allocate_build"),
+          thm("tlsf_page_allocate_slots_refine"),
+          @equal.gsym(thm("tlsf_page_allocate_list_head")),
+          thm("tlsf_page_publish_frame"),
+        ]),
+        arw(
+          [
+            thm("tlsf_small_links"),
+            thm("tlsf_small_head"),
+            @lists.not_cons_nil(),
+            @lists.hd(),
+          ] +
+          ac,
+        ),
+      ])
+    },
   )
   let split4 = red(
     inst(thm("tlsf_bytes_split"), ["val((b : " + w + "))+8", "4", "(s : Num)-4"]),
@@ -146,34 +148,36 @@ fn prove_tlsf_page_publish_fresh_view() -> Unit raise {
     ", ∀ s : Num, ∀ h : " +
     heap +
     ", 4 <= s && tlsf_page_publish_payload(b,s,h) → tlsf_bytes(val(b)+8,s,h)",
-    seq([
-      gen,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      free_have("4+((s : Num)-4) == s", @int.asm_arith_tac),
-      g => {
-        let eq = @simp.rewrite_rule(g.0.map(p => p.1))(split4)
-        seq([
-          @tactics.subst1_tac(eq),
-          @tactics.undisch_tac(
-            tm(
-              "tlsf_page_publish_payload((b : " +
-              w +
-              "),(s : Num),(h : " +
-              heap +
-              "))",
+    () => {
+      seq([
+        gen,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        free_have("4+((s : Num)-4) == s", @int.asm_arith_tac),
+        g => {
+          let eq = @simp.rewrite_rule(g.0.map(p => p.1))(split4)
+          seq([
+            @tactics.subst1_tac(eq),
+            @tactics.undisch_tac(
+              tm(
+                "tlsf_page_publish_payload((b : " +
+                w +
+                "),(s : Num),(h : " +
+                heap +
+                "))",
+              ),
             ),
-          ),
-          ent_tac(
-            [
-              thm("tlsf_page_publish_payload"),
-              thm("tlsf_bytes_word"),
-              arith("∀ a : Num, (a+8)+4 == a+12"),
-            ],
-            ["(word(0) : " + w + ")"],
-          ),
-        ])(g)
-      },
-    ]),
+            ent_tac(
+              [
+                thm("tlsf_page_publish_payload"),
+                thm("tlsf_bytes_word"),
+                arith("∀ a : Num, (a+8)+4 == a+12"),
+              ],
+              ["(word(0) : " + w + ")"],
+            ),
+          ])(g)
+        },
+      ])
+    },
   )
   let split8 = red(inst(thm("tlsf_bytes_split"), ["(a : Num)", "4", "4"]))
   let _ = lemma(
@@ -189,9 +193,11 @@ fn prove_tlsf_page_publish_fresh_view() -> Unit raise {
     "," +
     cell("a+4", "u") +
     ",h) → tlsf_bytes(a,8,h)",
-    ent_tac([split8, thm("tlsf_bytes_word")], [
-      "(v : " + w + ")",
-      "(u : " + w + ")",
-    ]),
+    () => {
+      ent_tac([split8, thm("tlsf_bytes_word")], [
+        "(v : " + w + ")",
+        "(u : " + w + ")",
+      ])
+    },
   )
 }

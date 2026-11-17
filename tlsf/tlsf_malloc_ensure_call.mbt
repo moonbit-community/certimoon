@@ -99,65 +99,67 @@ fn prove_tlsf_malloc_ensure_call() -> Unit raise {
     "),[Call(ensure_idx)]," +
     malloc_ensure_call_post(a, caller) +
     ",NIL)",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      initialize_m_conseq(
-        source,
-        ent_tac(
-          [
-            thm("tlsf_ensure_pre"),
-            thm("tlsf_malloc_ro"),
-            thm("tlsf_allocator"),
-            @lists.append(),
-          ],
-          [],
-        ),
-        seq([
-          @tactics.repeat_tac(@tactics.gen_tac),
-          beta_goal(),
-          @simp.rewrite_tac(ths([@lists.append()])),
-          @tactics.conv_tac(@equal.top_depth_conv(@ind_types.unwind_conv)),
-          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-          g => {
-            @tactics.mp_tac(
-              block_under(
-                inst(
-                  thm("tlsf_malloc_ensure_post_result"),
-                  a +
-                  [
-                    n,
-                    before,
-                    fp,
-                    "(vs : List[Value])",
-                    "(gs : List[Value])",
-                    "(ms : Num)",
-                    "(h : " + heap + ")",
-                  ],
-                ),
-                g,
-              ),
-            )(g)
-          },
-          @simp.rewrite_tac(
-            ths([
-              thm("tlsf_malloc_ensure_post"),
-              thm("st"),
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        initialize_m_conseq(
+          source,
+          ent_tac(
+            [
+              thm("tlsf_ensure_pre"),
               thm("tlsf_malloc_ro"),
-            ]),
+              thm("tlsf_allocator"),
+              @lists.append(),
+            ],
+            [],
           ),
-          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-          @simp.asm_rewrite_tac(ths([])),
-          @tactics.try_tac(@tactics.disj2_tac),
-          seq(
-            (["(ms : Num)", "(h : " + heap + ")"] +
-            malloc_fresh_args(a)[2:8].to_owned()).map(x => {
-              @tactics.exists_tac(tm(x))
-            }),
-          ),
-          @simp.asm_rewrite_tac(ths([])),
-        ]),
-      ),
-    ]),
+          seq([
+            @tactics.repeat_tac(@tactics.gen_tac),
+            beta_goal(),
+            @simp.rewrite_tac(ths([@lists.append()])),
+            @tactics.conv_tac(@equal.top_depth_conv(@ind_types.unwind_conv)),
+            @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+            g => {
+              @tactics.mp_tac(
+                block_under(
+                  inst(
+                    thm("tlsf_malloc_ensure_post_result"),
+                    a +
+                    [
+                      n,
+                      before,
+                      fp,
+                      "(vs : List[Value])",
+                      "(gs : List[Value])",
+                      "(ms : Num)",
+                      "(h : " + heap + ")",
+                    ],
+                  ),
+                  g,
+                ),
+              )(g)
+            },
+            @simp.rewrite_tac(
+              ths([
+                thm("tlsf_malloc_ensure_post"),
+                thm("st"),
+                thm("tlsf_malloc_ro"),
+              ]),
+            ),
+            @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+            @simp.asm_rewrite_tac(ths([])),
+            @tactics.try_tac(@tactics.disj2_tac),
+            seq(
+              (["(ms : Num)", "(h : " + heap + ")"] +
+              malloc_fresh_args(a)[2:8].to_owned()).map(x => {
+                @tactics.exists_tac(tm(x))
+              }),
+            ),
+            @simp.asm_rewrite_tac(ths([])),
+          ]),
+        ),
+      ])
+    },
   )
 }

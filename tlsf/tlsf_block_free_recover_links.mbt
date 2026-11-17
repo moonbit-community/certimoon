@@ -13,35 +13,37 @@ fn prove_tlsf_block_free_recover_links() -> Unit raise {
   let _ = lemma(
     "tlsf_small_links_bytes",
     "∀ xs : \{lw}, ∀ h : \{heap}, tlsf_small_links(xs,h) → tlsf_small_hlist((\{ff}),xs,h)",
-    @tactics.thenl(
-      @lists.list_induct_tac,
-      @list.List([
-        rw([thm("tlsf_small_links"), thm("tlsf_small_hlist")]),
-        seq([
+    () => {
+      @tactics.thenl(
+        @lists.list_induct_tac,
+        @list.List([
           rw([thm("tlsf_small_links"), thm("tlsf_small_hlist")]),
-          gen,
-          @tactics.disch_tac,
-          @tactics.match_mp_tac(
-            inst(thm("star_mono"), [
-              "pts(val((h : " +
-              w +
-              "))+8,serialise_i32(tlsf_small_head((t : " +
-              lw +
-              "))))",
-              "tlsf_bytes(val((h : " + w + "))+8,4)",
-              "tlsf_small_links((t : " + lw + "))",
-              "tlsf_small_hlist((" + ff + "),(t : " + lw + "))",
-              "(h' : " + heap + ")",
-            ]),
-          ),
-          arw([]),
-          rw([thm("tlsf_bytes_word")]),
-          gen,
-          @tactics.disch_tac,
-          @tactics.exists_tac(tm("tlsf_small_head((t : " + lw + "))")),
-          arw([]),
+          seq([
+            rw([thm("tlsf_small_links"), thm("tlsf_small_hlist")]),
+            gen,
+            @tactics.disch_tac,
+            @tactics.match_mp_tac(
+              inst(thm("star_mono"), [
+                "pts(val((h : " +
+                w +
+                "))+8,serialise_i32(tlsf_small_head((t : " +
+                lw +
+                "))))",
+                "tlsf_bytes(val((h : " + w + "))+8,4)",
+                "tlsf_small_links((t : " + lw + "))",
+                "tlsf_small_hlist((" + ff + "),(t : " + lw + "))",
+                "(h' : " + heap + ")",
+              ]),
+            ),
+            arw([]),
+            rw([thm("tlsf_bytes_word")]),
+            gen,
+            @tactics.disch_tac,
+            @tactics.exists_tac(tm("tlsf_small_head((t : " + lw + "))")),
+            arw([]),
+          ]),
         ]),
-      ]),
-    ),
+      )
+    },
   )
 }

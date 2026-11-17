@@ -39,22 +39,24 @@ fn prove_tlsf_block_free_tail() -> Unit raise {
   let _ = lemma(
     "tlsf_block_free_tail_all",
     "\{env}, \{page_quantify(vs)}\{block_old_facts(args,p,b)} && \{block_native_hyp()} → sl_triple_g(G,fs,tabs,inst,rp,\{before},tlsf_block_free_tail(d,free_idx),\{q},labels)",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      @tactics.thenl(
-        @class.asm_cases_tac(tm(usage + " == " + total)),
-        @list.List([
-          apply("tlsf_block_free_tail_full"),
-          @tactics.thenl(
-            @class.asm_cases_tac(tm(usage + " == 1")),
-            @list.List([
-              apply("tlsf_block_free_tail_last"),
-              apply("tlsf_block_free_tail_partial"),
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        @tactics.thenl(
+          @class.asm_cases_tac(tm(usage + " == " + total)),
+          @list.List([
+            apply("tlsf_block_free_tail_full"),
+            @tactics.thenl(
+              @class.asm_cases_tac(tm(usage + " == 1")),
+              @list.List([
+                apply("tlsf_block_free_tail_last"),
+                apply("tlsf_block_free_tail_partial"),
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
 }

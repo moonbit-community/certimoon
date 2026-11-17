@@ -108,7 +108,7 @@ fn prove_tlsf_page_allocate_loop() -> Unit raise {
     seq([
       start,
       g => {
-        let ex = @tactics.prove(
+        let ex = @logic.prove(
           tm("∃ vs : List[Value], (NIL : List[Value]) == vs"),
           seq([@tactics.exists_tac(tm("(NIL : List[Value])")), rw([])]),
         )
@@ -130,7 +130,7 @@ fn prove_tlsf_page_allocate_loop() -> Unit raise {
       "tlsf_page_allocate_loop_build",
       "\{vars}, tlsf_page_allocate_geometry(\{p},cap,val(\{s})) → sl_triple(\{pre},tlsf_page_allocate_loop(take_idx),\{done})",
       [inv],
-      vcs,
+      () => vcs,
       afters=[next, done],
       chunks=[thm("tlsf_page_allocate_step_build")],
       kind="lemma",

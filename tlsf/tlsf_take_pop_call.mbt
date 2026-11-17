@@ -53,33 +53,35 @@ fn prove_tlsf_take_pop_call() -> Unit raise {
   let _ = lemma(
     "tlsf_pop_call",
     "∀ d : \{w}, ∀ addr : Num, ∀ m : \{w}, ∀ hd : \{w}, ∀ fl : \{w}, ∀ sb : (Num) -> \{w}, ∀ bl : \{bt}, ∀ us : \{lw}, ∀ vs : \{lw}, ∀ fp : \{rty}, 16 <= val(tlsf_size(hd)) && bl(tlsf_level_of(hd))(tlsf_slot_of(hd)) == APPEND(us, CONS(m, vs)) → tlsf_proved_spec(addr, tlsf_pop_code(d), \{zeros}, 1, 0, addr, tlsf_pop_pre(\{args}), tlsf_pop_post(\{args}))",
-    seq([
-      gen,
-      strip,
-      @tactics.rule_assum_tac(@simp.rewrite_rule(ths(rws))),
-      rw([thm("tlsf_proved_spec")]),
-      @tactics.repeat_tac(@tactics.conj_tac),
-      @tactics.first(
-        @list.List([
-          solve(seq([@tactics.gen_tac, by_path(path, "T", rws, [], rws, [])])),
-          solve(
-            seq([
-              gen,
-              rw(rws),
-              @tactics.repeat_tac(@tactics.strip_tac),
-              subst_vars(),
-              rw([@lists.length()]),
-              @tactics.conv_tac(@calc_num.num_reduce_conv),
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.rule_assum_tac(@simp.rewrite_rule(ths(rws))),
+        rw([thm("tlsf_proved_spec")]),
+        @tactics.repeat_tac(@tactics.conj_tac),
+        @tactics.first(
+          @list.List([
+            solve(seq([@tactics.gen_tac, by_path(path, "T", rws, [], rws, [])])),
+            solve(
+              seq([
+                gen,
+                rw(rws),
+                @tactics.repeat_tac(@tactics.strip_tac),
+                subst_vars(),
+                rw([@lists.length()]),
+                @tactics.conv_tac(@calc_num.num_reduce_conv),
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_pop_call_free",
     "∀ d : \{w}, call_free_b(tlsf_pop_code(d))",
-    seq([gen, call_free_tac()]),
+    () => seq([gen, call_free_tac()]),
   )
   ignore(arw)
 }

@@ -24,7 +24,7 @@ fn prove_tlsf_block_free_control() -> Unit raise {
       "tlsf_block_free_classify_raw",
       "∀ d : \{w}, ∀ free_idx : Num, ∀ p : \{w}, ∀ u : \{w}, ∀ total : \{w}, ∀ l2 : Value, ∀ fp : \{rty}, sl_triple(st(NIL,\{lc},\{own}),tlsf_block_free_classify(d,free_idx),st([\{i("wasm_bool((u : "+w+") == (total : "+w+"))")}],\{lc},\{own}))",
       [],
-      [vc],
+      () => [vc],
       kind="lemma",
     ),
   )
@@ -33,7 +33,7 @@ fn prove_tlsf_block_free_control() -> Unit raise {
       "tlsf_block_free_last_test_raw",
       "∀ d : \{w}, ∀ free_idx : Num, ∀ p : \{w}, ∀ u : \{w}, ∀ l2 : Value, ∀ R : \{rty}, sl_triple(st(NIL,\{lc},R),tlsf_block_free_last_test(d,free_idx),st([\{i("wasm_bool((u : "+w+") == word(1))")}],\{lc},R))",
       [],
-      [],
+      () => [],
       kind="lemma",
     ),
   )
@@ -70,16 +70,18 @@ fn prove_tlsf_block_free_control() -> Unit raise {
     let _ = lemma(
       "tlsf_block_free_if_" + (if taken { "taken" } else { "skipped" }),
       "\{vars}, \{cond} && (\{cb}) → sl_triple_g(G,fs,tabs,inst,rp,st([\{i("c")}],lc,R),[If(Tbv(SOME(T_num(T_i32))),bs1,bs2)],Q,labels)",
-      seq([
-        @tactics.repeat_tac(@tactics.gen_tac),
-        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-        @tactics.match_mp_tac(rule),
-        @simp.asm_rewrite_tac(ths([])),
-        @tactics.match_mp_tac(thm("sl_block_st_g")),
-        beta_goal(),
-        @simp.rewrite_tac(ths([@lists.append(), @class.eta_ax()])),
-        @tactics.first_x_assum(th => @tactics.match_accept_tac(th)),
-      ]),
+      () => {
+        seq([
+          @tactics.repeat_tac(@tactics.gen_tac),
+          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+          @tactics.match_mp_tac(rule),
+          @simp.asm_rewrite_tac(ths([])),
+          @tactics.match_mp_tac(thm("sl_block_st_g")),
+          beta_goal(),
+          @simp.rewrite_tac(ths([@lists.append(), @class.eta_ax()])),
+          @tactics.first_x_assum(th => @tactics.match_accept_tac(th)),
+        ])
+      },
     )
   }
 }

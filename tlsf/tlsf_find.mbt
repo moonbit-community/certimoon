@@ -17,9 +17,11 @@ fn prove_tlsf_find_query() -> Unit raise {
   let fword = lemma(
     "tlsf_fword_code",
     "∀ x : \{w}, word_sub(word_sub(word(31), word(word_clz(x))), word(4)) == word_sub(word(27), word(word_clz(x)))",
-    @tactics.then_tac(@tactics.gen_tac, g => {
-      @tactics.accept_tac(@words.word_rule(g.1))(g)
-    }),
+    () => {
+      @tactics.then_tac(@tactics.gen_tac, g => {
+        @tactics.accept_tac(@words.word_rule(g.1))(g)
+      })
+    },
   )
   let rw = (ts : Array[@kernel.Thm]) => @simp.rewrite_tac(ths(ts))
   let arw = (ts : Array[@kernel.Thm]) => @simp.asm_rewrite_tac(ths(ts))
@@ -27,18 +29,20 @@ fn prove_tlsf_find_query() -> Unit raise {
   let _ = lemma(
     "tlsf_round_code",
     "∀ s : \{w}, word_and(word_add(\{mask}, s), word_xor(\{mask}, word(4294967295))) == tlsf_round(s)",
-    seq([
-      @tactics.gen_tac,
-      rw([
-        thm("tlsf_round"),
-        thm("tlsf_mask"),
-        thm("tlsf_fli"),
-        @wasm.thm("int_clz"),
-        fword,
-        thm("tlsf_xor_ones"),
-        @words.word_add_sym(),
-      ]),
-    ]),
+    () => {
+      seq([
+        @tactics.gen_tac,
+        rw([
+          thm("tlsf_round"),
+          thm("tlsf_mask"),
+          thm("tlsf_fli"),
+          @wasm.thm("int_clz"),
+          fword,
+          thm("tlsf_xor_ones"),
+          @words.word_add_sym(),
+        ]),
+      ])
+    },
   )
   def(
     "tlsf_search_f",
@@ -121,33 +125,37 @@ fn prove_tlsf_find_query() -> Unit raise {
   let _ = lemma(
     "tlsf_search_domain_sync",
     "∀ s : \{w}, ∀ fl : \{w}, ∀ sb : (Num) -> \{w}, ∀ bl : \{bt}, tlsf_tables_sync(fl, sb, bl) → tlsf_search_domain(s, fl, sb)",
-    seq([
-      gen,
-      rw([thm("tlsf_tables_sync"), thm("tlsf_search_domain")]),
-      strip,
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          seq([@tactics.disch_tac, root_range(cut("tlsf_search_f(s)"))]),
-          @tactics.thenl(
-            @tactics.conj_tac,
-            @list.List([
-              second_range,
-              @tactics.thenl(
-                @tactics.conj_tac,
-                @list.List([
-                  seq([
-                    @tactics.disch_tac,
-                    root_range("word_jshl(\{cut("tlsf_search_f(s)")}, word(1))"),
+    () => {
+      seq([
+        gen,
+        rw([thm("tlsf_tables_sync"), thm("tlsf_search_domain")]),
+        strip,
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            seq([@tactics.disch_tac, root_range(cut("tlsf_search_f(s)"))]),
+            @tactics.thenl(
+              @tactics.conj_tac,
+              @list.List([
+                second_range,
+                @tactics.thenl(
+                  @tactics.conj_tac,
+                  @list.List([
+                    seq([
+                      @tactics.disch_tac,
+                      root_range(
+                        "word_jshl(\{cut("tlsf_search_f(s)")}, word(1))",
+                      ),
+                    ]),
+                    fallback_range,
                   ]),
-                  fallback_range,
-                ]),
-              ),
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+                ),
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
   let ro = "tlsf_ro((d : \{w}), (fl : \{w}), (sb : (Num) -> \{w}), (bl : \{bt}), (before : \{heap}), (fp : \{rty}))"
   let query = "tlsf_search(\{ss}, (fl : \{w}), (sb : (Num) -> \{w}), (bl : \{bt}))"
@@ -195,7 +203,7 @@ fn prove_tlsf_find_query() -> Unit raise {
     "tlsf_find_query",
     stmt,
     [],
-    Array::make(10, vc),
+    () => Array::make(10, vc),
     afters=[after],
     rules~,
     rws~,

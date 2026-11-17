@@ -43,49 +43,51 @@ fn prove_tlsf_initialize_close() -> Unit raise {
   let _ = lemma(
     "tlsf_initialize_work_close",
     "∀ d : \{w}, ∀ lim : Num, ∀ fp : \{rty}, \{facts} → tlsf_initialize_work(d,lim,\{hdr},T,\{m},fp) == ((gs : List[Value]) => (ms : Num) => (h : \{heap}) => ms == lim && star(\{large},star(\{table},fp(gs,ms)),h))",
-    seq([
-      gen,
-      strip,
-      @tactics.mp_tac(inst(thm("tlsf_initialize_header_fields"), [d, lim])),
-      arw([]),
-      strip,
-      free_have(
-        "tlsf_physical_ok(\{d},\{lim},\{m},[\{m}],\{hd})",
-        seq([@tactics.match_mp_tac(thm("tlsf_initialize_physical")), arw([])]),
-      ),
-      free_have(
-        "tlsf_bins_match([\{m}],\{hd},\{bins})",
-        seq([
-          rw([thm("tlsf_initialize_headers")]),
-          @tactics.match_mp_tac(thm("tlsf_initialize_singleton_bins")),
-          arw([]),
-        ]),
-      ),
-      @tactics.rule_assum_tac(
-        @simp.rewrite_rule(ths([thm("tlsf_initialize_headers")])),
-      ),
-      rw([@class.fun_eq_thm()]),
-      gen,
-      rw(
-        [
-          thm("tlsf_initialize_work"),
-          thm("tlsf_large"),
-          thm("tlsf_chain"),
-          thm("tlsf_regions"),
-          thm("tlsf_initialize_headers"),
-          thm("tlsf_top_cell"),
-        ] +
-        lift_rws(),
-      ),
-      arw(
-        [
-          thm("star_assoc"),
-          thm("star_comm"),
-          thm("star_left_comm"),
-          thm("star_emp_hr"),
-        ] +
-        lift_rws(),
-      ),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.mp_tac(inst(thm("tlsf_initialize_header_fields"), [d, lim])),
+        arw([]),
+        strip,
+        free_have(
+          "tlsf_physical_ok(\{d},\{lim},\{m},[\{m}],\{hd})",
+          seq([@tactics.match_mp_tac(thm("tlsf_initialize_physical")), arw([])]),
+        ),
+        free_have(
+          "tlsf_bins_match([\{m}],\{hd},\{bins})",
+          seq([
+            rw([thm("tlsf_initialize_headers")]),
+            @tactics.match_mp_tac(thm("tlsf_initialize_singleton_bins")),
+            arw([]),
+          ]),
+        ),
+        @tactics.rule_assum_tac(
+          @simp.rewrite_rule(ths([thm("tlsf_initialize_headers")])),
+        ),
+        rw([@class.fun_eq_thm()]),
+        gen,
+        rw(
+          [
+            thm("tlsf_initialize_work"),
+            thm("tlsf_large"),
+            thm("tlsf_chain"),
+            thm("tlsf_regions"),
+            thm("tlsf_initialize_headers"),
+            thm("tlsf_top_cell"),
+          ] +
+          lift_rws(),
+        ),
+        arw(
+          [
+            thm("star_assoc"),
+            thm("star_comm"),
+            thm("star_left_comm"),
+            thm("star_emp_hr"),
+          ] +
+          lift_rws(),
+        ),
+      ])
+    },
   )
 }

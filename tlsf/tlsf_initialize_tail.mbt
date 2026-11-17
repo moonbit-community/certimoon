@@ -34,58 +34,60 @@ fn prove_tlsf_initialize_tail() -> Unit raise {
   let _ = lemma(
     "tlsf_initialize_tail_fresh",
     "\{vars}, tlsf_initialize_valid(d,lim) && \{native} → sl_abort_m(\{env},st(NIL,\{lc},\{fresh}),tlsf_initialize_tail(d,push),\{body_post(post)},\{abortp})",
-    seq([
-      gen,
-      strip,
-      @tactics.mp_tac(inst(thm("tlsf_initialize_limit_bounds"), [d, lim])),
-      arw([]),
-      strip,
-      @tactics.undisch_tac(tm("tlsf_initialize_valid(\{d},\{lim})")),
-      rw([thm("tlsf_initialize_valid")]),
-      strip,
-      initialize_abort_conseq(
-        work,
-        seq([
-          gen,
-          rw([thm("st"), thm("tlsf_initialize_fresh")]),
-          strip,
-          subst_vars(),
-          arw([]),
-          @tactics.mp_tac(
-            inst(thm("tlsf_initialize_zero_ready"), [
-              d,
-              newlim,
-              frozen,
-              "(gs : List[Value])",
-              newlim,
-              "(h : \{heap})",
-            ]),
-          ),
-          arw([@class.eta_ax()]),
-        ]),
-        seq([
-          gen,
-          beta_goal(),
-          rw([thm("st"), thm("tlsf_initialize_post")]),
-          strip,
-          subst_vars(),
-          arw([]),
-          @tactics.mp_tac(close),
-          arw([@class.eta_ax()]),
-          @tactics.disch_tac,
-          @tactics.first_x_assum(th => {
-            if head_name(@kernel.concl(th)) == "tlsf_initialize_work" {
-              @tactics.mp_tac(th)
-            } else {
-              @tactics.no_tac
-            }
-          }),
-          arw([@class.eta_ax()]),
-          @tactics.repeat_tac(@tactics.strip_tac),
-          subst_vars(),
-          arw([]),
-        ]),
-      ),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.mp_tac(inst(thm("tlsf_initialize_limit_bounds"), [d, lim])),
+        arw([]),
+        strip,
+        @tactics.undisch_tac(tm("tlsf_initialize_valid(\{d},\{lim})")),
+        rw([thm("tlsf_initialize_valid")]),
+        strip,
+        initialize_abort_conseq(
+          work,
+          seq([
+            gen,
+            rw([thm("st"), thm("tlsf_initialize_fresh")]),
+            strip,
+            subst_vars(),
+            arw([]),
+            @tactics.mp_tac(
+              inst(thm("tlsf_initialize_zero_ready"), [
+                d,
+                newlim,
+                frozen,
+                "(gs : List[Value])",
+                newlim,
+                "(h : \{heap})",
+              ]),
+            ),
+            arw([@class.eta_ax()]),
+          ]),
+          seq([
+            gen,
+            beta_goal(),
+            rw([thm("st"), thm("tlsf_initialize_post")]),
+            strip,
+            subst_vars(),
+            arw([]),
+            @tactics.mp_tac(close),
+            arw([@class.eta_ax()]),
+            @tactics.disch_tac,
+            @tactics.first_x_assum(th => {
+              if head_name(@kernel.concl(th)) == "tlsf_initialize_work" {
+                @tactics.mp_tac(th)
+              } else {
+                @tactics.no_tac
+              }
+            }),
+            arw([@class.eta_ax()]),
+            @tactics.repeat_tac(@tactics.strip_tac),
+            subst_vars(),
+            arw([]),
+          ]),
+        ),
+      ])
+    },
   )
 }

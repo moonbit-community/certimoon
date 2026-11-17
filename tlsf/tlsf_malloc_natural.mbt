@@ -65,20 +65,22 @@ fn prove_tlsf_malloc_page_natural_call() -> Unit raise {
     ",(labels : List[" +
     sassn +
     "]))",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      free_have(
-        "val((word(" + sn + ") : " + w32 + ")) == " + sn,
-        seq([
-          @simp.rewrite_tac(ths([@words.val_word(), @words.dimindex_32()])),
-          @tactics.conv_tac(@calc_num.num_reduce_conv),
-          @tactics.match_mp_tac(@arith.mod_lt()),
-          @int.asm_arith_tac,
-        ]),
-      ),
-      g => free_apply(@simp.rewrite_rule(g.0.map(x => x.1))(source))(g),
-    ]),
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        free_have(
+          "val((word(" + sn + ") : " + w32 + ")) == " + sn,
+          seq([
+            @simp.rewrite_tac(ths([@words.val_word(), @words.dimindex_32()])),
+            @tactics.conv_tac(@calc_num.num_reduce_conv),
+            @logic.match_mp_tac(@arith.mod_lt()),
+            @int.asm_arith_tac,
+          ]),
+        ),
+        g => free_apply(@simp.rewrite_rule(g.0.map(x => x.1))(source))(g),
+      ])
+    },
   )
   let _ = a
 }
@@ -101,6 +103,6 @@ fn prove_tlsf_malloc_page_oriented_call() -> Unit raise {
   let _ = lemma(
     "tlsf_malloc_page_oriented_call_g",
     show(@kernel.concl(source)),
-    @tactics.accept_tac(source),
+    () => @tactics.accept_tac(source),
   )
 }

@@ -61,72 +61,74 @@ fn prove_tlsf_block_free_release_pages() -> Unit raise {
   let _ = lemma(
     "tlsf_block_free_release_pages",
     "∀ free_idx : Num, \{vars} \{pure} → sl_triple(st(NIL,[l0,\{i32("b")},l2],\{p0}),tlsf_block_free_release(d,free_idx),st(NIL,[\{i32("p")},\{i32("word("+u+")")},l2],\{q0}))",
-    seq([
-      gen,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      free_have(
-        "tlsf_count((p : \{w}),(ps : \{lw})) == 1",
-        seq([
-          @tactics.undisch_tac(tm(lists)),
-          rw([thm("tlsf_small_lists_ok")]),
-          small_meson(ths([])),
-        ]),
-      ),
-      free_have(
-        "tlsf_small_page_ok((lim : Num),(p : \{w}),\{cap},\{s},\{locp},\{cachedp},\{livep})",
-        seq([
-          @tactics.undisch_tac(tm(backing)),
-          rw([thm("tlsf_small_backing")]),
-          small_meson(ths([])),
-        ]),
-      ),
-      g => {
-        let focusOld = block_under(
-          inst(thm("tlsf_small_pages_focus"), args + ["(p : " + w + ")"]),
-          g,
-        )
-        let focusNew0 = block_under(
-          inst(thm("tlsf_small_pages_focus"), newargs + ["(p : " + w + ")"]),
-          g,
-        )
-        let restEq = inst(
-          thm("tlsf_small_pages_release_rest"),
-          args + ["(p : " + w + ")", "(b : " + w + ")"],
-        )
-        let focusNew1 = @equal.conv_rule(
-          @equal.rand_conv(@equal.subs_conv(ths([restEq]))),
-          focusNew0,
-        )
-        let focusNew = @equal.conv_rule(
-          @equal.rand_conv(
-            @simp.rewrite_conv(
-              ths([
-                thm("tlsf_block_free_loc"),
-                thm("tlsf_block_free_live"),
-                thm("tlsf_small_put"),
-              ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        free_have(
+          "tlsf_count((p : \{w}),(ps : \{lw})) == 1",
+          seq([
+            @tactics.undisch_tac(tm(lists)),
+            rw([thm("tlsf_small_lists_ok")]),
+            small_meson(ths([])),
+          ]),
+        ),
+        free_have(
+          "tlsf_small_page_ok((lim : Num),(p : \{w}),\{cap},\{s},\{locp},\{cachedp},\{livep})",
+          seq([
+            @tactics.undisch_tac(tm(backing)),
+            rw([thm("tlsf_small_backing")]),
+            small_meson(ths([])),
+          ]),
+        ),
+        g => {
+          let focusOld = block_under(
+            inst(thm("tlsf_small_pages_focus"), args + ["(p : " + w + ")"]),
+            g,
+          )
+          let focusNew0 = block_under(
+            inst(thm("tlsf_small_pages_focus"), newargs + ["(p : " + w + ")"]),
+            g,
+          )
+          let restEq = inst(
+            thm("tlsf_small_pages_release_rest"),
+            args + ["(p : " + w + ")", "(b : " + w + ")"],
+          )
+          let focusNew1 = @equal.conv_rule(
+            @equal.rand_conv(@equal.subs_conv(ths([restEq]))),
+            focusNew0,
+          )
+          let focusNew = @equal.conv_rule(
+            @equal.rand_conv(
+              @simp.rewrite_conv(
+                ths([
+                  thm("tlsf_block_free_loc"),
+                  thm("tlsf_block_free_live"),
+                  thm("tlsf_small_put"),
+                ]),
+              ),
             ),
-          ),
-          focusNew1,
-        )
-        let path = inst(thm("tlsf_block_free_release_page"), [
-          "(d : " + w + ")",
-          "(free_idx : Num)",
-          "(lim : Num)",
-          "(p : " + w + ")",
-          cap,
-          s,
-          locp,
-          cachedp,
-          livep,
-          "(b : " + w + ")",
-          "(i : Num)",
-          "(l0 : Value)",
-          "(l2 : Value)",
-          frame,
-        ])
-        by_path(path, "T", [focusOld], [], [focusNew], [])(g)
-      },
-    ]),
+            focusNew1,
+          )
+          let path = inst(thm("tlsf_block_free_release_page"), [
+            "(d : " + w + ")",
+            "(free_idx : Num)",
+            "(lim : Num)",
+            "(p : " + w + ")",
+            cap,
+            s,
+            locp,
+            cachedp,
+            livep,
+            "(b : " + w + ")",
+            "(i : Num)",
+            "(l0 : Value)",
+            "(l2 : Value)",
+            frame,
+          ])
+          by_path(path, "T", [focusOld], [], [focusNew], [])(g)
+        },
+      ])
+    },
   )
 }

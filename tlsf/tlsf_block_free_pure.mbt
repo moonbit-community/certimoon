@@ -14,24 +14,26 @@ fn prove_tlsf_block_free_pure() -> Unit raise {
   let _ = lemma(
     "tlsf_small_page_release_ok",
     "\{v}, \{ok} && MEM(b,live) → tlsf_small_page_ok(lim,p,cap,s,CONS(b,loc),cached,tlsf_small_remove(b,live))",
-    seq([
-      gen,
-      rw([thm("tlsf_small_page_ok")]),
-      strip,
-      arw([]),
-      @tactics.mp_tac(
-        inst(thm("tlsf_small_release_model"), [
-          "(p : " + w + ")",
-          "(s : Num)",
-          "(b : " + w + ")",
-          "(loc : " + lw + ")",
-          "(cached : " + lw + ")",
-          "(live : " + lw + ")",
-        ]),
-      ),
-      arw([]),
-      small_meson(ths([])),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([thm("tlsf_small_page_ok")]),
+        strip,
+        arw([]),
+        @tactics.mp_tac(
+          inst(thm("tlsf_small_release_model"), [
+            "(p : " + w + ")",
+            "(s : Num)",
+            "(b : " + w + ")",
+            "(loc : " + lw + ")",
+            "(cached : " + lw + ")",
+            "(live : " + lw + ")",
+          ]),
+        ),
+        arw([]),
+        small_meson(ths([])),
+      ])
+    },
   )
   let ps = "(ps : \{lw})"
   let sz = "(sz : (\{w}) -> Num)"
@@ -44,27 +46,29 @@ fn prove_tlsf_block_free_pure() -> Unit raise {
   let _ = lemma(
     "tlsf_small_backing_release",
     "\{mv}, tlsf_small_backing(xs,hd,\{ps},\{sz},\{lo},\{ca},\{li},lim) && MEM(p,ps) && MEM(b,live(p)) → tlsf_small_backing(xs,hd,ps,sz,\{nl},cached,\{nv},lim)",
-    seq([
-      gen,
-      rw([
-        thm("tlsf_small_backing"),
-        thm("tlsf_block_free_loc"),
-        thm("tlsf_block_free_live"),
-        thm("tlsf_small_put"),
-      ]),
-      strip,
-      @tactics.x_gen_tac(tm("(q : " + w + ")")),
-      @tactics.disch_tac,
-      @tactics.first_x_assum(th => {
-        @tactics.mp_tac(@bool.spec(tm("(q : " + w + ")"), th))
-      }),
-      arw([]),
-      strip,
-      @class.asm_cases_tac(tm("(q : " + w + ") == (p : " + w + ")")),
-      subst_vars(),
-      arw([]),
-      @tactics.match_mp_tac(thm("tlsf_small_page_release_ok")),
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([
+          thm("tlsf_small_backing"),
+          thm("tlsf_block_free_loc"),
+          thm("tlsf_block_free_live"),
+          thm("tlsf_small_put"),
+        ]),
+        strip,
+        @tactics.x_gen_tac(tm("(q : " + w + ")")),
+        @tactics.disch_tac,
+        @tactics.first_x_assum(th => {
+          @tactics.mp_tac(@bool.spec(tm("(q : " + w + ")"), th))
+        }),
+        arw([]),
+        strip,
+        @class.asm_cases_tac(tm("(q : " + w + ") == (p : " + w + ")")),
+        subst_vars(),
+        arw([]),
+        @tactics.match_mp_tac(thm("tlsf_small_page_release_ok")),
+        arw([]),
+      ])
+    },
   )
 }

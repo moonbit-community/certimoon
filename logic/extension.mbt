@@ -19,7 +19,7 @@ pub fn extend_theory(
   title~ : String = pkg,
 ) -> Extension raise {
   load()
-  if in_load.val {
+  if in_load.val || checking_proof() {
     raise Failure("cannot nest a theory extension")
   }
   let start = entries.length()

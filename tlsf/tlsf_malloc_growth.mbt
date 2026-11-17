@@ -54,7 +54,7 @@ fn prove_tlsf_malloc_growth_retains() -> Unit raise {
     "(" +
     p +
     "))",
-    seq([rw([thm("tlsf_small_backing")]), small_meson(ths([]))]),
+    () => seq([rw([thm("tlsf_small_backing")]), small_meson(ths([]))]),
   )
   let _ = lemma(
     "tlsf_malloc_growth_retains",
@@ -85,106 +85,108 @@ fn prove_tlsf_malloc_growth_retains() -> Unit raise {
     "(" +
     p +
     "))",
-    seq([
-      gen,
-      strip,
-      free_have(
-        lay + " && " + a[1] + " <= 4294967296",
-        seq([
-          @tactics.undisch_tac(tm(physical)),
-          rw([thm("tlsf_physical_ok")]),
-          page_publish_atomic([]),
-        ]),
-      ),
-      split_conjs(),
-      g => {
-        @tactics.assume_tac(
-          block_under(
-            inst(thm("tlsf_layout_members"), [
-              a[3],
-              "(word(0) : " + w + ")",
-              "tlsf_origin(" + a[0] + ")",
-              a[1],
-              a[2],
-              a[4],
-              p,
-            ]),
-            g,
-          ),
-        )(g)
-      },
-      free_have(
-        "0 < val(" + p + ") && val(" + p + ") < " + a[1],
-        seq([
-          @tactics.undisch_tac(
-            tm(
-              "tlsf_block_ok(val(" +
-              p +
-              ")," +
-              a[1] +
-              "," +
-              p +
-              "," +
-              a[4] +
-              ")",
-            ),
-          ),
-          rw([thm("tlsf_block_ok"), @equal.gsym(@words.val_eq_0())]),
-          strip,
-          @int.asm_arith_tac,
-        ]),
-      ),
-      split_conjs(),
-      free_have(
-        "!(" + p + " == (word(" + a[1] + ") : " + w + "))",
-        seq([
-          @tactics.thenl(
-            @class.asm_cases_tac(tm(a[1] + " < 4294967296")),
-            @list.List([
-              seq([
-                rw([
-                  @equal.gsym(@words.val_eq()),
-                  @words.val_word(),
-                  @words.dimindex_32(),
-                ]),
-                @tactics.conv_tac(@calc_num.num_reduce_conv),
-                @simp.asm_simp_tac(ths([@arith.mod_lt()])),
-                @int.asm_arith_tac,
-              ]),
-              seq([
-                free_have(a[1] + " == 4294967296", @int.asm_arith_tac),
-                arw([
-                  @equal.gsym(@words.val_eq()),
-                  @words.val_word(),
-                  @words.dimindex_32(),
-                ]),
-                @tactics.conv_tac(@calc_num.num_reduce_conv),
-                @int.asm_arith_tac,
-              ]),
-            ]),
-          ),
-        ]),
-      ),
-      rw([thm("tlsf_grow_headers"), thm("tlsf_grow_chain")]),
-      @class.cond_cases_tac,
-      arw([
-        thm("tlsf_append_headers"),
-        thm("tlsf_extend_headers"),
-        thm("tlsf_put"),
-        @lists.mem_append(),
-        @theorems.eq_sym_eq(),
-      ]),
-      @tactics.thenl(
-        @class.asm_cases_tac(tm(p + " == " + a[2])),
-        @list.List([
+    () => {
+      seq([
+        gen,
+        strip,
+        free_have(
+          lay + " && " + a[1] + " <= 4294967296",
           seq([
-            subst_vars(),
-            arw([thm("tlsf_clear_last_fields")]),
-            @tactics.try_tac(page_publish_atomic([])),
+            @tactics.undisch_tac(tm(physical)),
+            rw([thm("tlsf_physical_ok")]),
+            page_publish_atomic([]),
           ]),
-          arw([]),
+        ),
+        split_conjs(),
+        g => {
+          @tactics.assume_tac(
+            block_under(
+              inst(thm("tlsf_layout_members"), [
+                a[3],
+                "(word(0) : " + w + ")",
+                "tlsf_origin(" + a[0] + ")",
+                a[1],
+                a[2],
+                a[4],
+                p,
+              ]),
+              g,
+            ),
+          )(g)
+        },
+        free_have(
+          "0 < val(" + p + ") && val(" + p + ") < " + a[1],
+          seq([
+            @tactics.undisch_tac(
+              tm(
+                "tlsf_block_ok(val(" +
+                p +
+                ")," +
+                a[1] +
+                "," +
+                p +
+                "," +
+                a[4] +
+                ")",
+              ),
+            ),
+            rw([thm("tlsf_block_ok"), @equal.gsym(@words.val_eq_0())]),
+            strip,
+            @int.asm_arith_tac,
+          ]),
+        ),
+        split_conjs(),
+        free_have(
+          "!(" + p + " == (word(" + a[1] + ") : " + w + "))",
+          seq([
+            @tactics.thenl(
+              @class.asm_cases_tac(tm(a[1] + " < 4294967296")),
+              @list.List([
+                seq([
+                  rw([
+                    @equal.gsym(@words.val_eq()),
+                    @words.val_word(),
+                    @words.dimindex_32(),
+                  ]),
+                  @tactics.conv_tac(@calc_num.num_reduce_conv),
+                  @simp.asm_simp_tac(ths([@arith.mod_lt()])),
+                  @int.asm_arith_tac,
+                ]),
+                seq([
+                  free_have(a[1] + " == 4294967296", @int.asm_arith_tac),
+                  arw([
+                    @equal.gsym(@words.val_eq()),
+                    @words.val_word(),
+                    @words.dimindex_32(),
+                  ]),
+                  @tactics.conv_tac(@calc_num.num_reduce_conv),
+                  @int.asm_arith_tac,
+                ]),
+              ]),
+            ),
+          ]),
+        ),
+        rw([thm("tlsf_grow_headers"), thm("tlsf_grow_chain")]),
+        @class.cond_cases_tac,
+        arw([
+          thm("tlsf_append_headers"),
+          thm("tlsf_extend_headers"),
+          thm("tlsf_put"),
+          @lists.mem_append(),
+          @theorems.eq_sym_eq(),
         ]),
-      ),
-    ]),
+        @tactics.thenl(
+          @class.asm_cases_tac(tm(p + " == " + a[2])),
+          @list.List([
+            seq([
+              subst_vars(),
+              arw([thm("tlsf_clear_last_fields")]),
+              @tactics.try_tac(page_publish_atomic([])),
+            ]),
+            arw([]),
+          ]),
+        ),
+      ])
+    },
   )
 }

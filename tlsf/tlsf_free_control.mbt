@@ -43,16 +43,18 @@ fn prove_tlsf_free_control() -> Unit raise {
         "tlsf_free_if_skipped"
       },
       "\{vars}, \{cond} && (\{cb}) → sl_triple_g(G,fs,tabs,inst,rp,st([\{i("c")}],lc,R),[If(Tbv(NONE),body,NIL)],Q,labels)",
-      seq([
-        gen,
-        strip,
-        @tactics.match_mp_tac(rule),
-        arw([]),
-        @tactics.match_mp_tac(thm("sl_block_st_g")),
-        beta_goal(),
-        rw([@lists.append(), @class.eta_ax()]),
-        @tactics.first_x_assum(th => @tactics.match_accept_tac(th)),
-      ]),
+      () => {
+        seq([
+          gen,
+          strip,
+          @tactics.match_mp_tac(rule),
+          arw([]),
+          @tactics.match_mp_tac(thm("sl_block_st_g")),
+          beta_goal(),
+          rw([@lists.append(), @class.eta_ax()]),
+          @tactics.first_x_assum(th => @tactics.match_accept_tac(th)),
+        ])
+      },
     )
   }
 }

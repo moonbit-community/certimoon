@@ -21,6 +21,9 @@ let entries : Array[Entry] = []
 ///|
 /// A heading for the entries that follow.
 pub fn section(title : String) -> Unit {
+  if checking_proof() {
+    return
+  }
   entries.push({ kind: "section", name: title, th: None, defines: [], loc: "", })
 }
 

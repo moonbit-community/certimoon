@@ -136,7 +136,7 @@ fn prove_tlsf_malloc_case_cached() -> Unit raise {
         q +
         "])",
         [],
-        Array::make(5, malloc_vc()),
+        () => Array::make(5, malloc_vc()),
         afters~,
         chunks=[ready, lookup, export_path, dead],
         rws=malloc_extra_rewrites(),

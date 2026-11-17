@@ -84,106 +84,110 @@ fn prove_tlsf_malloc_attempt_facts() -> Unit raise {
       ",[" +
       q +
       "])",
-      seq([
-        @tactics.repeat_tac(@tactics.gen_tac),
-        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-        add(inst(thm("tlsf_malloc_guard_facts"), a)),
-        add(inst(thm("tlsf_malloc_initialized_guards"), a)),
-        @class.asm_cases_tac(tm(n + " == word(0)")),
-        @tactics.first(
-          @list.List([
-            solve(
-              seq([
-                subst_only("n"),
-                free_apply(inst(thm("tlsf_malloc_" + v + "_zero_case"), args)),
-              ]),
-            ),
-            solve(
-              seq([
-                free_have(
-                  "!(val(" + n + ") == 0)",
-                  seq([arw([@words.val_eq_0()])]),
-                ),
-                free_have("0 < val(" + n + ")", @int.asm_arith_tac),
-                @class.asm_cases_tac(tm("val(" + n + ") <= 256")),
-                @tactics.first(
-                  @list.List([
-                    solve(
-                      seq([
-                        add(inst(thm("tlsf_malloc_request_setup"), [n])),
-                        malloc_list_cases(a[13] + "(" + k + ")", b, bs),
-                        @tactics.first(
-                          @list.List([
-                            solve(
-                              seq([
-                                malloc_list_cases(a[14] + "(" + k + ")", p, z),
-                                @tactics.first(
-                                  @list.List([
-                                    solve(apply_case("fresh")),
-                                    solve(
-                                      seq([
-                                        add(
-                                          inst(
-                                            thm("tlsf_malloc_partial_dispatch"),
-                                            a + [k, p, z],
+      () => {
+        seq([
+          @tactics.repeat_tac(@tactics.gen_tac),
+          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+          add(inst(thm("tlsf_malloc_guard_facts"), a)),
+          add(inst(thm("tlsf_malloc_initialized_guards"), a)),
+          @class.asm_cases_tac(tm(n + " == word(0)")),
+          @tactics.first(
+            @list.List([
+              solve(
+                seq([
+                  subst_only("n"),
+                  free_apply(inst(thm("tlsf_malloc_" + v + "_zero_case"), args)),
+                ]),
+              ),
+              solve(
+                seq([
+                  free_have(
+                    "!(val(" + n + ") == 0)",
+                    seq([arw([@words.val_eq_0()])]),
+                  ),
+                  free_have("0 < val(" + n + ")", @int.asm_arith_tac),
+                  @class.asm_cases_tac(tm("val(" + n + ") <= 256")),
+                  @tactics.first(
+                    @list.List([
+                      solve(
+                        seq([
+                          add(inst(thm("tlsf_malloc_request_setup"), [n])),
+                          malloc_list_cases(a[13] + "(" + k + ")", b, bs),
+                          @tactics.first(
+                            @list.List([
+                              solve(
+                                seq([
+                                  malloc_list_cases(a[14] + "(" + k + ")", p, z),
+                                  @tactics.first(
+                                    @list.List([
+                                      solve(apply_case("fresh")),
+                                      solve(
+                                        seq([
+                                          add(
+                                            inst(
+                                              thm(
+                                                "tlsf_malloc_partial_dispatch",
+                                              ),
+                                              a + [k, p, z],
+                                            ),
                                           ),
-                                        ),
-                                        free_have(
-                                          "!(" + p + " == word(0))",
-                                          seq([
-                                            @tactics.first_x_assum(th => {
-                                              if head_name(@kernel.concl(th)) ==
-                                                "tlsf_small_page_ok" {
-                                                @tactics.mp_tac(th)
-                                              } else {
-                                                @tactics.no_tac
-                                              }
-                                            }),
-                                            @simp.rewrite_tac(
-                                              ths([thm("tlsf_small_page_ok")]),
-                                            ),
-                                            @tactics.repeat_tac(
-                                              @tactics.strip_tac,
-                                            ),
-                                            arw([]),
-                                          ]),
-                                        ),
-                                        apply_case("partial"),
-                                      ]),
+                                          free_have(
+                                            "!(" + p + " == word(0))",
+                                            seq([
+                                              @tactics.first_x_assum(th => {
+                                                if head_name(@kernel.concl(th)) ==
+                                                  "tlsf_small_page_ok" {
+                                                  @tactics.mp_tac(th)
+                                                } else {
+                                                  @tactics.no_tac
+                                                }
+                                              }),
+                                              @simp.rewrite_tac(
+                                                ths([thm("tlsf_small_page_ok")]),
+                                              ),
+                                              @tactics.repeat_tac(
+                                                @tactics.strip_tac,
+                                              ),
+                                              arw([]),
+                                            ]),
+                                          ),
+                                          apply_case("partial"),
+                                        ]),
+                                      ),
+                                    ]),
+                                  ),
+                                ]),
+                              ),
+                              solve(
+                                seq([
+                                  add(
+                                    inst(
+                                      thm("tlsf_malloc_cached_dispatch"),
+                                      a + [k, b, bs],
                                     ),
-                                  ]),
-                                ),
-                              ]),
-                            ),
-                            solve(
-                              seq([
-                                add(
-                                  inst(
-                                    thm("tlsf_malloc_cached_dispatch"),
-                                    a + [k, b, bs],
                                   ),
-                                ),
-                                add(
-                                  inst(
-                                    thm("tlsf_malloc_cached_bounds"),
-                                    a + [p, b],
+                                  add(
+                                    inst(
+                                      thm("tlsf_malloc_cached_bounds"),
+                                      a + [p, b],
+                                    ),
                                   ),
-                                ),
-                                apply_case("cached"),
-                              ]),
-                            ),
-                          ]),
-                        ),
-                      ]),
-                    ),
-                    solve(apply_case("large")),
-                  ]),
-                ),
-              ]),
-            ),
-          ]),
-        ),
-      ]),
+                                  apply_case("cached"),
+                                ]),
+                              ),
+                            ]),
+                          ),
+                        ]),
+                      ),
+                      solve(apply_case("large")),
+                    ]),
+                  ),
+                ]),
+              ),
+            ]),
+          ),
+        ])
+      },
     )
   }
 }
@@ -238,38 +242,42 @@ fn prove_tlsf_malloc_attempt() -> Unit raise {
       ",[" +
       q +
       "])",
-      seq([
-        gen,
-        strip,
-        @tactics.match_mp_tac(thm("sl_pre_g")),
-        @tactics.exists_tac(tm(strong)),
-        @tactics.thenl(
-          @tactics.conj_tac,
-          @list.List([
-            seq([
-              gen,
-              @simp.rewrite_tac(ths([thm("st"), thm("tlsf_malloc_ro")])),
-              strip,
-              @simp.asm_rewrite_tac(ths([])),
-              free_apply(
-                inst(
-                  thm("tlsf_malloc_allocator_facts"),
-                  a +
-                  [
-                    "(fp : " + rty + ")((gs : List[Value]),(lim : Num))",
-                    "(h : " + heap + ")",
-                  ],
+      () => {
+        seq([
+          gen,
+          strip,
+          @logic.match_mp_tac(thm("sl_pre_g")),
+          @tactics.exists_tac(tm(strong)),
+          @tactics.thenl(
+            @tactics.conj_tac,
+            @list.List([
+              seq([
+                gen,
+                @simp.rewrite_tac(ths([thm("st"), thm("tlsf_malloc_ro")])),
+                strip,
+                @simp.asm_rewrite_tac(ths([])),
+                free_apply(
+                  inst(
+                    thm("tlsf_malloc_allocator_facts"),
+                    a +
+                    [
+                      "(fp : " + rty + ")((gs : List[Value]),(lim : Num))",
+                      "(h : " + heap + ")",
+                    ],
+                  ),
                 ),
-              ),
+              ]),
+              seq([
+                @logic.match_mp_tac(thm("sl_pure_g")),
+                strip,
+                free_apply(
+                  inst(thm("tlsf_malloc_" + v + "_attempt_facts"), args),
+                ),
+              ]),
             ]),
-            seq([
-              @tactics.match_mp_tac(thm("sl_pure_g")),
-              strip,
-              free_apply(inst(thm("tlsf_malloc_" + v + "_attempt_facts"), args)),
-            ]),
-          ]),
-        ),
-      ]),
+          ),
+        ])
+      },
     )
   }
 }

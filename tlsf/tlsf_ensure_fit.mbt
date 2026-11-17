@@ -41,113 +41,115 @@ fn prove_tlsf_ensure_fit() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_growth_fit",
     "\{vars}, \{cond} → (lim : Num) <= \{lim2} && \{lim2} <= 4294967296 && MOD(\{lim2},65536) == 0 && tlsf_physical_ok(d,\{lim2},\{nt},\{nx},\{nh}) && !tlsf_used((\{nh})(\{nt})) && val(\{e}) <= val(tlsf_size((\{nh})(\{nt})))",
-    seq([
-      gen,
-      strip,
-      @tactics.mp_tac(
-        inst(thm("tlsf_ensure_top_facts"), [
-          "(ys : \{lw})",
-          "(d : \{w})",
-          "(lim : Num)",
-          m,
-          hd,
-        ]),
-      ),
-      arw([]),
-      strip,
-      @tactics.mp_tac(inst(thm("tlsf_ensure_expected_bounds"), [s])),
-      arw([]),
-      strip,
-      @tactics.mp_tac(inst(thm("tlsf_grow_limits"), ["(lim : Num)", p])),
-      arw([]),
-      strip,
-      @tactics.thenl(
-        @class.asm_cases_tac(tm("tlsf_used(\{h})")),
-        @list.List([
-          seq([
-            have(
-              "0 < val(\{p}) && val(\{e})+8 <= val(\{p})*65536",
-              seq([
-                arw([thm("tlsf_ensure_pages")]),
-                @tactics.match_mp_tac(thm("tlsf_used_pages_fit")),
-                arw([]),
-              ]),
-            ),
-            @tactics.first_x_assum(th => {
-              if head_name(@kernel.concl(th)) == "/\\" {
-                @tactics.strip_assume_tac(th)
-              } else {
-                @tactics.no_tac
-              }
-            }),
-            have("(lim : Num)+24 <= \{lim2}", @int.asm_arith_tac),
-            @tactics.mp_tac(
-              inst(thm("tlsf_append_model"), [
-                "(ys : \{lw})",
-                "(d : \{w})",
-                "(lim : Num)",
-                lim2,
-                m,
-                hd,
-              ]),
-            ),
-            arw([]),
-            strip,
-            @tactics.mp_tac(
-              inst(thm("tlsf_capacity_value"), [
-                lim2,
-                "(word((lim : Num)) : \{w})",
-              ]),
-            ),
-            arw([]),
-            have("0 < (lim : Num)", @int.asm_arith_tac),
-            arw([]),
-            strip,
-            drop_fields,
-            rw([
-              thm("tlsf_grow_top"),
-              thm("tlsf_grow_chain"),
-              thm("tlsf_grow_headers"),
-            ]),
-            arw([@equal.gsym(@lists.append_assoc()), @lists.append()]),
-            @int.asm_arith_tac,
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.mp_tac(
+          inst(thm("tlsf_ensure_top_facts"), [
+            "(ys : \{lw})",
+            "(d : \{w})",
+            "(lim : Num)",
+            m,
+            hd,
           ]),
-          seq([
-            have(
-              "val(\{e}) <= val(tlsf_size(\{h}))+val(\{p})*65536",
-              seq([
-                arw([thm("tlsf_ensure_pages")]),
-                @tactics.match_mp_tac(thm("tlsf_free_pages_fit")),
-                arw([]),
+        ),
+        arw([]),
+        strip,
+        @tactics.mp_tac(inst(thm("tlsf_ensure_expected_bounds"), [s])),
+        arw([]),
+        strip,
+        @tactics.mp_tac(inst(thm("tlsf_grow_limits"), ["(lim : Num)", p])),
+        arw([]),
+        strip,
+        @tactics.thenl(
+          @class.asm_cases_tac(tm("tlsf_used(\{h})")),
+          @list.List([
+            seq([
+              have(
+                "0 < val(\{p}) && val(\{e})+8 <= val(\{p})*65536",
+                seq([
+                  arw([thm("tlsf_ensure_pages")]),
+                  @tactics.match_mp_tac(thm("tlsf_used_pages_fit")),
+                  arw([]),
+                ]),
+              ),
+              @tactics.first_x_assum(th => {
+                if head_name(@kernel.concl(th)) == "/\\" {
+                  @tactics.strip_assume_tac(th)
+                } else {
+                  @tactics.no_tac
+                }
+              }),
+              have("(lim : Num)+24 <= \{lim2}", @int.asm_arith_tac),
+              @tactics.mp_tac(
+                inst(thm("tlsf_append_model"), [
+                  "(ys : \{lw})",
+                  "(d : \{w})",
+                  "(lim : Num)",
+                  lim2,
+                  m,
+                  hd,
+                ]),
+              ),
+              arw([]),
+              strip,
+              @tactics.mp_tac(
+                inst(thm("tlsf_capacity_value"), [
+                  lim2,
+                  "(word((lim : Num)) : \{w})",
+                ]),
+              ),
+              arw([]),
+              have("0 < (lim : Num)", @int.asm_arith_tac),
+              arw([]),
+              strip,
+              drop_fields,
+              rw([
+                thm("tlsf_grow_top"),
+                thm("tlsf_grow_chain"),
+                thm("tlsf_grow_headers"),
               ]),
-            ),
-            @tactics.mp_tac(
-              inst(thm("tlsf_extend_model"), [
-                "(ys : \{lw})",
-                "(d : \{w})",
-                "(lim : Num)",
-                lim2,
-                m,
-                hd,
-              ]),
-            ),
-            arw([]),
-            strip,
-            have("val(\{m})+24 <= \{lim2}", @int.asm_arith_tac),
-            @tactics.mp_tac(inst(thm("tlsf_capacity_value"), [lim2, m])),
-            arw([]),
-            @tactics.disch_tac,
-            drop_fields,
-            rw([
-              thm("tlsf_grow_top"),
-              thm("tlsf_grow_chain"),
-              thm("tlsf_grow_headers"),
+              arw([@equal.gsym(@lists.append_assoc()), @lists.append()]),
+              @int.asm_arith_tac,
             ]),
-            arw([]),
-            @int.asm_arith_tac,
+            seq([
+              have(
+                "val(\{e}) <= val(tlsf_size(\{h}))+val(\{p})*65536",
+                seq([
+                  arw([thm("tlsf_ensure_pages")]),
+                  @tactics.match_mp_tac(thm("tlsf_free_pages_fit")),
+                  arw([]),
+                ]),
+              ),
+              @tactics.mp_tac(
+                inst(thm("tlsf_extend_model"), [
+                  "(ys : \{lw})",
+                  "(d : \{w})",
+                  "(lim : Num)",
+                  lim2,
+                  m,
+                  hd,
+                ]),
+              ),
+              arw([]),
+              strip,
+              have("val(\{m})+24 <= \{lim2}", @int.asm_arith_tac),
+              @tactics.mp_tac(inst(thm("tlsf_capacity_value"), [lim2, m])),
+              arw([]),
+              @tactics.disch_tac,
+              drop_fields,
+              rw([
+                thm("tlsf_grow_top"),
+                thm("tlsf_grow_chain"),
+                thm("tlsf_grow_headers"),
+              ]),
+              arw([]),
+              @int.asm_arith_tac,
+            ]),
           ]),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
 }

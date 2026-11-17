@@ -1,0 +1,99 @@
+{
+  "source_head": "53180c751d30534960cccd8ba6d8c2bb7eac0d39",
+  "artifact_sha256": "babf40494e63b7f53edfd9e23fd970f12d95cf6eb658c0a39bed69e51f083953",
+  "target": "wasm-gc",
+  "mode": "debug",
+  "individual_checks": {
+    "passed": 979,
+    "failed": 0,
+    "all_returned_implications_closed": true
+  },
+  "all_checks_phase_events": [
+    {
+      "phase": "checked_base",
+      "ms": 65378.443459
+    },
+    {
+      "phase": "tlsf_declarations",
+      "ms": 69903.729
+    },
+    {
+      "phase": "total",
+      "ms": 287005.064333
+    }
+  ],
+  "single_check": {
+    "source_head": "53180c751d30534960cccd8ba6d8c2bb7eac0d39",
+    "artifact_sha256": "babf40494e63b7f53edfd9e23fd970f12d95cf6eb658c0a39bed69e51f083953",
+    "target": "wasm-gc",
+    "mode": "debug",
+    "selection": [
+      "check",
+      "tlsf_full_malloc_run"
+    ],
+    "wall_seconds": 148.40212358394638,
+    "exit_code": 0,
+    "events": [
+      {
+        "phase": "checked_base",
+        "ms": 67838.319625
+      },
+      {
+        "phase": "tlsf_declarations",
+        "ms": 68902.555542
+      },
+      {
+        "status": "CONDITIONAL PASS",
+        "name": "tlsf_full_malloc_run",
+        "ms": 10.516584,
+        "premises": [
+          "tlsf_full_malloc_all"
+        ],
+        "closed_implication": true
+      },
+      {
+        "phase": "total",
+        "ms": 136752.54679099997
+      }
+    ],
+    "timing_note": "Integration validation run; allocator suite and independent performance investigation may overlap. Not a sequential benchmark or speedup estimate."
+  },
+  "logic_tests": {
+    "passed": 20,
+    "failed": 0
+  },
+  "python_tests": {
+    "passed": 38,
+    "failed": 0,
+    "skipped": 0
+  },
+  "shipped_wat_comparisons": {
+    "passed": 21,
+    "failed": 0
+  },
+  "snapshot_statements_and_dependencies": "unchanged; only source line numbers refreshed",
+  "timing_note": "Integration validation, not a sequential benchmark: some independent tests and performance investigation overlapped.",
+  "tlsf_tests": {
+    "passed": 23,
+    "failed": 0,
+    "includes": [
+      "full proof replay",
+      "closed named theorems",
+      "approved-axiom audit",
+      "concrete execution",
+      "all three snapshots"
+    ]
+  },
+  "named_tlsf_declarations": 1281,
+  "kernel_axioms": 3,
+  "commands": [
+    "moonrun <wasm-gc-debug-artifact> -- check --all",
+    "moonrun <wasm-gc-debug-artifact> -- check tlsf_full_malloc_run",
+    "moon test logic --target wasm-gc --update",
+    "moon test tlsf --target wasm-gc --no-parallelize",
+    "moon check logic tlsf cmd/tlsf --target native --warn-list +73",
+    "python3 -m unittest discover -s tools -p '*_test.py'",
+    "python3 tools/tlsf_wat_check.py ../ideas/lib/xml/wasm_linear/tlsf-mbt.wat"
+  ],
+  "native_package_check": "pass (moon check --target native; native executable not rebuilt during integration)"
+}

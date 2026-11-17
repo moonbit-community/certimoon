@@ -89,216 +89,221 @@ fn prove_tlsf_block_free_tail_last_cases() -> Unit raise {
       let _ = lemma(
         "tlsf_block_free_tail_last_" + label,
         "\{env}, \{page_quantify(vs)}\{conditions} → sl_triple_g(G,fs,tabs,inst,rp,\{before},tlsf_block_free_tail(d,free_idx),\{q},labels)",
-        seq([
-          gen,
-          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-          block_prepare(args, p, b),
-          free_have("!(" + usage + " == " + total + ")", @int.asm_arith_tac),
-          free_have(usage + " < " + total, @int.asm_arith_tac),
-          free_have(
-            args[11] +
-            "(" +
-            p +
-            ") == (NIL : " +
-            lw +
-            ") && tlsf_small_remove(" +
-            b +
-            "," +
-            args[12] +
-            "(" +
-            p +
-            ")) == NIL",
-            small_meson(ths([])),
-          ),
-          free_have(
-            current[12] + "(" + p + ") == (NIL : " + lw + ")",
-            seq([
-              rw([thm("tlsf_block_free_live"), thm("tlsf_small_put")]),
-              arw([]),
-            ]),
-          ),
-          free_have(
-            "tlsf_count(" + p + "," + part + ") == 1",
-            seq([
-              @tactics.undisch_tac(tm(block_lists(args))),
-              rw([thm("tlsf_small_lists_ok")]),
+        () => {
+          seq([
+            gen,
+            @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+            block_prepare(args, p, b),
+            free_have("!(" + usage + " == " + total + ")", @int.asm_arith_tac),
+            free_have(usage + " < " + total, @int.asm_arith_tac),
+            free_have(
+              args[11] +
+              "(" +
+              p +
+              ") == (NIL : " +
+              lw +
+              ") && tlsf_small_remove(" +
+              b +
+              "," +
+              args[12] +
+              "(" +
+              p +
+              ")) == NIL",
               small_meson(ths([])),
-            ]),
-          ),
-          free_have(
-            "!MEM(" + p + "," + a + ") && !MEM(" + p + "," + z + ")",
-            seq([
-              @tactics.match_mp_tac(
-                inst(thm("tlsf_small_count_one_split"), [a, z, p]),
-              ),
-              @tactics.mp_tac(
-                @kernel.assume_rule(
-                  tm("tlsf_count(" + p + "," + part + ") == 1"),
+            ),
+            free_have(
+              current[12] + "(" + p + ") == (NIL : " + lw + ")",
+              seq([
+                rw([thm("tlsf_block_free_live"), thm("tlsf_small_put")]),
+                arw([]),
+              ]),
+            ),
+            free_have(
+              "tlsf_count(" + p + "," + part + ") == 1",
+              seq([
+                @tactics.undisch_tac(tm(block_lists(args))),
+                rw([thm("tlsf_small_lists_ok")]),
+                small_meson(ths([])),
+              ]),
+            ),
+            free_have(
+              "!MEM(" + p + "," + a + ") && !MEM(" + p + "," + z + ")",
+              seq([
+                @tactics.match_mp_tac(
+                  inst(thm("tlsf_small_count_one_split"), [a, z, p]),
                 ),
-              ),
-              rw([@kernel.assume_rule(tm(split))]),
-            ]),
-          ),
-          free_have(
-            "tlsf_small_remove(" +
-            p +
-            "," +
-            part +
-            ") == APPEND(" +
-            a +
-            "," +
-            z +
-            ")",
-            seq([
-              rw([@kernel.assume_rule(tm(split))]),
-              free_apply(inst(thm("tlsf_small_remove_split"), [a, z, p])),
-            ]),
-          ),
-          if has_prev {
-            seq([
-              free_have(
-                "MEM(" + pr + "," + a + ")",
-                free_apply(inst(thm("tlsf_small_last_member"), [a])),
-              ),
-              free_have(
-                "MEM(" + pr + "," + part + ")",
-                seq([
-                  rw([
-                    @kernel.assume_rule(tm(split)),
-                    @lists.mem_append(),
-                    @lists.mem(),
-                  ]),
-                  arw([]),
-                ]),
-              ),
-              free_have(
-                "!(" +
-                pr +
-                " == (word(0) : " +
-                w +
-                ")) && val(" +
-                pr +
-                ")+32 <= 4294967296",
-                small_meson(ths([])),
-              ),
-            ])
-          } else {
-            @tactics.all_tac
-          },
-          if has_next {
-            seq([
-              free_have(
-                "MEM(" + nx + "," + part + ")",
-                seq([
-                  rw([
-                    @kernel.assume_rule(tm(split)),
-                    @lists.mem_append(),
-                    @lists.mem(),
-                  ]),
-                  arw([]),
-                ]),
-              ),
-              free_have(
-                "!(" +
-                nx +
-                " == (word(0) : " +
-                w +
-                ")) && val(" +
-                nx +
-                ")+32 <= 4294967296",
-                small_meson(ths([])),
-              ),
-            ])
-          } else {
-            @tactics.all_tac
-          },
-          g => {
-            let remove = @kernel.assume_rule(
-              tm(
-                "tlsf_small_remove(" +
-                p +
-                "," +
-                part +
-                ") == APPEND(" +
-                a +
-                "," +
-                z +
-                ")",
-              ),
-            )
-            let eqs = block_model_case("last", args, p, g).map(th => {
-              @simp.rewrite_rule(ths([remove]))(th)
-            })
-            let models = @simp.rewrite_rule(ths(eqs))(
-              block_under(inst(thm("tlsf_block_free_models"), args + [p, b]), g),
-            )
-            let reclaim = inst(
-              thm("tlsf_block_free_reclaim_" + label + "_all"),
-              [
-                "(G : " + gt + ")",
-                "(fs : List[Cl])",
-                "(tabs : List[(Tab_t,List[V_ref])])",
-                "(inst : Inst)",
-                "(rp : " + sassn + ")",
-                "(labels : List[" + sassn + "])",
-                "(pop : Num)",
-                "(push : Num)",
-                "(free_idx : Num)",
-              ] +
-              current +
-              [
-                p,
-                a,
-                nx,
-                "(tail : " + lw + ")",
-                i("word(" + usage + ")"),
-                "(l2 : Value)",
-                fp,
-              ],
-            )
-            let gate = @simp.rewrite_conv(
-              ths([@kernel.assume_rule(tm(usage + " < " + total))]),
-            )(tm(block_gate(args, p)))
-            let firstFlag = block_flag(args, p, false, false, g)
-            let lastFlag = block_flag(args, p, true, true, g)
-            seq([
-              @tactics.strip_assume_tac(models),
-              rw([thm("tlsf_block_free_tail")]),
-              @tactics.match_mp_tac(thm("sl_seq_g")),
-              @tactics.exists_tac(ca[2]),
-              @tactics.thenl(
-                @tactics.conj_tac,
-                @list.List([
-                  block_g_conseq(classify, ent_tac([gate], []), same_tac()),
-                  block_if(
-                    false,
-                    firstFlag,
-                    seq([
-                      rw([thm("tlsf_block_free_else")]),
-                      @tactics.match_mp_tac(thm("sl_seq_g")),
-                      @tactics.exists_tac(lastq),
-                      @tactics.thenl(
-                        @tactics.conj_tac,
-                        @list.List([
-                          free_lift(last),
-                          block_if(
-                            true,
-                            lastFlag,
-                            block_g_conseq(
-                              reclaim,
-                              ent_tac([], []),
-                              block_returned_post(eqs, argv),
-                            ),
-                          ),
-                        ]),
-                      ),
-                    ]),
+                @tactics.mp_tac(
+                  @kernel.assume_rule(
+                    tm("tlsf_count(" + p + "," + part + ") == 1"),
                   ),
-                ]),
-              ),
-            ])(g)
-          },
-        ]),
+                ),
+                rw([@kernel.assume_rule(tm(split))]),
+              ]),
+            ),
+            free_have(
+              "tlsf_small_remove(" +
+              p +
+              "," +
+              part +
+              ") == APPEND(" +
+              a +
+              "," +
+              z +
+              ")",
+              seq([
+                rw([@kernel.assume_rule(tm(split))]),
+                free_apply(inst(thm("tlsf_small_remove_split"), [a, z, p])),
+              ]),
+            ),
+            if has_prev {
+              seq([
+                free_have(
+                  "MEM(" + pr + "," + a + ")",
+                  free_apply(inst(thm("tlsf_small_last_member"), [a])),
+                ),
+                free_have(
+                  "MEM(" + pr + "," + part + ")",
+                  seq([
+                    rw([
+                      @kernel.assume_rule(tm(split)),
+                      @lists.mem_append(),
+                      @lists.mem(),
+                    ]),
+                    arw([]),
+                  ]),
+                ),
+                free_have(
+                  "!(" +
+                  pr +
+                  " == (word(0) : " +
+                  w +
+                  ")) && val(" +
+                  pr +
+                  ")+32 <= 4294967296",
+                  small_meson(ths([])),
+                ),
+              ])
+            } else {
+              @tactics.all_tac
+            },
+            if has_next {
+              seq([
+                free_have(
+                  "MEM(" + nx + "," + part + ")",
+                  seq([
+                    rw([
+                      @kernel.assume_rule(tm(split)),
+                      @lists.mem_append(),
+                      @lists.mem(),
+                    ]),
+                    arw([]),
+                  ]),
+                ),
+                free_have(
+                  "!(" +
+                  nx +
+                  " == (word(0) : " +
+                  w +
+                  ")) && val(" +
+                  nx +
+                  ")+32 <= 4294967296",
+                  small_meson(ths([])),
+                ),
+              ])
+            } else {
+              @tactics.all_tac
+            },
+            g => {
+              let remove = @kernel.assume_rule(
+                tm(
+                  "tlsf_small_remove(" +
+                  p +
+                  "," +
+                  part +
+                  ") == APPEND(" +
+                  a +
+                  "," +
+                  z +
+                  ")",
+                ),
+              )
+              let eqs = block_model_case("last", args, p, g).map(th => {
+                @simp.rewrite_rule(ths([remove]))(th)
+              })
+              let models = @simp.rewrite_rule(ths(eqs))(
+                block_under(
+                  inst(thm("tlsf_block_free_models"), args + [p, b]),
+                  g,
+                ),
+              )
+              let reclaim = inst(
+                thm("tlsf_block_free_reclaim_" + label + "_all"),
+                [
+                  "(G : " + gt + ")",
+                  "(fs : List[Cl])",
+                  "(tabs : List[(Tab_t,List[V_ref])])",
+                  "(inst : Inst)",
+                  "(rp : " + sassn + ")",
+                  "(labels : List[" + sassn + "])",
+                  "(pop : Num)",
+                  "(push : Num)",
+                  "(free_idx : Num)",
+                ] +
+                current +
+                [
+                  p,
+                  a,
+                  nx,
+                  "(tail : " + lw + ")",
+                  i("word(" + usage + ")"),
+                  "(l2 : Value)",
+                  fp,
+                ],
+              )
+              let gate = @simp.rewrite_conv(
+                ths([@kernel.assume_rule(tm(usage + " < " + total))]),
+              )(tm(block_gate(args, p)))
+              let firstFlag = block_flag(args, p, false, false, g)
+              let lastFlag = block_flag(args, p, true, true, g)
+              seq([
+                @tactics.strip_assume_tac(models),
+                rw([thm("tlsf_block_free_tail")]),
+                @tactics.match_mp_tac(thm("sl_seq_g")),
+                @tactics.exists_tac(ca[2]),
+                @tactics.thenl(
+                  @tactics.conj_tac,
+                  @list.List([
+                    block_g_conseq(classify, ent_tac([gate], []), same_tac()),
+                    block_if(
+                      false,
+                      firstFlag,
+                      seq([
+                        rw([thm("tlsf_block_free_else")]),
+                        @tactics.match_mp_tac(thm("sl_seq_g")),
+                        @tactics.exists_tac(lastq),
+                        @tactics.thenl(
+                          @tactics.conj_tac,
+                          @list.List([
+                            free_lift(last),
+                            block_if(
+                              true,
+                              lastFlag,
+                              block_g_conseq(
+                                reclaim,
+                                ent_tac([], []),
+                                block_returned_post(eqs, argv),
+                              ),
+                            ),
+                          ]),
+                        ),
+                      ]),
+                    ),
+                  ]),
+                ),
+              ])(g)
+            },
+          ])
+        },
       )
     }
   }

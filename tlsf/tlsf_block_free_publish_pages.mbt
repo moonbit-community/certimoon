@@ -79,40 +79,42 @@ fn prove_tlsf_block_free_publish_pages() -> Unit raise {
   let _ = lemma(
     "tlsf_block_free_publish_pages",
     "∀ free_idx : Num, \{vars} \{pure} → sl_triple(st(NIL,[\{i("p")},u,l2],\{pre}),tlsf_block_free_publish(d,free_idx),st([\{i("word(0)")}],[\{i("p")},\{i("tlsf_small_head("+arg("partial")+"("+k+"))")},\{i("word("+k+")")}],\{post}))",
-    seq([
-      gen,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      g => {
-        @tactics.strip_assume_tac(
-          block_under(
-            inst(
-              thm("tlsf_small_page_member_geometry"),
-              geometry + ["(p : " + w + ")"],
+    () => {
+      seq([
+        gen,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        g => {
+          @tactics.strip_assume_tac(
+            block_under(
+              inst(
+                thm("tlsf_small_page_member_geometry"),
+                geometry + ["(p : " + w + ")"],
+              ),
+              g,
             ),
+          )(g)
+        },
+        g => {
+          let focus0 = block_under(
+            inst(thm("tlsf_small_pages_focus"), pa + ["(p : " + w + ")"]),
             g,
-          ),
-        )(g)
-      },
-      g => {
-        let focus0 = block_under(
-          inst(thm("tlsf_small_pages_focus"), pa + ["(p : " + w + ")"]),
-          g,
-        )
-        let focus = @equal.conv_rule(
-          @equal.rand_conv(
-            @simp.rewrite_conv(ths([thm("tlsf_small_page_size_focus")])),
-          ),
-          focus0,
-        )
-        let path = inst(
-          thm("tlsf_block_free_publish_table"),
-          args(["d"]) +
-          ["(free_idx : Num)"] +
-          args(["fast", "partial"]) +
-          ["(p : " + w + ")", s, "(u : Value)", "(l2 : Value)", frame],
-        )
-        by_path(path, "T", [focus], [], [focus], [])(g)
-      },
-    ]),
+          )
+          let focus = @equal.conv_rule(
+            @equal.rand_conv(
+              @simp.rewrite_conv(ths([thm("tlsf_small_page_size_focus")])),
+            ),
+            focus0,
+          )
+          let path = inst(
+            thm("tlsf_block_free_publish_table"),
+            args(["d"]) +
+            ["(free_idx : Num)"] +
+            args(["fast", "partial"]) +
+            ["(p : " + w + ")", s, "(u : Value)", "(l2 : Value)", frame],
+          )
+          by_path(path, "T", [focus], [], [focus], [])(g)
+        },
+      ])
+    },
   )
 }

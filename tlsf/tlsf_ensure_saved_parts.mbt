@@ -53,13 +53,15 @@ fn prove_tlsf_ensure_saved_parts() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_prefix_saved",
     "\{vars}, ∀ s : \{w}, ∀ pop : Num, ∀ push : Num, \{facts} → \{show(p_concl)}",
-    seq([
-      gen,
-      strip,
-      @tactics.match_mp_tac(prefix),
-      @tactics.mp_tac(guards),
-      arw([thm("tlsf_top_cell"), thm("tlsf_base")]),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.match_mp_tac(prefix),
+        @tactics.mp_tac(guards),
+        arw([thm("tlsf_top_cell"), thm("tlsf_base")]),
+      ])
+    },
   )
   let free0 = inst(thm("tlsf_ensure_free_amount_raw"), [
     d,
@@ -76,7 +78,7 @@ fn prove_tlsf_ensure_saved_parts() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_free_amount_saved",
     "\{vars}, ∀ e : \{w}, ∀ pop : Num, ∀ push : Num, \{facts} → \{show(@kernel.concl(free))}",
-    seq([gen, strip, @tactics.accept_tac(free)]),
+    () => seq([gen, strip, @tactics.accept_tac(free)]),
   )
   let large = "tlsf_large(\{d},(lim : Num),\{m},\{xs},\{hd},(fl : \{w}),(sb : (Num) -> \{w}),(bl : \{bt}))"
   let client = "(fp : \{rty})((gs : List[Value]),(lim : Num))"
@@ -85,26 +87,28 @@ fn prove_tlsf_ensure_saved_parts() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_saved_growth_frame",
     "\{vars}, ∀ delta : Num, ∀ gs : List[Value], ∀ heap0 : \{heap}, star(\{saved}(gs,lim),\{zero},heap0) → star(\{large},star(\{zero},\{client}),heap0)",
-    seq([
-      gen,
-      rw([thm("tlsf_ensure_saved")]),
-      @tactics.disch_tac,
-      have(
-        "star(\{bare},\{zero},(heap0 : \{heap}))",
-        seq([
-          @tactics.match_mp_tac(
-            inst(thm("tlsf_star_forget_heap_eq"), [
-              bare,
-              zero,
-              "(before : \{heap})",
-              "(heap0 : \{heap})",
-            ]),
-          ),
-          arw([]),
-        ]),
-      ),
-      @tactics.first_x_assum(th => @tactics.mp_tac(th)),
-      rw([thm("star_assoc"), thm("star_comm"), thm("star_left_comm")]),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([thm("tlsf_ensure_saved")]),
+        @tactics.disch_tac,
+        have(
+          "star(\{bare},\{zero},(heap0 : \{heap}))",
+          seq([
+            @tactics.match_mp_tac(
+              inst(thm("tlsf_star_forget_heap_eq"), [
+                bare,
+                zero,
+                "(before : \{heap})",
+                "(heap0 : \{heap})",
+              ]),
+            ),
+            arw([]),
+          ]),
+        ),
+        @tactics.first_x_assum(th => @tactics.mp_tac(th)),
+        rw([thm("star_assoc"), thm("star_comm"), thm("star_left_comm")]),
+      ])
+    },
   )
 }

@@ -69,13 +69,15 @@ fn prove_tlsf_full_malloc_slow_body() -> Unit raise {
     "," +
     malloc_abort_post(a) +
     ")",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      @logic.abort_sym_tac(
-        [source, thm("tlsf_malloc_early_failure"), growth, retry],
-        malloc_abort_vc(a),
-      ),
-    ]),
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        @logic.abort_sym_tac(
+          [source, thm("tlsf_malloc_early_failure"), growth, retry],
+          malloc_abort_vc(a),
+        ),
+      ])
+    },
   )
 }

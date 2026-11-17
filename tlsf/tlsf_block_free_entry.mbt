@@ -35,48 +35,50 @@ fn prove_tlsf_block_free_entry() -> Unit raise {
     "(" +
     p +
     "),i))",
-    seq([
-      gen,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      free_have(
-        "tlsf_small_partition(" +
-        p +
-        "," +
-        args[9] +
-        "(" +
-        p +
-        ")," +
-        args[10] +
-        "(" +
-        p +
-        ")," +
-        args[11] +
-        "(" +
-        p +
-        ")," +
-        args[12] +
-        "(" +
-        p +
-        "))",
-        seq([
-          @tactics.undisch_tac(tm(block_backing(args))),
-          rw([thm("tlsf_small_backing"), thm("tlsf_small_page_ok")]),
-          small_meson(ths([])),
-        ]),
-      ),
-      @tactics.mp_tac(
-        inst(thm("tlsf_small_live_unique"), [
-          p,
-          args[9] + "(" + p + ")",
-          b,
-          args[10] + "(" + p + ")",
-          args[11] + "(" + p + ")",
-          args[12] + "(" + p + ")",
-        ]),
-      ),
-      arw([thm("tlsf_small_slots_member")]),
-      small_meson(ths([])),
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        free_have(
+          "tlsf_small_partition(" +
+          p +
+          "," +
+          args[9] +
+          "(" +
+          p +
+          ")," +
+          args[10] +
+          "(" +
+          p +
+          ")," +
+          args[11] +
+          "(" +
+          p +
+          ")," +
+          args[12] +
+          "(" +
+          p +
+          "))",
+          seq([
+            @tactics.undisch_tac(tm(block_backing(args))),
+            rw([thm("tlsf_small_backing"), thm("tlsf_small_page_ok")]),
+            small_meson(ths([])),
+          ]),
+        ),
+        @tactics.mp_tac(
+          inst(thm("tlsf_small_live_unique"), [
+            p,
+            args[9] + "(" + p + ")",
+            b,
+            args[10] + "(" + p + ")",
+            args[11] + "(" + p + ")",
+            args[12] + "(" + p + ")",
+          ]),
+        ),
+        arw([thm("tlsf_small_slots_member")]),
+        small_meson(ths([])),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_block_free_large_bound",
@@ -90,14 +92,16 @@ fn prove_tlsf_block_free_entry() -> Unit raise {
     ",client,h) → val(" +
     args[0] +
     ") <= 4294965088",
-    seq([
-      rw([
-        thm("tlsf_large"),
-        thm("tlsf_chain"),
-        thm("tlsf_physical_ok"),
-        thm("star"),
-      ]),
-      small_meson(ths([])),
-    ]),
+    () => {
+      seq([
+        rw([
+          thm("tlsf_large"),
+          thm("tlsf_chain"),
+          thm("tlsf_physical_ok"),
+          thm("star"),
+        ]),
+        small_meson(ths([])),
+      ])
+    },
   )
 }

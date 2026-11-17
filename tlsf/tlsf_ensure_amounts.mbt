@@ -26,7 +26,7 @@ fn prove_tlsf_ensure_amounts() -> Unit raise {
       "tlsf_ensure_used_amount_raw",
       "\{vars}, sl_triple(st(NIL,\{lc},R),tlsf_ensure_used_amount(d,pop,push),st([\{i(used)}],\{lc},R))",
       [],
-      [],
+      () => [],
     ),
   )
   let vars = "∀ d : \{w}, ∀ pop : Num, ∀ push : Num, ∀ m : \{w}, ∀ e : \{w}, ∀ hdr : \{w}, ∀ lim : Num, ∀ before : \{heap}, ∀ fp : \{rty}"
@@ -35,7 +35,7 @@ fn prove_tlsf_ensure_amounts() -> Unit raise {
       "tlsf_ensure_free_amount_raw",
       "\{vars}, sl_triple(st(NIL,\{lc},\{ro}),tlsf_ensure_free_amount(d,pop,push),st([\{i(free)}],\{lc},\{ro}))",
       [],
-      [],
+      () => [],
       rules=step_rules + ["st_ensure_load_header"],
       rws=[thm("tlsf_size")],
     ),
@@ -56,7 +56,7 @@ fn prove_tlsf_ensure_amounts() -> Unit raise {
       "tlsf_ensure_guard_failure",
       "\{vars}, (∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, R(gs,ms,h) → rp([\{i("word(0)")}],lc0,gs,ms,h)) → \{tr(state("["+i("word(4294967295)")+"]"),sf)}",
       [],
-      [failvc],
+      () => [failvc],
     ),
   )
 
@@ -65,7 +65,7 @@ fn prove_tlsf_ensure_amounts() -> Unit raise {
       "tlsf_ensure_guard_success",
       "\{vars}, ∀ c : \{w}, !(c == word(4294967295)) → \{tr(state("["+i("c")+"]"),state("NIL"))}",
       [],
-      [],
+      () => [],
     ),
   )
 }

@@ -67,66 +67,68 @@ fn prove_tlsf_free_begin() -> Unit raise {
   let _ = lemma(
     "tlsf_free_begin",
     "\{vars}, \{cond} → sl_triple(st(NIL,\{lc},\{before}),tlsf_free_clear(d,pop,push),st(NIL,\{lc},\{after}))",
-    seq([
-      gen,
-      strip,
-      @tactics.mp_tac(
-        inst(thm("tlsf_free_begin_model"), [
-          xs,
-          "(m : \{w})",
-          "(d : \{w})",
-          "(lim : Num)",
-          "(top : \{w})",
-          hd,
-          "(bl : \{bt})",
-        ]),
-      ),
-      arw([]),
-      strip,
-      free_have(
-        "!MEM((m : \{w}),(ys : \{lw})) && !MEM(m,(zs : \{lw}))",
-        seq([
-          @tactics.undisch_tac(tm(old)),
-          rw([thm("tlsf_physical_ok")]),
-          strip,
-          @tactics.match_mp_tac(
-            inst(thm("tlsf_focus_distinct"), [
-              "(ys : \{lw})",
-              "(zs : \{lw})",
-              "(m : \{w})",
-              "(word(0) : \{w})",
-              "tlsf_origin((d : \{w}))",
-              "(lim : Num)",
-              "(top : \{w})",
-              hd,
-            ]),
-          ),
-          arw([]),
-        ]),
-      ),
-      split_conjs(),
-      seq(
-        [("(ys : \{lw})", "(word(0) : \{w})"), ("(zs : \{lw})", "(m : \{w})")].map(pair => {
-            let (ls, p) = pair
-            free_have(
-              "tlsf_regions(\{p},\{ls},\{nh}) == tlsf_regions(\{p},\{ls},\{hd})",
-              seq([
-                @tactics.match_mp_tac(
-                  inst(thm("tlsf_regions_cong"), [ls, p, nh, hd]),
-                ),
-                @tactics.x_gen_tac(tm("(x : \{w})")),
-                @tactics.disch_tac,
-                free_have(
-                  "!((x : \{w}) == (m : \{w}))",
-                  @meson.asm_meson_tac(ths([])),
-                ),
-                arw([thm("tlsf_release"), thm("tlsf_put")]),
-              ]),
-            )
-          },
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.mp_tac(
+          inst(thm("tlsf_free_begin_model"), [
+            xs,
+            "(m : \{w})",
+            "(d : \{w})",
+            "(lim : Num)",
+            "(top : \{w})",
+            hd,
+            "(bl : \{bt})",
+          ]),
         ),
-      ),
-      by_path(raw, "T", rws, [], rws, []),
-    ]),
+        arw([]),
+        strip,
+        free_have(
+          "!MEM((m : \{w}),(ys : \{lw})) && !MEM(m,(zs : \{lw}))",
+          seq([
+            @tactics.undisch_tac(tm(old)),
+            rw([thm("tlsf_physical_ok")]),
+            strip,
+            @tactics.match_mp_tac(
+              inst(thm("tlsf_focus_distinct"), [
+                "(ys : \{lw})",
+                "(zs : \{lw})",
+                "(m : \{w})",
+                "(word(0) : \{w})",
+                "tlsf_origin((d : \{w}))",
+                "(lim : Num)",
+                "(top : \{w})",
+                hd,
+              ]),
+            ),
+            arw([]),
+          ]),
+        ),
+        split_conjs(),
+        seq(
+          [("(ys : \{lw})", "(word(0) : \{w})"), ("(zs : \{lw})", "(m : \{w})")].map(pair => {
+              let (ls, p) = pair
+              free_have(
+                "tlsf_regions(\{p},\{ls},\{nh}) == tlsf_regions(\{p},\{ls},\{hd})",
+                seq([
+                  @tactics.match_mp_tac(
+                    inst(thm("tlsf_regions_cong"), [ls, p, nh, hd]),
+                  ),
+                  @tactics.x_gen_tac(tm("(x : \{w})")),
+                  @tactics.disch_tac,
+                  free_have(
+                    "!((x : \{w}) == (m : \{w}))",
+                    @meson.asm_meson_tac(ths([])),
+                  ),
+                  arw([thm("tlsf_release"), thm("tlsf_put")]),
+                ]),
+              )
+            },
+          ),
+        ),
+        by_path(raw, "T", rws, [], rws, []),
+      ])
+    },
   )
 }

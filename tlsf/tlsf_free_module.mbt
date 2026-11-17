@@ -77,33 +77,35 @@ fn prove_tlsf_free_module() -> Unit raise {
   let _ = lemma(
     "tlsf_free_body",
     "∀ G : \{gt}, \{env}, \{pv}, ∀ args : List[Value], \{popnative} && \{pushnative} → sl_triple_g(G,fs,tabs,inst,\{bq},\{bp},tlsf_free_code(d,pop,push),\{bq},[\{bq}])",
-    seq([
-      gen,
-      strip,
-      @tactics.match_mp_tac(thm("sl_conseq_g")),
-      @tactics.exists_tac(tm(pp)),
-      @tactics.exists_tac(tm(bq)),
-      @tactics.exists_tac(tm("[\{bq}]")),
-      rw([]),
-      @tactics.repeat_tac(@tactics.conj_tac),
-      @tactics.first(
-        @list.List([
-          solve(pre),
-          solve(
-            seq([
-              @tactics.match_mp_tac(thm("sl_pure_g")),
-              strip,
-              rw([@class.eta_ax()]),
-              @tactics.match_mp_tac(
-                @simp.rewrite_rule(ths([@class.eta_ax()]))(focused),
-              ),
-              arw([]),
-            ]),
-          ),
-          solve(same),
-        ]),
-      ),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.match_mp_tac(thm("sl_conseq_g")),
+        @tactics.exists_tac(tm(pp)),
+        @tactics.exists_tac(tm(bq)),
+        @tactics.exists_tac(tm("[\{bq}]")),
+        rw([]),
+        @tactics.repeat_tac(@tactics.conj_tac),
+        @tactics.first(
+          @list.List([
+            solve(pre),
+            solve(
+              seq([
+                @tactics.match_mp_tac(thm("sl_pure_g")),
+                strip,
+                rw([@class.eta_ax()]),
+                @tactics.match_mp_tac(
+                  @simp.rewrite_rule(ths([@class.eta_ax()]))(focused),
+                ),
+                arw([]),
+              ]),
+            ),
+            solve(same),
+          ]),
+        ),
+      ])
+    },
   )
   let spec = "tlsf_free_spec((inst : Inst),(d : \{w}),(pop : Num),(push : Num),(free_idx : Num))"
   def(
@@ -113,24 +115,26 @@ fn prove_tlsf_free_module() -> Unit raise {
   let spec_call = lemma(
     "tlsf_free_spec_call",
     "∀ inst : Inst, ∀ d : \{w}, ∀ pop : Num, ∀ push : Num, ∀ free_idx : Num, \{pv}, \{spec}(sfunc_ind(inst,free_idx),\{p},\{q})",
-    seq([
-      gen,
-      rw([thm("tlsf_free_spec")]),
-      seq(
-        [
-          "(m : \{w})",
-          "(lim : Num)",
-          "(top : \{w})",
-          "(xs : \{lw})",
-          "(hd : \{ht})",
-          "(fl : \{w})",
-          "(sb : (Num) -> \{w})",
-          "(bl : \{bt})",
-          "(fp : \{rty})",
-        ].map(x => @tactics.exists_tac(tm(x))),
-      ),
-      rw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([thm("tlsf_free_spec")]),
+        seq(
+          [
+            "(m : \{w})",
+            "(lim : Num)",
+            "(top : \{w})",
+            "(xs : \{lw})",
+            "(hd : \{ht})",
+            "(fl : \{w})",
+            "(sb : (Num) -> \{w})",
+            "(bl : \{bt})",
+            "(fp : \{rty})",
+          ].map(x => @tactics.exists_tac(tm(x))),
+        ),
+        rw([]),
+      ])
+    },
   )
   let free_ts = "[T_num(T_i32),T_num(T_i32)]"
   let freenative = "EL(sfunc_ind((inst : Inst),(free_idx : Num)),(fs : List[Cl])) == Func_native(inst,Tf([T_num(T_i32)],[T_num(T_i32)]),\{free_ts},tlsf_free_code((d : \{w}),(pop : Num),(push : Num)))"
@@ -138,78 +142,82 @@ fn prove_tlsf_free_module() -> Unit raise {
   let specs = lemma(
     "tlsf_free_specs",
     "\{env}, ∀ free_idx : Num, \{natives} → (∀ k : Num, specs_ok(k,\{spec},fs,tabs,inst))",
-    seq([
-      gen,
-      strip,
-      @tactics.match_mp_tac(thm("sl_funs_g")),
-      gen,
-      rw([thm("tlsf_free_spec")]),
-      strip,
-      subst_vars(),
-      seq(
-        [
-          "[T_num(T_i32)]",
-          "[T_num(T_i32)]",
-          free_ts,
-          "tlsf_free_code((d : \{w}),(pop : Num),(push : Num))",
-          zeros,
-        ].map(x => @tactics.exists_tac(tm(x))),
-      ),
-      @tactics.repeat_tac(@tactics.conj_tac),
-      @tactics.first(
-        @list.List([
-          solve(arw([])),
-          solve(
-            seq([
-              rw([
-                @wasm.thm("n_zeros"),
-                @wasm.thm("bitzero"),
-                @wasm.thm("bitzero_num"),
-                @wasm.thm("map_option"),
-                @lists.map(),
-                @wasm.thm("those"),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.match_mp_tac(thm("sl_funs_g")),
+        gen,
+        rw([thm("tlsf_free_spec")]),
+        strip,
+        subst_vars(),
+        seq(
+          [
+            "[T_num(T_i32)]",
+            "[T_num(T_i32)]",
+            free_ts,
+            "tlsf_free_code((d : \{w}),(pop : Num),(push : Num))",
+            zeros,
+          ].map(x => @tactics.exists_tac(tm(x))),
+        ),
+        @tactics.repeat_tac(@tactics.conj_tac),
+        @tactics.first(
+          @list.List([
+            solve(arw([])),
+            solve(
+              seq([
+                rw([
+                  @wasm.thm("n_zeros"),
+                  @wasm.thm("bitzero"),
+                  @wasm.thm("bitzero_num"),
+                  @wasm.thm("map_option"),
+                  @lists.map(),
+                  @wasm.thm("those"),
+                ]),
               ]),
-            ]),
-          ),
-          solve(
-            seq([gen, @tactics.match_mp_tac(thm("tlsf_free_body")), arw([])]),
-          ),
-          solve(
-            seq([
-              gen,
-              rw([thm("tlsf_free_pre"), thm("tlsf_free_post")]),
-              @tactics.repeat_tac(@tactics.strip_tac),
-              subst_vars(),
-              rw([@lists.length()]),
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+            ),
+            solve(
+              seq([gen, @tactics.match_mp_tac(thm("tlsf_free_body")), arw([])]),
+            ),
+            solve(
+              seq([
+                gen,
+                rw([thm("tlsf_free_pre"), thm("tlsf_free_post")]),
+                @tactics.repeat_tac(@tactics.strip_tac),
+                subst_vars(),
+                rw([@lists.length()]),
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
   let cp = call_pre(p, "(vs0 : List[Value])", "(lc0 : List[Value])")
   let cq = call_post(q, "(vs0 : List[Value])", "(lc0 : List[Value])")
   let _ = lemma(
     "tlsf_free_all",
     "\{env}, ∀ free_idx : Num, \{pv}, ∀ vs0 : List[Value], ∀ lc0 : List[Value], \{natives} → sl_triple_m(fs,tabs,inst,\{cp},[Call(free_idx)],\{cq},NIL)",
-    seq([
-      gen,
-      strip,
-      @tactics.match_mp_tac(thm("sl_triple_m_of_g")),
-      @tactics.exists_tac(tm(spec)),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          seq([@tactics.match_mp_tac(specs), arw([])]),
-          seq([
-            @tactics.match_mp_tac(thm("sl_call_g")),
-            rw([@class.eta_ax()]),
-            @tactics.match_accept_tac(
-              @simp.rewrite_rule(ths([@class.eta_ax()]))(spec_call),
-            ),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.match_mp_tac(thm("sl_triple_m_of_g")),
+        @tactics.exists_tac(tm(spec)),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            seq([@tactics.match_mp_tac(specs), arw([])]),
+            seq([
+              @tactics.match_mp_tac(thm("sl_call_g")),
+              rw([@class.eta_ax()]),
+              @tactics.match_accept_tac(
+                @simp.rewrite_rule(ths([@class.eta_ax()]))(spec_call),
+              ),
+            ]),
           ]),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
 }

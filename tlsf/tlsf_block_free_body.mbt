@@ -67,19 +67,21 @@ fn prove_tlsf_block_free_body() -> Unit raise {
   let _ = lemma(
     "tlsf_block_free_focused",
     "\{env}, \{page_quantify(vs)}∀ i : Num, \{block_old_facts(args,p,b)} && \{block_native_hyp()} && \{index} → sl_triple_g(G,fs,tabs,inst,rp,\{pre},tlsf_block_free_code(d,free_idx),\{q},labels)",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      @simp.rewrite_tac(ths([thm("tlsf_block_free_tail_parts")])),
-      @tactics.match_mp_tac(thm("sl_seq_g")),
-      @tactics.exists_tac(tm(mid)),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          block_g_conseq(prefix, ent_tac([], []), ent_tac([], [])),
-          free_apply(inst(thm("tlsf_block_free_tail_all"), ea + argv)),
-        ]),
-      ),
-    ]),
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        @simp.rewrite_tac(ths([thm("tlsf_block_free_tail_parts")])),
+        @tactics.match_mp_tac(thm("sl_seq_g")),
+        @tactics.exists_tac(tm(mid)),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            block_g_conseq(prefix, ent_tac([], []), ent_tac([], [])),
+            free_apply(inst(thm("tlsf_block_free_tail_all"), ea + argv)),
+          ]),
+        ),
+      ])
+    },
   )
 }

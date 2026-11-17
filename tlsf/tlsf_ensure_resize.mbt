@@ -103,145 +103,147 @@ fn prove_tlsf_ensure_resize() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_resize",
     "\{vars}, \{cond} → sl_triple_m(fs,tabs,inst,st(NIL,\{lc},\{preR}),\{show(rt[4])},st(NIL,\{lc},\{postR}),NIL)",
-    seq([
-      gen,
-      strip,
-      @tactics.mp_tac(
-        inst(thm("tlsf_extend_model"), [
-          "(ys : \{lw})",
-          "(d : \{w})",
-          "(lim : Num)",
-          "(lim2 : Num)",
-          m,
-          hd,
-        ]),
-      ),
-      arw([]),
-      strip,
-      @tactics.mp_tac(
-        inst(thm("tlsf_ensure_top_facts"), [
-          "(ys : \{lw})",
-          "(d : \{w})",
-          "(lim2 : Num)",
-          m,
-          nh,
-        ]),
-      ),
-      arw([]),
-      strip,
-      @tactics.rule_assum_tac(
-        @simp.rewrite_rule(
-          ths([@kernel.assume_rule(tm("(\{nh})(\{m}) == \{rh}"))]),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.mp_tac(
+          inst(thm("tlsf_extend_model"), [
+            "(ys : \{lw})",
+            "(d : \{w})",
+            "(lim : Num)",
+            "(lim2 : Num)",
+            m,
+            hd,
+          ]),
         ),
-      ),
-      have(
-        "(\{nh})(\{m}) == \{rh}",
-        rw([thm("tlsf_extend_headers"), thm("tlsf_put")]),
-      ),
-      have(
-        "tlsf_bins_match(\{xs},\{nh},\{nbl})",
-        seq([
-          @tactics.match_mp_tac(
-            @simp.rewrite_rule(
-              ths([@kernel.assume_rule(tm("(\{nh})(\{m}) == \{rh}"))]),
-            )(inst(thm("tlsf_extend_bins"), [xs, hd, nh, "(bl : \{bt})", m])),
+        arw([]),
+        strip,
+        @tactics.mp_tac(
+          inst(thm("tlsf_ensure_top_facts"), [
+            "(ys : \{lw})",
+            "(d : \{w})",
+            "(lim2 : Num)",
+            m,
+            nh,
+          ]),
+        ),
+        arw([]),
+        strip,
+        @tactics.rule_assum_tac(
+          @simp.rewrite_rule(
+            ths([@kernel.assume_rule(tm("(\{nh})(\{m}) == \{rh}"))]),
           ),
-          arw([@lists.mem_append(), @lists.mem()]),
-          gen,
-          @tactics.disch_tac,
+        ),
+        have(
+          "(\{nh})(\{m}) == \{rh}",
           rw([thm("tlsf_extend_headers"), thm("tlsf_put")]),
-          arw([]),
-        ]),
-      ),
-      seq(
-        [8, 12].map(k => {
-          have(
-            "val(word_add(\{m},word(\{k}))) == val(\{m})+\{k}",
-            seq([
-              @tactics.mp_tac(
-                inst(thm("tlsf_focus_block"), [
-                  "(ys : \{lw})",
-                  "(NIL : \{lw})",
-                  m,
-                  "(d : \{w})",
-                  "(lim : Num)",
-                  m,
-                  hd,
-                ]),
-              ),
-              arw([]),
-              strip,
-              @tactics.match_mp_tac(
-                inst(thm("tlsf_block_field_address"), [
-                  "val(\{m})",
-                  "(lim : Num)",
-                  m,
-                  hd,
-                  k.to_string(),
-                ]),
-              ),
-              arw([]),
-              @tactics.conv_tac(@calc_num.num_reduce_conv),
-            ]),
-          )
-        }),
-      ),
-      have("8 <= val(\{cap})", @int.asm_arith_tac),
-      @tactics.match_mp_tac(thm("sl_conseq_m")),
-      @tactics.exists_tac(tm(existsP)),
-      @tactics.exists_tac(tm("st(NIL,\{lc},\{postR})")),
-      rw([]),
-      @tactics.repeat_tac(@tactics.conj_tac),
-      @tactics.first(
-        @list.List([
-          solve(
-            seq([
-              ent_tac(
-                [
-                  @bool.undisch(
-                    inst(thm("tlsf_payload_links"), [
-                      "val(\{m})+8",
-                      "val(\{cap})",
-                    ]),
-                  ),
-                  arith("(a : Num)+8+4 == a+12 && a+8+8 == a+16"),
-                  thm("tlsf_top_cell"),
-                ],
-                ["(pf : \{w})", "(nf : \{w})"],
-              ),
-            ]),
-          ),
-          solve(
-            seq([
-              @tactics.match_mp_tac(thm("sl_ex_m")),
-              beta_goal(),
-              @tactics.x_gen_tac(tm("(pf0 : \{w})")),
-              @tactics.match_mp_tac(thm("sl_ex_m")),
-              beta_goal(),
-              @tactics.x_gen_tac(tm("(nf0 : \{w})")),
-              @tactics.match_mp_tac(thm("sl_conseq_m")),
-              @tactics.exists_tac(rt[3]),
-              @tactics.exists_tac(rt[5]),
-              rw([]),
-              @tactics.repeat_tac(@tactics.conj_tac),
-              @tactics.first(
-                @list.List([
-                  solve(
-                    seq([
-                      @tactics.match_mp_tac(raw),
-                      arw([@equal.gsym(@words.val_eq_0())]),
-                      @int.asm_arith_tac,
-                    ]),
-                  ),
-                  solve(seq([gen, beta_goal(), strip, arw([])])),
-                  solve(post),
-                ]),
-              ),
-            ]),
-          ),
-          solve(seq([gen, beta_goal(), strip, arw([])])),
-        ]),
-      ),
-    ]),
+        ),
+        have(
+          "tlsf_bins_match(\{xs},\{nh},\{nbl})",
+          seq([
+            @tactics.match_mp_tac(
+              @simp.rewrite_rule(
+                ths([@kernel.assume_rule(tm("(\{nh})(\{m}) == \{rh}"))]),
+              )(inst(thm("tlsf_extend_bins"), [xs, hd, nh, "(bl : \{bt})", m])),
+            ),
+            arw([@lists.mem_append(), @lists.mem()]),
+            gen,
+            @tactics.disch_tac,
+            rw([thm("tlsf_extend_headers"), thm("tlsf_put")]),
+            arw([]),
+          ]),
+        ),
+        seq(
+          [8, 12].map(k => {
+            have(
+              "val(word_add(\{m},word(\{k}))) == val(\{m})+\{k}",
+              seq([
+                @tactics.mp_tac(
+                  inst(thm("tlsf_focus_block"), [
+                    "(ys : \{lw})",
+                    "(NIL : \{lw})",
+                    m,
+                    "(d : \{w})",
+                    "(lim : Num)",
+                    m,
+                    hd,
+                  ]),
+                ),
+                arw([]),
+                strip,
+                @tactics.match_mp_tac(
+                  inst(thm("tlsf_block_field_address"), [
+                    "val(\{m})",
+                    "(lim : Num)",
+                    m,
+                    hd,
+                    k.to_string(),
+                  ]),
+                ),
+                arw([]),
+                @tactics.conv_tac(@calc_num.num_reduce_conv),
+              ]),
+            )
+          }),
+        ),
+        have("8 <= val(\{cap})", @int.asm_arith_tac),
+        @tactics.match_mp_tac(thm("sl_conseq_m")),
+        @tactics.exists_tac(tm(existsP)),
+        @tactics.exists_tac(tm("st(NIL,\{lc},\{postR})")),
+        rw([]),
+        @tactics.repeat_tac(@tactics.conj_tac),
+        @tactics.first(
+          @list.List([
+            solve(
+              seq([
+                ent_tac(
+                  [
+                    @bool.undisch(
+                      inst(thm("tlsf_payload_links"), [
+                        "val(\{m})+8",
+                        "val(\{cap})",
+                      ]),
+                    ),
+                    arith("(a : Num)+8+4 == a+12 && a+8+8 == a+16"),
+                    thm("tlsf_top_cell"),
+                  ],
+                  ["(pf : \{w})", "(nf : \{w})"],
+                ),
+              ]),
+            ),
+            solve(
+              seq([
+                @logic.match_mp_tac(thm("sl_ex_m")),
+                beta_goal(),
+                @tactics.x_gen_tac(tm("(pf0 : \{w})")),
+                @logic.match_mp_tac(thm("sl_ex_m")),
+                beta_goal(),
+                @tactics.x_gen_tac(tm("(nf0 : \{w})")),
+                @tactics.match_mp_tac(thm("sl_conseq_m")),
+                @tactics.exists_tac(rt[3]),
+                @tactics.exists_tac(rt[5]),
+                rw([]),
+                @tactics.repeat_tac(@tactics.conj_tac),
+                @tactics.first(
+                  @list.List([
+                    solve(
+                      seq([
+                        @tactics.match_mp_tac(raw),
+                        arw([@equal.gsym(@words.val_eq_0())]),
+                        @int.asm_arith_tac,
+                      ]),
+                    ),
+                    solve(seq([gen, beta_goal(), strip, arw([])])),
+                    solve(post),
+                  ]),
+                ),
+              ]),
+            ),
+            solve(seq([gen, beta_goal(), strip, arw([])])),
+          ]),
+        ),
+      ])
+    },
   )
 }

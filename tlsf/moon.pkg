@@ -27,9 +27,9 @@ import {
   "moonbitlang/core/json",
   "moonbit-community/certimoon/wasm",
   "moonbit-community/certimoon/logic",
+  "bobzhang/hol_light/testkit",
 }
 
 import {
-  "bobzhang/hol_light/testkit",
   "moonbitlang/core/test",
 } for "test"

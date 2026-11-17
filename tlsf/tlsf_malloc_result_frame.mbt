@@ -27,11 +27,13 @@ fn prove_tlsf_malloc_result_frame() -> Unit raise {
     "tlsf_malloc_result(" +
     args +
     ")(gs,ms,h) → !(ptr == word(0)) && !(ptr == word(4294967295))",
-    seq([
-      @simp.rewrite_tac(ths([thm("tlsf_malloc_result")])),
-      @tactics.repeat_tac(@tactics.strip_tac),
-      page_publish_atomic([]),
-    ]),
+    () => {
+      seq([
+        @simp.rewrite_tac(ths([thm("tlsf_malloc_result")])),
+        @tactics.repeat_tac(@tactics.strip_tac),
+        page_publish_atomic([]),
+      ])
+    },
   )
   let frame = "(gs : List[Value]) => (ms : Num) => (fp : " +
     rty +
@@ -50,17 +52,19 @@ fn prove_tlsf_malloc_result_frame() -> Unit raise {
     "))(gs,ms,h) → tlsf_malloc_result(" +
     args +
     ")(gs,ms,h)",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @simp.rewrite_tac(ths([thm("tlsf_malloc_result")])),
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      seq(
-        (page_model_variables()[2:].to_owned() + [("cap", "Num")]).map(x => {
-          @tactics.exists_tac(tm("(" + x.0 + " : " + x.1 + ")"))
-        }),
-      ),
-      @simp.asm_rewrite_tac(ths(malloc_ac())),
-      @int.asm_arith_tac,
-    ]),
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @simp.rewrite_tac(ths([thm("tlsf_malloc_result")])),
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        seq(
+          (page_model_variables()[2:].to_owned() + [("cap", "Num")]).map(x => {
+            @tactics.exists_tac(tm("(" + x.0 + " : " + x.1 + ")"))
+          }),
+        ),
+        @simp.asm_rewrite_tac(ths(malloc_ac())),
+        @int.asm_arith_tac,
+      ])
+    },
   )
 }

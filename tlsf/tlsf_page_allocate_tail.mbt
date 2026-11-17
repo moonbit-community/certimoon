@@ -23,14 +23,16 @@ fn define_tlsf_page_allocate_tail() -> Unit raise {
   let _ = lemma(
     "tlsf_page_allocate_call_tail",
     "∀ take_idx : Num, tlsf_page_allocate_code(take_idx) == APPEND(tlsf_page_allocate_call(take_idx),tlsf_page_allocate_tail(take_idx))",
-    @simp.rewrite_tac(
-      ths([
-        thm("tlsf_page_allocate_code"),
-        thm("tlsf_page_allocate_call"),
-        thm("tlsf_page_allocate_tail"),
-        @lists.append(),
-      ]),
-    ),
+    () => {
+      @simp.rewrite_tac(
+        ths([
+          thm("tlsf_page_allocate_code"),
+          thm("tlsf_page_allocate_call"),
+          thm("tlsf_page_allocate_tail"),
+          @lists.append(),
+        ]),
+      )
+    },
   )
 }
 
@@ -63,7 +65,7 @@ fn prove_tlsf_page_allocate_tail() -> Unit raise {
         heap +
         ") => F",
       ],
-      [same],
+      () => [same],
       afters=[
         "st(NIL," + newlc + "," + own + ")",
         @logic.sa_false,
@@ -91,15 +93,17 @@ fn prove_tlsf_page_allocate_tail() -> Unit raise {
         heap +
         ") => F",
       ],
-      [
-        seq([
-          same,
-          @tactics.exists_tac(tm("(NIL : List[Value])")),
-          @tactics.exists_tac(tm("[" + z + "]")),
-          @simp.rewrite_tac(ths([@lists.append()])),
-          small_meson(ths([])),
-        ]),
-      ],
+      () => {
+        [
+          seq([
+            same,
+            @tactics.exists_tac(tm("(NIL : List[Value])")),
+            @tactics.exists_tac(tm("[" + z + "]")),
+            @simp.rewrite_tac(ths([@lists.append()])),
+            small_meson(ths([])),
+          ]),
+        ]
+      },
       afters=[
         @logic.sa_false, @logic.sa_false, @logic.sa_false, @logic.sa_false,
       ],

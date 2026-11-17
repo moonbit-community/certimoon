@@ -164,7 +164,7 @@ fn prove_tlsf_ensure_branches() -> Unit raise {
     }
     let at = args_of(amt_body, "sl_triple", 3).unwrap()
     let body = "tlsf_ensure_" + part + "_body(\{d},(pop : Num),(push : Num))"
-    let body_eq = @tactics.prove(
+    let body_eq = @logic.prove(
       tm("\{body} == APPEND(\{show(at[1])},\{show(ct[6])})"),
       rw([thm("tlsf_ensure_" + part + "_body"), @lists.append()]),
     )
@@ -290,78 +290,83 @@ fn prove_tlsf_ensure_branches() -> Unit raise {
     let _ = lemma(
       "tlsf_ensure_" + part + "_branch",
       "\{vars}\{uv}, \{facts} && \{popnative} && \{pushnative} && \{flag}\{bincond} → sl_triple_g(G,fs,tabs,inst,\{rp},st(NIL,\{lc},\{saved}),\{body},\{ready},labels)",
-      seq([
-        gen,
-        strip,
-        @tactics.mp_tac(
-          inst(thm("tlsf_ensure_top_facts"), [
-            "(ys : \{lw})",
-            d,
-            "(lim : Num)",
-            m,
-            hd,
-          ]),
-        ),
-        arw([]),
-        strip,
-        rw([body_eq]),
-        @tactics.match_mp_tac(thm("sl_seq_g")),
-        @tactics.exists_tac(ct[5]),
-        @tactics.thenl(
-          @tactics.conj_tac,
-          @list.List([
-            seq([
-              @tactics.match_mp_tac(thm("sl_conseq_g")),
-              @tactics.exists_tac(at[0]),
-              @tactics.exists_tac(at[2]),
-              @tactics.exists_tac(tm("(labels : List[\{sassn}])")),
-              rw([]),
-              @tactics.repeat_tac(@tactics.conj_tac),
-              @tactics.first(
-                @list.List([
-                  solve(
-                    seq([
-                      @tactics.match_mp_tac(thm("sl_triple_g_of")),
-                      @tactics.conj_tac,
-                      @tactics.first(
-                        @list.List([
-                          solve(call_free_tac()),
-                          solve(
-                            seq([
-                              @tactics.match_mp_tac(thm("sl_triple_l_of")),
-                              if @basics.is_imp(@kernel.concl(amount_th)) {
-                                seq([@tactics.match_mp_tac(amount_th), arw([])])
-                              } else {
-                                @tactics.accept_tac(amount_th)
-                              },
-                            ]),
-                          ),
-                        ]),
-                      ),
-                    ]),
-                  ),
-                  solve(same),
-                  solve(
-                    seq([
-                      gen,
-                      rw([thm("st"), thm("tlsf_ensure_saved")]),
-                      strip,
-                      arw([]),
-                    ]),
-                  ),
-                ]),
-              ),
+      () => {
+        seq([
+          gen,
+          strip,
+          @tactics.mp_tac(
+            inst(thm("tlsf_ensure_top_facts"), [
+              "(ys : \{lw})",
+              d,
+              "(lim : Num)",
+              m,
+              hd,
             ]),
-            seq([
-              @tactics.match_mp_tac(control),
-              @tactics.repeat_tac(@tactics.conj_tac),
-              @tactics.first(
-                @list.List([solve(arw([])), solve(fail), solve(success)]),
-              ),
+          ),
+          arw([]),
+          strip,
+          rw([body_eq]),
+          @tactics.match_mp_tac(thm("sl_seq_g")),
+          @tactics.exists_tac(ct[5]),
+          @tactics.thenl(
+            @tactics.conj_tac,
+            @list.List([
+              seq([
+                @tactics.match_mp_tac(thm("sl_conseq_g")),
+                @tactics.exists_tac(at[0]),
+                @tactics.exists_tac(at[2]),
+                @tactics.exists_tac(tm("(labels : List[\{sassn}])")),
+                rw([]),
+                @tactics.repeat_tac(@tactics.conj_tac),
+                @tactics.first(
+                  @list.List([
+                    solve(
+                      seq([
+                        @tactics.match_mp_tac(thm("sl_triple_g_of")),
+                        @tactics.conj_tac,
+                        @tactics.first(
+                          @list.List([
+                            solve(call_free_tac()),
+                            solve(
+                              seq([
+                                @tactics.match_mp_tac(thm("sl_triple_l_of")),
+                                if @basics.is_imp(@kernel.concl(amount_th)) {
+                                  seq([
+                                    @tactics.match_mp_tac(amount_th),
+                                    arw([]),
+                                  ])
+                                } else {
+                                  @tactics.accept_tac(amount_th)
+                                },
+                              ]),
+                            ),
+                          ]),
+                        ),
+                      ]),
+                    ),
+                    solve(same),
+                    solve(
+                      seq([
+                        gen,
+                        rw([thm("st"), thm("tlsf_ensure_saved")]),
+                        strip,
+                        arw([]),
+                      ]),
+                    ),
+                  ]),
+                ),
+              ]),
+              seq([
+                @tactics.match_mp_tac(control),
+                @tactics.repeat_tac(@tactics.conj_tac),
+                @tactics.first(
+                  @list.List([solve(arw([])), solve(fail), solve(success)]),
+                ),
+              ]),
             ]),
-          ]),
-        ),
-      ]),
+          ),
+        ])
+      },
     )
   }
 }

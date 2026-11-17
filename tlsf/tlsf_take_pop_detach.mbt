@@ -94,96 +94,101 @@ fn prove_tlsf_take_pop_detach() -> Unit raise {
   let _ = lemma(
     "tlsf_pop_detach",
     "\{vars}, \{cond} → sl_triple_m(fs, tabs, inst, st(NIL, \{lc}, \{oldr}), [Local_get(0), Call(pop)], st(NIL, \{lc}, \{newr}), NIL)",
-    seq([
-      gen,
-      strip,
-      @tactics.mp_tac(
-        inst(thm("tlsf_focus_block"), [
-          "(ys : \{lw})",
-          "(zs : \{lw})",
-          m,
-          "(d : \{w})",
-          "(lim : Num)",
-          "(top : \{w})",
-          hd,
-        ]),
-      ),
-      arw([]),
-      strip,
-      have(
-        "16 <= val(tlsf_size(\{h}))",
-        seq([
-          @tactics.undisch_tac(
-            tm("tlsf_block_ok(val(\{m}), (lim : Num), \{m}, \{hd})"),
-          ),
-          rw([thm("tlsf_block_ok")]),
-          @meson.meson_tac(ths([])),
-        ]),
-      ),
-      seq(
-        [8, 12].map(k => {
-          have(
-            field(k),
-            seq([
-              @tactics.match_mp_tac(
-                inst(thm("tlsf_block_field_address"), [
-                  "val(\{m})",
-                  "(lim : Num)",
-                  m,
-                  hd,
-                  k.to_string(),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.mp_tac(
+          inst(thm("tlsf_focus_block"), [
+            "(ys : \{lw})",
+            "(zs : \{lw})",
+            m,
+            "(d : \{w})",
+            "(lim : Num)",
+            "(top : \{w})",
+            hd,
+          ]),
+        ),
+        arw([]),
+        strip,
+        have(
+          "16 <= val(tlsf_size(\{h}))",
+          seq([
+            @tactics.undisch_tac(
+              tm("tlsf_block_ok(val(\{m}), (lim : Num), \{m}, \{hd})"),
+            ),
+            rw([thm("tlsf_block_ok")]),
+            @meson.meson_tac(ths([])),
+          ]),
+        ),
+        seq(
+          [8, 12].map(k => {
+            have(
+              field(k),
+              seq([
+                @tactics.match_mp_tac(
+                  inst(thm("tlsf_block_field_address"), [
+                    "val(\{m})",
+                    "(lim : Num)",
+                    m,
+                    hd,
+                    k.to_string(),
+                  ]),
+                ),
+                arw([]),
+                @tactics.conv_tac(@calc_num.num_reduce_conv),
+              ]),
+            )
+          }),
+        ),
+        have(
+          show(view),
+          seq([
+            @tactics.match_mp_tac(
+              inst(thm("tlsf_payload_links"), [
+                "val(\{m}) + 8",
+                "val(tlsf_size(\{h}))",
+              ]),
+            ),
+            @int.asm_arith_tac,
+          ]),
+        ),
+        have(
+          "tlsf_bins_match(\{oldxs}, tlsf_mark(\{hd}, \{m}), \{nbl})",
+          seq([
+            @tactics.match_mp_tac(
+              inst(thm("tlsf_pop_bins_match"), [
+                oldxs,
+                hd,
+                "(bl : \{bt})",
+                m,
+                "(us : \{lw})",
+                "(vs : \{lw})",
+              ]),
+            ),
+            arw([@lists.mem_append(), @lists.mem()]),
+          ]),
+        ),
+        @tactics.match_mp_tac(thm("sl_conseq_m")),
+        @tactics.exists_tac(terms[3]),
+        @tactics.exists_tac(terms[5]),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            ent_tac(rws, []),
+            @tactics.thenl(
+              @tactics.conj_tac,
+              @list.List([
+                seq([@tactics.match_mp_tac(raw), arw([])]),
+                ent_tac(rws, [
+                  "tlsf_prev((us : \{lw}))",
+                  "tlsf_hd((vs : \{lw}))",
                 ]),
-              ),
-              arw([]),
-              @tactics.conv_tac(@calc_num.num_reduce_conv),
-            ]),
-          )
-        }),
-      ),
-      have(
-        show(view),
-        seq([
-          @tactics.match_mp_tac(
-            inst(thm("tlsf_payload_links"), [
-              "val(\{m}) + 8",
-              "val(tlsf_size(\{h}))",
-            ]),
-          ),
-          @int.asm_arith_tac,
-        ]),
-      ),
-      have(
-        "tlsf_bins_match(\{oldxs}, tlsf_mark(\{hd}, \{m}), \{nbl})",
-        seq([
-          @tactics.match_mp_tac(
-            inst(thm("tlsf_pop_bins_match"), [
-              oldxs,
-              hd,
-              "(bl : \{bt})",
-              m,
-              "(us : \{lw})",
-              "(vs : \{lw})",
-            ]),
-          ),
-          arw([@lists.mem_append(), @lists.mem()]),
-        ]),
-      ),
-      @tactics.match_mp_tac(thm("sl_conseq_m")),
-      @tactics.exists_tac(terms[3]),
-      @tactics.exists_tac(terms[5]),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          ent_tac(rws, []),
-          @tactics.thenl(
-            @tactics.conj_tac,
-            @list.List([
-              seq([@tactics.match_mp_tac(raw), arw([])]),
-              ent_tac(rws, ["tlsf_prev((us : \{lw}))", "tlsf_hd((vs : \{lw}))"]),
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
 }

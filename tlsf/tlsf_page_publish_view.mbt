@@ -222,7 +222,7 @@ fn prove_tlsf_page_publish_view() -> Unit raise {
     ", " +
     ok +
     " → !MEM(b,live) && (∀ j : Num, j < tlsf_small_total(s) && !(j == i) → !(tlsf_small_slot(p,s,j) == b))",
-    seq([prepare, arw([])]),
+    () => seq([prepare, arw([])]),
   )
   let _ = lemma(
     "tlsf_page_publish_page_pre",
@@ -234,23 +234,25 @@ fn prove_tlsf_page_publish_view() -> Unit raise {
     " == star(pts(val(b)+8,serialise_i32(tlsf_small_head(bs)))," +
     body("word(tlsf_small_used((NIL : " + lw + "),(live : " + lw + ")))", "b") +
     ")",
-    seq([
-      prepare,
-      g => {
-        @tactics.assume_tac(
-          block_under(inst(thm("tlsf_page_publish_slots_pre"), pars), g),
-        )(g)
-      },
-      rw([
-        thm("tlsf_small_page_heap"),
-        thm("tlsf_page_publish_frame"),
-        thm("tlsf_small_links"),
-        thm("tlsf_small_head"),
-        @lists.not_cons_nil(),
-        @lists.hd(),
-      ]),
-      arw(ac + [@arith.lt_refl()]),
-    ]),
+    () => {
+      seq([
+        prepare,
+        g => {
+          @tactics.assume_tac(
+            block_under(inst(thm("tlsf_page_publish_slots_pre"), pars), g),
+          )(g)
+        },
+        rw([
+          thm("tlsf_small_page_heap"),
+          thm("tlsf_page_publish_frame"),
+          thm("tlsf_small_links"),
+          thm("tlsf_small_head"),
+          @lists.not_cons_nil(),
+          @lists.hd(),
+        ]),
+        arw(ac + [@arith.lt_refl()]),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_page_publish_page_post",
@@ -264,36 +266,38 @@ fn prove_tlsf_page_publish_view() -> Unit raise {
     ")))," +
     body("word(tlsf_small_total((s : Num)))", "word(0)") +
     "))",
-    seq([
-      prepare,
-      g => {
-        @tactics.assume_tac(
-          block_under(inst(thm("tlsf_page_publish_slots_post"), pars), g),
-        )(g)
-      },
-      g => {
-        @tactics.strip_assume_tac(
-          block_under(
-            inst(thm("tlsf_page_publish_partition"), [
-              "(p : " + w + ")",
-              "(s : Num)",
-              "(b : " + w + ")",
-              "(bs : " + lw + ")",
-              "(live : " + lw + ")",
-            ]),
-            g,
-          ),
-        )(g)
-      },
-      rw([
-        thm("tlsf_small_page_heap"),
-        thm("tlsf_page_publish_frame"),
-        thm("tlsf_page_publish_payload"),
-        thm("tlsf_small_links"),
-        thm("tlsf_small_head"),
-        @arith.lt_refl(),
-      ]),
-      arw(ac + [@arith.lt_refl()]),
-    ]),
+    () => {
+      seq([
+        prepare,
+        g => {
+          @tactics.assume_tac(
+            block_under(inst(thm("tlsf_page_publish_slots_post"), pars), g),
+          )(g)
+        },
+        g => {
+          @tactics.strip_assume_tac(
+            block_under(
+              inst(thm("tlsf_page_publish_partition"), [
+                "(p : " + w + ")",
+                "(s : Num)",
+                "(b : " + w + ")",
+                "(bs : " + lw + ")",
+                "(live : " + lw + ")",
+              ]),
+              g,
+            ),
+          )(g)
+        },
+        rw([
+          thm("tlsf_small_page_heap"),
+          thm("tlsf_page_publish_frame"),
+          thm("tlsf_page_publish_payload"),
+          thm("tlsf_small_links"),
+          thm("tlsf_small_head"),
+          @arith.lt_refl(),
+        ]),
+        arw(ac + [@arith.lt_refl()]),
+      ])
+    },
   )
 }

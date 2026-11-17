@@ -141,41 +141,43 @@ fn prove_tlsf_block_free_module() -> Unit raise {
     ",tlsf_block_free_code(d,free_idx)," +
     q0 +
     ",labels)",
-    seq([
-      gen,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      @tactics.match_mp_tac(thm("sl_conseq_g")),
-      @tactics.exists_tac(tm(pp)),
-      @tactics.exists_tac(tm(q0)),
-      @tactics.exists_tac(tm("(labels : List[" + sassn + "])")),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          free_at("block entry", pre),
-          @tactics.thenl(
-            @tactics.conj_tac,
-            @list.List([
-              seq([
-                free_intro(),
-                free_apply(
-                  inst(
-                    thm("tlsf_block_free_focused"),
-                    ea + argv + ["(i : Num)"],
+    () => {
+      seq([
+        gen,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        @tactics.match_mp_tac(thm("sl_conseq_g")),
+        @tactics.exists_tac(tm(pp)),
+        @tactics.exists_tac(tm(q0)),
+        @tactics.exists_tac(tm("(labels : List[" + sassn + "])")),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            free_at("block entry", pre),
+            @tactics.thenl(
+              @tactics.conj_tac,
+              @list.List([
+                seq([
+                  free_intro(),
+                  free_apply(
+                    inst(
+                      thm("tlsf_block_free_focused"),
+                      ea + argv + ["(i : Num)"],
+                    ),
                   ),
-                ),
+                ]),
+                seq([
+                  rw([]),
+                  gen,
+                  beta_goal(),
+                  @tactics.repeat_tac(@tactics.strip_tac),
+                  arw([]),
+                ]),
               ]),
-              seq([
-                rw([]),
-                gen,
-                beta_goal(),
-                @tactics.repeat_tac(@tactics.strip_tac),
-                arw([]),
-              ]),
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
   let empty = "(a : Num) => (P : " + ft + ") => (Q : " + ft + ") => F"
   let falsep = "(vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : " +
@@ -192,34 +194,36 @@ fn prove_tlsf_block_free_module() -> Unit raise {
     ",tlsf_block_free_code(d,free_idx)," +
     q0 +
     ",NIL)",
-    seq([
-      gen,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      @tactics.match_mp_tac(thm("sl_triple_m_of_g")),
-      @tactics.exists_tac(tm(empty)),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          rw([thm("specs_ok")]),
-          free_apply(
-            inst(
-              body,
-              [
-                empty,
-                "(fs : List[Cl])",
-                "(tabs : List[(Tab_t,List[V_ref])])",
-                "(inst : Inst)",
-                "(pop : Num)",
-                "(push : Num)",
-                "(free_idx : Num)",
-                falsep,
-                "(NIL : List[" + sassn + "])",
-              ] +
-              argv,
+    () => {
+      seq([
+        gen,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        @tactics.match_mp_tac(thm("sl_triple_m_of_g")),
+        @tactics.exists_tac(tm(empty)),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            rw([thm("specs_ok")]),
+            free_apply(
+              inst(
+                body,
+                [
+                  empty,
+                  "(fs : List[Cl])",
+                  "(tabs : List[(Tab_t,List[V_ref])])",
+                  "(inst : Inst)",
+                  "(pop : Num)",
+                  "(push : Num)",
+                  "(free_idx : Num)",
+                  falsep,
+                  "(NIL : List[" + sassn + "])",
+                ] +
+                argv,
+              ),
             ),
-          ),
-        ]),
-      ),
-    ]),
+          ]),
+        ),
+      ])
+    },
   )
 }

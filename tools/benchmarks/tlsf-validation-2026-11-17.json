@@ -1,0 +1,42 @@
+{
+  "target": "wasm-gc",
+  "mode": "debug",
+  "artifact_sha256": "257003c624287b6636a19366a98a56ec38a44942211719af3bd288c800a2964c",
+  "individual_checks": {
+    "passed": 754,
+    "failed": 0,
+    "all_returned_implications_closed": true
+  },
+  "tlsf_tests": {
+    "passed": 20,
+    "failed": 0
+  },
+  "logic_tests_including_checker": {
+    "passed": 20,
+    "failed": 0
+  },
+  "final_full_replay_json_snapshot_test": {
+    "passed": 1,
+    "failed": 0
+  },
+  "native_compilation": "pass",
+  "kernel_axioms": 3,
+  "snapshot_statements_and_dependencies": "unchanged",
+  "snapshot_source_locations_refreshed": {
+    "tlsf": 500,
+    "logic": 1
+  },
+  "all_checks_validation_phases_seconds": {
+    "checked_base": 69.306278792,
+    "tlsf_declarations": 36.858973541,
+    "total": 217.292279167
+  },
+  "timing_note": "Validation ran alongside a snapshot test; use the separate sequential cold-process benchmark for speedup comparisons.",
+  "commands": [
+    "moonrun <wasm-gc-debug-artifact> -- check --all",
+    "moon test tlsf --target wasm-gc --no-parallelize",
+    "moon test logic --target wasm-gc --no-parallelize",
+    "moon test tlsf --target wasm-gc --filter 'the theory as data'",
+    "moon check wasm logic tlsf cmd/tlsf --target native --warn-list +73"
+  ]
+}

@@ -34,7 +34,7 @@ fn prove_tlsf_malloc_dead_initialize() -> Unit raise {
     ",(labels : List[" +
     sassn +
     "]))",
-    seq([@tactics.repeat_tac(@tactics.strip_tac), small_meson(ths([]))]),
+    () => seq([@tactics.repeat_tac(@tactics.strip_tac), small_meson(ths([]))]),
   )
 }
 
@@ -120,7 +120,7 @@ fn prove_tlsf_malloc_ready_raw() -> Unit raise {
         sassn +
         "]))",
         [],
-        Array::make(2, same),
+        () => Array::make(2, same),
         afters=[
           "st(NIL," + locals_for(malloc_i(a[0])) + "," + r + ")",
           "st([" +

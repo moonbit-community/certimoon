@@ -60,52 +60,54 @@ fn prove_tlsf_block_free_classify_pages() -> Unit raise {
   let _ = lemma(
     "tlsf_block_free_classify_pages",
     "∀ free_idx : Num, \{vars} \{pure} → sl_triple(st(NIL,\{lc},\{all}),tlsf_block_free_classify(d,free_idx),st([\{i("wasm_bool((u : "+w+") == word("+total+"))")}],\{lc},\{all}))",
-    seq([
-      gen,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      g => {
-        @tactics.strip_assume_tac(
-          block_under(
-            inst(
-              thm("tlsf_small_page_member_geometry"),
-              geometry + ["(p : " + w + ")"],
+    () => {
+      seq([
+        gen,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        g => {
+          @tactics.strip_assume_tac(
+            block_under(
+              inst(
+                thm("tlsf_small_page_member_geometry"),
+                geometry + ["(p : " + w + ")"],
+              ),
+              g,
             ),
+          )(g)
+        },
+        free_have(
+          "val(word_add((p : \{w}),word(12))) == val(p)+12",
+          seq([@tactics.match_mp_tac(thm("val_add_small")), @int.asm_arith_tac]),
+        ),
+        g => {
+          let focus0 = block_under(
+            inst(thm("tlsf_small_pages_focus"), pa + ["(p : " + w + ")"]),
             g,
-          ),
-        )(g)
-      },
-      free_have(
-        "val(word_add((p : \{w}),word(12))) == val(p)+12",
-        seq([@tactics.match_mp_tac(thm("val_add_small")), @int.asm_arith_tac]),
-      ),
-      g => {
-        let focus0 = block_under(
-          inst(thm("tlsf_small_pages_focus"), pa + ["(p : " + w + ")"]),
-          g,
-        )
-        let focus = @equal.conv_rule(
-          @equal.rand_conv(
-            @simp.rewrite_conv(ths([thm("tlsf_small_page_total_focus")])),
-          ),
-          focus0,
-        )
-        let path = inst(
-          thm("tlsf_block_free_classify_raw"),
-          args(["d"]) +
-          [
-            "(free_idx : Num)",
-            "(p : " + w + ")",
-            "(u : " + w + ")",
-            "(word(" + total + ") : " + w + ")",
-            "(l2 : Value)",
-            frame,
-          ],
-        )
-        let offset = @kernel.assume_rule(
-          tm("val(word_add((p : " + w + "),word(12))) == val(p)+12"),
-        )
-        by_path(path, "T", [focus, offset], [], [focus, offset], [])(g)
-      },
-    ]),
+          )
+          let focus = @equal.conv_rule(
+            @equal.rand_conv(
+              @simp.rewrite_conv(ths([thm("tlsf_small_page_total_focus")])),
+            ),
+            focus0,
+          )
+          let path = inst(
+            thm("tlsf_block_free_classify_raw"),
+            args(["d"]) +
+            [
+              "(free_idx : Num)",
+              "(p : " + w + ")",
+              "(u : " + w + ")",
+              "(word(" + total + ") : " + w + ")",
+              "(l2 : Value)",
+              frame,
+            ],
+          )
+          let offset = @kernel.assume_rule(
+            tm("val(word_add((p : " + w + "),word(12))) == val(p)+12"),
+          )
+          by_path(path, "T", [focus, offset], [], [focus, offset], [])(g)
+        },
+      ])
+    },
   )
 }

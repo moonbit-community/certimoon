@@ -43,39 +43,41 @@ fn prove_tlsf_malloc_table_addresses() -> Unit raise {
       ") == val(tlsf_base(d))+" +
       off +
       "+8*val(kw)",
-      seq([
-        gen,
-        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-        g => {
-          let shift = block_under(
-            inst(thm("tlsf_malloc_small_shift"), ["val(" + kw + ")"]),
-            g,
-          )
-          let shift = @simp.rewrite_rule(ths([@words.word_val()]))(shift)
-          @tactics.assume_tac(shift)(g)
-        },
-        free_have(
-          addr +
-          " == word_add(tlsf_base(" +
-          d +
-          "),word(" +
-          off +
-          "+8*val(" +
-          kw +
-          ")))",
-          seq([
-            arw([thm("tlsf_base"), @words.word_add_v1()]),
-            g => @tactics.accept_tac(@words.word_rule(g.1))(g),
-          ]),
-        ),
-        arw([]),
-        @tactics.mp_tac(
-          inst(thm("tlsf_initialize_offset"), [d, off + "+8*val(" + kw + ")"]),
-        ),
-        free_have(off + "+8*val(" + kw + ") <= 2176", @int.asm_arith_tac),
-        arw([]),
-        @int.arith_tac,
-      ]),
+      () => {
+        seq([
+          gen,
+          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+          g => {
+            let shift = block_under(
+              inst(thm("tlsf_malloc_small_shift"), ["val(" + kw + ")"]),
+              g,
+            )
+            let shift = @simp.rewrite_rule(ths([@words.word_val()]))(shift)
+            @tactics.assume_tac(shift)(g)
+          },
+          free_have(
+            addr +
+            " == word_add(tlsf_base(" +
+            d +
+            "),word(" +
+            off +
+            "+8*val(" +
+            kw +
+            ")))",
+            seq([
+              arw([thm("tlsf_base"), @words.word_add_v1()]),
+              g => @tactics.accept_tac(@words.word_rule(g.1))(g),
+            ]),
+          ),
+          arw([]),
+          @tactics.mp_tac(
+            inst(thm("tlsf_initialize_offset"), [d, off + "+8*val(" + kw + ")"]),
+          ),
+          free_have(off + "+8*val(" + kw + ") <= 2176", @int.asm_arith_tac),
+          arw([]),
+          @int.arith_tac,
+        ])
+      },
     )
   }
 }
@@ -136,48 +138,50 @@ fn prove_tlsf_malloc_loads() -> Unit raise {
       "]),lc," +
       r +
       "))",
-      seq([
-        gen,
-        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-        @tactics.match_mp_tac(
-          inst(thm("st_load_read"), [
-            "(v : List[Value])", "(lc : List[Value])", r, addr, value, "2", "0",
-          ]),
-        ),
-        if top {
-          @tactics.all_tac
-        } else {
+      () => {
+        seq([
+          gen,
+          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+          @logic.match_mp_tac(
+            inst(thm("st_load_read"), [
+              "(v : List[Value])", "(lc : List[Value])", r, addr, value, "2", "0",
+            ]),
+          ),
+          if top {
+            @tactics.all_tac
+          } else {
+            g => {
+              @tactics.assume_tac(
+                block_under(
+                  inst(thm("tlsf_malloc_" + kind + "_word_address"), [d, kw]),
+                  g,
+                ),
+              )(g)
+            }
+          },
+          gen,
+          rw([thm("tlsf_malloc_ro"), @arith.add_clauses()]),
+          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+          if top {
+            seq([rw([@equal.gsym(thm("tlsf_base"))]), arw([])])
+          } else {
+            arw([])
+          },
           g => {
-            @tactics.assume_tac(
-              block_under(
-                inst(thm("tlsf_malloc_" + kind + "_word_address"), [d, kw]),
-                g,
-              ),
-            )(g)
-          }
-        },
-        gen,
-        rw([thm("tlsf_malloc_ro"), @arith.add_clauses()]),
-        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-        if top {
-          seq([rw([@equal.gsym(thm("tlsf_base"))]), arw([])])
-        } else {
-          arw([])
-        },
-        g => {
-          let view = inst(
-            thm("tlsf_malloc_read_" + kind),
-            a +
-            (if top { [] } else { ["val(" + kw + ")"] }) +
-            [
-              "(fp : " + rty + ")((gs : List[Value])," + a[1] + ")",
-              "(h : " + heap + ")",
-            ],
-          )
-          let view = @simp.rewrite_rule(g.0.map(x => x.1))(view)
-          free_apply(view)(g)
-        },
-      ]),
+            let view = inst(
+              thm("tlsf_malloc_read_" + kind),
+              a +
+              (if top { [] } else { ["val(" + kw + ")"] }) +
+              [
+                "(fp : " + rty + ")((gs : List[Value])," + a[1] + ")",
+                "(h : " + heap + ")",
+              ],
+            )
+            let view = @simp.rewrite_rule(g.0.map(x => x.1))(view)
+            free_apply(view)(g)
+          },
+        ])
+      },
     )
   }
 }
@@ -206,17 +210,19 @@ fn prove_tlsf_malloc_memory_size() -> Unit raise {
     "]),lc0," +
     r +
     "))",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @tactics.match_mp_tac(
-        inst(thm("st_memory_size_at"), [
-          "(v : List[Value])",
-          "(lc0 : List[Value])",
-          a[1],
-          r,
-        ]),
-      ),
-      ent_tac([thm("tlsf_malloc_ro")], []),
-    ]),
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @logic.match_mp_tac(
+          inst(thm("st_memory_size_at"), [
+            "(v : List[Value])",
+            "(lc0 : List[Value])",
+            a[1],
+            r,
+          ]),
+        ),
+        ent_tac([thm("tlsf_malloc_ro")], []),
+      ])
+    },
   )
 }

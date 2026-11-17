@@ -11,15 +11,17 @@ fn prove_tlsf_block_free_unlink_list() -> Unit raise {
   let head_append = lemma(
     "tlsf_small_head_append",
     "∀ a : \{lw}, ∀ z : \{lw}, !(a == NIL) → tlsf_small_head(APPEND(a,z)) == tlsf_small_head(a)",
-    seq([
-      @lists.list_induct_tac,
-      rw([
-        @lists.append(),
-        @lists.not_cons_nil(),
-        thm("tlsf_small_head"),
-        @lists.hd(),
-      ]),
-    ]),
+    () => {
+      seq([
+        @lists.list_induct_tac,
+        rw([
+          @lists.append(),
+          @lists.not_cons_nil(),
+          thm("tlsf_small_head"),
+          @lists.hd(),
+        ]),
+      ])
+    },
   )
   let i = (x : String) => "V_num(ConstInt32((\{x} : \{w})))"
   let cell = (p : String, k : Int32, v : String) => {
@@ -101,132 +103,136 @@ fn prove_tlsf_block_free_unlink_list() -> Unit raise {
       let _ = lemma(
         name,
         "\{vars}, \{cond} → sl_triple(st(NIL,[\{i("p")},u,l2],\{pre}),tlsf_block_free_unlink(d,free_idx),st(NIL,[\{i("p")},\{i(nx)},\{i(if has_prev { pr } else { "word("+cls+")" })}],\{post}))",
-        seq([
-          gen,
-          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-          g => {
-            @tactics.strip_assume_tac(
-              block_under(
-                inst(thm("tlsf_small_table_address"), [
-                  "(d : " + w + ")",
-                  "(s : Num)",
-                ]),
-                g,
-              ),
-            )(g)
-          },
-          seq(
-            ([
-              ("(p : " + w + ")", 8),
-              ("(p : " + w + ")", 24),
-              ("(p : " + w + ")", 28),
-            ] +
-            (if has_prev { [(pr, 28)] } else { [] }) +
-            (if has_next { [(nx, 24)] } else { [] })).map(v => {
-              free_have(
-                "val(word_add((\{v.0} : \{w}),word(\{v.1}))) == val(\{v.0})+\{v.1}",
-                seq([
-                  @tactics.match_mp_tac(thm("val_add_small")),
-                  @int.asm_arith_tac,
-                ]),
-              )
-            }),
-          ),
-          g => {
-            let path = inst(
-              thm(
-                "tlsf_block_free_unlink_" +
-                (if has_prev { "prev" } else { "head" }) +
-                "_" +
-                (if has_next { "cons" } else { "nil" }) +
-                "_all_raw",
-              ),
-              [
-                "(d : " + w + ")",
-                "(free_idx : Num)",
-                "(p : " + w + ")",
-                pr,
-                nx,
-                "(word((s : Num)) : " + w + ")",
-                "(u : Value)",
-                "(l2 : Value)",
-                frame,
-              ],
-            )
-            let classTh = @kernel.assume_rule(
-              tm(
-                "word_jushr(word_add((word((s : Num)) : " +
-                w +
-                "),word(7)),word(3)) == word(DIV(s,8))",
-              ),
-            )
-            let scalar = ths([thm("tlsf_base"), classTh])
-            let math = g.0.to_array().map(v => @simp.rewrite_rule(scalar)(v.1)) +
-              [
-                classTh,
-                thm("tlsf_base"),
-                thm("tlsf_small_partial_dlist"),
-                @lists.append(),
-                thm("tlsf_small_dtail"),
-                thm("tlsf_small_dhead"),
-                thm("tlsf_small_first"),
-                thm("tlsf_small_last_nil"),
-                thm("tlsf_small_dlist_nil"),
-                thm("tlsf_small_head"),
-                @lists.not_cons_nil(),
-                @lists.hd(),
-                @arith.add_clauses(),
-              ]
-            let headrw = if has_prev {
-              [
+        () => {
+          seq([
+            gen,
+            @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+            g => {
+              @tactics.strip_assume_tac(
                 block_under(
-                  inst(head_append, [a, "CONS((p : " + w + ")," + z + ")"]),
+                  inst(thm("tlsf_small_table_address"), [
+                    "(d : " + w + ")",
+                    "(s : Num)",
+                  ]),
                   g,
                 ),
-                block_under(inst(head_append, [a, z]), g),
-              ]
-            } else {
-              []
-            }
-            let listnorm = ths([
-              @lists.append(),
-              thm("tlsf_small_first"),
-              thm("tlsf_small_last_nil"),
-              thm("tlsf_small_dtail"),
-              thm("tlsf_small_dhead"),
-              thm("tlsf_small_dlist_nil"),
-              @lists.not_cons_nil(),
-              @lists.hd(),
-              thm("star_emp_hl"),
-              thm("star_emp_hr"),
-            ])
-            let before = @simp.rewrite_rule(listnorm)(
-              inst(thm("tlsf_small_dlist_unlink_view"), [
-                a,
-                z,
-                "(word(0) : " + w + ")",
-                "(word(0) : " + w + ")",
-                "(p : " + w + ")",
-              ]),
-            )
-            let after = @simp.rewrite_rule(listnorm)(
-              inst(thm("tlsf_small_dlist_removed_view"), [
-                a,
-                z,
-                "(word(0) : " + w + ")",
-                "(word(0) : " + w + ")",
-              ]),
-            )
-            by_path(
-              path,
-              "T",
-              [before] + headrw + math,
-              [],
-              [after] + headrw + math,
-              [],
-            )(g)
-          },
-        ]),
+              )(g)
+            },
+            seq(
+              ([
+                ("(p : " + w + ")", 8),
+                ("(p : " + w + ")", 24),
+                ("(p : " + w + ")", 28),
+              ] +
+              (if has_prev { [(pr, 28)] } else { [] }) +
+              (if has_next { [(nx, 24)] } else { [] })).map(v => {
+                free_have(
+                  "val(word_add((\{v.0} : \{w}),word(\{v.1}))) == val(\{v.0})+\{v.1}",
+                  seq([
+                    @tactics.match_mp_tac(thm("val_add_small")),
+                    @int.asm_arith_tac,
+                  ]),
+                )
+              }),
+            ),
+            g => {
+              let path = inst(
+                thm(
+                  "tlsf_block_free_unlink_" +
+                  (if has_prev { "prev" } else { "head" }) +
+                  "_" +
+                  (if has_next { "cons" } else { "nil" }) +
+                  "_all_raw",
+                ),
+                [
+                  "(d : " + w + ")",
+                  "(free_idx : Num)",
+                  "(p : " + w + ")",
+                  pr,
+                  nx,
+                  "(word((s : Num)) : " + w + ")",
+                  "(u : Value)",
+                  "(l2 : Value)",
+                  frame,
+                ],
+              )
+              let classTh = @kernel.assume_rule(
+                tm(
+                  "word_jushr(word_add((word((s : Num)) : " +
+                  w +
+                  "),word(7)),word(3)) == word(DIV(s,8))",
+                ),
+              )
+              let scalar = ths([thm("tlsf_base"), classTh])
+              let math = g.0
+                .to_array()
+                .map(v => @simp.rewrite_rule(scalar)(v.1)) +
+                [
+                  classTh,
+                  thm("tlsf_base"),
+                  thm("tlsf_small_partial_dlist"),
+                  @lists.append(),
+                  thm("tlsf_small_dtail"),
+                  thm("tlsf_small_dhead"),
+                  thm("tlsf_small_first"),
+                  thm("tlsf_small_last_nil"),
+                  thm("tlsf_small_dlist_nil"),
+                  thm("tlsf_small_head"),
+                  @lists.not_cons_nil(),
+                  @lists.hd(),
+                  @arith.add_clauses(),
+                ]
+              let headrw = if has_prev {
+                [
+                  block_under(
+                    inst(head_append, [a, "CONS((p : " + w + ")," + z + ")"]),
+                    g,
+                  ),
+                  block_under(inst(head_append, [a, z]), g),
+                ]
+              } else {
+                []
+              }
+              let listnorm = ths([
+                @lists.append(),
+                thm("tlsf_small_first"),
+                thm("tlsf_small_last_nil"),
+                thm("tlsf_small_dtail"),
+                thm("tlsf_small_dhead"),
+                thm("tlsf_small_dlist_nil"),
+                @lists.not_cons_nil(),
+                @lists.hd(),
+                thm("star_emp_hl"),
+                thm("star_emp_hr"),
+              ])
+              let before = @simp.rewrite_rule(listnorm)(
+                inst(thm("tlsf_small_dlist_unlink_view"), [
+                  a,
+                  z,
+                  "(word(0) : " + w + ")",
+                  "(word(0) : " + w + ")",
+                  "(p : " + w + ")",
+                ]),
+              )
+              let after = @simp.rewrite_rule(listnorm)(
+                inst(thm("tlsf_small_dlist_removed_view"), [
+                  a,
+                  z,
+                  "(word(0) : " + w + ")",
+                  "(word(0) : " + w + ")",
+                ]),
+              )
+              by_path(
+                path,
+                "T",
+                [before] + headrw + math,
+                [],
+                [after] + headrw + math,
+                [],
+              )(g)
+            },
+          ])
+        },
       )
     }
   }

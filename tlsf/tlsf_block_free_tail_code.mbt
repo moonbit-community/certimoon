@@ -20,20 +20,22 @@ fn prove_tlsf_block_free_tail_code() -> Unit raise {
   let _ = lemma(
     "tlsf_block_free_tail_parts",
     "∀ d : \{w}, ∀ free_idx : Num, tlsf_block_free_code(d,free_idx) == APPEND(tlsf_block_free_release(d,free_idx),tlsf_block_free_tail(d,free_idx))",
-    @simp.rewrite_tac(
-      ths([
-        thm("tlsf_block_free_parts"),
-        thm("tlsf_block_free_tail"),
-        thm("tlsf_block_free_else"),
-      ]),
-    ),
+    () => {
+      @simp.rewrite_tac(
+        ths([
+          thm("tlsf_block_free_parts"),
+          thm("tlsf_block_free_tail"),
+          thm("tlsf_block_free_else"),
+        ]),
+      )
+    },
   )
   ignore(
     sym_prove(
       "tlsf_block_free_zero",
       "∀ lc : List[Value], ∀ R : \{rty}, sl_triple(st(NIL,lc,R),[EConstNum(ConstInt32((word(0) : \{w})))],st([V_num(ConstInt32((word(0) : \{w})))],lc,R))",
       [],
-      [],
+      () => [],
       kind="lemma",
     ),
   )

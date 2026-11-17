@@ -70,37 +70,39 @@ fn prove_tlsf_try_malloc_body() -> Unit raise {
     ",[" +
     q +
     "])",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      @simp.pure_rewrite_tac(ths([thm("tlsf_try_malloc_code")])),
-      @tactics.match_mp_tac(thm("sl_conseq_g")),
-      @tactics.exists_tac(tm(p)),
-      @tactics.exists_tac(tm(q)),
-      @tactics.exists_tac(tm("[" + q + "]")),
-      @tactics.repeat_tac(@tactics.conj_tac),
-      @tactics.first(
-        @list.List([
-          solve(
-            ent_tac(
-              [
-                thm("tlsf_try_malloc_pre"),
-                thm("tlsf_malloc_ro"),
-                @lists.append(),
-              ],
-              [],
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        @simp.pure_rewrite_tac(ths([thm("tlsf_try_malloc_code")])),
+        @logic.match_mp_tac(thm("sl_conseq_g")),
+        @tactics.exists_tac(tm(p)),
+        @tactics.exists_tac(tm(q)),
+        @tactics.exists_tac(tm("[" + q + "]")),
+        @tactics.repeat_tac(@tactics.conj_tac),
+        @tactics.first(
+          @list.List([
+            solve(
+              ent_tac(
+                [
+                  thm("tlsf_try_malloc_pre"),
+                  thm("tlsf_malloc_ro"),
+                  @lists.append(),
+                ],
+                [],
+              ),
             ),
-          ),
-          solve(
-            seq([
-              @tactics.match_mp_tac(thm("sl_pure_g")),
-              @tactics.disch_tac,
-              free_apply(focus),
-            ]),
-          ),
-          solve(same_tac()),
-        ]),
-      ),
-    ]),
+            solve(
+              seq([
+                @logic.match_mp_tac(thm("sl_pure_g")),
+                @tactics.disch_tac,
+                free_apply(focus),
+              ]),
+            ),
+            solve(same_tac()),
+          ]),
+        ),
+      ])
+    },
   )
 }

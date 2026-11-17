@@ -100,47 +100,53 @@ fn prove_tlsf_take_success() -> Unit raise {
   let _ = lemma(
     "tlsf_take_success_body",
     "\{vars}, \{cond} → sl_triple_g(G, fs, tabs, inst, \{rp}, \{show(pt[3])}, tlsf_take_success(d, pop, push), \{falsep}, ls)",
-    seq([
-      gen,
-      strip,
-      @tactics.rule_assum_tac(@simp.rewrite_rule(ths([]))),
-      have(
-        "tlsf_bins_match(\{oldxs}, tlsf_mark(\{hd}, \{m}), \{nbl})",
-        seq([
-          @tactics.match_mp_tac(
-            inst(thm("tlsf_pop_bins_match"), [
-              oldxs,
-              hd,
-              "(bl : \{bt})",
-              m,
-              "(us : \{lw})",
-              "(bs : \{lw})",
-            ]),
-          ),
-          arw([@lists.mem_append(), @lists.mem()]),
-        ]),
-      ),
-      rw([thm("tlsf_take_success")]),
-      @tactics.match_mp_tac(thm("sl_seq_g")),
-      @tactics.exists_tac(pt[5]),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          from_module(pop),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.rule_assum_tac(@simp.rewrite_rule(ths([]))),
+        have(
+          "tlsf_bins_match(\{oldxs}, tlsf_mark(\{hd}, \{m}), \{nbl})",
           seq([
-            @tactics.match_mp_tac(thm("sl_seq_g")),
-            @tactics.exists_tac(st[5]),
-            @tactics.thenl(
-              @tactics.conj_tac,
-              @list.List([
-                from_module(split),
-                seq([rw([@class.eta_ax()]), @tactics.match_mp_tac(ret), arw([])]),
+            @tactics.match_mp_tac(
+              inst(thm("tlsf_pop_bins_match"), [
+                oldxs,
+                hd,
+                "(bl : \{bt})",
+                m,
+                "(us : \{lw})",
+                "(bs : \{lw})",
               ]),
             ),
+            arw([@lists.mem_append(), @lists.mem()]),
           ]),
-        ]),
-      ),
-    ]),
+        ),
+        rw([thm("tlsf_take_success")]),
+        @tactics.match_mp_tac(thm("sl_seq_g")),
+        @tactics.exists_tac(pt[5]),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            from_module(pop),
+            seq([
+              @tactics.match_mp_tac(thm("sl_seq_g")),
+              @tactics.exists_tac(st[5]),
+              @tactics.thenl(
+                @tactics.conj_tac,
+                @list.List([
+                  from_module(split),
+                  seq([
+                    rw([@class.eta_ax()]),
+                    @tactics.match_mp_tac(ret),
+                    arw([]),
+                  ]),
+                ]),
+              ),
+            ]),
+          ]),
+        ),
+      ])
+    },
   )
   ignore(scond)
 }

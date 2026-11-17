@@ -66,56 +66,60 @@ fn prove_tlsf_malloc_request_setup() -> Unit raise {
     k +
     ",8) == " +
     k,
-    seq([
-      @tactics.gen_tac,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      g => {
-        @tactics.strip_assume_tac(
-          block_under(
-            inst(thm("tlsf_malloc_small_round"), ["val(" + n + ")"]),
-            g,
-          ),
-        )(g)
-      },
-      g => {
-        @tactics.strip_assume_tac(
-          block_under(inst(thm("tlsf_malloc_small_class_word"), [n]), g),
-        )(g)
-      },
-      free_have(
-        k + " == " + q,
-        seq([
-          arw([@words.val_word(), @words.dimindex_32()]),
-          @tactics.conv_tac(@calc_num.num_reduce_conv),
-          @tactics.match_mp_tac(@arith.mod_lt()),
-          @int.asm_arith_tac,
-        ]),
-      ),
-      free_have(
-        "DIV(8*" + k + ",8) == " + k,
-        seq([
-          @tactics.match_mp_tac(
-            inst(@arith.div_uniq(), ["8*" + k, "8", k, "0"]),
-          ),
-          @int.asm_arith_tac,
-        ]),
-      ),
-      arw([]),
-      @tactics.repeat_tac(@tactics.conj_tac),
-      @tactics.first(
-        @list.List([
-          solve(@int.asm_arith_tac),
-          solve(
-            seq([
-              @simp.rewrite_tac(ths([@words.val_word(), @words.dimindex_32()])),
-              @tactics.conv_tac(@calc_num.num_reduce_conv),
-              @tactics.match_mp_tac(@arith.mod_lt()),
-              @int.asm_arith_tac,
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+    () => {
+      seq([
+        @tactics.gen_tac,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        g => {
+          @tactics.strip_assume_tac(
+            block_under(
+              inst(thm("tlsf_malloc_small_round"), ["val(" + n + ")"]),
+              g,
+            ),
+          )(g)
+        },
+        g => {
+          @tactics.strip_assume_tac(
+            block_under(inst(thm("tlsf_malloc_small_class_word"), [n]), g),
+          )(g)
+        },
+        free_have(
+          k + " == " + q,
+          seq([
+            arw([@words.val_word(), @words.dimindex_32()]),
+            @tactics.conv_tac(@calc_num.num_reduce_conv),
+            @logic.match_mp_tac(@arith.mod_lt()),
+            @int.asm_arith_tac,
+          ]),
+        ),
+        free_have(
+          "DIV(8*" + k + ",8) == " + k,
+          seq([
+            @logic.match_mp_tac(
+              inst(@arith.div_uniq(), ["8*" + k, "8", k, "0"]),
+            ),
+            @int.asm_arith_tac,
+          ]),
+        ),
+        arw([]),
+        @tactics.repeat_tac(@tactics.conj_tac),
+        @tactics.first(
+          @list.List([
+            solve(@int.asm_arith_tac),
+            solve(
+              seq([
+                @simp.rewrite_tac(
+                  ths([@words.val_word(), @words.dimindex_32()]),
+                ),
+                @tactics.conv_tac(@calc_num.num_reduce_conv),
+                @logic.match_mp_tac(@arith.mod_lt()),
+                @int.asm_arith_tac,
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
 }
 
@@ -250,36 +254,38 @@ fn prove_tlsf_malloc_lookup_cases() -> Unit raise {
           "," +
           r +
           "))",
-          seq([
-            gen,
-            @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-            if fast {
-              @tactics.all_tac
-            } else {
-              g => {
-                @tactics.assume_tac(
-                  @simp.rewrite_rule(ths([@words.word_val()]))(
-                    block_under(
-                      inst(thm("tlsf_malloc_small_shift"), ["val(" + kw + ")"]),
-                      g,
+          () => {
+            seq([
+              gen,
+              @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+              if fast {
+                @tactics.all_tac
+              } else {
+                g => {
+                  @tactics.assume_tac(
+                    @simp.rewrite_rule(ths([@words.word_val()]))(
+                      block_under(
+                        inst(thm("tlsf_malloc_small_shift"), ["val(" + kw + ")"]),
+                        g,
+                      ),
                     ),
-                  ),
+                  )(g)
+                }
+              },
+              g => {
+                free_apply(
+                  @simp.rewrite_rule(
+                    g.0.map(x => x.1) +
+                    ths([
+                      thm("tlsf_small_head"),
+                      @lists.hd(),
+                      @lists.not_cons_nil(),
+                    ]),
+                  )(raw),
                 )(g)
-              }
-            },
-            g => {
-              free_apply(
-                @simp.rewrite_rule(
-                  g.0.map(x => x.1) +
-                  ths([
-                    thm("tlsf_small_head"),
-                    @lists.hd(),
-                    @lists.not_cons_nil(),
-                  ]),
-                )(raw),
-              )(g)
-            },
-          ]),
+              },
+            ])
+          },
         )
       }
     }

@@ -11,37 +11,39 @@ fn prove_tlsf_free_coalesced() -> Unit raise {
   let _ = lemma(
     "tlsf_coalesced_focus",
     "∀ ys : \{lw}, ∀ zs : \{lw}, ∀ m : \{w}, ∀ hd : \{ht}, tlsf_coalesced(APPEND(ys,CONS(m,zs)),hd) == (tlsf_coalesced(ys,hd) && tlsf_coalesced(zs,hd) && (ys == NIL || tlsf_used(hd(tlsf_end(word(0),ys))) || tlsf_used(hd(m))) && (zs == NIL || tlsf_used(hd(m)) || tlsf_used(hd(HD(zs)))))",
-    seq([
-      @lists.list_induct_tac,
-      rw([
-        @lists.append(),
-        thm("tlsf_coalesced"),
-        thm("tlsf_end"),
-        @lists.not_cons_nil(),
-      ]),
-      gen,
-      @tactics.first(
-        @list.List([
-          solve(@meson.meson_tac(ths([]))),
-          solve(
-            seq([
-              @tactics.strip_assume_tac(
-                inst(@lists.list_cases(), ["(t : \{lw})"]),
-              ),
-              subst_vars(),
-              arw([
-                @lists.append(),
-                thm("tlsf_coalesced"),
-                thm("tlsf_end"),
-                @lists.hd(),
-                @lists.not_cons_nil(),
-              ]),
-              @meson.meson_tac(ths([])),
-            ]),
-          ),
+    () => {
+      seq([
+        @lists.list_induct_tac,
+        rw([
+          @lists.append(),
+          thm("tlsf_coalesced"),
+          thm("tlsf_end"),
+          @lists.not_cons_nil(),
         ]),
-      ),
-    ]),
+        gen,
+        @tactics.first(
+          @list.List([
+            solve(@meson.meson_tac(ths([]))),
+            solve(
+              seq([
+                @tactics.strip_assume_tac(
+                  inst(@lists.list_cases(), ["(t : \{lw})"]),
+                ),
+                subst_vars(),
+                arw([
+                  @lists.append(),
+                  thm("tlsf_coalesced"),
+                  thm("tlsf_end"),
+                  @lists.hd(),
+                  @lists.not_cons_nil(),
+                ]),
+                @meson.meson_tac(ths([])),
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
   let agree = "∀ x : \{w}, MEM(x,APPEND((ys : \{lw}),(zs : \{lw}))) → (tlsf_used((hd : \{ht})(x)) == tlsf_used((nh : \{ht})(x)))"
   let strip = @tactics.disch_then(th => @tactics.strip_assume_tac(th))
@@ -69,32 +71,34 @@ fn prove_tlsf_free_coalesced() -> Unit raise {
   let _ = lemma(
     "tlsf_coalesced_contract",
     "∀ ys : \{lw}, ∀ zs : \{lw}, ∀ m : \{w}, ∀ r : \{w}, ∀ hd : \{ht}, ∀ nh : \{ht}, tlsf_coalesced(APPEND(ys,CONS(m,CONS(r,zs))),hd) && tlsf_used(nh(m)) && (\{agree}) → tlsf_coalesced(APPEND(ys,CONS(m,zs)),nh)",
-    seq([
-      gen,
-      strip,
-      free_have(
-        "tlsf_coalesced((ys : \{lw}),(hd : \{ht})) && tlsf_coalesced((zs : \{lw}),hd)",
-        seq([
-          @tactics.undisch_tac(
-            tm(
-              "tlsf_coalesced(APPEND((ys : \{lw}),CONS((m : \{w}),CONS((r : \{w}),(zs : \{lw})))),(hd : \{ht}))",
+    () => {
+      seq([
+        gen,
+        strip,
+        free_have(
+          "tlsf_coalesced((ys : \{lw}),(hd : \{ht})) && tlsf_coalesced((zs : \{lw}),hd)",
+          seq([
+            @tactics.undisch_tac(
+              tm(
+                "tlsf_coalesced(APPEND((ys : \{lw}),CONS((m : \{w}),CONS((r : \{w}),(zs : \{lw})))),(hd : \{ht}))",
+              ),
             ),
-          ),
-          rw([
-            thm("tlsf_coalesced_focus"),
-            thm("tlsf_coalesced"),
-            @lists.not_cons_nil(),
+            rw([
+              thm("tlsf_coalesced_focus"),
+              thm("tlsf_coalesced"),
+              @lists.not_cons_nil(),
+            ]),
+            @meson.meson_tac(ths([])),
           ]),
-          @meson.meson_tac(ths([])),
-        ]),
-      ),
-      split_conjs(),
-      rw([thm("tlsf_coalesced_focus")]),
-      arw([]),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([mono("(ys : \{lw})"), mono("(zs : \{lw})")]),
-      ),
-    ]),
+        ),
+        split_conjs(),
+        rw([thm("tlsf_coalesced_focus")]),
+        arw([]),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([mono("(ys : \{lw})"), mono("(zs : \{lw})")]),
+        ),
+      ])
+    },
   )
 }

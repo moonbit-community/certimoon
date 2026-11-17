@@ -57,7 +57,7 @@ fn prove_tlsf_ensure_writes() -> Unit raise {
       "tlsf_ensure_used_before_size_raw",
       "\{vars}, sl_triple(st(NIL,\{a},\{p}),tlsf_ensure_used_before_size(d,pop,push),st([\{i(r)}],\{b},\{q}))",
       [],
-      [vc],
+      () => [vc],
       rws~,
     ),
   )
@@ -74,7 +74,7 @@ fn prove_tlsf_ensure_writes() -> Unit raise {
       "tlsf_ensure_used_after_size_raw",
       "\{vars}, ∀ lim2 : Num, MOD(lim2,65536) == 0 → sl_triple(st([\{i(r)},\{i(page)}],\{b},\{q}),tlsf_ensure_used_after_size(d,pop,push),st(NIL,\{b},\{q2}))",
       [],
-      [vc],
+      () => [vc],
       rws=rws +
         [
           thm("tlsf_capacity_at"),
@@ -98,7 +98,7 @@ fn prove_tlsf_ensure_writes() -> Unit raise {
       "tlsf_ensure_free_before_size_raw",
       "\{vars}, sl_triple(st(NIL,\{a},\{f0}),tlsf_ensure_free_before_size(d,pop,push),st([\{i("m")}],\{a},\{f0}))",
       [],
-      [],
+      () => [],
     ),
   )
   ignore(
@@ -106,7 +106,7 @@ fn prove_tlsf_ensure_writes() -> Unit raise {
       "tlsf_ensure_free_after_size_raw",
       "\{vars}, ∀ lim2 : Num, MOD(lim2,65536) == 0 → sl_triple(st([\{i("m")},\{i(page)}],\{a},\{f0}),tlsf_ensure_free_after_size(d,pop,push),st(NIL,\{a},\{f1}))",
       [],
-      [vc],
+      () => [vc],
       rws=[
         thm("tlsf_capacity_at"),
         @bool.undisch(inst(thm("tlsf_memory_byte_word"), ["(lim2 : Num)"])),

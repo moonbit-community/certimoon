@@ -212,147 +212,149 @@ fn prove_tlsf_free_merge_write() -> Unit raise {
         "\{vars}, \{cond} → sl_triple(st(NIL,\{lc0},\{p}),tlsf_free_" +
         (if prev { "prev" } else { "next" }) +
         "_write(d,pop,push),st(NIL,\{lc1},\{q}))",
-        seq([
-          gen,
-          strip,
-          @tactics.mp_tac(
-            inst(thm("tlsf_free_merge_model"), [
-              "(ys : \{lw})",
-              zs,
-              m,
-              r,
-              active,
-              "(d : \{w})",
-              "(lim : Num)",
-              "(top : \{w})",
-              hd,
-            ]),
-          ),
-          arw([@lists.not_cons_nil()]),
-          strip,
-          @tactics.mp_tac(
-            inst(thm("tlsf_free_merge_bins"), [
-              "(ys : \{lw})",
-              zs,
-              m,
-              r,
-              active,
-              other,
-              hd,
-              "(bl : \{bt})",
-            ]),
-          ),
-          arw([]),
-          strip,
-          free_have(
-            reverse,
-            seq([
-              @tactics.x_gen_tac(tm("(x : \{w})")),
-              @tactics.disch_tac,
-              @meson.asm_meson_tac(ths([])),
-            ]),
-          ),
-          pairfacts,
-          free_have(
-            "MOD(val(tlsf_size(\{hm})),8) == 0 && MOD(val(tlsf_size(\{hr})),8) == 0",
-            seq([
-              @tactics.undisch_tac(
-                tm("tlsf_block_ok(val(\{m}),(lim : Num),\{m},\{hd})"),
-              ),
-              @tactics.undisch_tac(
-                tm("tlsf_block_ok(val(\{r}),(lim : Num),\{r},\{hd})"),
-              ),
-              rw([thm("tlsf_block_ok")]),
-              @meson.meson_tac(ths([])),
-            ]),
-          ),
-          split_conjs(),
-          @tactics.mp_tac(inst(thm("tlsf_merge_size_fields"), [hm, hr])),
-          arw([]),
-          strip,
-          free_have(
-            "val(word_add(\{r},word(4))) == val(\{r})+4",
-            seq([
-              @tactics.match_mp_tac(
-                inst(thm("tlsf_block_field_address"), [
-                  "val(\{r})",
-                  "(lim : Num)",
-                  r,
-                  hd,
-                  "4",
-                ]),
-              ),
-              arw([]),
-              @tactics.conv_tac(@calc_num.num_reduce_conv),
-            ]),
-          ),
-          sideproof,
-          if last {
-            @tactics.all_tac
-          } else {
-            @tactics.pop_assum_list(all => {
-              seq(
-                all
-                .to_array()
-                .filter(th => {
-                  !@basics.aconv(
-                    @kernel.concl(th),
-                    tm(
-                      "(n : \{w}) == word_add(word_add(\{r},tlsf_size(\{hr})),word(8))",
-                    ),
-                  )
-                })
-                .map(@tactics.assume_tac),
-              )
-            })
-          },
-          @tactics.rule_assum_tac(
-            @simp.rewrite_rule(ths([@lists.not_cons_nil()])),
-          ),
-          free_have(
-            bitcond,
-            seq([@tactics.undisch_tac(tm(lastcond)), rw([thm("tlsf_last")])]),
-          ),
-          free_have(
-            heq,
-            seq([
-              rw([thm("tlsf_merge_headers"), thm("tlsf_put")]),
-              @tactics.match_mp_tac(
-                inst(
-                  thm(
-                    if last {
-                      "tlsf_free_merge_store_last"
-                    } else {
-                      "tlsf_free_merge_store_next"
-                    },
-                  ),
-                  [hm, hr],
+        () => {
+          seq([
+            gen,
+            strip,
+            @tactics.mp_tac(
+              inst(thm("tlsf_free_merge_model"), [
+                "(ys : \{lw})",
+                zs,
+                m,
+                r,
+                active,
+                "(d : \{w})",
+                "(lim : Num)",
+                "(top : \{w})",
+                hd,
+              ]),
+            ),
+            arw([@lists.not_cons_nil()]),
+            strip,
+            @tactics.mp_tac(
+              inst(thm("tlsf_free_merge_bins"), [
+                "(ys : \{lw})",
+                zs,
+                m,
+                r,
+                active,
+                other,
+                hd,
+                "(bl : \{bt})",
+              ]),
+            ),
+            arw([]),
+            strip,
+            free_have(
+              reverse,
+              seq([
+                @tactics.x_gen_tac(tm("(x : \{w})")),
+                @tactics.disch_tac,
+                @meson.asm_meson_tac(ths([])),
+              ]),
+            ),
+            pairfacts,
+            free_have(
+              "MOD(val(tlsf_size(\{hm})),8) == 0 && MOD(val(tlsf_size(\{hr})),8) == 0",
+              seq([
+                @tactics.undisch_tac(
+                  tm("tlsf_block_ok(val(\{m}),(lim : Num),\{m},\{hd})"),
                 ),
-              ),
-              arw([]),
-            ]),
-          ),
-          @tactics.match_mp_tac(thm("sl_conseq")),
-          @tactics.exists_tac(rt[0]),
-          @tactics.exists_tac(rt[2]),
-          @tactics.thenl(
-            @tactics.conj_tac,
-            @list.List([
-              ent_tac(
-                [
-                  thm("tlsf_free_pair"),
-                  thm("tlsf_regions"),
-                  thm("tlsf_top_cell"),
-                ],
-                [],
-              ),
-              @tactics.thenl(
-                @tactics.conj_tac,
-                @list.List([seq([@tactics.match_mp_tac(raw), arw([])]), post]),
-              ),
-            ]),
-          ),
-        ]),
+                @tactics.undisch_tac(
+                  tm("tlsf_block_ok(val(\{r}),(lim : Num),\{r},\{hd})"),
+                ),
+                rw([thm("tlsf_block_ok")]),
+                @meson.meson_tac(ths([])),
+              ]),
+            ),
+            split_conjs(),
+            @tactics.mp_tac(inst(thm("tlsf_merge_size_fields"), [hm, hr])),
+            arw([]),
+            strip,
+            free_have(
+              "val(word_add(\{r},word(4))) == val(\{r})+4",
+              seq([
+                @tactics.match_mp_tac(
+                  inst(thm("tlsf_block_field_address"), [
+                    "val(\{r})",
+                    "(lim : Num)",
+                    r,
+                    hd,
+                    "4",
+                  ]),
+                ),
+                arw([]),
+                @tactics.conv_tac(@calc_num.num_reduce_conv),
+              ]),
+            ),
+            sideproof,
+            if last {
+              @tactics.all_tac
+            } else {
+              @tactics.pop_assum_list(all => {
+                seq(
+                  all
+                  .to_array()
+                  .filter(th => {
+                    !@basics.aconv(
+                      @kernel.concl(th),
+                      tm(
+                        "(n : \{w}) == word_add(word_add(\{r},tlsf_size(\{hr})),word(8))",
+                      ),
+                    )
+                  })
+                  .map(@tactics.assume_tac),
+                )
+              })
+            },
+            @tactics.rule_assum_tac(
+              @simp.rewrite_rule(ths([@lists.not_cons_nil()])),
+            ),
+            free_have(
+              bitcond,
+              seq([@tactics.undisch_tac(tm(lastcond)), rw([thm("tlsf_last")])]),
+            ),
+            free_have(
+              heq,
+              seq([
+                rw([thm("tlsf_merge_headers"), thm("tlsf_put")]),
+                @tactics.match_mp_tac(
+                  inst(
+                    thm(
+                      if last {
+                        "tlsf_free_merge_store_last"
+                      } else {
+                        "tlsf_free_merge_store_next"
+                      },
+                    ),
+                    [hm, hr],
+                  ),
+                ),
+                arw([]),
+              ]),
+            ),
+            @tactics.match_mp_tac(thm("sl_conseq")),
+            @tactics.exists_tac(rt[0]),
+            @tactics.exists_tac(rt[2]),
+            @tactics.thenl(
+              @tactics.conj_tac,
+              @list.List([
+                ent_tac(
+                  [
+                    thm("tlsf_free_pair"),
+                    thm("tlsf_regions"),
+                    thm("tlsf_top_cell"),
+                  ],
+                  [],
+                ),
+                @tactics.thenl(
+                  @tactics.conj_tac,
+                  @list.List([seq([@tactics.match_mp_tac(raw), arw([])]), post]),
+                ),
+              ]),
+            ),
+          ])
+        },
       )
     }
   }

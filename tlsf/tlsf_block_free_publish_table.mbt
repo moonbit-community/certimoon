@@ -44,62 +44,69 @@ fn prove_tlsf_block_free_publish_table() -> Unit raise {
   let _ = lemma(
     "tlsf_block_free_publish_table",
     "\{vars}, \{cond} → sl_triple(st(NIL,[\{i("p")},u,l2],\{pre}),tlsf_block_free_publish(d,free_idx),st([\{i("word(0)")}],[\{i("p")},\{i("tlsf_small_head("+entries+")")},\{i("word("+k+")")}],\{post}))",
-    seq([
-      gen,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      g => {
-        @tactics.strip_assume_tac(
-          block_under(inst(thm("tlsf_small_class_bounds"), ["(s : Num)"]), g),
-        )(g)
-      },
-      g => {
-        let focusOld = block_under(
-          inst(thm("tlsf_small_table_focus"), ["(d : " + w + ")", fast, old, k]),
-          g,
-        )
-        let focusNew = block_under(
-          inst(thm("tlsf_small_table_focus"), [
+    () => {
+      seq([
+        gen,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        g => {
+          @tactics.strip_assume_tac(
+            block_under(inst(thm("tlsf_small_class_bounds"), ["(s : Num)"]), g),
+          )(g)
+        },
+        g => {
+          let focusOld = block_under(
+            inst(thm("tlsf_small_table_focus"), [
+              "(d : " + w + ")",
+              fast,
+              old,
+              k,
+            ]),
+            g,
+          )
+          let focusNew = block_under(
+            inst(thm("tlsf_small_table_focus"), [
+              "(d : " + w + ")",
+              fast,
+              newer,
+              k,
+            ]),
+            g,
+          )
+          let restNew = inst(thm("tlsf_small_table_update_rest"), [
             "(d : " + w + ")",
             fast,
-            newer,
+            old,
             k,
-          ]),
-          g,
-        )
-        let restNew = inst(thm("tlsf_small_table_update_rest"), [
-          "(d : " + w + ")",
-          fast,
-          old,
-          k,
-          "CONS((p : " + w + ")," + entries + ")",
-        ])
-        let path = inst(thm("tlsf_block_free_publish_list"), [
-          entries,
-          "(d : " + w + ")",
-          "(free_idx : Num)",
-          "(p : " + w + ")",
-          "(s : Num)",
-          "(u : Value)",
-          "(l2 : Value)",
-          frame,
-        ])
-        by_path(
-          path,
-          "T",
-          [focusOld, thm("tlsf_small_table_item")],
-          [],
-          [
-            focusNew,
-            restNew,
-            thm("tlsf_small_table_item"),
-            thm("tlsf_small_put_class"),
-            thm("tlsf_small_head"),
-            @lists.not_cons_nil(),
-            @lists.hd(),
-          ],
-          [],
-        )(g)
-      },
-    ]),
+            "CONS((p : " + w + ")," + entries + ")",
+          ])
+          let path = inst(thm("tlsf_block_free_publish_list"), [
+            entries,
+            "(d : " + w + ")",
+            "(free_idx : Num)",
+            "(p : " + w + ")",
+            "(s : Num)",
+            "(u : Value)",
+            "(l2 : Value)",
+            frame,
+          ])
+          by_path(
+            path,
+            "T",
+            [focusOld, thm("tlsf_small_table_item")],
+            [],
+            [
+              focusNew,
+              restNew,
+              thm("tlsf_small_table_item"),
+              thm("tlsf_small_put_class"),
+              thm("tlsf_small_head"),
+              @lists.not_cons_nil(),
+              @lists.hd(),
+            ],
+            [],
+          )(g)
+        },
+      ])
+    },
   )
 }

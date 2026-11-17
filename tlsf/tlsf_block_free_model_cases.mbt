@@ -19,26 +19,30 @@ fn prove_tlsf_block_free_model_cases() -> Unit raise {
   let _ = lemma(
     "tlsf_block_free_model_full",
     "\{vars}, \{u} == \{total} && !(\{u} == 1) → \{pages} == ps && \{part} == tlsf_small_put_class(partial,\{k},CONS(p,partial(\{k})))",
-    seq([
-      gen,
-      strip,
-      free_have("!(\{total} == 1)", small_meson(ths([]))),
-      arw(defs),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        free_have("!(\{total} == 1)", small_meson(ths([]))),
+        arw(defs),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_block_free_model_partial",
     "\{vars}, !(\{u} == \{total}) && !(\{u} == 1) → \{pages} == ps && \{part} == partial",
-    seq([gen, strip, arw(defs)]),
+    () => seq([gen, strip, arw(defs)]),
   )
   let _ = lemma(
     "tlsf_block_free_model_last",
     "\{vars}, \{u} == 1 && !(\{u} == \{total}) → \{pages} == tlsf_small_remove(p,ps) && \{part} == tlsf_small_put_class(partial,\{k},tlsf_small_remove(p,partial(\{k})))",
-    seq([
-      gen,
-      strip,
-      free_have("!((1 : Num) == \{total})", small_meson(ths([]))),
-      arw(defs),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        free_have("!((1 : Num) == \{total})", small_meson(ths([]))),
+        arw(defs),
+      ])
+    },
   )
 }

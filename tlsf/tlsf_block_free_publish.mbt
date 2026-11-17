@@ -69,86 +69,92 @@ fn prove_tlsf_block_free_publish() -> Unit raise {
       (if nonempty { "cons" } else { "nil" }) +
       "_list",
       "\{vars}, \{cond} → sl_triple(st(NIL,[\{i("p")},u,l2],\{pre}),tlsf_block_free_publish(d,free_idx),st([\{i("word(0)")}],[\{i("p")},\{i(head)},\{i("word("+cls+")")}],\{post}))",
-      seq([
-        gen,
-        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-        g => {
-          @tactics.strip_assume_tac(
-            block_under(
-              inst(thm("tlsf_small_table_address"), [
+      () => {
+        seq([
+          gen,
+          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+          g => {
+            @tactics.strip_assume_tac(
+              block_under(
+                inst(thm("tlsf_small_table_address"), [
+                  "(d : " + w + ")",
+                  "(s : Num)",
+                ]),
+                g,
+              ),
+            )(g)
+          },
+          seq(
+            ([("p", 8), ("p", 24), ("p", 28)] +
+            (if nonempty { [("nx", 24)] } else { [] })).map(v => {
+              free_have(
+                "val(word_add((\{v.0} : \{w}),word(\{v.1}))) == val(\{v.0})+\{v.1}",
+                seq([
+                  @tactics.match_mp_tac(thm("val_add_small")),
+                  @int.asm_arith_tac,
+                ]),
+              )
+            }),
+          ),
+          g => {
+            let path = inst(
+              thm(
+                "tlsf_block_free_publish_" +
+                (if nonempty { "cons" } else { "nil" }) +
+                "_raw",
+              ),
+              [
                 "(d : " + w + ")",
-                "(s : Num)",
-              ]),
-              g,
-            ),
-          )(g)
-        },
-        seq(
-          ([("p", 8), ("p", 24), ("p", 28)] +
-          (if nonempty { [("nx", 24)] } else { [] })).map(v => {
-            free_have(
-              "val(word_add((\{v.0} : \{w}),word(\{v.1}))) == val(\{v.0})+\{v.1}",
-              seq([
-                @tactics.match_mp_tac(thm("val_add_small")),
-                @int.asm_arith_tac,
-              ]),
+                "(free_idx : Num)",
+                "(p : " + w + ")",
+                "(word((s : Num)) : " + w + ")",
+                head,
+                "(x : " + w + ")",
+                "(y : " + w + ")",
+                "(word(0) : " + w + ")",
+                "(u : Value)",
+                "(l2 : Value)",
+                tailframe,
+              ],
             )
-          }),
-        ),
-        g => {
-          let path = inst(
-            thm(
-              "tlsf_block_free_publish_" +
-              (if nonempty { "cons" } else { "nil" }) +
-              "_raw",
-            ),
-            [
-              "(d : " + w + ")",
-              "(free_idx : Num)",
-              "(p : " + w + ")",
-              "(word((s : Num)) : " + w + ")",
-              head,
-              "(x : " + w + ")",
-              "(y : " + w + ")",
-              "(word(0) : " + w + ")",
-              "(u : Value)",
-              "(l2 : Value)",
-              tailframe,
-            ],
-          )
-          let classTh = @kernel.assume_rule(
-            tm(
-              "word_jushr(word_add((word((s : Num)) : " +
-              w +
-              "),word(7)),word(3)) == word(DIV(s,8))",
-            ),
-          )
-          let scalar = ths([thm("tlsf_base"), classTh])
-          let math = g.0.to_array().map(v => @simp.rewrite_rule(scalar)(v.1)) +
-            [
-              classTh,
-              thm("tlsf_base"),
-              thm("tlsf_small_partial_links"),
-              thm("tlsf_small_head"),
-              @lists.not_cons_nil(),
-              @lists.hd(),
-              @arith.add_clauses(),
-              arith("∀ a : Num, a+24+4 == a+28"),
-            ]
-          by_path(
-            path,
-            if nonempty {
-              "!((p : " + w + ") == word(0)) && !((nx : " + w + ") == word(0))"
-            } else {
-              "!((p : " + w + ") == word(0))"
-            },
-            math + [thm("tlsf_bytes_two_words")],
-            [],
-            math,
-            ["(x : " + w + ")", "(y : " + w + ")"],
-          )(g)
-        },
-      ]),
+            let classTh = @kernel.assume_rule(
+              tm(
+                "word_jushr(word_add((word((s : Num)) : " +
+                w +
+                "),word(7)),word(3)) == word(DIV(s,8))",
+              ),
+            )
+            let scalar = ths([thm("tlsf_base"), classTh])
+            let math = g.0.to_array().map(v => @simp.rewrite_rule(scalar)(v.1)) +
+              [
+                classTh,
+                thm("tlsf_base"),
+                thm("tlsf_small_partial_links"),
+                thm("tlsf_small_head"),
+                @lists.not_cons_nil(),
+                @lists.hd(),
+                @arith.add_clauses(),
+                arith("∀ a : Num, a+24+4 == a+28"),
+              ]
+            by_path(
+              path,
+              if nonempty {
+                "!((p : " +
+                w +
+                ") == word(0)) && !((nx : " +
+                w +
+                ") == word(0))"
+              } else {
+                "!((p : " + w + ") == word(0))"
+              },
+              math + [thm("tlsf_bytes_two_words")],
+              [],
+              math,
+              ["(x : " + w + ")", "(y : " + w + ")"],
+            )(g)
+          },
+        ])
+      },
     )
   }
 }

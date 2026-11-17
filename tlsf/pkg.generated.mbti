@@ -3,9 +3,12 @@ package "moonbit-community/certimoon/tlsf"
 
 import {
   "bobzhang/hol_light/kernel",
+  "moonbit-community/certimoon/logic",
 }
 
 // Values
+pub fn check_lemma(String) -> @logic.LemmaCheck raise
+
 pub fn dependencies() -> String raise
 
 pub fn listing() -> String raise
@@ -16,7 +19,11 @@ pub fn load() -> Unit
 
 pub fn names() -> Array[String]
 
+pub fn prepare_checks(until? : String?) -> @logic.ProofPlan raise
+
 pub fn thm(String) -> @kernel.Thm
+
+pub fn verify() -> Unit raise
 
 // Errors
 

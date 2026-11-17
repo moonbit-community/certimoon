@@ -37,49 +37,51 @@ fn prove_tlsf_initialize_module() -> Unit raise {
   let _ = lemma(
     "tlsf_initialize_all",
     "\{vars}, tlsf_initialize_valid(d,lim) && \{native} && \{push} → sl_abort_m(\{env},st(NIL,lc0,\{p}),[Call(j)],st(NIL,lc0,\{q}),\{ap})",
-    seq([
-      gen,
-      strip,
-      rw([
-        thm("tlsf_initialize_saved"),
-        thm("tlsf_initialize_abort"),
-        @class.eta_ax(),
-      ]),
-      @tactics.match_mp_tac(
-        @simp.rewrite_rule(
-          ths([
-            thm("tlsf_initialize_saved"),
-            thm("tlsf_initialize_abort"),
-            @class.eta_ax(),
+    () => {
+      seq([
+        gen,
+        strip,
+        rw([
+          thm("tlsf_initialize_saved"),
+          thm("tlsf_initialize_abort"),
+          @class.eta_ax(),
+        ]),
+        @tactics.match_mp_tac(
+          @simp.rewrite_rule(
+            ths([
+              thm("tlsf_initialize_saved"),
+              thm("tlsf_initialize_abort"),
+              @class.eta_ax(),
+            ]),
+          )(rule),
+        ),
+        arw([
+          @wasm.thm("n_zeros"),
+          @wasm.thm("bitzero"),
+          @wasm.thm("bitzero_num"),
+          @wasm.thm("map_option"),
+          @wasm.thm("those"),
+          @lists.map(),
+          thm("tlsf_initialize_saved"),
+          thm("tlsf_initialize_abort"),
+        ]),
+        initialize_abort_conseq(
+          body,
+          same_tac(),
+          seq([
+            gen,
+            beta_goal(),
+            rw([thm("tlsf_initialize_post")]),
+            @meson.meson_tac(ths([])),
           ]),
-        )(rule),
-      ),
-      arw([
-        @wasm.thm("n_zeros"),
-        @wasm.thm("bitzero"),
-        @wasm.thm("bitzero_num"),
-        @wasm.thm("map_option"),
-        @wasm.thm("those"),
-        @lists.map(),
-        thm("tlsf_initialize_saved"),
-        thm("tlsf_initialize_abort"),
-      ]),
-      initialize_abort_conseq(
-        body,
-        same_tac(),
-        seq([
-          gen,
-          beta_goal(),
-          rw([thm("tlsf_initialize_post")]),
-          @meson.meson_tac(ths([])),
-        ]),
-        on_abort=seq([
-          gen,
-          beta_goal(),
-          rw([thm("tlsf_initialize_saved"), thm("tlsf_initialize_abort")]),
-        ]),
-      ),
-    ]),
+          on_abort=seq([
+            gen,
+            beta_goal(),
+            rw([thm("tlsf_initialize_saved"), thm("tlsf_initialize_abort")]),
+          ]),
+        ),
+      ])
+    },
   )
   let cp = "st(NIL,(lc0 : List[Value]),\{p})"
   let cq = "st(NIL,(lc0 : List[Value]),\{q})"
@@ -113,22 +115,24 @@ fn prove_tlsf_initialize_module() -> Unit raise {
   let _ = lemma(
     "tlsf_initialize_run",
     "\{vars}, ∀ fr : \{hprop}, ∀ s : Wstore, ∀ f : Wframe, ∀ vs : List[Value], ∀ s2 : Wstore, ∀ f2 : Wframe, ∀ es2 : List[Einstr], tlsf_initialize_valid(d,lim) && \{native} && \{push} && \{keep(cp,"(s : Wstore)","(f : Wframe)","(vs : List[Value])")} && \{step} → \{outcome}",
-    seq([
-      gen,
-      strip,
-      @tactics.mp_tac(
-        inst(
-          thm("tlsf_initialize_all"),
-          envs +
-          [
-            d, "(j : Num)", "(push : Num)", lim, before, fp, "(lc0 : List[Value])",
-          ],
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.mp_tac(
+          inst(
+            thm("tlsf_initialize_all"),
+            envs +
+            [
+              d, "(j : Num)", "(push : Num)", lim, before, fp, "(lc0 : List[Value])",
+            ],
+          ),
         ),
-      ),
-      arw([]),
-      @tactics.disch_tac,
-      @tactics.mp_tac(run),
-      arw([@class.eta_ax(), @lists.map()]),
-    ]),
+        arw([]),
+        @tactics.disch_tac,
+        @tactics.mp_tac(run),
+        arw([@class.eta_ax(), @lists.map()]),
+      ])
+    },
   )
 }

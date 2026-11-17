@@ -1,0 +1,153 @@
+{
+  "started_utc": "2026-11-17T08:47:54.128719+00:00",
+  "target": "wasm-gc",
+  "mode": "debug",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "source_head": "4b57c7d02866abf96065dba133b08b40a0cb5da3",
+  "hol_head": "da8dc488abaae7638eb300879e9cb30711e0dc8d",
+  "moon": "moon 0.1.20261113 (3c5b888 2026-11-13)",
+  "moonrun": "moonrun 0.1.20261113 (3c5b888 2026-11-13)",
+  "moonc": "v0.10.21+d1f75be79-nightly (2026-11-13)",
+  "artifact_sha256": "257003c624287b6636a19366a98a56ec38a44942211719af3bd288c800a2964c",
+  "runs": [
+    {
+      "repeat": 1,
+      "selection": [
+        "verify"
+      ],
+      "wall_seconds": 209.81058783293702,
+      "events": [
+        {
+          "phase": "checked_base",
+          "ms": 67665.41866699999
+        },
+        {
+          "phase": "full_tlsf_replay",
+          "ms": 130226.433375
+        },
+        {
+          "status": "VERIFIED",
+          "declarations": 988,
+          "axioms": 3
+        },
+        {
+          "phase": "total",
+          "ms": 197892.625791
+        }
+      ]
+    },
+    {
+      "repeat": 1,
+      "selection": [
+        "check",
+        "tlsf_exp_le"
+      ],
+      "wall_seconds": 76.60431179194711,
+      "events": [
+        {
+          "phase": "checked_base",
+          "ms": 64705.075708
+        },
+        {
+          "phase": "tlsf_declarations",
+          "ms": 66.936333
+        },
+        {
+          "status": "CONDITIONAL PASS",
+          "name": "tlsf_exp_le",
+          "ms": 0.241333,
+          "premises": [],
+          "closed_implication": true
+        },
+        {
+          "phase": "total",
+          "ms": 64773.174792000005
+        }
+      ]
+    },
+    {
+      "repeat": 1,
+      "selection": [
+        "check",
+        "tlsf_find_sound"
+      ],
+      "wall_seconds": 104.25829279213212,
+      "events": [
+        {
+          "phase": "checked_base",
+          "ms": 67544.559417
+        },
+        {
+          "phase": "tlsf_declarations",
+          "ms": 113.09770900000001
+        },
+        {
+          "status": "CONDITIONAL PASS",
+          "name": "tlsf_find_sound",
+          "ms": 24827.694166999998,
+          "premises": [
+            "tlsf_exp_le",
+            "tlsf_exp_nz",
+            "tlsf_exp_fli",
+            "tlsf_round_bounds",
+            "tlsf_class"
+          ],
+          "closed_implication": true
+        },
+        {
+          "phase": "total",
+          "ms": 92486.455041
+        }
+      ]
+    },
+    {
+      "repeat": 1,
+      "selection": [
+        "check",
+        "tlsf_block_free_all"
+      ],
+      "wall_seconds": 115.62125349999405,
+      "events": [
+        {
+          "phase": "checked_base",
+          "ms": 68178.24866600001
+        },
+        {
+          "phase": "tlsf_declarations",
+          "ms": 35812.476125
+        },
+        {
+          "status": "CONDITIONAL PASS",
+          "name": "tlsf_block_free_all",
+          "ms": 5.553875,
+          "premises": [
+            "tlsf_block_free_body"
+          ],
+          "closed_implication": true
+        },
+        {
+          "phase": "total",
+          "ms": 103997.29104099999
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "full_median_seconds": 209.81058783293702,
+    "lemmas": {
+      "tlsf_exp_le": {
+        "cold_median_seconds": 76.60431179194711,
+        "speedup": 2.73888744543219
+      },
+      "tlsf_find_sound": {
+        "cold_median_seconds": 104.25829279213212,
+        "speedup": 2.012411504293982
+      },
+      "tlsf_block_free_all": {
+        "cold_median_seconds": 115.62125349999405,
+        "speedup": 1.8146368550912468
+      }
+    }
+  }
+}

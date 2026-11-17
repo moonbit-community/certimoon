@@ -12,25 +12,27 @@ fn prove_tlsf_initialize_check() -> Unit raise {
   let _ = lemma(
     "tlsf_initialize_abort_if",
     "\{ev}, ∀ lc : List[Value], ∀ R : \{rty}, ∀ A : \{sassn}, ∀ c : \{w}, (\{enta}) → sl_abort_m(\{env},st([\{i("c")}],lc,R),[If(Tbv(NONE),[Unreachable],NIL)],\{sn},A)",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      @tactics.match_mp_tac(thm("sl_abort_if_st_m")),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          seq([
-            @tactics.disch_tac,
-            @tactics.match_mp_tac(thm("sl_abort_unreachable_m")),
-            arw([]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        @tactics.match_mp_tac(thm("sl_abort_if_st_m")),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            seq([
+              @tactics.disch_tac,
+              @tactics.match_mp_tac(thm("sl_abort_unreachable_m")),
+              arw([]),
+            ]),
+            seq([
+              @tactics.disch_tac,
+              @tactics.match_accept_tac(thm("sl_abort_nil_m")),
+            ]),
           ]),
-          seq([
-            @tactics.disch_tac,
-            @tactics.match_accept_tac(thm("sl_abort_nil_m")),
-          ]),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
   let d = "(d : \{w})"
   let lim = "(lim : Num)"
@@ -48,7 +50,7 @@ fn prove_tlsf_initialize_check() -> Unit raise {
   ])
   let size = @bool.mp(
     size,
-    @tactics.prove(
+    @logic.prove(
       @basics.dest_imp(@kernel.concl(size)).0,
       seq([rw([thm("tlsf_initialize_saved")]), @meson.meson_tac(ths([]))]),
     ),
@@ -67,36 +69,38 @@ fn prove_tlsf_initialize_check() -> Unit raise {
   let _ = lemma(
     "tlsf_initialize_check_saved",
     "\{ev}, ∀ d : \{w}, ∀ push : Num, ∀ lim : Num, ∀ before : \{heap}, ∀ fp : \{rty}, ∀ l2 : Value, sl_abort_m(\{env},st(NIL,\{lc0},\{saved}),tlsf_initialize_check(d,push),st(NIL,\{lc},\{saved}),\{abortp})",
-    seq([
-      gen,
-      rw([thm("tlsf_initialize_check_parts")]),
-      @tactics.match_mp_tac(thm("sl_abort_seq_m")),
-      @tactics.exists_tac(rt[2]),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          initialize_abort_conseq(size, same_tac(), same_tac()),
-          seq([
-            @tactics.match_mp_tac(thm("sl_abort_seq_m")),
-            @tactics.exists_tac(tt[2]),
-            @tactics.thenl(
-              @tactics.conj_tac,
-              @list.List([
-                initialize_abort_conseq(check_test, same_tac(), same_tac()),
-                seq([
-                  @tactics.match_mp_tac(thm("tlsf_initialize_abort_if")),
-                  rw([
-                    thm("st"),
-                    thm("tlsf_initialize_saved"),
-                    thm("tlsf_initialize_abort"),
+    () => {
+      seq([
+        gen,
+        rw([thm("tlsf_initialize_check_parts")]),
+        @tactics.match_mp_tac(thm("sl_abort_seq_m")),
+        @tactics.exists_tac(rt[2]),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            initialize_abort_conseq(size, same_tac(), same_tac()),
+            seq([
+              @tactics.match_mp_tac(thm("sl_abort_seq_m")),
+              @tactics.exists_tac(tt[2]),
+              @tactics.thenl(
+                @tactics.conj_tac,
+                @list.List([
+                  initialize_abort_conseq(check_test, same_tac(), same_tac()),
+                  seq([
+                    @tactics.match_mp_tac(thm("tlsf_initialize_abort_if")),
+                    rw([
+                      thm("st"),
+                      thm("tlsf_initialize_saved"),
+                      thm("tlsf_initialize_abort"),
+                    ]),
+                    @meson.meson_tac(ths([])),
                   ]),
-                  @meson.meson_tac(ths([])),
                 ]),
-              ]),
-            ),
+              ),
+            ]),
           ]),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
 }

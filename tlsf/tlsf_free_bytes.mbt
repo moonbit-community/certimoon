@@ -12,19 +12,21 @@ fn prove_tlsf_free_bytes() -> Unit raise {
   let eight = lemma(
     "tlsf_bytes_two_words",
     "∀ a : Num, tlsf_bytes(a,8) == ((h : \{heap}) => ∃ x : \{w}, ∃ y : \{w}, star(\{cell("a","x")},\{cell("a+4","y")},h))",
-    seq([
-      gen,
-      rw(
-        [
-          @equal.conv_rule(
-            @calc_num.num_reduce_conv,
-            inst(thm("tlsf_bytes_split"), ["(a : Num)", "4", "4"]),
-          ),
-          thm("tlsf_bytes_word"),
-        ] +
-        lift_rws(),
-      ),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw(
+          [
+            @equal.conv_rule(
+              @calc_num.num_reduce_conv,
+              inst(thm("tlsf_bytes_split"), ["(a : Num)", "4", "4"]),
+            ),
+            thm("tlsf_bytes_word"),
+          ] +
+          lift_rws(),
+        ),
+      ])
+    },
   )
   let a = "(a : Num)"
   let n = "(n : Num)"
@@ -35,14 +37,16 @@ fn prove_tlsf_free_bytes() -> Unit raise {
   let _ = lemma(
     "tlsf_free_join_bytes",
     "∀ a : Num, ∀ n : Num, ∀ b : Num, ∀ x : \{w}, ∀ y : \{w}, ∀ R : \{hprop}, ∀ h : \{heap}, \{p}(h) → \{q}(h)",
-    ent_tac(
-      [
-        sum,
-        inst(thm("tlsf_bytes_split"), [a, n, "8+(b : Num)"]),
-        inst(thm("tlsf_bytes_split"), ["(a : Num)+(n : Num)", "8", b]),
-        eight,
-      ],
-      ["(x : \{w})", "(y : \{w})"],
-    ),
+    () => {
+      ent_tac(
+        [
+          sum,
+          inst(thm("tlsf_bytes_split"), [a, n, "8+(b : Num)"]),
+          inst(thm("tlsf_bytes_split"), ["(a : Num)+(n : Num)", "8", b]),
+          eight,
+        ],
+        ["(x : \{w})", "(y : \{w})"],
+      )
+    },
   )
 }

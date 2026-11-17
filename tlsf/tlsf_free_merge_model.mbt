@@ -23,9 +23,7 @@ fn prove_tlsf_free_merge_model() -> Unit raise {
   let vars = "∀ ys : \{lw}, ∀ zs : \{lw}, ∀ m : \{w}, ∀ r : \{w}, ∀ active : \{w}, ∀ d : \{w}, ∀ lim : Num, ∀ top : \{w}, ∀ hd : \{ht}"
   let pre = "tlsf_free_geom((d : \{w}),(lim : Num),(top : \{w}),\{old},\{hd},\{a}) && (active == m || active == r) && !tlsf_used(hd(m)) && !tlsf_used(hd(r))"
   let out = "tlsf_free_geom((d : \{w}),(lim : Num),\{nt},\{nx},\{nh},\{m}) && !tlsf_used((\{nh})(m)) && \{snew} == \{sm}+8+\{sr} && (tlsf_last((\{nh})(m)) == tlsf_last(hd(r))) && (\{agree}) && !(m == r) && !MEM(m,ys) && !MEM(m,zs) && !MEM(r,ys) && !MEM(r,zs)"
-  let _ = lemma(
-    "tlsf_free_merge_model",
-    "\{vars}, \{pre} → \{out}",
+  let _ = lemma("tlsf_free_merge_model", "\{vars}, \{pre} → \{out}", () => {
     seq([
       gen,
       rw([thm("tlsf_free_geom_facts")]),
@@ -148,6 +146,6 @@ fn prove_tlsf_free_merge_model() -> Unit raise {
         @lists.not_cons_nil(),
       ]),
       @int.asm_arith_tac,
-    ]),
-  )
+    ])
+  })
 }

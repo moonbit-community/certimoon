@@ -80,73 +80,75 @@ fn prove_tlsf_ensure_grow_control() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_grow_control",
     "\{vars}, (lim : Num) <= 4294967296 && (\{fail}) && (\{success}) → \{tr(p,all)}",
-    seq([
-      gen,
-      strip,
-      @tactics.match_mp_tac(thm("sl_seq_g")),
-      @tactics.exists_tac(rt[2]),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          seq([
-            @tactics.match_mp_tac(thm("sl_triple_g_of")),
-            @tactics.conj_tac,
-            @tactics.first(
-              @list.List([
-                solve(call_free_tac()),
-                solve(
-                  seq([
-                    @tactics.match_mp_tac(thm("sl_triple_l_of")),
-                    @tactics.accept_tac(raw),
-                  ]),
-                ),
-              ]),
-            ),
-          ]),
-          seq([
-            @tactics.match_mp_tac(or_th),
-            @tactics.thenl(
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.match_mp_tac(thm("sl_seq_g")),
+        @tactics.exists_tac(rt[2]),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            seq([
+              @tactics.match_mp_tac(thm("sl_triple_g_of")),
               @tactics.conj_tac,
-              @list.List([
-                seq([
-                  @tactics.match_mp_tac(thm("sl_seq_g")),
-                  @tactics.exists_tac(tm(sf)),
-                  @tactics.thenl(
-                    @tactics.conj_tac,
-                    @list.List([
-                      seq([@tactics.match_mp_tac(failure), arw([])]),
-                      @tactics.match_accept_tac(thm("sl_false_g")),
+              @tactics.first(
+                @list.List([
+                  solve(call_free_tac()),
+                  solve(
+                    seq([
+                      @tactics.match_mp_tac(thm("sl_triple_l_of")),
+                      @tactics.accept_tac(raw),
                     ]),
                   ),
                 ]),
-                seq([
-                  @tactics.match_mp_tac(thm("sl_pure_g")),
-                  @tactics.disch_tac,
-                  @tactics.match_mp_tac(thm("sl_seq_g")),
-                  @tactics.exists_tac(tm(good)),
-                  @tactics.thenl(
-                    @tactics.conj_tac,
-                    @list.List([
-                      seq([
-                        rw([@class.eta_ax()]),
-                        @tactics.match_mp_tac(ok),
-                        @tactics.match_mp_tac(
-                          thm("tlsf_page_result_not_failure"),
-                        ),
-                        arw([]),
+              ),
+            ]),
+            seq([
+              @tactics.match_mp_tac(or_th),
+              @tactics.thenl(
+                @tactics.conj_tac,
+                @list.List([
+                  seq([
+                    @tactics.match_mp_tac(thm("sl_seq_g")),
+                    @tactics.exists_tac(tm(sf)),
+                    @tactics.thenl(
+                      @tactics.conj_tac,
+                      @list.List([
+                        seq([@tactics.match_mp_tac(failure), arw([])]),
+                        @tactics.match_accept_tac(thm("sl_false_g")),
                       ]),
-                      seq([
-                        @tactics.first_x_assum(th => @tactics.match_mp_tac(th)),
-                        arw([]),
+                    ),
+                  ]),
+                  seq([
+                    @tactics.match_mp_tac(thm("sl_pure_g")),
+                    @tactics.disch_tac,
+                    @tactics.match_mp_tac(thm("sl_seq_g")),
+                    @tactics.exists_tac(tm(good)),
+                    @tactics.thenl(
+                      @tactics.conj_tac,
+                      @list.List([
+                        seq([
+                          rw([@class.eta_ax()]),
+                          @tactics.match_mp_tac(ok),
+                          @tactics.match_mp_tac(
+                            thm("tlsf_page_result_not_failure"),
+                          ),
+                          arw([]),
+                        ]),
+                        seq([
+                          @tactics.first_x_assum(th => @tactics.match_mp_tac(th)),
+                          arw([]),
+                        ]),
                       ]),
-                    ]),
-                  ),
+                    ),
+                  ]),
                 ]),
-              ]),
-            ),
+              ),
+            ]),
           ]),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
 }

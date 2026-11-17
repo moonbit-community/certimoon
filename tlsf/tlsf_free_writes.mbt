@@ -78,7 +78,7 @@ fn prove_tlsf_free_writes() -> Unit raise {
         (if prev { "prev" } else { "next" }) +
         "_write(d,pop,push),st(NIL,\{outlc},\{q}))",
         [],
-        [vc],
+        () => [vc],
         afters=if prev { ["st(NIL,\{midlc},\{q})"] } else { [] },
         rws=[thm("tlsf_top_cell"), thm("tlsf_base")],
       )

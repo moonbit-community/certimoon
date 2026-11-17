@@ -154,295 +154,297 @@ fn prove_tlsf_malloc_first_publish_small() -> Unit raise {
       "] && (" +
       post +
       ")(gs,ms,h))",
-      seq([
-        gen,
-        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-        free_have(
-          "8 <= " + s + " && " + s + " <= 256 && MOD(" + s + ",8) == 0",
-          seq([
-            @tactics.undisch_tac(tm(ready)),
-            rw([thm("tlsf_small_page_ok")]),
-            small_meson(ths([])),
-          ]),
-        ),
-        split_conjs(),
-        g => {
-          @tactics.strip_assume_tac(
-            block_under(
-              malloc_publication_inst(thm("tlsf_small_class_bounds"), [s]),
+      () => {
+        seq([
+          gen,
+          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+          free_have(
+            "8 <= " + s + " && " + s + " <= 256 && MOD(" + s + ",8) == 0",
+            seq([
+              @tactics.undisch_tac(tm(ready)),
+              rw([thm("tlsf_small_page_ok")]),
+              small_meson(ths([])),
+            ]),
+          ),
+          split_conjs(),
+          g => {
+            @tactics.strip_assume_tac(
+              block_under(
+                malloc_publication_inst(thm("tlsf_small_class_bounds"), [s]),
+                g,
+              ),
+            )(g)
+          },
+          free_have(
+            "val(tlsf_base(" +
+            a[0] +
+            "))+1912+8*" +
+            k +
+            " == val(tlsf_base(" +
+            a[0] +
+            "))+1912+" +
+            s,
+            @int.asm_arith_tac,
+          ),
+          free_have(
+            "val(tlsf_base(" +
+            a[0] +
+            "))+1916+8*" +
+            k +
+            " == val(tlsf_base(" +
+            a[0] +
+            "))+1916+" +
+            s,
+            @int.asm_arith_tac,
+          ),
+          g => {
+            let focusOld = block_under(
+              malloc_publication_inst(thm("tlsf_small_table_focus"), [
+                a[0],
+                a[13],
+                a[14],
+                k,
+              ]),
               g,
-            ),
-          )(g)
-        },
-        free_have(
-          "val(tlsf_base(" +
-          a[0] +
-          "))+1912+8*" +
-          k +
-          " == val(tlsf_base(" +
-          a[0] +
-          "))+1912+" +
-          s,
-          @int.asm_arith_tac,
-        ),
-        free_have(
-          "val(tlsf_base(" +
-          a[0] +
-          "))+1916+8*" +
-          k +
-          " == val(tlsf_base(" +
-          a[0] +
-          "))+1916+" +
-          s,
-          @int.asm_arith_tac,
-        ),
-        g => {
-          let focusOld = block_under(
-            malloc_publication_inst(thm("tlsf_small_table_focus"), [
-              a[0],
-              a[13],
-              a[14],
-              k,
-            ]),
-            g,
-          )
-          let rest = args_of(@equal.rhs(@kernel.concl(focusOld)), "star", 2).unwrap()[1]
-          let focusNew0 = block_under(
-            malloc_publication_inst(thm("tlsf_small_table_focus"), [
-              a[0],
-              n[13],
-              n[14],
-              k,
-            ]),
-            g,
-          )
-          let restEq = malloc_publication_inst(
-            thm("tlsf_page_publish_table_rest"),
-            a +
-            [
-              p,
-              b,
-              bs,
-              s,
-              k,
-              if fresh {
-                a[14] + "(" + k + ")"
-              } else {
-                "TL(" + a[14] + "(" + k + "))"
-              },
-            ],
-          )
-          let restEq = @simp.rewrite_rule(
-            ths([thm("tlsf_page_publish_put_class_same")]),
-          )(restEq)
-          let focusNew = @equal.conv_rule(
-            @equal.rand_conv(@equal.subs_conv(ths([restEq]))),
-            focusNew0,
-          )
-          let oldrest = a.copy()
-          oldrest[8] = if fresh {
-            a[8]
-          } else {
-            "tlsf_small_remove(" + p + "," + a[8] + ")"
-          }
-          let frameParts = [block_pages(oldrest), show(rest)]
-          let cell = (a : String, x : String) => {
-            "pts(" + a + ",serialise_i32((" + x + " : " + w + ")))"
-          }
-          let pt = "val(tlsf_base(" + a[0] + "))+1916+8*" + k
-          let pathFrame = if fresh {
-            own(
-              frameParts +
+            )
+            let rest = args_of(@equal.rhs(@kernel.concl(focusOld)), "star", 2).unwrap()[1]
+            let focusNew0 = block_under(
+              malloc_publication_inst(thm("tlsf_small_table_focus"), [
+                a[0],
+                n[13],
+                n[14],
+                k,
+              ]),
+              g,
+            )
+            let restEq = malloc_publication_inst(
+              thm("tlsf_page_publish_table_rest"),
+              a +
               [
-                cell(pt, "tlsf_small_head(" + a[14] + "(" + k + "))"),
-                "tlsf_small_partial_links(word(0)," + a[14] + "(" + k + "))",
+                p,
+                b,
+                bs,
+                s,
+                k,
+                if fresh {
+                  a[14] + "(" + k + ")"
+                } else {
+                  "TL(" + a[14] + "(" + k + "))"
+                },
               ],
             )
-          } else {
-            own(frameParts)
-          }
-          let paths = if fresh {
-            [
-              malloc_publication_inst(
-                thm("tlsf_malloc_first_publish_fresh_page"),
+            let restEq = @simp.rewrite_rule(
+              ths([thm("tlsf_page_publish_put_class_same")]),
+            )(restEq)
+            let focusNew = @equal.conv_rule(
+              @equal.rand_conv(@equal.subs_conv(ths([restEq]))),
+              focusNew0,
+            )
+            let oldrest = a.copy()
+            oldrest[8] = if fresh {
+              a[8]
+            } else {
+              "tlsf_small_remove(" + p + "," + a[8] + ")"
+            }
+            let frameParts = [block_pages(oldrest), show(rest)]
+            let cell = (a : String, x : String) => {
+              "pts(" + a + ",serialise_i32((" + x + " : " + w + ")))"
+            }
+            let pt = "val(tlsf_base(" + a[0] + "))+1916+8*" + k
+            let pathFrame = if fresh {
+              own(
+                frameParts +
                 [
-                  a[0],
-                  a[1],
-                  p,
-                  cap,
-                  s,
-                  b,
-                  bs,
-                  live,
-                  "(i : Num)",
-                  "(used0 : " + w + ")",
-                  "(prev0 : " + w + ")",
-                  "(l1 : Value)",
-                  "(l3 : Value)",
-                  "(l4 : Value)",
-                  pathFrame,
-                ],
-              ),
-            ]
-          } else {
-            [false, true].map(hasNext => {
-              malloc_publication_inst(
-                thm(
-                  "tlsf_malloc_first_publish_partial_" +
-                  (if hasNext { "cons" } else { "nil" }) +
-                  "_page",
-                ),
-                [
-                  a[0],
-                  a[1],
-                  p,
-                  cap,
-                  s,
-                  b,
-                  bs,
-                  live,
-                  "(i : Num)",
-                  "(used0 : " + w + ")",
-                  "(prev0 : " + w + ")",
-                  "(l1 : Value)",
-                  "(l3 : Value)",
-                  "(l4 : Value)",
-                  pathFrame,
-                  if hasNext {
-                    "(nextp : " + w + ")"
-                  } else {
-                    "(word(0) : " + w + ")"
-                  },
-                  if hasNext {
-                    "(zs : " + lw + ")"
-                  } else {
-                    "(NIL : " + lw + ")"
-                  },
+                  cell(pt, "tlsf_small_head(" + a[14] + "(" + k + "))"),
+                  "tlsf_small_partial_links(word(0)," + a[14] + "(" + k + "))",
                 ],
               )
-            })
-          }
-          let pagesNewRest = malloc_publication_inst(
-            thm(
-              "tlsf_page_publish_" +
-              (if fresh { "fresh" } else { "partial" }) +
-              "_pages_rest",
-            ),
-            a + [p, b, bs, s],
-          )
-          let pageNewFocus = if fresh {
-            []
-          } else {
-            [
-              block_under(
-                malloc_publication_inst(thm("tlsf_small_pages_focus"), [
-                  n[8],
-                  n[4],
-                  n[9],
-                  n[10],
-                  n[11],
-                  n[12],
-                  p,
-                ]),
-                g,
+            } else {
+              own(frameParts)
+            }
+            let paths = if fresh {
+              [
+                malloc_publication_inst(
+                  thm("tlsf_malloc_first_publish_fresh_page"),
+                  [
+                    a[0],
+                    a[1],
+                    p,
+                    cap,
+                    s,
+                    b,
+                    bs,
+                    live,
+                    "(i : Num)",
+                    "(used0 : " + w + ")",
+                    "(prev0 : " + w + ")",
+                    "(l1 : Value)",
+                    "(l3 : Value)",
+                    "(l4 : Value)",
+                    pathFrame,
+                  ],
+                ),
+              ]
+            } else {
+              [false, true].map(hasNext => {
+                malloc_publication_inst(
+                  thm(
+                    "tlsf_malloc_first_publish_partial_" +
+                    (if hasNext { "cons" } else { "nil" }) +
+                    "_page",
+                  ),
+                  [
+                    a[0],
+                    a[1],
+                    p,
+                    cap,
+                    s,
+                    b,
+                    bs,
+                    live,
+                    "(i : Num)",
+                    "(used0 : " + w + ")",
+                    "(prev0 : " + w + ")",
+                    "(l1 : Value)",
+                    "(l3 : Value)",
+                    "(l4 : Value)",
+                    pathFrame,
+                    if hasNext {
+                      "(nextp : " + w + ")"
+                    } else {
+                      "(word(0) : " + w + ")"
+                    },
+                    if hasNext {
+                      "(zs : " + lw + ")"
+                    } else {
+                      "(NIL : " + lw + ")"
+                    },
+                  ],
+                )
+              })
+            }
+            let pagesNewRest = malloc_publication_inst(
+              thm(
+                "tlsf_page_publish_" +
+                (if fresh { "fresh" } else { "partial" }) +
+                "_pages_rest",
               ),
-            ]
-          }
-          let pageOldFocus = if fresh {
-            []
-          } else {
-            [
-              block_under(
-                malloc_publication_inst(thm("tlsf_small_pages_focus"), [
-                  a[8],
-                  a[4],
-                  a[9],
-                  a[10],
-                  a[11],
-                  a[12],
-                  p,
-                ]),
-                g,
-              ),
-            ]
-          }
-          let before = [
-              focusOld,
-              thm("tlsf_small_table_item"),
-              thm("tlsf_small_put"),
-              thm("tlsf_small_head"),
-              thm("tlsf_small_links"),
-              @lists.mem(),
-              @lists.hd(),
-              @lists.not_cons_nil(),
-            ] +
-            pageOldFocus
-          let after = [
-              focusNew,
-              thm("tlsf_small_table_item"),
-              thm("tlsf_small_put"),
-              thm("tlsf_small_put_class"),
-              thm("tlsf_small_head"),
-              thm("tlsf_small_links"),
-              @lists.hd(),
-              @lists.not_cons_nil(),
-              @lists.tl(),
-            ] +
-            pageNewFocus
-          let after = after +
-            (if fresh { [thm("tlsf_small_pages_heap")] } else { [] })
-          let run = (path : @kernel.Thm) => {
-            seq([
-              g => {
-                let r = if fresh {
-                  block_under(pagesNewRest, g)
-                } else {
-                  pagesNewRest
-                }
-                let r = @simp.rewrite_rule(
-                  ths(g.0.to_array().map(t => t.1) + [thm("tlsf_small_put")]),
-                )(r)
-                @tactics.assume_tac(r)(g)
-              },
-              by_path(path, "T", before, [], after, []),
-            ])
-          }
-          if fresh {
-            run(paths[0])(g)
-          } else {
-            seq([
-              @tactics.mp_tac(@bool.ispec(tm(z), @lists.list_cases())),
-              @tactics.thenl(
-                @tactics.disch_then(th => @tactics.disj_cases_tac(th)),
-                @list.List([
-                  seq([subst_only("z"), run(paths[0])]),
-                  seq([
-                    @tactics.first_x_assum(th => {
-                      if @basics.is_exists(@kernel.concl(th)) {
-                        @tactics.x_choose_then(tm("(nextp : " + w + ")"))(
-                          @tactics.x_choose_then(tm("(zs : " + lw + ")"))(th => {
-                            @tactics.assume_tac(th)
-                          }),
-                        )(th)
-                      } else {
-                        @tactics.no_tac
-                      }
-                    }),
-                    subst_only("z"),
-                    free_have(
-                      "!((nextp : " +
-                      w +
-                      ") == word(0)) && val(nextp)+32 <= 4294967296",
-                      small_meson(ths([@lists.mem()])),
-                    ),
-                    run(paths[1]),
+              a + [p, b, bs, s],
+            )
+            let pageNewFocus = if fresh {
+              []
+            } else {
+              [
+                block_under(
+                  malloc_publication_inst(thm("tlsf_small_pages_focus"), [
+                    n[8],
+                    n[4],
+                    n[9],
+                    n[10],
+                    n[11],
+                    n[12],
+                    p,
                   ]),
-                ]),
-              ),
-            ])(g)
-          }
-        },
-      ]),
+                  g,
+                ),
+              ]
+            }
+            let pageOldFocus = if fresh {
+              []
+            } else {
+              [
+                block_under(
+                  malloc_publication_inst(thm("tlsf_small_pages_focus"), [
+                    a[8],
+                    a[4],
+                    a[9],
+                    a[10],
+                    a[11],
+                    a[12],
+                    p,
+                  ]),
+                  g,
+                ),
+              ]
+            }
+            let before = [
+                focusOld,
+                thm("tlsf_small_table_item"),
+                thm("tlsf_small_put"),
+                thm("tlsf_small_head"),
+                thm("tlsf_small_links"),
+                @lists.mem(),
+                @lists.hd(),
+                @lists.not_cons_nil(),
+              ] +
+              pageOldFocus
+            let after = [
+                focusNew,
+                thm("tlsf_small_table_item"),
+                thm("tlsf_small_put"),
+                thm("tlsf_small_put_class"),
+                thm("tlsf_small_head"),
+                thm("tlsf_small_links"),
+                @lists.hd(),
+                @lists.not_cons_nil(),
+                @lists.tl(),
+              ] +
+              pageNewFocus
+            let after = after +
+              (if fresh { [thm("tlsf_small_pages_heap")] } else { [] })
+            let run = (path : @kernel.Thm) => {
+              seq([
+                g => {
+                  let r = if fresh {
+                    block_under(pagesNewRest, g)
+                  } else {
+                    pagesNewRest
+                  }
+                  let r = @simp.rewrite_rule(
+                    ths(g.0.to_array().map(t => t.1) + [thm("tlsf_small_put")]),
+                  )(r)
+                  @tactics.assume_tac(r)(g)
+                },
+                by_path(path, "T", before, [], after, []),
+              ])
+            }
+            if fresh {
+              run(paths[0])(g)
+            } else {
+              seq([
+                @tactics.mp_tac(@bool.ispec(tm(z), @lists.list_cases())),
+                @tactics.thenl(
+                  @tactics.disch_then(th => @tactics.disj_cases_tac(th)),
+                  @list.List([
+                    seq([subst_only("z"), run(paths[0])]),
+                    seq([
+                      @tactics.first_x_assum(th => {
+                        if @basics.is_exists(@kernel.concl(th)) {
+                          @tactics.x_choose_then(tm("(nextp : " + w + ")"))(
+                            @tactics.x_choose_then(tm("(zs : " + lw + ")"))(th => {
+                              @tactics.assume_tac(th)
+                            }),
+                          )(th)
+                        } else {
+                          @tactics.no_tac
+                        }
+                      }),
+                      subst_only("z"),
+                      free_have(
+                        "!((nextp : " +
+                        w +
+                        ") == word(0)) && val(nextp)+32 <= 4294967296",
+                        small_meson(ths([@lists.mem()])),
+                      ),
+                      run(paths[1]),
+                    ]),
+                  ]),
+                ),
+              ])(g)
+            }
+          },
+        ])
+      },
     )
     let _ = argv
   }

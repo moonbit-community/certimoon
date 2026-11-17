@@ -33,13 +33,15 @@ fn prove_tlsf_ensure_posts() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_failure_post",
     "\{vars}, \{states}, \{saved}(gs,ms,h) → \{q}([\{i("word(0)")}],gs,ms,h)",
-    seq([
-      gen,
-      rw([thm("tlsf_ensure_saved"), thm("tlsf_ensure_post")]),
-      strip,
-      @tactics.disj1_tac,
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([thm("tlsf_ensure_saved"), thm("tlsf_ensure_post")]),
+        strip,
+        @tactics.disj1_tac,
+        arw([]),
+      ])
+    },
   )
   let pages = "tlsf_ensure_pages((s : \{w}),\{hd}(\{m}))"
   let newlim = "(lim : Num)+val(\{pages})*65536"
@@ -51,29 +53,31 @@ fn prove_tlsf_ensure_posts() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_success_post",
     "\{vars}, ∀ fl2 : \{w}, ∀ sb2 : (Num) -> \{w}, ∀ bl2 : \{bt}, \{states}, \{cond} → \{q}([\{i("word(1)")}],gs,ms,h)",
-    seq([
-      gen,
-      strip,
-      subst_vars(),
-      @tactics.mp_tac(
-        inst(thm("tlsf_ensure_growth_fit"), [
-          "(ys : \{lw})",
-          d,
-          "(s : \{w})",
-          "(lim : Num)",
-          m,
-          hd,
-        ]),
-      ),
-      arw([]),
-      strip,
-      rw([thm("tlsf_ensure_post")]),
-      @tactics.disj2_tac,
-      arw([]),
-      @tactics.exists_tac(tm("(fl2 : \{w})")),
-      @tactics.exists_tac(tm("(sb2 : (Num) -> \{w})")),
-      @tactics.exists_tac(tm("(bl2 : \{bt})")),
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        subst_vars(),
+        @tactics.mp_tac(
+          inst(thm("tlsf_ensure_growth_fit"), [
+            "(ys : \{lw})",
+            d,
+            "(s : \{w})",
+            "(lim : Num)",
+            m,
+            hd,
+          ]),
+        ),
+        arw([]),
+        strip,
+        rw([thm("tlsf_ensure_post")]),
+        @tactics.disj2_tac,
+        arw([]),
+        @tactics.exists_tac(tm("(fl2 : \{w})")),
+        @tactics.exists_tac(tm("(sb2 : (Num) -> \{w})")),
+        @tactics.exists_tac(tm("(bl2 : \{bt})")),
+        arw([]),
+      ])
+    },
   )
 }

@@ -175,104 +175,109 @@ fn prove_tlsf_split_detached() -> Unit raise {
   let _ = lemma(
     "tlsf_split_detached",
     "\{vars}, \{cond} → sl_triple_m(fs, tabs, inst, \{p}, tlsf_split_code(d, push), \{q}, NIL)",
-    seq([
-      gen,
-      strip,
-      @tactics.mp_tac(
-        inst(thm("tlsf_focus_block"), [
-          "(ys : \{lw})",
-          "(zs : \{lw})",
-          m,
-          "(d : \{w})",
-          "(lim : Num)",
-          "(top : \{w})",
-          hd,
-        ]),
-      ),
-      arw([]),
-      strip,
-      have(
-        "!(\{m} == word(0))",
-        seq([
-          @tactics.undisch_tac(
-            tm("tlsf_block_ok(val(\{m}), (lim : Num), \{m}, \{hd})"),
-          ),
-          rw([thm("tlsf_block_ok")]),
-          @meson.meson_tac(ths([])),
-        ]),
-      ),
-      have(
-        marksize,
-        seq([
-          rw([thm("tlsf_mark"), thm("tlsf_put")]),
-          @tactics.mp_tac(inst(thm("tlsf_used_store_fields"), [h])),
-          @meson.meson_tac(ths([])),
-        ]),
-      ),
-      have(markused, @tactics.accept_tac(inst(thm("tlsf_mark_used"), [hd, m]))),
-      @tactics.thenl(
-        @class.asm_cases_tac(
-          tm("word_ugt(tlsf_size(\{h}), word_add(\{n}, word(264)))"),
-        ),
-        @list.List([
-          seq([
-            @tactics.mp_tac(inst(thm("tlsf_split_test"), [h, n])),
-            arw([]),
-            @tactics.disch_tac,
-            @tactics.thenl(
-              seq([
-                @tactics.strip_assume_tac(
-                  inst(@lists.list_cases(), ["(zs : \{lw})"]),
-                ),
-                subst_vars(),
-              ]),
-              @list.List([
-                seq([
-                  @tactics.mp_tac(
-                    inst(thm("tlsf_focus_last"), [
-                      "(ys : \{lw})",
-                      m,
-                      "(d : \{w})",
-                      "(lim : Num)",
-                      "(top : \{w})",
-                      hd,
-                    ]),
-                  ),
-                  arw([]),
-                  strip,
-                  @tactics.subst1_tac(eqtop),
-                  @tactics.rule_assum_tac(
-                    @simp.rewrite_rule(ths([eqtop, thm("tlsf_last")])),
-                  ),
-                  splitcase(true),
-                ]),
-                seq([
-                  @tactics.mp_tac(
-                    inst(thm("tlsf_focus_next"), [
-                      "(ys : \{lw})",
-                      "(t : \{lw})",
-                      m,
-                      "(h : \{w})",
-                      "(d : \{w})",
-                      "(lim : Num)",
-                      "(top : \{w})",
-                      hd,
-                    ]),
-                  ),
-                  arw([]),
-                  strip,
-                  @tactics.subst1_tac(eqnext),
-                  @tactics.rule_assum_tac(
-                    @simp.rewrite_rule(ths([eqnext, thm("tlsf_last")])),
-                  ),
-                  splitcase(false),
-                ]),
-              ]),
-            ),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.mp_tac(
+          inst(thm("tlsf_focus_block"), [
+            "(ys : \{lw})",
+            "(zs : \{lw})",
+            m,
+            "(d : \{w})",
+            "(lim : Num)",
+            "(top : \{w})",
+            hd,
           ]),
-          nosplit,
-        ]),
-      ),
-    ]),
+        ),
+        arw([]),
+        strip,
+        have(
+          "!(\{m} == word(0))",
+          seq([
+            @tactics.undisch_tac(
+              tm("tlsf_block_ok(val(\{m}), (lim : Num), \{m}, \{hd})"),
+            ),
+            rw([thm("tlsf_block_ok")]),
+            @meson.meson_tac(ths([])),
+          ]),
+        ),
+        have(
+          marksize,
+          seq([
+            rw([thm("tlsf_mark"), thm("tlsf_put")]),
+            @tactics.mp_tac(inst(thm("tlsf_used_store_fields"), [h])),
+            @meson.meson_tac(ths([])),
+          ]),
+        ),
+        have(
+          markused,
+          @tactics.accept_tac(inst(thm("tlsf_mark_used"), [hd, m])),
+        ),
+        @tactics.thenl(
+          @class.asm_cases_tac(
+            tm("word_ugt(tlsf_size(\{h}), word_add(\{n}, word(264)))"),
+          ),
+          @list.List([
+            seq([
+              @tactics.mp_tac(inst(thm("tlsf_split_test"), [h, n])),
+              arw([]),
+              @tactics.disch_tac,
+              @tactics.thenl(
+                seq([
+                  @tactics.strip_assume_tac(
+                    inst(@lists.list_cases(), ["(zs : \{lw})"]),
+                  ),
+                  subst_vars(),
+                ]),
+                @list.List([
+                  seq([
+                    @tactics.mp_tac(
+                      inst(thm("tlsf_focus_last"), [
+                        "(ys : \{lw})",
+                        m,
+                        "(d : \{w})",
+                        "(lim : Num)",
+                        "(top : \{w})",
+                        hd,
+                      ]),
+                    ),
+                    arw([]),
+                    strip,
+                    @tactics.subst1_tac(eqtop),
+                    @tactics.rule_assum_tac(
+                      @simp.rewrite_rule(ths([eqtop, thm("tlsf_last")])),
+                    ),
+                    splitcase(true),
+                  ]),
+                  seq([
+                    @tactics.mp_tac(
+                      inst(thm("tlsf_focus_next"), [
+                        "(ys : \{lw})",
+                        "(t : \{lw})",
+                        m,
+                        "(h : \{w})",
+                        "(d : \{w})",
+                        "(lim : Num)",
+                        "(top : \{w})",
+                        hd,
+                      ]),
+                    ),
+                    arw([]),
+                    strip,
+                    @tactics.subst1_tac(eqnext),
+                    @tactics.rule_assum_tac(
+                      @simp.rewrite_rule(ths([eqnext, thm("tlsf_last")])),
+                    ),
+                    splitcase(false),
+                  ]),
+                ]),
+              ),
+            ]),
+            nosplit,
+          ]),
+        ),
+      ])
+    },
   )
 }

@@ -203,59 +203,61 @@ fn prove_tlsf_ensure_body() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_body_snoc",
     "\{vars}, \{cond} → sl_triple_g(G,fs,tabs,inst,\{rp},\{show(pt[0])},tlsf_ensure_code(d,pop,push),\{rp},\{labels})",
-    seq([
-      gen,
-      strip,
-      rw([thm("tlsf_ensure_code_parts")]),
-      @tactics.match_mp_tac(thm("sl_seq_g")),
-      @tactics.exists_tac(pt[2]),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          seq([
-            @tactics.match_mp_tac(thm("sl_triple_g_of")),
-            @tactics.conj_tac,
-            @tactics.first(
-              @list.List([
-                solve(call_free_tac()),
-                solve(
-                  seq([
-                    @tactics.match_mp_tac(thm("sl_triple_l_of")),
-                    @tactics.match_mp_tac(prefix),
-                    arw([]),
-                  ]),
-                ),
-              ]),
-            ),
-          ]),
-          seq([
-            @tactics.subst1_tac(
-              @equal.gsym(
-                @simp.rewrite_conv(ths([@lists.append()]))(
-                  tm(
-                    "APPEND([\{ifcode}],[EConstNum(ConstInt32((word(1) : \{w})))])",
+    () => {
+      seq([
+        gen,
+        strip,
+        rw([thm("tlsf_ensure_code_parts")]),
+        @tactics.match_mp_tac(thm("sl_seq_g")),
+        @tactics.exists_tac(pt[2]),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            seq([
+              @tactics.match_mp_tac(thm("sl_triple_g_of")),
+              @tactics.conj_tac,
+              @tactics.first(
+                @list.List([
+                  solve(call_free_tac()),
+                  solve(
+                    seq([
+                      @tactics.match_mp_tac(thm("sl_triple_l_of")),
+                      @tactics.match_mp_tac(prefix),
+                      arw([]),
+                    ]),
+                  ),
+                ]),
+              ),
+            ]),
+            seq([
+              @tactics.subst1_tac(
+                @equal.gsym(
+                  @simp.rewrite_conv(ths([@lists.append()]))(
+                    tm(
+                      "APPEND([\{ifcode}],[EConstNum(ConstInt32((word(1) : \{w})))])",
+                    ),
                   ),
                 ),
               ),
-            ),
-            @tactics.match_mp_tac(thm("sl_seq_g")),
-            @tactics.exists_tac(tm(ready)),
-            @tactics.thenl(
-              @tactics.conj_tac,
-              @list.List([
-                seq([
-                  @tactics.match_mp_tac(ifrule),
-                  @tactics.thenl(
-                    @tactics.conj_tac,
-                    @list.List([branch(true), branch(false)]),
-                  ),
+              @tactics.match_mp_tac(thm("sl_seq_g")),
+              @tactics.exists_tac(tm(ready)),
+              @tactics.thenl(
+                @tactics.conj_tac,
+                @list.List([
+                  seq([
+                    @tactics.match_mp_tac(ifrule),
+                    @tactics.thenl(
+                      @tactics.conj_tac,
+                      @list.List([branch(true), branch(false)]),
+                    ),
+                  ]),
+                  const_case,
                 ]),
-                const_case,
-              ]),
-            ),
+              ),
+            ]),
           ]),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
 }

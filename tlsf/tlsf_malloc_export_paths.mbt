@@ -101,83 +101,85 @@ fn prove_tlsf_malloc_export_paths() -> Unit raise {
         "," +
         post +
         ")",
-        seq([
-          gen,
-          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-          g => {
-            let model = if cached {
-              inst(thm("tlsf_malloc_cached_models"), a + [p, b, bs, k])
-            } else {
-              inst(
-                thm("tlsf_page_publish_" + kind + "_models"),
-                a + [p, b, bs, s, "(z : " + lw + ")"],
-              )
-            }
-            @tactics.strip_assume_tac(
-              @simp.rewrite_rule(g.0.map(x => x.1))(block_under(model, g)),
-            )(g)
-          },
-          @tactics.match_mp_tac(thm("sl_conseq")),
-          @tactics.exists_tac(t[0]),
-          @tactics.exists_tac(t[2]),
-          @tactics.thenl(
-            @tactics.conj_tac,
-            @list.List([
-              ent_tac([thm("tlsf_malloc_ro")], []),
-              @tactics.thenl(
-                @tactics.conj_tac,
-                @list.List([
-                  free_apply(path),
-                  seq([
-                    gen,
-                    beta_goal(),
-                    @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-                    arw([]),
-                    g => {
-                      free_apply(
-                        @simp.rewrite_rule(g.0.map(x => x.1))(
-                          inst(
-                            thm("tlsf_malloc_small_result"),
-                            newer +
-                            [
-                              p,
-                              b,
-                              nreq,
-                              a[1],
-                              fp,
-                              "(gs : List[Value])",
-                              "(h : " + heap + ")",
-                            ],
+        () => {
+          seq([
+            gen,
+            @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+            g => {
+              let model = if cached {
+                inst(thm("tlsf_malloc_cached_models"), a + [p, b, bs, k])
+              } else {
+                inst(
+                  thm("tlsf_page_publish_" + kind + "_models"),
+                  a + [p, b, bs, s, "(z : " + lw + ")"],
+                )
+              }
+              @tactics.strip_assume_tac(
+                @simp.rewrite_rule(g.0.map(x => x.1))(block_under(model, g)),
+              )(g)
+            },
+            @logic.match_mp_tac(thm("sl_conseq")),
+            @tactics.exists_tac(t[0]),
+            @tactics.exists_tac(t[2]),
+            @tactics.thenl(
+              @tactics.conj_tac,
+              @list.List([
+                ent_tac([thm("tlsf_malloc_ro")], []),
+                @tactics.thenl(
+                  @tactics.conj_tac,
+                  @list.List([
+                    free_apply(path),
+                    seq([
+                      gen,
+                      beta_goal(),
+                      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+                      arw([]),
+                      g => {
+                        free_apply(
+                          @simp.rewrite_rule(g.0.map(x => x.1))(
+                            inst(
+                              thm("tlsf_malloc_small_result"),
+                              newer +
+                              [
+                                p,
+                                b,
+                                nreq,
+                                a[1],
+                                fp,
+                                "(gs : List[Value])",
+                                "(h : " + heap + ")",
+                              ],
+                            ),
                           ),
-                        ),
-                      )(g)
-                    },
-                    arw([
-                      thm("tlsf_small_put"),
-                      @lists.mem(),
-                      thm("tlsf_small_put_class"),
-                    ]),
-                    @tactics.first_assum(th => {
-                      if head_name(@kernel.concl(th)) == "star" {
-                        @tactics.undisch_tac(@kernel.concl(th))
-                      } else {
-                        @tactics.no_tac
-                      }
-                    }),
-                    arw(
-                      malloc_ac() +
-                      [
+                        )(g)
+                      },
+                      arw([
                         thm("tlsf_small_put"),
+                        @lists.mem(),
                         thm("tlsf_small_put_class"),
-                        @arith.le_refl(),
-                      ],
-                    ),
+                      ]),
+                      @tactics.first_assum(th => {
+                        if head_name(@kernel.concl(th)) == "star" {
+                          @tactics.undisch_tac(@kernel.concl(th))
+                        } else {
+                          @tactics.no_tac
+                        }
+                      }),
+                      arw(
+                        malloc_ac() +
+                        [
+                          thm("tlsf_small_put"),
+                          thm("tlsf_small_put_class"),
+                          @arith.le_refl(),
+                        ],
+                      ),
+                    ]),
                   ]),
-                ]),
-              ),
-            ]),
-          ),
-        ]),
+                ),
+              ]),
+            ),
+          ])
+        },
       )
     }
   }

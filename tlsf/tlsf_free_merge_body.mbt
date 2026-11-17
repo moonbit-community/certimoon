@@ -137,71 +137,73 @@ fn prove_tlsf_free_merge_body() -> Unit raise {
         "\{vars}, \{cond} → sl_triple_g(G,fs,tabs,inst,rp,\{show(ap[0])},tlsf_free_" +
         (if prev { "prev" } else { "next" }) +
         "_body(d,pop,push),\{show(wp[2])},labels)",
-        seq([
-          gen,
-          strip,
-          @tactics.mp_tac(
-            inst(thm("tlsf_free_pair_facts"), [
-              "(ys : \{lw})",
-              suffix,
-              m,
-              r,
-              "(word(0) : \{w})",
-              "tlsf_origin((d : \{w}))",
-              "(lim : Num)",
-              "(top : \{w})",
-              hd,
-            ]),
-          ),
-          @tactics.mp_tac(
-            @simp.rewrite_rule(ths([thm("tlsf_free_geom_facts")]))(
-              @kernel.assume_rule(
-                tm(
-                  "tlsf_free_geom((d : \{w}),(lim : Num),(top : \{w}),\{xs},\{hd},\{active})",
+        () => {
+          seq([
+            gen,
+            strip,
+            @tactics.mp_tac(
+              inst(thm("tlsf_free_pair_facts"), [
+                "(ys : \{lw})",
+                suffix,
+                m,
+                r,
+                "(word(0) : \{w})",
+                "tlsf_origin((d : \{w}))",
+                "(lim : Num)",
+                "(top : \{w})",
+                hd,
+              ]),
+            ),
+            @tactics.mp_tac(
+              @simp.rewrite_rule(ths([thm("tlsf_free_geom_facts")]))(
+                @kernel.assume_rule(
+                  tm(
+                    "tlsf_free_geom((d : \{w}),(lim : Num),(top : \{w}),\{xs},\{hd},\{active})",
+                  ),
                 ),
               ),
             ),
-          ),
-          strip,
-          arw([]),
-          strip,
-          @tactics.mp_tac(
-            inst(thm("tlsf_free_pop_bins_pair"), [
-              xs,
-              hd,
-              "(bl : \{bt})",
-              active,
-              other,
-              "(us : \{lw})",
-              "(vs : \{lw})",
-            ]),
-          ),
-          arw([@lists.mem_append(), @lists.mem()]),
-          @tactics.disch_tac,
-          rw([
-            thm(
-              "tlsf_free_" +
-              (if prev { "prev" } else { "next" }) +
-              "_body_parts",
-            ),
-          ]),
-          @tactics.match_mp_tac(thm("sl_seq_g")),
-          @tactics.exists_tac(ap[2]),
-          @tactics.thenl(
-            @tactics.conj_tac,
-            @list.List([
-              free_lift(arg),
-              seq([
-                @tactics.match_mp_tac(thm("sl_seq_g")),
-                @tactics.exists_tac(pp[5]),
-                @tactics.thenl(
-                  @tactics.conj_tac,
-                  @list.List([free_lift(popth), free_lift(write)]),
-                ),
+            strip,
+            arw([]),
+            strip,
+            @tactics.mp_tac(
+              inst(thm("tlsf_free_pop_bins_pair"), [
+                xs,
+                hd,
+                "(bl : \{bt})",
+                active,
+                other,
+                "(us : \{lw})",
+                "(vs : \{lw})",
               ]),
+            ),
+            arw([@lists.mem_append(), @lists.mem()]),
+            @tactics.disch_tac,
+            rw([
+              thm(
+                "tlsf_free_" +
+                (if prev { "prev" } else { "next" }) +
+                "_body_parts",
+              ),
             ]),
-          ),
-        ]),
+            @tactics.match_mp_tac(thm("sl_seq_g")),
+            @tactics.exists_tac(ap[2]),
+            @tactics.thenl(
+              @tactics.conj_tac,
+              @list.List([
+                free_lift(arg),
+                seq([
+                  @tactics.match_mp_tac(thm("sl_seq_g")),
+                  @tactics.exists_tac(pp[5]),
+                  @tactics.thenl(
+                    @tactics.conj_tac,
+                    @list.List([free_lift(popth), free_lift(write)]),
+                  ),
+                ]),
+              ]),
+            ),
+          ])
+        },
       )
     }
   }

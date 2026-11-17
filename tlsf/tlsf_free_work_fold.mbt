@@ -16,21 +16,23 @@ fn prove_tlsf_free_work_fold() -> Unit raise {
   let _ = lemma(
     "tlsf_free_work_fold",
     "\{vars}, \{cond} → (∀ vs : List[Value], ∀ lc : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, st(NIL,[\{i("m")},(l1 : Value),(l2 : Value)],\{r})(vs,lc,gs,ms,h) → tlsf_free_work(\{params})(vs,lc,gs,ms,h))",
-    seq([
-      gen,
-      strip,
-      ent_tac([thm("tlsf_free_work")], [
-        "(top : \{w})",
-        "(ys : \{lw})",
-        "(m : \{w})",
-        "(zs : \{lw})",
-        "(hd : \{ht})",
-        "(fl : \{w})",
-        "(sb : (Num) -> \{w})",
-        "(bl : \{bt})",
-        "(l1 : Value)",
-        "(l2 : Value)",
-      ]),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        ent_tac([thm("tlsf_free_work")], [
+          "(top : \{w})",
+          "(ys : \{lw})",
+          "(m : \{w})",
+          "(zs : \{lw})",
+          "(hd : \{ht})",
+          "(fl : \{w})",
+          "(sb : (Num) -> \{w})",
+          "(bl : \{bt})",
+          "(l1 : Value)",
+          "(l2 : Value)",
+        ]),
+      ])
+    },
   )
 }

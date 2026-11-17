@@ -61,16 +61,18 @@ fn prove_tlsf_page_allocate_body_tail() -> Unit raise {
   let _ = lemma(
     "tlsf_page_or_g",
     "\{envvars}, ∀ P : \{sassn}, ∀ R : \{sassn}, ∀ code : List[B_e], ∀ Q : \{sassn}, ∀ labels : List[\{sassn}], sl_triple_g(\{envargs},P,code,Q,labels) && sl_triple_g(\{envargs},R,code,Q,labels) → sl_triple_g(\{envargs},\{orp},code,Q,labels)",
-    seq([
-      rw([
-        thm("sl_triple_g"),
-        thm("keep"),
-        thm("lift"),
-        thm("star_or"),
-        @class.eta_ax(),
-      ]),
-      small_meson(ths([])),
-    ]),
+    () => {
+      seq([
+        rw([
+          thm("sl_triple_g"),
+          thm("keep"),
+          thm("lift"),
+          thm("star_or"),
+          @class.eta_ax(),
+        ]),
+        small_meson(ths([])),
+      ])
+    },
   )
   let model = page_model_variables()
   let params = page_arguments(model) +
@@ -182,22 +184,24 @@ fn prove_tlsf_page_allocate_body_tail() -> Unit raise {
   let _ = lemma(
     "tlsf_page_allocate_tail_reserved",
     "\{vars} sl_triple_g(G,fs,tabs,inst,\{q},\{p},tlsf_page_allocate_tail(take_idx),\{q},[\{q}])",
-    seq([
-      gen,
-      @tactics.conv_tac(
-        pre_conv(
-          @simp.rewrite_conv(
-            ths([
-              thm("tlsf_page_allocate_reserved"),
-              @theorems.left_or_distrib(),
-              @theorems.right_or_distrib(),
-            ]),
+    () => {
+      seq([
+        gen,
+        @tactics.conv_tac(
+          pre_conv(
+            @simp.rewrite_conv(
+              ths([
+                thm("tlsf_page_allocate_reserved"),
+                @theorems.left_or_distrib(),
+                @theorems.right_or_distrib(),
+              ]),
+            ),
           ),
         ),
-      ),
-      beta_goal(),
-      @tactics.match_mp_tac(thm("tlsf_page_or_g")),
-      @tactics.thenl(@tactics.conj_tac, @list.List([failure, success])),
-    ]),
+        beta_goal(),
+        @tactics.match_mp_tac(thm("tlsf_page_or_g")),
+        @tactics.thenl(@tactics.conj_tac, @list.List([failure, success])),
+      ])
+    },
   )
 }

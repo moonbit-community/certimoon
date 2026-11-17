@@ -41,7 +41,7 @@ fn prove_tlsf_malloc_case_zero() -> Unit raise {
         q +
         "])",
         [],
-        Array::make(1, malloc_vc()),
+        () => Array::make(1, malloc_vc()),
         afters~,
         chunks=dead,
         rws=malloc_extra_rewrites(),

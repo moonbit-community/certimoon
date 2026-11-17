@@ -77,47 +77,49 @@ fn prove_tlsf_free_merge_ready() -> Unit raise {
         "tlsf_free_merge_next_ready"
       },
       "\{vars}, \{cond} → \{out}",
-      seq([
-        gen,
-        strip,
-        @tactics.mp_tac(
-          inst(thm("tlsf_free_merge_model"), [
-            "(ys : \{lw})",
-            "(zs : \{lw})",
-            m,
-            r,
-            active,
-            "(d : \{w})",
-            "(lim : Num)",
-            "(top : \{w})",
-            hd,
-          ]),
-        ),
-        arw([]),
-        strip,
-        @tactics.mp_tac(
-          @simp.rewrite_rule(ths([thm("tlsf_free_geom_facts")]))(
-            @kernel.assume_rule(tm(geom)),
+      () => {
+        seq([
+          gen,
+          strip,
+          @tactics.mp_tac(
+            inst(thm("tlsf_free_merge_model"), [
+              "(ys : \{lw})",
+              "(zs : \{lw})",
+              m,
+              r,
+              active,
+              "(d : \{w})",
+              "(lim : Num)",
+              "(top : \{w})",
+              hd,
+            ]),
           ),
-        ),
-        strip,
-        @tactics.mp_tac(
-          inst(thm("tlsf_free_coalesced_neighbours"), [
-            pfx, suffix, focus, marked,
+          arw([]),
+          strip,
+          @tactics.mp_tac(
+            @simp.rewrite_rule(ths([thm("tlsf_free_geom_facts")]))(
+              @kernel.assume_rule(tm(geom)),
+            ),
+          ),
+          strip,
+          @tactics.mp_tac(
+            inst(thm("tlsf_free_coalesced_neighbours"), [
+              pfx, suffix, focus, marked,
+            ]),
+          ),
+          arw([
+            @equal.gsym(@lists.append_assoc()),
+            @lists.append(),
+            thm("tlsf_free_mark_fields"),
           ]),
-        ),
-        arw([
-          @equal.gsym(@lists.append_assoc()),
-          @lists.append(),
-          thm("tlsf_free_mark_fields"),
-        ]),
-        strip,
-        if prev {
-          left
-        } else {
-          @tactics.thenl(@tactics.conj_tac, @list.List([left, right]))
-        },
-      ]),
+          strip,
+          if prev {
+            left
+          } else {
+            @tactics.thenl(@tactics.conj_tac, @list.List([left, right]))
+          },
+        ])
+      },
     )
   }
 }

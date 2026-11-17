@@ -52,14 +52,16 @@ fn prove_tlsf_malloc_cached_member() -> Unit raise {
     ", ∀ a : " +
     w +
     ", MEM(a,tlsf_small_put(ff,p,tlsf_small_remove(b,ff(p)))(q)) == (MEM(a,ff(q)) && (q == p → !(a == b)))",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @simp.rewrite_tac(ths([thm("tlsf_small_put")])),
-      @class.cond_cases_tac,
-      subst_vars(),
-      @simp.asm_rewrite_tac(ths([thm("tlsf_small_remove_member")])),
-      @meson.meson_tac(ths([])),
-    ]),
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @simp.rewrite_tac(ths([thm("tlsf_small_put")])),
+        @class.cond_cases_tac,
+        subst_vars(),
+        @simp.asm_rewrite_tac(ths([thm("tlsf_small_remove_member")])),
+        @meson.meson_tac(ths([])),
+      ])
+    },
   )
 }
 
@@ -156,296 +158,298 @@ fn prove_tlsf_malloc_cached_lists() -> Unit raise {
   let _ = lemma(
     "tlsf_malloc_cached_lists",
     page_quantify(vs) + cond + " → " + block_lists(n),
-    seq([
-      gen,
-      strip,
-      free_have(
-        "DIV(" + a[9] + "(" + p + "),8) == " + k,
-        seq([
-          @tactics.match_mp_tac(
-            inst(@arith.div_uniq(), [a[9] + "(" + p + ")", "8", k, "0"]),
-          ),
-          @int.asm_arith_tac,
-        ]),
-      ),
-      @tactics.undisch_tac(tm(block_lists(a))),
-      rw([thm("tlsf_small_lists_ok")]),
-      strip,
-      page_publish_old_page_facts(p),
-      free_have(
-        cachedCount(p, b),
-        seq([@tactics.first_assum(th => @tactics.match_mp_tac(th)), arw([])]),
-      ),
-      free_have(
-        "!MEM(" + b + "," + bs + ")",
-        seq([
-          @tactics.undisch_tac(tm(cachedCount(p, b))),
-          arw([
-            thm("tlsf_small_count_cons"),
-            @equal.gsym(thm("tlsf_count_zero")),
+    () => {
+      seq([
+        gen,
+        strip,
+        free_have(
+          "DIV(" + a[9] + "(" + p + "),8) == " + k,
+          seq([
+            @logic.match_mp_tac(
+              inst(@arith.div_uniq(), [a[9] + "(" + p + ")", "8", k, "0"]),
+            ),
+            @int.asm_arith_tac,
           ]),
-          @int.asm_arith_tac,
-        ]),
-      ),
-      g => {
-        let eq = @kernel.assume_rule(tm(sameUsed))
-        seq([
-          rw([thm("tlsf_small_lists_ok"), eq]),
-          @tactics.thenl(
-            @tactics.conj_tac,
-            @list.List([
-              seq([
-                @tactics.x_gen_tac(tm("(q : " + w + ")")),
-                @tactics.disch_tac,
-                page_publish_old_page_facts("(q : " + w + ")"),
-                arw([]),
-                @tactics.repeat_tac(@tactics.conj_tac),
-                @tactics.first(
-                  @list.List([
-                    solve(arw([])),
-                    solve(
-                      seq([
-                        strip,
-                        @tactics.first_assum(th => @tactics.match_mp_tac(th)),
-                        arw([]),
-                      ]),
-                    ),
-                    solve(
-                      seq([
-                        @tactics.x_gen_tac(tm("(a : " + w + ")")),
-                        strip,
-                        free_have(
-                          "MEM((a : " +
-                          w +
-                          ")," +
-                          a[11] +
-                          "((q : " +
-                          w +
-                          "))) && ((q : " +
-                          w +
-                          ") == " +
-                          p +
-                          " → !((a : " +
-                          w +
-                          ") == " +
-                          b +
-                          "))",
-                          seq([
-                            @tactics.undisch_tac(
-                              tm(
-                                "MEM((a : " +
-                                w +
-                                ")," +
-                                n[11] +
-                                "((q : " +
-                                w +
-                                ")))",
-                              ),
-                            ),
-                            rw([thm("tlsf_malloc_cached_member")]),
-                          ]),
-                        ),
-                        split_conjs(),
-                        free_have(
-                          cachedCount("(q : " + w + ")", "(a : " + w + ")"),
-                          seq([
-                            @tactics.first_assum(th => @tactics.match_mp_tac(th)),
-                            arw([]),
-                          ]),
-                        ),
-                        @tactics.thenl(
-                          @class.asm_cases_tac(
-                            tm("DIV(" + a[9] + "((q : " + w + ")),8) == " + k),
-                          ),
-                          @list.List([
-                            seq([
-                              free_have(
-                                "!((a : " + w + ") == " + b + ")",
-                                seq([
-                                  @class.asm_cases_tac(
-                                    tm("(q : " + w + ") == " + p),
-                                  ),
-                                  @tactics.first(
-                                    @list.List([
-                                      solve(
-                                        seq([
-                                          @tactics.undisch_tac(
-                                            tm(
-                                              "MEM((a : " +
-                                              w +
-                                              ")," +
-                                              n[11] +
-                                              "((q : " +
-                                              w +
-                                              ")))",
-                                            ),
-                                          ),
-                                          arw([
-                                            thm("tlsf_small_put"),
-                                            thm("tlsf_small_remove_member"),
-                                          ]),
-                                          small_meson(ths([])),
-                                        ]),
-                                      ),
-                                      solve(
-                                        seq([
-                                          free_have(
-                                            "!MEM(" +
-                                            b +
-                                            "," +
-                                            a[11] +
-                                            "((q : " +
-                                            w +
-                                            ")))",
-                                            seq([
-                                              @tactics.first_assum(th => {
-                                                @tactics.match_mp_tac(th)
-                                              }),
-                                              arw([]),
-                                            ]),
-                                          ),
-                                          page_publish_atomic([]),
-                                        ]),
-                                      ),
-                                    ]),
-                                  ),
-                                ]),
-                              ),
-                              @tactics.undisch_tac(
-                                tm(
-                                  cachedCount(
-                                    "(q : " + w + ")",
-                                    "(a : " + w + ")",
-                                  ),
-                                ),
-                              ),
-                              arw([
-                                thm("tlsf_small_put_class"),
-                                thm("tlsf_small_count_cons"),
-                                @theorems.eq_sym_eq(),
-                                @arith.add_clauses(),
-                              ]),
-                            ]),
-                            arw([thm("tlsf_small_put_class")]),
-                          ]),
-                        ),
-                      ]),
-                    ),
-                  ]),
-                ),
-              ]),
-              @tactics.thenl(
-                @tactics.conj_tac,
-                @list.List([
-                  seq([
-                    @tactics.x_gen_tac(tm("(j : Num)")),
-                    @tactics.x_gen_tac(tm("(a : " + w + ")")),
-                    strip,
-                    free_have(
-                      "MEM((a : " + w + ")," + a[13] + "((j : Num)))",
-                      seq([
-                        @tactics.undisch_tac(
-                          tm("MEM((a : " + w + ")," + n[13] + "((j : Num)))"),
-                        ),
-                        rw([thm("tlsf_small_put_class")]),
-                        @class.cond_cases_tac,
-                        arw([@lists.mem()]),
-                        small_meson(ths([])),
-                      ]),
-                    ),
-                    free_have(
-                      oldOwner("(j : Num)", "(a : " + w + ")"),
-                      seq([
-                        @tactics.first_assum(th => @tactics.match_mp_tac(th)),
-                        arw([]),
-                      ]),
-                    ),
-                    chooseOwner,
-                    @tactics.exists_tac(tm("(owner : " + w + ")")),
-                    @tactics.thenl(
-                      @class.asm_cases_tac(tm("(j : Num) == " + k)),
-                      @list.List([
+        ),
+        @tactics.undisch_tac(tm(block_lists(a))),
+        rw([thm("tlsf_small_lists_ok")]),
+        strip,
+        page_publish_old_page_facts(p),
+        free_have(
+          cachedCount(p, b),
+          seq([@tactics.first_assum(th => @logic.match_mp_tac(th)), arw([])]),
+        ),
+        free_have(
+          "!MEM(" + b + "," + bs + ")",
+          seq([
+            @tactics.undisch_tac(tm(cachedCount(p, b))),
+            arw([
+              thm("tlsf_small_count_cons"),
+              @equal.gsym(thm("tlsf_count_zero")),
+            ]),
+            @int.asm_arith_tac,
+          ]),
+        ),
+        g => {
+          let eq = @kernel.assume_rule(tm(sameUsed))
+          seq([
+            rw([thm("tlsf_small_lists_ok"), eq]),
+            @tactics.thenl(
+              @tactics.conj_tac,
+              @list.List([
+                seq([
+                  @tactics.x_gen_tac(tm("(q : " + w + ")")),
+                  @tactics.disch_tac,
+                  page_publish_old_page_facts("(q : " + w + ")"),
+                  arw([]),
+                  @tactics.repeat_tac(@tactics.conj_tac),
+                  @tactics.first(
+                    @list.List([
+                      solve(arw([])),
+                      solve(
                         seq([
+                          strip,
+                          @tactics.first_assum(th => @logic.match_mp_tac(th)),
+                          arw([]),
+                        ]),
+                      ),
+                      solve(
+                        seq([
+                          @tactics.x_gen_tac(tm("(a : " + w + ")")),
+                          strip,
                           free_have(
-                            "!((a : " + w + ") == " + b + ")",
+                            "MEM((a : " +
+                            w +
+                            ")," +
+                            a[11] +
+                            "((q : " +
+                            w +
+                            "))) && ((q : " +
+                            w +
+                            ") == " +
+                            p +
+                            " → !((a : " +
+                            w +
+                            ") == " +
+                            b +
+                            "))",
                             seq([
                               @tactics.undisch_tac(
                                 tm(
                                   "MEM((a : " +
                                   w +
                                   ")," +
-                                  n[13] +
-                                  "((j : Num)))",
+                                  n[11] +
+                                  "((q : " +
+                                  w +
+                                  ")))",
                                 ),
                               ),
-                              arw([thm("tlsf_small_put_class")]),
-                              page_publish_atomic([]),
+                              rw([thm("tlsf_malloc_cached_member")]),
                             ]),
                           ),
-                          rw([
-                            thm("tlsf_small_put"),
-                            thm("tlsf_small_remove_member"),
-                          ]),
-                          @class.cond_cases_tac,
-                          subst_vars(),
-                          arw([thm("tlsf_small_remove_member")]),
-                          @tactics.try_tac(
-                            @tactics.first_assum(th => @tactics.accept_tac(th)),
-                          ),
-                        ]),
-                        seq([
+                          split_conjs(),
                           free_have(
-                            "!((owner : " + w + ") == " + p + ")",
+                            cachedCount("(q : " + w + ")", "(a : " + w + ")"),
                             seq([
-                              @tactics.disch_tac,
-                              subst_only("owner"),
-                              @tactics.undisch_tac(
-                                tm(a[9] + "(" + p + ") == 8*(j : Num)"),
-                              ),
+                              @tactics.first_assum(th => @logic.match_mp_tac(th)),
                               arw([]),
-                              @int.asm_arith_tac,
                             ]),
                           ),
-                          arw([thm("tlsf_small_put")]),
+                          @tactics.thenl(
+                            @class.asm_cases_tac(
+                              tm("DIV(" + a[9] + "((q : " + w + ")),8) == " + k),
+                            ),
+                            @list.List([
+                              seq([
+                                free_have(
+                                  "!((a : " + w + ") == " + b + ")",
+                                  seq([
+                                    @class.asm_cases_tac(
+                                      tm("(q : " + w + ") == " + p),
+                                    ),
+                                    @tactics.first(
+                                      @list.List([
+                                        solve(
+                                          seq([
+                                            @tactics.undisch_tac(
+                                              tm(
+                                                "MEM((a : " +
+                                                w +
+                                                ")," +
+                                                n[11] +
+                                                "((q : " +
+                                                w +
+                                                ")))",
+                                              ),
+                                            ),
+                                            arw([
+                                              thm("tlsf_small_put"),
+                                              thm("tlsf_small_remove_member"),
+                                            ]),
+                                            small_meson(ths([])),
+                                          ]),
+                                        ),
+                                        solve(
+                                          seq([
+                                            free_have(
+                                              "!MEM(" +
+                                              b +
+                                              "," +
+                                              a[11] +
+                                              "((q : " +
+                                              w +
+                                              ")))",
+                                              seq([
+                                                @tactics.first_assum(th => {
+                                                  @logic.match_mp_tac(th)
+                                                }),
+                                                arw([]),
+                                              ]),
+                                            ),
+                                            page_publish_atomic([]),
+                                          ]),
+                                        ),
+                                      ]),
+                                    ),
+                                  ]),
+                                ),
+                                @tactics.undisch_tac(
+                                  tm(
+                                    cachedCount(
+                                      "(q : " + w + ")",
+                                      "(a : " + w + ")",
+                                    ),
+                                  ),
+                                ),
+                                arw([
+                                  thm("tlsf_small_put_class"),
+                                  thm("tlsf_small_count_cons"),
+                                  @theorems.eq_sym_eq(),
+                                  @arith.add_clauses(),
+                                ]),
+                              ]),
+                              arw([thm("tlsf_small_put_class")]),
+                            ]),
+                          ),
                         ]),
-                      ]),
-                    ),
-                  ]),
-                  seq([
-                    @tactics.x_gen_tac(tm("(j : Num)")),
-                    @tactics.x_gen_tac(tm("(q : " + w + ")")),
-                    strip,
-                    free_have(
-                      "MEM((q : " +
-                      w +
-                      ")," +
-                      a[8] +
-                      ") && " +
-                      a[9] +
-                      "((q : " +
-                      w +
-                      ")) == 8*(j : Num) && 0 < " +
-                      used(a, "(q : " + w + ")") +
-                      " && " +
-                      used(a, "(q : " + w + ")") +
-                      " < tlsf_small_total(" +
-                      a[9] +
-                      "((q : " +
-                      w +
-                      ")))",
-                      seq([
-                        @tactics.first_assum(th => @tactics.match_mp_tac(th)),
-                        arw([]),
-                      ]),
-                    ),
-                    arw([]),
-                  ]),
+                      ),
+                    ]),
+                  ),
                 ]),
-              ),
-            ]),
-          ),
-        ])(g)
-      },
-    ]),
+                @tactics.thenl(
+                  @tactics.conj_tac,
+                  @list.List([
+                    seq([
+                      @tactics.x_gen_tac(tm("(j : Num)")),
+                      @tactics.x_gen_tac(tm("(a : " + w + ")")),
+                      strip,
+                      free_have(
+                        "MEM((a : " + w + ")," + a[13] + "((j : Num)))",
+                        seq([
+                          @tactics.undisch_tac(
+                            tm("MEM((a : " + w + ")," + n[13] + "((j : Num)))"),
+                          ),
+                          rw([thm("tlsf_small_put_class")]),
+                          @class.cond_cases_tac,
+                          arw([@lists.mem()]),
+                          small_meson(ths([])),
+                        ]),
+                      ),
+                      free_have(
+                        oldOwner("(j : Num)", "(a : " + w + ")"),
+                        seq([
+                          @tactics.first_assum(th => @logic.match_mp_tac(th)),
+                          arw([]),
+                        ]),
+                      ),
+                      chooseOwner,
+                      @tactics.exists_tac(tm("(owner : " + w + ")")),
+                      @tactics.thenl(
+                        @class.asm_cases_tac(tm("(j : Num) == " + k)),
+                        @list.List([
+                          seq([
+                            free_have(
+                              "!((a : " + w + ") == " + b + ")",
+                              seq([
+                                @tactics.undisch_tac(
+                                  tm(
+                                    "MEM((a : " +
+                                    w +
+                                    ")," +
+                                    n[13] +
+                                    "((j : Num)))",
+                                  ),
+                                ),
+                                arw([thm("tlsf_small_put_class")]),
+                                page_publish_atomic([]),
+                              ]),
+                            ),
+                            rw([
+                              thm("tlsf_small_put"),
+                              thm("tlsf_small_remove_member"),
+                            ]),
+                            @class.cond_cases_tac,
+                            subst_vars(),
+                            arw([thm("tlsf_small_remove_member")]),
+                            @tactics.try_tac(
+                              @tactics.first_assum(th => @tactics.accept_tac(th)),
+                            ),
+                          ]),
+                          seq([
+                            free_have(
+                              "!((owner : " + w + ") == " + p + ")",
+                              seq([
+                                @tactics.disch_tac,
+                                subst_only("owner"),
+                                @tactics.undisch_tac(
+                                  tm(a[9] + "(" + p + ") == 8*(j : Num)"),
+                                ),
+                                arw([]),
+                                @int.asm_arith_tac,
+                              ]),
+                            ),
+                            arw([thm("tlsf_small_put")]),
+                          ]),
+                        ]),
+                      ),
+                    ]),
+                    seq([
+                      @tactics.x_gen_tac(tm("(j : Num)")),
+                      @tactics.x_gen_tac(tm("(q : " + w + ")")),
+                      strip,
+                      free_have(
+                        "MEM((q : " +
+                        w +
+                        ")," +
+                        a[8] +
+                        ") && " +
+                        a[9] +
+                        "((q : " +
+                        w +
+                        ")) == 8*(j : Num) && 0 < " +
+                        used(a, "(q : " + w + ")") +
+                        " && " +
+                        used(a, "(q : " + w + ")") +
+                        " < tlsf_small_total(" +
+                        a[9] +
+                        "((q : " +
+                        w +
+                        ")))",
+                        seq([
+                          @tactics.first_assum(th => @logic.match_mp_tac(th)),
+                          arw([]),
+                        ]),
+                      ),
+                      arw([]),
+                    ]),
+                  ]),
+                ),
+              ]),
+            ),
+          ])(g)
+        },
+      ])
+    },
   )
 }

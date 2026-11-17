@@ -31,30 +31,32 @@ fn prove_tlsf_page_publish_models() -> Unit raise {
     "(q),8) == 0 && DIV(" +
     a[9] +
     "(q),8) < 33)",
-    seq([
-      gen,
-      rw([thm("tlsf_small_backing"), thm("tlsf_small_page_ok")]),
-      strip,
-      @tactics.x_gen_tac(tm("(q : " + w + ")")),
-      @tactics.disch_tac,
-      free_have(
-        "8 <= " +
-        a[9] +
-        "((q : " +
-        w +
-        ")) && " +
-        a[9] +
-        "(q) <= 256 && MOD(" +
-        a[9] +
-        "(q),8) == 0",
+    () => {
+      seq([
+        gen,
+        rw([thm("tlsf_small_backing"), thm("tlsf_small_page_ok")]),
+        strip,
+        @tactics.x_gen_tac(tm("(q : " + w + ")")),
+        @tactics.disch_tac,
+        free_have(
+          "8 <= " +
+          a[9] +
+          "((q : " +
+          w +
+          ")) && " +
+          a[9] +
+          "(q) <= 256 && MOD(" +
+          a[9] +
+          "(q),8) == 0",
+          small_meson(ths([])),
+        ),
+        @tactics.mp_tac(
+          inst(thm("tlsf_small_class_bounds"), [a[9] + "((q : " + w + "))"]),
+        ),
+        arw([]),
         small_meson(ths([])),
-      ),
-      @tactics.mp_tac(
-        inst(thm("tlsf_small_class_bounds"), [a[9] + "((q : " + w + "))"]),
-      ),
-      arw([]),
-      small_meson(ths([])),
-    ]),
+      ])
+    },
   )
   for fresh in [false, true] {
     let s = if fresh { "(s : Num)" } else { a[9] + "(" + p + ")" }
@@ -163,320 +165,325 @@ fn prove_tlsf_page_publish_models() -> Unit raise {
       block_backing(n) +
       " && " +
       block_lists(n),
-      seq([
-        gen,
-        strip,
-        g => {
-          @tactics.assume_tac(
-            block_under(inst(thm("tlsf_page_publish_backing_classes"), a), g),
-          )(g)
-        },
-        free_have(
-          "tlsf_count(" +
-          p +
-          "," +
-          a[8] +
-          ") == " +
-          (if fresh { "0" } else { "1" }),
-          if fresh {
-            arw([thm("tlsf_count_zero")])
-          } else {
-            seq([
-              @tactics.undisch_tac(tm(block_lists(a))),
-              rw([thm("tlsf_small_lists_ok")]),
-              strip,
-              page_publish_old_page_facts(p),
-              arw([]),
-            ])
-          },
-        ),
-        if fresh {
-          @tactics.all_tac
-        } else {
+      () => {
+        seq([
+          gen,
+          strip,
           g => {
-            @tactics.strip_assume_tac(
-              block_under(
-                inst(thm("tlsf_small_page_member_geometry"), geometry + [p]),
-                g,
-              ),
+            @tactics.assume_tac(
+              block_under(inst(thm("tlsf_page_publish_backing_classes"), a), g),
             )(g)
-          }
-        },
-        free_have(
-          ready,
-          if fresh {
-            arw([])
-          } else {
-            seq([
-              @tactics.undisch_tac(
-                tm(
-                  "tlsf_small_page_ok(" +
-                  [
-                    a[1],
-                    p,
-                    cap,
-                    a[9] + "(" + p + ")",
-                    a[10] + "(" + p + ")",
-                    a[11] + "(" + p + ")",
-                    a[12] + "(" + p + ")",
-                  ].join(",") +
-                  ")",
-                ),
-              ),
-              arw([]),
-            ])
           },
-        ),
-        free_have(
-          "tlsf_small_partition(" +
-          p +
-          "," +
-          s +
-          ",CONS(" +
-          b +
-          "," +
-          bs +
-          "),NIL," +
-          oldLive +
-          ") && 8 <= " +
-          s +
-          " && " +
-          s +
-          " <= 256 && MOD(" +
-          s +
-          ",8) == 0",
-          seq([
-            @tactics.undisch_tac(tm(ready)),
-            rw([thm("tlsf_small_page_ok")]),
-            small_meson(ths([])),
-          ]),
-        ),
-        split_conjs(),
-        g => {
-          @tactics.strip_assume_tac(
-            block_under(
-              inst(thm("tlsf_page_publish_partition"), [p, s, b, bs, oldLive]),
-              g,
-            ),
-          )(g)
-        },
-        g => {
-          let t = block_under(
-            inst(thm("tlsf_page_publish_partition"), [p, s, b, bs, oldLive]),
-            g,
-          )
-          @tactics.strip_assume_tac(
-            @simp.rewrite_rule(ths([thm("tlsf_small_used"), @lists.length()]))(
-              t,
-            ),
-          )(g)
-        },
-        g => {
-          @tactics.strip_assume_tac(
-            block_under(inst(thm("tlsf_small_class_bounds"), [s]), g),
-          )(g)
-        },
-        g => {
-          @tactics.strip_assume_tac(
-            block_under(inst(thm("tlsf_small_capacity"), [s]), g),
-          )(g)
-        },
-        free_have(
-          postok,
-          seq([
-            @tactics.undisch_tac(tm(ready)),
-            rw([thm("tlsf_small_page_ok")]),
-            strip,
-            arw([]),
-          ]),
-        ),
-        free_have(
-          "∀ q : " +
-          w +
-          ", MEM(q," +
-          bs +
-          ") → tlsf_count(q," +
-          bs +
-          ") == 1",
-          seq([
-            gen,
-            @tactics.disch_tac,
-            free_apply(
-              inst(thm("tlsf_page_publish_cached_unique"), [
-                p,
-                s,
-                "(NIL : " + lw + ")",
-                bs,
-                "CONS(" + b + "," + oldLive + ")",
-                "(q : " + w + ")",
-              ]),
-            ),
-          ]),
-        ),
-        if fresh {
-          @tactics.all_tac
-        } else {
-          seq([
-            free_have(
-              "tlsf_small_used((NIL : " +
-              lw +
-              ")," +
-              oldLive +
-              ") < tlsf_small_total(" +
-              s +
-              ")",
-              seq([
-                @tactics.undisch_tac(tm(ready)),
-                rw([
-                  thm("tlsf_small_page_ok"),
-                  thm("tlsf_small_partition"),
-                  thm("tlsf_small_used"),
-                  @lists.length(),
-                ]),
-                strip,
-                @int.asm_arith_tac,
-              ]),
-            ),
-            free_have(
-              "tlsf_count(" + p + "," + oldpart + ") == 1",
+          free_have(
+            "tlsf_count(" +
+            p +
+            "," +
+            a[8] +
+            ") == " +
+            (if fresh { "0" } else { "1" }),
+            if fresh {
+              arw([thm("tlsf_count_zero")])
+            } else {
               seq([
                 @tactics.undisch_tac(tm(block_lists(a))),
                 rw([thm("tlsf_small_lists_ok")]),
                 strip,
                 page_publish_old_page_facts(p),
-                @tactics.first_assum(th => @tactics.match_mp_tac(th)),
                 arw([]),
-              ]),
-            ),
-            free_have(
-              "!MEM(" + p + ",(z : " + lw + "))",
+              ])
+            },
+          ),
+          if fresh {
+            @tactics.all_tac
+          } else {
+            g => {
+              @tactics.strip_assume_tac(
+                block_under(
+                  inst(thm("tlsf_small_page_member_geometry"), geometry + [p]),
+                  g,
+                ),
+              )(g)
+            }
+          },
+          free_have(
+            ready,
+            if fresh {
+              arw([])
+            } else {
               seq([
                 @tactics.undisch_tac(
-                  tm("tlsf_count(" + p + "," + oldpart + ") == 1"),
+                  tm(
+                    "tlsf_small_page_ok(" +
+                    [
+                      a[1],
+                      p,
+                      cap,
+                      a[9] + "(" + p + ")",
+                      a[10] + "(" + p + ")",
+                      a[11] + "(" + p + ")",
+                      a[12] + "(" + p + ")",
+                    ].join(",") +
+                    ")",
+                  ),
                 ),
-                arw([
-                  thm("tlsf_small_count_cons"),
-                  @equal.gsym(thm("tlsf_count_zero")),
-                ]),
-                @int.arith_tac,
-              ]),
-            ),
-          ])
-        },
-        if fresh {
-          @tactics.all_tac
-        } else {
+                arw([]),
+              ])
+            },
+          ),
+          free_have(
+            "tlsf_small_partition(" +
+            p +
+            "," +
+            s +
+            ",CONS(" +
+            b +
+            "," +
+            bs +
+            "),NIL," +
+            oldLive +
+            ") && 8 <= " +
+            s +
+            " && " +
+            s +
+            " <= 256 && MOD(" +
+            s +
+            ",8) == 0",
+            seq([
+              @tactics.undisch_tac(tm(ready)),
+              rw([thm("tlsf_small_page_ok")]),
+              small_meson(ths([])),
+            ]),
+          ),
+          split_conjs(),
           g => {
-            @tactics.assume_tac(
+            @tactics.strip_assume_tac(
               block_under(
-                inst(thm("tlsf_small_remove_absent"), ["(z : " + lw + ")", p]),
+                inst(thm("tlsf_page_publish_partition"), [p, s, b, bs, oldLive]),
                 g,
               ),
             )(g)
-          }
-        },
-        free_have(
-          oldPartEq,
-          if fresh {
+          },
+          g => {
+            let t = block_under(
+              inst(thm("tlsf_page_publish_partition"), [p, s, b, bs, oldLive]),
+              g,
+            )
+            @tactics.strip_assume_tac(
+              @simp.rewrite_rule(ths([thm("tlsf_small_used"), @lists.length()]))(
+                t,
+              ),
+            )(g)
+          },
+          g => {
+            @tactics.strip_assume_tac(
+              block_under(inst(thm("tlsf_small_class_bounds"), [s]), g),
+            )(g)
+          },
+          g => {
+            @tactics.strip_assume_tac(
+              block_under(inst(thm("tlsf_small_capacity"), [s]), g),
+            )(g)
+          },
+          free_have(
+            postok,
+            seq([
+              @tactics.undisch_tac(tm(ready)),
+              rw([thm("tlsf_small_page_ok")]),
+              strip,
+              arw([]),
+            ]),
+          ),
+          free_have(
+            "∀ q : " +
+            w +
+            ", MEM(q," +
+            bs +
+            ") → tlsf_count(q," +
+            bs +
+            ") == 1",
             seq([
               gen,
               @tactics.disch_tac,
-              @tactics.conv_tac(@equal.sym_conv),
               free_apply(
-                inst(thm("tlsf_small_remove_absent"), [a[14] + "((j : Num))", p]),
+                inst(thm("tlsf_page_publish_cached_unique"), [
+                  p,
+                  s,
+                  "(NIL : " + lw + ")",
+                  bs,
+                  "CONS(" + b + "," + oldLive + ")",
+                  "(q : " + w + ")",
+                ]),
               ),
-              @tactics.undisch_tac(tm(block_lists(a))),
-              rw([thm("tlsf_small_lists_ok")]),
-              small_meson(ths([])),
-            ])
+            ]),
+          ),
+          if fresh {
+            @tactics.all_tac
           } else {
             seq([
-              gen,
-              @tactics.disch_tac,
-              g => {
-                let all = block_under(
-                  inst(
-                    thm("tlsf_small_partial_remove_class"),
-                    a[8:].to_owned() + [p, b],
+              free_have(
+                "tlsf_small_used((NIL : " +
+                lw +
+                ")," +
+                oldLive +
+                ") < tlsf_small_total(" +
+                s +
+                ")",
+                seq([
+                  @tactics.undisch_tac(tm(ready)),
+                  rw([
+                    thm("tlsf_small_page_ok"),
+                    thm("tlsf_small_partition"),
+                    thm("tlsf_small_used"),
+                    @lists.length(),
+                  ]),
+                  strip,
+                  @int.asm_arith_tac,
+                ]),
+              ),
+              free_have(
+                "tlsf_count(" + p + "," + oldpart + ") == 1",
+                seq([
+                  @tactics.undisch_tac(tm(block_lists(a))),
+                  rw([thm("tlsf_small_lists_ok")]),
+                  strip,
+                  page_publish_old_page_facts(p),
+                  @tactics.first_assum(th => @logic.match_mp_tac(th)),
+                  arw([]),
+                ]),
+              ),
+              free_have(
+                "!MEM(" + p + ",(z : " + lw + "))",
+                seq([
+                  @tactics.undisch_tac(
+                    tm("tlsf_count(" + p + "," + oldpart + ") == 1"),
                   ),
-                  g,
-                )
-                @tactics.mp_tac(
-                  block_under(@bool.spec(tm("(j : Num)"), all), g),
-                )(g)
-              },
-              arw([
-                thm("tlsf_small_put_class"),
-                @lists.tl(),
-                thm("tlsf_small_remove_cons"),
-                thm("tlsf_small_remove_absent"),
-              ]),
+                  arw([
+                    thm("tlsf_small_count_cons"),
+                    @equal.gsym(thm("tlsf_count_zero")),
+                  ]),
+                  @int.arith_tac,
+                ]),
+              ),
             ])
           },
-        ),
-        @tactics.thenl(
-          @tactics.conj_tac,
-          @list.List([
-            seq([
-              @tactics.undisch_tac(tm(block_backing(a))),
-              rw([thm("tlsf_small_backing")]),
-              @tactics.disch_tac,
-              rw([
-                thm("tlsf_small_backing"),
-                thm("tlsf_small_put"),
-                @lists.mem(),
-              ]),
-              @tactics.x_gen_tac(tm("(q : " + w + ")")),
-              strip,
-              @class.asm_cases_tac(tm("(q : " + w + ") == " + p)),
-              subst_vars(),
-              arw([]),
-              free_at("publication backing update", small_meson(ths([]))),
-            ]),
-            seq([
-              free_apply(
-                inst(
-                  thm("tlsf_page_publish_lists"),
-                  a[8:].to_owned() + n[8:].to_owned() + [p, s, bs, k],
+          if fresh {
+            @tactics.all_tac
+          } else {
+            g => {
+              @tactics.assume_tac(
+                block_under(
+                  inst(thm("tlsf_small_remove_absent"), ["(z : " + lw + ")", p]),
+                  g,
                 ),
-              ),
-              rw([
-                thm("tlsf_small_put"),
-                thm("tlsf_small_put_class"),
-                @lists.mem(),
-                thm("tlsf_small_count_cons"),
-                thm("tlsf_small_used"),
-                @lists.length(),
-              ]),
-              arw([]),
-              @tactics.repeat_tac(@tactics.conj_tac),
-              free_at(
-                "publication list update",
-                @tactics.first(
-                  @list.List([
-                    solve(
-                      seq([
-                        gen,
-                        @tactics.disch_tac,
-                        have(
-                          "!(" + p + " == (q : " + w + "))",
-                          page_publish_atomic([]),
-                        ),
-                        @class.asm_cases_tac(tm("(q : " + w + ") == " + p)),
-                        arw([@arith.add_clauses()]),
-                        small_meson(ths([])),
-                      ]),
-                    ),
-                    solve(seq([gen, @tactics.disch_tac, arw([])])),
-                    solve(@int.asm_arith_tac),
-                    solve(small_meson(ths([]))),
+              )(g)
+            }
+          },
+          free_have(
+            oldPartEq,
+            if fresh {
+              seq([
+                gen,
+                @tactics.disch_tac,
+                @tactics.conv_tac(@equal.sym_conv),
+                free_apply(
+                  inst(thm("tlsf_small_remove_absent"), [
+                    a[14] + "((j : Num))",
+                    p,
                   ]),
                 ),
-              ),
+                @tactics.undisch_tac(tm(block_lists(a))),
+                rw([thm("tlsf_small_lists_ok")]),
+                small_meson(ths([])),
+              ])
+            } else {
+              seq([
+                gen,
+                @tactics.disch_tac,
+                g => {
+                  let all = block_under(
+                    inst(
+                      thm("tlsf_small_partial_remove_class"),
+                      a[8:].to_owned() + [p, b],
+                    ),
+                    g,
+                  )
+                  @tactics.mp_tac(
+                    block_under(@bool.spec(tm("(j : Num)"), all), g),
+                  )(g)
+                },
+                arw([
+                  thm("tlsf_small_put_class"),
+                  @lists.tl(),
+                  thm("tlsf_small_remove_cons"),
+                  thm("tlsf_small_remove_absent"),
+                ]),
+              ])
+            },
+          ),
+          @tactics.thenl(
+            @tactics.conj_tac,
+            @list.List([
+              seq([
+                @tactics.undisch_tac(tm(block_backing(a))),
+                rw([thm("tlsf_small_backing")]),
+                @tactics.disch_tac,
+                rw([
+                  thm("tlsf_small_backing"),
+                  thm("tlsf_small_put"),
+                  @lists.mem(),
+                ]),
+                @tactics.x_gen_tac(tm("(q : " + w + ")")),
+                strip,
+                @class.asm_cases_tac(tm("(q : " + w + ") == " + p)),
+                subst_vars(),
+                arw([]),
+                free_at("publication backing update", small_meson(ths([]))),
+              ]),
+              seq([
+                free_apply(
+                  inst(
+                    thm("tlsf_page_publish_lists"),
+                    a[8:].to_owned() + n[8:].to_owned() + [p, s, bs, k],
+                  ),
+                ),
+                rw([
+                  thm("tlsf_small_put"),
+                  thm("tlsf_small_put_class"),
+                  @lists.mem(),
+                  thm("tlsf_small_count_cons"),
+                  thm("tlsf_small_used"),
+                  @lists.length(),
+                ]),
+                arw([]),
+                @tactics.repeat_tac(@tactics.conj_tac),
+                free_at(
+                  "publication list update",
+                  @tactics.first(
+                    @list.List([
+                      solve(
+                        seq([
+                          gen,
+                          @tactics.disch_tac,
+                          have(
+                            "!(" + p + " == (q : " + w + "))",
+                            page_publish_atomic([]),
+                          ),
+                          @class.asm_cases_tac(tm("(q : " + w + ") == " + p)),
+                          arw([@arith.add_clauses()]),
+                          small_meson(ths([])),
+                        ]),
+                      ),
+                      solve(seq([gen, @tactics.disch_tac, arw([])])),
+                      solve(@int.asm_arith_tac),
+                      solve(small_meson(ths([]))),
+                    ]),
+                  ),
+                ),
+              ]),
             ]),
-          ]),
-        ),
-      ]),
+          ),
+        ])
+      },
     )
   }
 }

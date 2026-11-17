@@ -124,32 +124,34 @@ fn prove_tlsf_take_composition() -> Unit raise {
   let finish = lemma(
     "tlsf_take_allocated_post",
     "\{result_vars}, ∀ m : \{w}, ∀ n : \{w}, ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, ms == (lim : Num) && \{query} == m && MEM(m,(xs : \{lw})) && !tlsf_used((hd : \{ht})(m)) && val((s : \{w})) <= val(n) && tlsf_allocated((d : \{w}),lim,m,n,(xs : \{lw}),(hd : \{ht}),(fp : \{rty})(gs,ms),h) → \{q}([\{i("m")}],gs,ms,h)",
-    seq([
-      gen,
-      strip,
-      have(
-        "tlsf_allocated((d : \{w}),(lim : Num),(m : \{w}),(s : \{w}),(xs : \{lw}),(hd : \{ht}),(fp : \{rty})((gs : List[Value]),(ms : Num)),(h : \{heap}))",
-        seq([
-          @tactics.match_mp_tac(
-            inst(thm("tlsf_allocated_mono"), [
-              "(d : \{w})",
-              "(lim : Num)",
-              "(m : \{w})",
-              "(n : \{w})",
-              "(s : \{w})",
-              "(xs : \{lw})",
-              "(hd : \{ht})",
-              "(fp : \{rty})((gs : List[Value]), (ms : Num))",
-              "(h : \{heap})",
-            ]),
-          ),
-          arw([]),
-        ]),
-      ),
-      rw([thm("tlsf_take_post")]),
-      beta_goal(),
-      @meson.asm_meson_tac(ths([])),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        have(
+          "tlsf_allocated((d : \{w}),(lim : Num),(m : \{w}),(s : \{w}),(xs : \{lw}),(hd : \{ht}),(fp : \{rty})((gs : List[Value]),(ms : Num)),(h : \{heap}))",
+          seq([
+            @tactics.match_mp_tac(
+              inst(thm("tlsf_allocated_mono"), [
+                "(d : \{w})",
+                "(lim : Num)",
+                "(m : \{w})",
+                "(n : \{w})",
+                "(s : \{w})",
+                "(xs : \{lw})",
+                "(hd : \{ht})",
+                "(fp : \{rty})((gs : List[Value]), (ms : Num))",
+                "(h : \{heap})",
+              ]),
+            ),
+            arw([]),
+          ]),
+        ),
+        rw([thm("tlsf_take_post")]),
+        beta_goal(),
+        @meson.asm_meson_tac(ths([])),
+      ])
+    },
   )
   let finish_inst = inst(
     finish,
@@ -262,21 +264,23 @@ fn prove_tlsf_take_composition() -> Unit raise {
   let _ = lemma(
     "tlsf_take_tail_found",
     "\{vars}, ∀ m : \{w}, ∀ l0 : Value, ∀ l1 : Value, ∀ l2 : Value, ∀ l4 : Value, ∀ l5 : Value, \{cond} && \{query} == m → sl_triple_g(G, fs, tabs, inst, \{rp}, st([\{i("m")}], \{lc0}, \{r}), tlsf_take_tail(d, pop, push), \{rp}, \{ls})",
-    seq([
-      gen,
-      strip,
-      @tactics.mp_tac(inst(thm("tlsf_align_bounds"), ["(s : \{w})"])),
-      arw([]),
-      strip,
-      have("16 <= val(\{n})", @int.asm_arith_tac),
-      @tactics.mp_tac(inst(thm("tlsf_align_mod"), ["(s : \{w})"])),
-      arw([]),
-      @tactics.disch_tac,
-      @tactics.thenl(
-        @class.asm_cases_tac(tm("(m : \{w}) == word(0)")),
-        @list.List([zero_case, nonzero_case]),
-      ),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.mp_tac(inst(thm("tlsf_align_bounds"), ["(s : \{w})"])),
+        arw([]),
+        strip,
+        have("16 <= val(\{n})", @int.asm_arith_tac),
+        @tactics.mp_tac(inst(thm("tlsf_align_mod"), ["(s : \{w})"])),
+        arw([]),
+        @tactics.disch_tac,
+        @tactics.thenl(
+          @class.asm_cases_tac(tm("(m : \{w}) == word(0)")),
+          @list.List([zero_case, nonzero_case]),
+        ),
+      ])
+    },
   )
   let find = inst(thm("tlsf_find_all"), [
     params[1],
@@ -350,32 +354,34 @@ fn prove_tlsf_take_composition() -> Unit raise {
   let _ = lemma(
     "tlsf_take_body_focused",
     "\{vars}, \{cond} → sl_triple_g(G, fs, tabs, inst, \{rp}, \{show(findparts[0])}, tlsf_take_code(d, pop, push), \{rp}, \{ls})",
-    seq([
-      gen,
-      strip,
-      rw([thm("tlsf_take_code_parts")]),
-      @tactics.match_mp_tac(thm("sl_seq_g")),
-      @tactics.exists_tac(findparts[2]),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          seq([
-            @tactics.match_mp_tac(thm("sl_triple_g_of")),
-            @tactics.thenl(
-              @tactics.conj_tac,
-              @list.List([
-                call_free_tac(),
-                seq([
-                  @tactics.match_mp_tac(thm("sl_triple_l_of")),
-                  @tactics.match_mp_tac(find),
-                  arw([]),
+    () => {
+      seq([
+        gen,
+        strip,
+        rw([thm("tlsf_take_code_parts")]),
+        @tactics.match_mp_tac(thm("sl_seq_g")),
+        @tactics.exists_tac(findparts[2]),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            seq([
+              @tactics.match_mp_tac(thm("sl_triple_g_of")),
+              @tactics.thenl(
+                @tactics.conj_tac,
+                @list.List([
+                  call_free_tac(),
+                  seq([
+                    @tactics.match_mp_tac(thm("sl_triple_l_of")),
+                    @tactics.match_mp_tac(find),
+                    arw([]),
+                  ]),
                 ]),
-              ]),
-            ),
+              ),
+            ]),
+            consequence(tm(expr), tm(rp), tail_core, tail_pre, same),
           ]),
-          consequence(tm(expr), tm(rp), tail_core, tail_pre, same),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
 }

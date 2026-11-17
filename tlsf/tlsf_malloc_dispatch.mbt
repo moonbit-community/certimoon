@@ -76,81 +76,85 @@ fn prove_tlsf_malloc_cached_dispatch() -> Unit raise {
     ", ∃ i : Num, " +
     need +
     ")",
-    seq([
-      gen,
-      strip,
-      free_have(
-        "∃ p : " +
-        w +
-        ", MEM(p," +
-        a[8] +
-        ") && " +
-        a[9] +
-        "(p) == 8*" +
-        k +
-        " && MEM(" +
-        b +
-        "," +
-        a[11] +
-        "(p))",
-        seq([
-          @tactics.undisch_tac(tm(block_lists(a))),
-          rw([thm("tlsf_small_lists_ok")]),
-          strip,
-          @tactics.first_assum(th => @tactics.match_mp_tac(th)),
-          arw([@lists.mem()]),
-        ]),
-      ),
-      @tactics.first_x_assum(th => {
-        if @basics.is_exists(@kernel.concl(th)) {
-          @tactics.x_choose_then(tm(p))(th => @tactics.strip_assume_tac(th))(th)
-        } else {
-          @tactics.no_tac
-        }
-      }),
-      g => {
-        @tactics.strip_assume_tac(
-          @simp.rewrite_rule(g.0.map(x => x.1))(
-            block_under(
-              inst(thm("tlsf_small_page_member_geometry"), [
-                a[3],
-                a[4],
-                a[8],
-                a[9],
-                a[10],
-                a[11],
-                a[12],
-                a[1],
-                a[13],
-                a[14],
-                p,
-              ]),
-              g,
+    () => {
+      seq([
+        gen,
+        strip,
+        free_have(
+          "∃ p : " +
+          w +
+          ", MEM(p," +
+          a[8] +
+          ") && " +
+          a[9] +
+          "(p) == 8*" +
+          k +
+          " && MEM(" +
+          b +
+          "," +
+          a[11] +
+          "(p))",
+          seq([
+            @tactics.undisch_tac(tm(block_lists(a))),
+            rw([thm("tlsf_small_lists_ok")]),
+            strip,
+            @tactics.first_assum(th => @logic.match_mp_tac(th)),
+            arw([@lists.mem()]),
+          ]),
+        ),
+        @tactics.first_x_assum(th => {
+          if @basics.is_exists(@kernel.concl(th)) {
+            @tactics.x_choose_then(tm(p))(th => @tactics.strip_assume_tac(th))(
+              th,
+            )
+          } else {
+            @tactics.no_tac
+          }
+        }),
+        g => {
+          @tactics.strip_assume_tac(
+            @simp.rewrite_rule(g.0.map(x => x.1))(
+              block_under(
+                inst(thm("tlsf_small_page_member_geometry"), [
+                  a[3],
+                  a[4],
+                  a[8],
+                  a[9],
+                  a[10],
+                  a[11],
+                  a[12],
+                  a[1],
+                  a[13],
+                  a[14],
+                  p,
+                ]),
+                g,
+              ),
             ),
-          ),
-        )(g)
-      },
-      g => {
-        @tactics.strip_assume_tac(
-          @simp.rewrite_rule(g.0.map(x => x.1))(
-            block_under(inst(thm("tlsf_malloc_cached_slot"), a + [p, b]), g),
-          ),
-        )(g)
-      },
-      free_have(
-        "tlsf_count(" + p + "," + a[8] + ") == 1",
-        seq([
-          @tactics.undisch_tac(tm(block_lists(a))),
-          rw([thm("tlsf_small_lists_ok")]),
-          strip,
-          page_publish_old_page_facts(p),
-          arw([]),
-        ]),
-      ),
-      @tactics.exists_tac(tm(p)),
-      @tactics.exists_tac(tm("(i : Num)")),
-      arw([]),
-    ]),
+          )(g)
+        },
+        g => {
+          @tactics.strip_assume_tac(
+            @simp.rewrite_rule(g.0.map(x => x.1))(
+              block_under(inst(thm("tlsf_malloc_cached_slot"), a + [p, b]), g),
+            ),
+          )(g)
+        },
+        free_have(
+          "tlsf_count(" + p + "," + a[8] + ") == 1",
+          seq([
+            @tactics.undisch_tac(tm(block_lists(a))),
+            rw([thm("tlsf_small_lists_ok")]),
+            strip,
+            page_publish_old_page_facts(p),
+            arw([]),
+          ]),
+        ),
+        @tactics.exists_tac(tm(p)),
+        @tactics.exists_tac(tm("(i : Num)")),
+        arw([]),
+      ])
+    },
   )
 }
 
@@ -277,120 +281,143 @@ fn prove_tlsf_malloc_partial_dispatch() -> Unit raise {
     ", ∃ i : Num, " +
     need +
     ")",
-    seq([
-      gen,
-      strip,
-      free_have(
-        facts,
-        seq([
-          @tactics.undisch_tac(tm(block_lists(a))),
-          rw([thm("tlsf_small_lists_ok")]),
-          strip,
-          @tactics.first_assum(th => @tactics.match_mp_tac(th)),
-          arw([@lists.mem()]),
-        ]),
-      ),
-      split_conjs(),
-      g => {
-        @tactics.strip_assume_tac(
-          block_under(
-            inst(thm("tlsf_small_page_member_geometry"), [
-              a[3],
-              a[4],
-              a[8],
-              a[9],
-              a[10],
-              a[11],
-              a[12],
-              a[1],
-              a[13],
-              a[14],
-              p,
-            ]),
-            g,
-          ),
-        )(g)
-      },
-      free_have(
-        "DIV(" + a[9] + "(" + p + "),8) == " + k,
-        seq([
-          @tactics.match_mp_tac(
-            inst(@arith.div_uniq(), [a[9] + "(" + p + ")", "8", k, "0"]),
-          ),
-          @int.asm_arith_tac,
-        ]),
-      ),
-      g => {
-        @tactics.assume_tac(
-          block_under(inst(thm("tlsf_page_publish_empty_cached"), a + [p]), g),
-        )(g)
-      },
-      free_have(
-        "!(" + a[10] + "(" + p + ") == NIL)",
-        seq([
-          @tactics.disch_tac,
-          @tactics.undisch_tac(
-            tm(used + " < tlsf_small_total(" + a[9] + "(" + p + "))"),
-          ),
-          @tactics.undisch_tac(tm(page)),
-          rw([thm("tlsf_small_page_ok"), thm("tlsf_small_partition")]),
-          arw([@lists.length()]),
-          @tactics.repeat_tac(@tactics.strip_tac),
-          @int.asm_arith_tac,
-        ]),
-      ),
-      @tactics.mp_tac(
-        @bool.ispec(tm(a[10] + "(" + p + ")"), @lists.list_cases()),
-      ),
-      @tactics.disch_then(th => @tactics.disj_cases_tac(th)),
-      @tactics.first(
-        @list.List([
-          solve(page_publish_atomic([])),
-          solve(
-            seq([
-              @tactics.first_x_assum(th => {
-                if @basics.is_exists(@kernel.concl(th)) {
-                  @tactics.x_choose_then(tm(b))(
-                    @tactics.x_choose_then(tm(bs))(th => @tactics.assume_tac(th)),
-                  )(th)
-                } else {
-                  @tactics.no_tac
-                }
-              }),
-              free_have(ready, seq([@tactics.undisch_tac(tm(page)), arw([])])),
-              g => {
-                @tactics.strip_assume_tac(
-                  block_under(
-                    inst(thm("tlsf_page_publish_local_index"), [
-                      a[1],
-                      p,
-                      cap,
-                      s,
-                      b,
-                      bs,
-                      a[12] + "(" + p + ")",
-                    ]),
-                    g,
-                  ),
-                )(g)
-              },
-              free_have(
-                "tlsf_count(" + p + "," + a[8] + ") == 1",
-                seq([
-                  @tactics.undisch_tac(tm(block_lists(a))),
-                  rw([thm("tlsf_small_lists_ok")]),
-                  strip,
-                  page_publish_old_page_facts(p),
-                  arw([]),
-                ]),
-              ),
-              @tactics.exists_tac(tm(b)),
-              @tactics.exists_tac(tm(bs)),
-              @tactics.exists_tac(tm("(i : Num)")),
-              arw([]),
-              g => {
-                @tactics.assume_tac(
-                  block_under(
+    () => {
+      seq([
+        gen,
+        strip,
+        free_have(
+          facts,
+          seq([
+            @tactics.undisch_tac(tm(block_lists(a))),
+            rw([thm("tlsf_small_lists_ok")]),
+            strip,
+            @tactics.first_assum(th => @logic.match_mp_tac(th)),
+            arw([@lists.mem()]),
+          ]),
+        ),
+        split_conjs(),
+        g => {
+          @tactics.strip_assume_tac(
+            block_under(
+              inst(thm("tlsf_small_page_member_geometry"), [
+                a[3],
+                a[4],
+                a[8],
+                a[9],
+                a[10],
+                a[11],
+                a[12],
+                a[1],
+                a[13],
+                a[14],
+                p,
+              ]),
+              g,
+            ),
+          )(g)
+        },
+        free_have(
+          "DIV(" + a[9] + "(" + p + "),8) == " + k,
+          seq([
+            @logic.match_mp_tac(
+              inst(@arith.div_uniq(), [a[9] + "(" + p + ")", "8", k, "0"]),
+            ),
+            @int.asm_arith_tac,
+          ]),
+        ),
+        g => {
+          @tactics.assume_tac(
+            block_under(inst(thm("tlsf_page_publish_empty_cached"), a + [p]), g),
+          )(g)
+        },
+        free_have(
+          "!(" + a[10] + "(" + p + ") == NIL)",
+          seq([
+            @tactics.disch_tac,
+            @tactics.undisch_tac(
+              tm(used + " < tlsf_small_total(" + a[9] + "(" + p + "))"),
+            ),
+            @tactics.undisch_tac(tm(page)),
+            rw([thm("tlsf_small_page_ok"), thm("tlsf_small_partition")]),
+            arw([@lists.length()]),
+            @tactics.repeat_tac(@tactics.strip_tac),
+            @int.asm_arith_tac,
+          ]),
+        ),
+        @tactics.mp_tac(
+          @bool.ispec(tm(a[10] + "(" + p + ")"), @lists.list_cases()),
+        ),
+        @tactics.disch_then(th => @tactics.disj_cases_tac(th)),
+        @tactics.first(
+          @list.List([
+            solve(page_publish_atomic([])),
+            solve(
+              seq([
+                @tactics.first_x_assum(th => {
+                  if @basics.is_exists(@kernel.concl(th)) {
+                    @tactics.x_choose_then(tm(b))(
+                      @tactics.x_choose_then(tm(bs))(th => {
+                        @tactics.assume_tac(th)
+                      }),
+                    )(th)
+                  } else {
+                    @tactics.no_tac
+                  }
+                }),
+                free_have(ready, seq([@tactics.undisch_tac(tm(page)), arw([])])),
+                g => {
+                  @tactics.strip_assume_tac(
+                    block_under(
+                      inst(thm("tlsf_page_publish_local_index"), [
+                        a[1],
+                        p,
+                        cap,
+                        s,
+                        b,
+                        bs,
+                        a[12] + "(" + p + ")",
+                      ]),
+                      g,
+                    ),
+                  )(g)
+                },
+                free_have(
+                  "tlsf_count(" + p + "," + a[8] + ") == 1",
+                  seq([
+                    @tactics.undisch_tac(tm(block_lists(a))),
+                    rw([thm("tlsf_small_lists_ok")]),
+                    strip,
+                    page_publish_old_page_facts(p),
+                    arw([]),
+                  ]),
+                ),
+                @tactics.exists_tac(tm(b)),
+                @tactics.exists_tac(tm(bs)),
+                @tactics.exists_tac(tm("(i : Num)")),
+                arw([]),
+                g => {
+                  @tactics.assume_tac(
+                    block_under(
+                      inst(thm("tlsf_small_partial_geometry"), [
+                        a[3],
+                        a[4],
+                        a[8],
+                        a[9],
+                        a[10],
+                        a[11],
+                        a[12],
+                        a[1],
+                        a[13],
+                        a[14],
+                      ]),
+                      g,
+                    ),
+                  )(g)
+                },
+                gen,
+                @tactics.disch_tac,
+                g => {
+                  let all = block_under(
                     inst(thm("tlsf_small_partial_geometry"), [
                       a[3],
                       a[4],
@@ -404,36 +431,20 @@ fn prove_tlsf_malloc_partial_dispatch() -> Unit raise {
                       a[14],
                     ]),
                     g,
-                  ),
-                )(g)
-              },
-              gen,
-              @tactics.disch_tac,
-              g => {
-                let all = block_under(
-                  inst(thm("tlsf_small_partial_geometry"), [
-                    a[3],
-                    a[4],
-                    a[8],
-                    a[9],
-                    a[10],
-                    a[11],
-                    a[12],
-                    a[1],
-                    a[13],
-                    a[14],
-                  ]),
-                  g,
-                )
-                free_apply(
-                  @bool.ispecl(@list.List([tm(k), tm("(q : " + w + ")")]), all),
-                )(g)
-              },
-              arw([@lists.mem()]),
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+                  )
+                  free_apply(
+                    @bool.ispecl(
+                      @list.List([tm(k), tm("(q : " + w + ")")]),
+                      all,
+                    ),
+                  )(g)
+                },
+                arw([@lists.mem()]),
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
 }

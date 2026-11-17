@@ -51,58 +51,60 @@ fn prove_tlsf_free_body_focused() -> Unit raise {
   let _ = lemma(
     "tlsf_free_body_focused",
     "\{vars}, \{popnative} && \{pushnative} && \{facts} → sl_triple_g(G,fs,tabs,inst,\{bq},\{pre},tlsf_free_code(d,pop,push),\{bq},[\{bq}])",
-    seq([
-      gen,
-      strip,
-      @tactics.undisch_tac(tm("MEM((m : \{w}),(xs : \{lw}))")),
-      rw([@lists.mem_append_decompose()]),
-      @tactics.disch_then(
-        @tactics.x_choose_then(tm("(ys : \{lw})"))(
-          @tactics.x_choose_then(tm("(zs : \{lw})"))(th => {
-            @tactics.assume_tac(th)
-          }),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.undisch_tac(tm("MEM((m : \{w}),(xs : \{lw}))")),
+        rw([@lists.mem_append_decompose()]),
+        @tactics.disch_then(
+          @tactics.x_choose_then(tm("(ys : \{lw})"))(
+            @tactics.x_choose_then(tm("(zs : \{lw})"))(th => {
+              @tactics.assume_tac(th)
+            }),
+          ),
         ),
-      ),
-      subst_vars(),
-      rw([thm("tlsf_free_code_parts")]),
-      @tactics.match_mp_tac(thm("sl_seq_g")),
-      @tactics.exists_tac(tm(work("F", "F"))),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          free_apply(start),
-          seq([
-            @tactics.match_mp_tac(thm("sl_seq_g")),
-            @tactics.exists_tac(tm(work("T", "F"))),
-            @tactics.thenl(
-              @tactics.conj_tac,
-              @list.List([
-                seq([
-                  @tactics.match_mp_tac(thm("tlsf_free_prev_phase")),
-                  arw([]),
-                ]),
-                seq([
-                  @tactics.match_mp_tac(thm("sl_seq_g")),
-                  @tactics.exists_tac(tm(work("T", "T"))),
-                  @tactics.thenl(
-                    @tactics.conj_tac,
-                    @list.List([
-                      seq([
-                        @tactics.match_mp_tac(thm("tlsf_free_next_phase")),
-                        arw([]),
+        subst_vars(),
+        rw([thm("tlsf_free_code_parts")]),
+        @tactics.match_mp_tac(thm("sl_seq_g")),
+        @tactics.exists_tac(tm(work("F", "F"))),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            free_apply(start),
+            seq([
+              @tactics.match_mp_tac(thm("sl_seq_g")),
+              @tactics.exists_tac(tm(work("T", "F"))),
+              @tactics.thenl(
+                @tactics.conj_tac,
+                @list.List([
+                  seq([
+                    @tactics.match_mp_tac(thm("tlsf_free_prev_phase")),
+                    arw([]),
+                  ]),
+                  seq([
+                    @tactics.match_mp_tac(thm("sl_seq_g")),
+                    @tactics.exists_tac(tm(work("T", "T"))),
+                    @tactics.thenl(
+                      @tactics.conj_tac,
+                      @list.List([
+                        seq([
+                          @tactics.match_mp_tac(thm("tlsf_free_next_phase")),
+                          arw([]),
+                        ]),
+                        seq([
+                          @tactics.match_mp_tac(thm("tlsf_free_finish")),
+                          arw([]),
+                        ]),
                       ]),
-                      seq([
-                        @tactics.match_mp_tac(thm("tlsf_free_finish")),
-                        arw([]),
-                      ]),
-                    ]),
-                  ),
+                    ),
+                  ]),
                 ]),
-              ]),
-            ),
+              ),
+            ]),
           ]),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
 }

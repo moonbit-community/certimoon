@@ -50,7 +50,7 @@ fn prove_tlsf_initialize_stores() -> Unit raise {
   let _ = lemma(
     "tlsf_initialize_mark_work",
     "\{vars}, sl_triple_m(\{env},st(NIL,\{oldlc},\{work("word(0)",false,"word(0)")}),tlsf_initialize_mark(d,push),st(NIL,\{lc},\{work("word(2)",false,"word(0)")}),NIL)",
-    seq([gen, initialize_m_conseq(mark, ent, ent)]),
+    () => seq([gen, initialize_m_conseq(mark, ent, ent)]),
   )
   let r2 = "(gs : List[Value]) => (ms : Num) => star(\{cell(m,"word(2)")},(\{frame})(gs,ms))"
   let before = inst(thm("tlsf_initialize_size_before_raw"), rawargs + [r2])
@@ -59,7 +59,7 @@ fn prove_tlsf_initialize_stores() -> Unit raise {
   )
   let size = @bool.mp(
     size,
-    @tactics.prove(
+    @logic.prove(
       @basics.dest_imp(@kernel.concl(size)).0,
       seq([gen, beta_goal(), rw(lift_rws()), @meson.meson_tac(ths([]))]),
     ),
@@ -70,30 +70,32 @@ fn prove_tlsf_initialize_stores() -> Unit raise {
   let _ = lemma(
     "tlsf_initialize_size_work",
     "\{vars}, MOD(lim,65536) == 0 → sl_triple_m(\{env},st(NIL,\{lc},\{work("word(2)",false,"word(0)")}),tlsf_initialize_size(d,push),st(NIL,\{lc},\{work(hdr,false,"word(0)")}),NIL)",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      rw([thm("tlsf_initialize_size_parts")]),
-      @tactics.match_mp_tac(thm("sl_seq_m")),
-      @tactics.exists_tac(bt[2]),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          initialize_m_conseq(before, ent, ent),
-          seq([
-            @tactics.match_mp_tac(thm("sl_seq_m")),
-            @tactics.exists_tac(stt[2]),
-            @tactics.thenl(
-              @tactics.conj_tac,
-              @list.List([
-                initialize_m_conseq(size, ent_tac([], []), ent_tac([], [])),
-                initialize_m_conseq(after, ent, ent),
-              ]),
-            ),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        rw([thm("tlsf_initialize_size_parts")]),
+        @tactics.match_mp_tac(thm("sl_seq_m")),
+        @tactics.exists_tac(bt[2]),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            initialize_m_conseq(before, ent, ent),
+            seq([
+              @tactics.match_mp_tac(thm("sl_seq_m")),
+              @tactics.exists_tac(stt[2]),
+              @tactics.thenl(
+                @tactics.conj_tac,
+                @list.List([
+                  initialize_m_conseq(size, ent_tac([], []), ent_tac([], [])),
+                  initialize_m_conseq(after, ent, ent),
+                ]),
+              ),
+            ]),
           ]),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
   let topframe = own([cell(m, hdr)] + rest + [nbins])
   let topraw = inst(thm("tlsf_initialize_top_raw"), [
@@ -102,6 +104,6 @@ fn prove_tlsf_initialize_stores() -> Unit raise {
   let _ = lemma(
     "tlsf_initialize_top_work",
     "\{vars}, sl_triple_m(\{env},st(NIL,\{lc},\{work(hdr,true,"word(0)")}),tlsf_initialize_top(d,push),st(NIL,\{lc},\{work(hdr,true,m)}),NIL)",
-    seq([gen, initialize_m_conseq(topraw, ent, ent)]),
+    () => seq([gen, initialize_m_conseq(topraw, ent, ent)]),
   )
 }

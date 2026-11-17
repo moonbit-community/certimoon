@@ -94,27 +94,29 @@ fn prove_tlsf_malloc_guard_facts() -> Unit raise {
     a[:5].to_owned().join(",") +
     ") → " +
     malloc_guard_cond(a),
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @tactics.disch_tac,
-      g => {
-        @tactics.strip_assume_tac(
-          @simp.rewrite_rule(ths([thm("tlsf_base")]))(
-            block_under(inst(thm("tlsf_malloc_initialized_guards"), a), g),
-          ),
-        )(g)
-      },
-      @simp.asm_rewrite_tac(
-        ths([
-          thm("tlsf_base"),
-          @words.word_ugt_v1(),
-          @words.val_word(),
-          @words.dimindex_32(),
-        ]),
-      ),
-      @tactics.conv_tac(@calc_num.num_reduce_conv),
-      @int.asm_arith_tac,
-    ]),
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @tactics.disch_tac,
+        g => {
+          @tactics.strip_assume_tac(
+            @simp.rewrite_rule(ths([thm("tlsf_base")]))(
+              block_under(inst(thm("tlsf_malloc_initialized_guards"), a), g),
+            ),
+          )(g)
+        },
+        @simp.asm_rewrite_tac(
+          ths([
+            thm("tlsf_base"),
+            @words.word_ugt_v1(),
+            @words.val_word(),
+            @words.dimindex_32(),
+          ]),
+        ),
+        @tactics.conv_tac(@calc_num.num_reduce_conv),
+        @int.asm_arith_tac,
+      ])
+    },
   )
 }
 
@@ -137,7 +139,9 @@ fn prove_tlsf_malloc_dead_parts() -> Unit raise {
         ",(labels : List[" +
         sassn +
         "]))",
-        seq([@tactics.repeat_tac(@tactics.strip_tac), small_meson(ths([]))]),
+        () => {
+          seq([@tactics.repeat_tac(@tactics.strip_tac), small_meson(ths([]))])
+        },
       )
     }
   }

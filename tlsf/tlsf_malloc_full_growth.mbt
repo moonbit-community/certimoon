@@ -118,10 +118,12 @@ fn prove_tlsf_malloc_full_growth() -> Unit raise {
     "," +
     malloc_abort_post(a) +
     ")",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      @logic.abort_sym_tac([ensure], vc),
-    ]),
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        @logic.abort_sym_tac([ensure], vc),
+      ])
+    },
   )
 }

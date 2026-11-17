@@ -182,7 +182,7 @@ fn prove_tlsf_malloc_case_fresh() -> Unit raise {
         q +
         "])",
         [],
-        Array::make(11, malloc_vc()),
+        () => Array::make(11, malloc_vc()),
         afters~,
         chunks=[ready, fast, partial, page, head, export_path, dead],
         rws=malloc_extra_rewrites(),

@@ -41,36 +41,38 @@ fn prove_tlsf_block_free_publish_list() -> Unit raise {
   let _ = lemma(
     "tlsf_block_free_publish_list",
     "\{vars}, \{cond} → sl_triple(st(NIL,[\{i("p")},u,l2],\{pre}),tlsf_block_free_publish(d,free_idx),st([\{i("word(0)")}],[\{i("p")},\{i("tlsf_small_head("+l+")")},\{i("word("+k+")")}],\{post}))",
-    @tactics.thenl(
-      @lists.list_induct_tac,
-      @list.List([
-        seq([
-          gen,
-          strip,
-          rw(simp),
-          free_apply(
-            @simp.rewrite_rule(ths(simp))(
-              thm("tlsf_block_free_publish_nil_list"),
+    () => {
+      @tactics.thenl(
+        @lists.list_induct_tac,
+        @list.List([
+          seq([
+            gen,
+            strip,
+            rw(simp),
+            free_apply(
+              @simp.rewrite_rule(ths(simp))(
+                thm("tlsf_block_free_publish_nil_list"),
+              ),
             ),
-          ),
-          arw([]),
-        ]),
-        seq([
-          gen,
-          strip,
-          free_have(
-            "!((h : \{w}) == word(0)) && val(h)+32 <= 4294967296",
-            small_meson(ths([@lists.mem()])),
-          ),
-          rw(simp),
-          free_apply(
-            @simp.rewrite_rule(ths(simp))(
-              thm("tlsf_block_free_publish_cons_list"),
+            arw([]),
+          ]),
+          seq([
+            gen,
+            strip,
+            free_have(
+              "!((h : \{w}) == word(0)) && val(h)+32 <= 4294967296",
+              small_meson(ths([@lists.mem()])),
             ),
-          ),
-          arw([]),
+            rw(simp),
+            free_apply(
+              @simp.rewrite_rule(ths(simp))(
+                thm("tlsf_block_free_publish_cons_list"),
+              ),
+            ),
+            arw([]),
+          ]),
         ]),
-      ]),
-    ),
+      )
+    },
   )
 }

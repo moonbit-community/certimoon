@@ -54,78 +54,82 @@ fn prove_tlsf_initialize_grow() -> Unit raise {
   let _ = lemma(
     "tlsf_initialize_grow_yes_saved",
     "\{vars}, \{valid} && \{cond} → sl_abort_m(\{env},st(NIL,\{lc},\{saved}),tlsf_initialize_grow_yes(d,push),\{good},\{abortp})",
-    seq([
-      gen,
-      strip,
-      free_have(
-        "(lim : Num) <= 4294967296",
-        seq([
-          @tactics.undisch_tac(tm(valid)),
-          rw([thm("tlsf_initialize_valid")]),
-          @meson.meson_tac(ths([])),
-        ]),
-      ),
-      free_have(
-        "!(\{old} == word(4294967295))",
-        seq([
-          @tactics.match_mp_tac(thm("tlsf_page_result_not_failure")),
-          arw([]),
-        ]),
-      ),
-      rw([thm("tlsf_initialize_grow_yes_parts")]),
-      @tactics.match_mp_tac(thm("sl_abort_seq_m")),
-      @tactics.exists_tac(gp[3]),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          initialize_abort_conseq(amount, same_tac(), same_tac()),
+    () => {
+      seq([
+        gen,
+        strip,
+        free_have(
+          "(lim : Num) <= 4294967296",
           seq([
-            @tactics.match_mp_tac(thm("sl_abort_seq_m")),
-            @tactics.exists_tac(gp[5]),
-            @tactics.thenl(
-              @tactics.conj_tac,
-              @list.List([
-                initialize_abort_conseq(grow, same_tac(), same_tac()),
-                seq([
-                  rw([@class.eta_ax()]),
-                  @tactics.match_mp_tac(orrule),
-                  @tactics.thenl(
-                    @tactics.conj_tac,
-                    @list.List([
-                      seq([
-                        @tactics.match_mp_tac(failure),
-                        rw([
-                          thm("st"),
-                          thm("tlsf_initialize_saved"),
-                          thm("tlsf_initialize_abort"),
-                        ]),
-                        @meson.meson_tac(ths([])),
-                      ]),
-                      free_apply(success),
-                    ]),
-                  ),
-                ]),
-              ]),
-            ),
+            @tactics.undisch_tac(tm(valid)),
+            rw([thm("tlsf_initialize_valid")]),
+            @meson.meson_tac(ths([])),
           ]),
-        ]),
-      ),
-    ]),
+        ),
+        free_have(
+          "!(\{old} == word(4294967295))",
+          seq([
+            @tactics.match_mp_tac(thm("tlsf_page_result_not_failure")),
+            arw([]),
+          ]),
+        ),
+        rw([thm("tlsf_initialize_grow_yes_parts")]),
+        @tactics.match_mp_tac(thm("sl_abort_seq_m")),
+        @tactics.exists_tac(gp[3]),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            initialize_abort_conseq(amount, same_tac(), same_tac()),
+            seq([
+              @tactics.match_mp_tac(thm("sl_abort_seq_m")),
+              @tactics.exists_tac(gp[5]),
+              @tactics.thenl(
+                @tactics.conj_tac,
+                @list.List([
+                  initialize_abort_conseq(grow, same_tac(), same_tac()),
+                  seq([
+                    rw([@class.eta_ax()]),
+                    @tactics.match_mp_tac(orrule),
+                    @tactics.thenl(
+                      @tactics.conj_tac,
+                      @list.List([
+                        seq([
+                          @tactics.match_mp_tac(failure),
+                          rw([
+                            thm("st"),
+                            thm("tlsf_initialize_saved"),
+                            thm("tlsf_initialize_abort"),
+                          ]),
+                          @meson.meson_tac(ths([])),
+                        ]),
+                        free_apply(success),
+                      ]),
+                    ),
+                  ]),
+                ]),
+              ),
+            ]),
+          ]),
+        ),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_initialize_no_growth_fresh",
     "∀ d : \{w}, ∀ lim : Num, ∀ before : \{heap}, ∀ fp : \{rty}, ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, \{valid} && !\{cond} → \{saved}(gs,ms,h) → \{fresh}(gs,ms,h)",
-    seq([
-      gen,
-      strip,
-      @tactics.mp_tac(inst(thm("tlsf_initialize_limit_cases"), [d, lim])),
-      arw([]),
-      @tactics.disch_tac,
-      rw([thm("tlsf_initialize_saved"), thm("tlsf_initialize_fresh")]),
-      @tactics.repeat_tac(@tactics.strip_tac),
-      subst_vars(),
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.mp_tac(inst(thm("tlsf_initialize_limit_cases"), [d, lim])),
+        arw([]),
+        @tactics.disch_tac,
+        rw([thm("tlsf_initialize_saved"), thm("tlsf_initialize_fresh")]),
+        @tactics.repeat_tac(@tactics.strip_tac),
+        subst_vars(),
+        arw([]),
+      ])
+    },
   )
   let grow_test = inst(thm("tlsf_initialize_grow_test_raw"), [
     d,
@@ -143,64 +147,68 @@ fn prove_tlsf_initialize_grow() -> Unit raise {
   let _ = lemma(
     "tlsf_initialize_grow_saved",
     "\{vars}, \{valid} → sl_abort_m(\{env},st(NIL,\{lc},\{saved}),tlsf_initialize_grow(d,push),\{good},\{abortp})",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      rw([thm("tlsf_initialize_grow_parts")]),
-      @tactics.match_mp_tac(thm("sl_abort_seq_m")),
-      @tactics.exists_tac(gt[2]),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          initialize_abort_conseq(grow_test, same_tac(), same_tac()),
-          seq([
-            @tactics.match_mp_tac(thm("sl_abort_if_st_m")),
-            @tactics.thenl(
-              @tactics.conj_tac,
-              @list.List([
-                seq([
-                  @tactics.disch_tac,
-                  @tactics.rule_assum_tac(
-                    @simp.rewrite_rule(ths([thm("wasm_bool_zero")])),
-                  ),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        rw([thm("tlsf_initialize_grow_parts")]),
+        @tactics.match_mp_tac(thm("sl_abort_seq_m")),
+        @tactics.exists_tac(gt[2]),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            initialize_abort_conseq(grow_test, same_tac(), same_tac()),
+            seq([
+              @tactics.match_mp_tac(thm("sl_abort_if_st_m")),
+              @tactics.thenl(
+                @tactics.conj_tac,
+                @list.List([
                   seq([
-                    @tactics.match_mp_tac(thm("tlsf_initialize_grow_yes_saved")),
-                    arw([]),
-                  ]),
-                ]),
-                seq([
-                  @tactics.disch_tac,
-                  @tactics.rule_assum_tac(
-                    @simp.rewrite_rule(ths([thm("wasm_bool_zero")])),
-                  ),
-                  initialize_abort_conseq(
-                    nil,
-                    same_tac(),
+                    @tactics.disch_tac,
+                    @tactics.rule_assum_tac(
+                      @simp.rewrite_rule(ths([thm("wasm_bool_zero")])),
+                    ),
                     seq([
-                      gen,
-                      rw([thm("st")]),
-                      strip,
-                      arw([]),
-                      @tactics.mp_tac(
-                        inst(thm("tlsf_initialize_no_growth_fresh"), [
-                          d,
-                          lim,
-                          before,
-                          fp,
-                          "(gs : List[Value])",
-                          "(ms : Num)",
-                          "(h : \{heap})",
-                        ]),
+                      @tactics.match_mp_tac(
+                        thm("tlsf_initialize_grow_yes_saved"),
                       ),
                       arw([]),
                     ]),
-                  ),
+                  ]),
+                  seq([
+                    @tactics.disch_tac,
+                    @tactics.rule_assum_tac(
+                      @simp.rewrite_rule(ths([thm("wasm_bool_zero")])),
+                    ),
+                    initialize_abort_conseq(
+                      nil,
+                      same_tac(),
+                      seq([
+                        gen,
+                        rw([thm("st")]),
+                        strip,
+                        arw([]),
+                        @tactics.mp_tac(
+                          inst(thm("tlsf_initialize_no_growth_fresh"), [
+                            d,
+                            lim,
+                            before,
+                            fp,
+                            "(gs : List[Value])",
+                            "(ms : Num)",
+                            "(h : \{heap})",
+                          ]),
+                        ),
+                        arw([]),
+                      ]),
+                    ),
+                  ]),
                 ]),
-              ]),
-            ),
+              ),
+            ]),
           ]),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
 }

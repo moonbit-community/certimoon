@@ -28,17 +28,19 @@ fn prove_tlsf_block_free_dhead() -> Unit raise {
   let _ = lemma(
     "tlsf_small_dlist_head",
     "∀ xs : \{lw}, ∀ pr : \{w}, ∀ nx : \{w}, tlsf_small_dlist(pr,xs,nx) == star((if xs == NIL { emp } else { pts(val(HD(xs))+24,serialise_i32(pr)) }),tlsf_small_dhead(xs,nx))",
-    seq([
-      @lists.list_induct_tac,
-      rw([thm("tlsf_small_dlist_nil"), thm("tlsf_small_dhead")] + ac),
-      gen,
-      rw([
-        thm("tlsf_small_dlist_cons"),
-        thm("tlsf_small_dhead"),
-        @lists.not_cons_nil(),
-        @lists.hd(),
-      ]),
-    ]),
+    () => {
+      seq([
+        @lists.list_induct_tac,
+        rw([thm("tlsf_small_dlist_nil"), thm("tlsf_small_dhead")] + ac),
+        gen,
+        rw([
+          thm("tlsf_small_dlist_cons"),
+          thm("tlsf_small_dhead"),
+          @lists.not_cons_nil(),
+          @lists.hd(),
+        ]),
+      ])
+    },
   )
   let pr = "tlsf_small_last((prev : \{w}),(a : \{lw}))"
   let nx = "tlsf_small_first((z : \{lw}),(next : \{w}))"
@@ -53,33 +55,35 @@ fn prove_tlsf_block_free_dhead() -> Unit raise {
   let _ = lemma(
     "tlsf_small_dlist_unlink_view",
     "∀ a : \{lw}, ∀ z : \{lw}, ∀ prev : \{w}, ∀ next : \{w}, ∀ p : \{w}, tlsf_small_dlist(prev,APPEND(a,CONS(p,z)),next) == \{target}",
-    seq([
-      gen,
-      rw([
-        thm("tlsf_small_dlist_append"),
-        thm("tlsf_small_dlist_cons"),
-        thm("tlsf_small_first"),
-        @lists.not_cons_nil(),
-        @lists.hd(),
-      ]),
-      @tactics.conv_tac(
-        @equal.subs_conv(
-          ths([
-            inst(thm("tlsf_small_dlist_tail"), [
-              "(a : " + lw + ")",
-              "(prev : " + w + ")",
-              "(p : " + w + ")",
+    () => {
+      seq([
+        gen,
+        rw([
+          thm("tlsf_small_dlist_append"),
+          thm("tlsf_small_dlist_cons"),
+          thm("tlsf_small_first"),
+          @lists.not_cons_nil(),
+          @lists.hd(),
+        ]),
+        @tactics.conv_tac(
+          @equal.subs_conv(
+            ths([
+              inst(thm("tlsf_small_dlist_tail"), [
+                "(a : " + lw + ")",
+                "(prev : " + w + ")",
+                "(p : " + w + ")",
+              ]),
+              inst(thm("tlsf_small_dlist_head"), [
+                "(z : " + lw + ")",
+                "(p : " + w + ")",
+                "(next : " + w + ")",
+              ]),
             ]),
-            inst(thm("tlsf_small_dlist_head"), [
-              "(z : " + lw + ")",
-              "(p : " + w + ")",
-              "(next : " + w + ")",
-            ]),
-          ]),
+          ),
         ),
-      ),
-      rw(ac),
-    ]),
+        rw(ac),
+      ])
+    },
   )
   let target2 = small_star([
     "tlsf_small_dtail((prev : \{w}),(a : \{lw}))",
@@ -90,26 +94,28 @@ fn prove_tlsf_block_free_dhead() -> Unit raise {
   let _ = lemma(
     "tlsf_small_dlist_removed_view",
     "∀ a : \{lw}, ∀ z : \{lw}, ∀ prev : \{w}, ∀ next : \{w}, tlsf_small_dlist(prev,APPEND(a,z),next) == \{target2}",
-    seq([
-      gen,
-      rw([thm("tlsf_small_dlist_append")]),
-      @tactics.conv_tac(
-        @equal.subs_conv(
-          ths([
-            inst(thm("tlsf_small_dlist_tail"), [
-              "(a : " + lw + ")",
-              "(prev : " + w + ")",
-              nx,
+    () => {
+      seq([
+        gen,
+        rw([thm("tlsf_small_dlist_append")]),
+        @tactics.conv_tac(
+          @equal.subs_conv(
+            ths([
+              inst(thm("tlsf_small_dlist_tail"), [
+                "(a : " + lw + ")",
+                "(prev : " + w + ")",
+                nx,
+              ]),
+              inst(thm("tlsf_small_dlist_head"), [
+                "(z : " + lw + ")",
+                pr,
+                "(next : " + w + ")",
+              ]),
             ]),
-            inst(thm("tlsf_small_dlist_head"), [
-              "(z : " + lw + ")",
-              pr,
-              "(next : " + w + ")",
-            ]),
-          ]),
+          ),
         ),
-      ),
-      rw(ac),
-    ]),
+        rw(ac),
+      ])
+    },
   )
 }

@@ -33,7 +33,7 @@ fn prove_tlsf_initialize_publish() -> Unit raise {
     "tlsf_initialize_publish_get",
     "∀ d : \{w}, ∀ lim : Num, ∀ l1 : Value, ∀ l2 : Value, ∀ fp : \{rty}, sl_triple(st(NIL,\{lc},\{work(hdr,false,"word(0)")}),[Local_get(0)],st([\{i(m)}],\{lc},\{work(hdr,false,"word(0)")}))",
     [],
-    [],
+    () => [],
   )
   let push = inst(thm("tlsf_ensure_push_invoke"), [
     "(fs : List[Cl])",
@@ -55,77 +55,87 @@ fn prove_tlsf_initialize_publish() -> Unit raise {
   let _ = lemma(
     "tlsf_initialize_publish_parts",
     "∀ d : \{w}, ∀ push : Num, tlsf_initialize_publish(d,push) == APPEND([Local_get(0)],[Call(push),Drop])",
-    rw([thm("tlsf_initialize_publish"), @lists.append()]),
+    () => rw([thm("tlsf_initialize_publish"), @lists.append()]),
   )
   let _ = lemma(
     "tlsf_initialize_publish_work",
     "\{vars}, \{facts} && \{native} → sl_triple_m(\{env},st(NIL,\{lc},\{work(hdr,false,"word(0)")}),tlsf_initialize_publish(d,push),st(NIL,\{lc},\{work(hdr,true,"word(0)")}),NIL)",
-    seq([
-      gen,
-      strip,
-      @tactics.mp_tac(inst(thm("tlsf_initialize_header_fields"), [d, lim])),
-      arw([]),
-      strip,
-      rw([thm("tlsf_initialize_publish_parts")]),
-      @tactics.match_mp_tac(thm("sl_seq_m")),
-      @tactics.exists_tac(
-        tm("st([\{i(m)}],\{lc},\{work(hdr,false,"word(0)")})"),
-      ),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          initialize_m_conseq(
-            inst(get, [d, lim, "(l1 : Value)", "(l2 : Value)", "(fp : \{rty})"]),
-            ent,
-            ent,
-          ),
-          initialize_m_conseq(push, ent, ent),
-        ]),
-      ),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.mp_tac(inst(thm("tlsf_initialize_header_fields"), [d, lim])),
+        arw([]),
+        strip,
+        rw([thm("tlsf_initialize_publish_parts")]),
+        @tactics.match_mp_tac(thm("sl_seq_m")),
+        @tactics.exists_tac(
+          tm("st([\{i(m)}],\{lc},\{work(hdr,false,"word(0)")})"),
+        ),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            initialize_m_conseq(
+              inst(get, [
+                d,
+                lim,
+                "(l1 : Value)",
+                "(l2 : Value)",
+                "(fp : \{rty})",
+              ]),
+              ent,
+              ent,
+            ),
+            initialize_m_conseq(push, ent, ent),
+          ]),
+        ),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_initialize_tail_work",
     "\{vars}, \{facts} && \{native} → sl_triple_m(\{env},st(NIL,\{oldlc},\{work("word(0)",false,"word(0)")}),tlsf_initialize_tail(d,push),st(NIL,\{lc},\{work(hdr,true,m)}),NIL)",
-    seq([
-      gen,
-      strip,
-      rw([thm("tlsf_initialize_tail_parts")]),
-      @tactics.match_mp_tac(thm("sl_seq_m")),
-      @tactics.exists_tac(
-        tm("st(NIL,\{lc},\{work("word(2)",false,"word(0)")})"),
-      ),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          free_apply(thm("tlsf_initialize_mark_work")),
-          seq([
-            @tactics.match_mp_tac(thm("sl_seq_m")),
-            @tactics.exists_tac(
-              tm("st(NIL,\{lc},\{work(hdr,false,"word(0)")})"),
-            ),
-            @tactics.thenl(
-              @tactics.conj_tac,
-              @list.List([
-                free_apply(thm("tlsf_initialize_size_work")),
-                seq([
-                  @tactics.match_mp_tac(thm("sl_seq_m")),
-                  @tactics.exists_tac(
-                    tm("st(NIL,\{lc},\{work(hdr,true,"word(0)")})"),
-                  ),
-                  @tactics.thenl(
-                    @tactics.conj_tac,
-                    @list.List([
-                      free_apply(thm("tlsf_initialize_publish_work")),
-                      free_apply(thm("tlsf_initialize_top_work")),
-                    ]),
-                  ),
+    () => {
+      seq([
+        gen,
+        strip,
+        rw([thm("tlsf_initialize_tail_parts")]),
+        @tactics.match_mp_tac(thm("sl_seq_m")),
+        @tactics.exists_tac(
+          tm("st(NIL,\{lc},\{work("word(2)",false,"word(0)")})"),
+        ),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            free_apply(thm("tlsf_initialize_mark_work")),
+            seq([
+              @tactics.match_mp_tac(thm("sl_seq_m")),
+              @tactics.exists_tac(
+                tm("st(NIL,\{lc},\{work(hdr,false,"word(0)")})"),
+              ),
+              @tactics.thenl(
+                @tactics.conj_tac,
+                @list.List([
+                  free_apply(thm("tlsf_initialize_size_work")),
+                  seq([
+                    @tactics.match_mp_tac(thm("sl_seq_m")),
+                    @tactics.exists_tac(
+                      tm("st(NIL,\{lc},\{work(hdr,true,"word(0)")})"),
+                    ),
+                    @tactics.thenl(
+                      @tactics.conj_tac,
+                      @list.List([
+                        free_apply(thm("tlsf_initialize_publish_work")),
+                        free_apply(thm("tlsf_initialize_top_work")),
+                      ]),
+                    ),
+                  ]),
                 ]),
-              ]),
-            ),
+              ),
+            ]),
           ]),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
 }

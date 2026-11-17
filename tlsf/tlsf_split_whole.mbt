@@ -136,12 +136,14 @@ fn prove_tlsf_split_whole() -> Unit raise {
   let _ = lemma(
     "tlsf_split_whole",
     "\{vars}, \{cond} → sl_triple_m(fs, tabs, inst, \{show(p)}, tlsf_split_code(d, push), \{q}, NIL)",
-    seq([
-      gen,
-      strip,
-      @tactics.match_mp_tac(thm("tlsf_split_in_module")),
-      arw([]),
-      tlsf_split_conseq(path, ent_tac([], []), post),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.match_mp_tac(thm("tlsf_split_in_module")),
+        arw([]),
+        tlsf_split_conseq(path, ent_tac([], []), post),
+      ])
+    },
   )
 }

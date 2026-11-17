@@ -32,3 +32,7 @@ import {
   "bobzhang/hol_light/testkit",
   "moonbitlang/core/test",
 } for "test"
+
+import {
+  "bobzhang/hol_light/testkit",
+} for "wbtest"

@@ -76,46 +76,48 @@ fn prove_tlsf_block_free_return() -> Unit raise {
   let fold = lemma(
     "tlsf_small_return_post_fold",
     "\{v} ∀ res : List[Value], ∀ gs : List[Value], ∀ ms : Num, ∀ h : \{heap}, \{backing} && !MEM(m,ps) && \{fpost}(res,gs,ms,h) → \{q}(res,gs,ms,h)",
-    seq([
-      gen,
-      rw([thm("tlsf_free_post"), thm("tlsf_small_return_post")]),
-      strip,
-      arw([]),
-      g => {
-        @tactics.assume_tac(
-          block_under(inst(thm("tlsf_small_free_backing"), transport), g),
-        )(g)
-      },
-      g => {
-        @tactics.assume_tac(
-          block_under(
-            inst(
-              thm("tlsf_small_free_heap"),
-              transport +
-              [
-                "(d : " + w + ")",
-                "(fast : (Num) -> " + lw + ")",
-                "(partial : (Num) -> " + lw + ")",
-              ],
+    () => {
+      seq([
+        gen,
+        rw([thm("tlsf_free_post"), thm("tlsf_small_return_post")]),
+        strip,
+        arw([]),
+        g => {
+          @tactics.assume_tac(
+            block_under(inst(thm("tlsf_small_free_backing"), transport), g),
+          )(g)
+        },
+        g => {
+          @tactics.assume_tac(
+            block_under(
+              inst(
+                thm("tlsf_small_free_heap"),
+                transport +
+                [
+                  "(d : " + w + ")",
+                  "(fast : (Num) -> " + lw + ")",
+                  "(partial : (Num) -> " + lw + ")",
+                ],
+              ),
+              g,
             ),
-            g,
-          ),
-        )(g)
-      },
-      seq(
-        worlds.map(v => @tactics.exists_tac(tm("(" + v.0 + " : " + v.1 + ")"))),
-      ),
-      rw([thm("tlsf_allocator_frame")]),
-      arw([]),
-      @tactics.first_x_assum(th => {
-        if head_name(@kernel.concl(th)) == "star" {
-          @tactics.mp_tac(th)
-        } else {
-          @tactics.no_tac
-        }
-      }),
-      arw([]),
-    ]),
+          )(g)
+        },
+        seq(
+          worlds.map(v => @tactics.exists_tac(tm("(" + v.0 + " : " + v.1 + ")"))),
+        ),
+        rw([thm("tlsf_allocator_frame")]),
+        arw([]),
+        @tactics.first_x_assum(th => {
+          if head_name(@kernel.concl(th)) == "star" {
+            @tactics.mp_tac(th)
+          } else {
+            @tactics.no_tac
+          }
+        }),
+        arw([]),
+      ])
+    },
   )
   let env = "∀ fs : List[Cl], ∀ tabs : List[(Tab_t,List[V_ref])], ∀ inst : Inst, ∀ pop : Num, ∀ push : Num, ∀ free_idx : Num"
   let path = inst(thm("tlsf_free_all"), [
@@ -148,35 +150,37 @@ fn prove_tlsf_block_free_return() -> Unit raise {
   let _ = lemma(
     "tlsf_small_return_all",
     "\{env}, \{v} ∀ vs0 : List[Value], ∀ lc0 : List[Value], \{backing} && !MEM(m,ps) && \{natives} → sl_triple_m(fs,tabs,inst,\{pre},[Call(free_idx)],\{post},NIL)",
-    seq([
-      gen,
-      strip,
-      initialize_m_conseq(
-        path,
-        same_tac(),
-        seq([
-          gen,
-          beta_goal(),
-          strip,
-          subst_vars(),
-          @tactics.mp_tac(
-            inst(
-              fold,
-              vs.map(v => "(" + v.0 + " : " + v.1 + ")") +
-              [
-                "(res : List[Value])",
-                "(gs : List[Value])",
-                "(ms : Num)",
-                "(h : " + heap + ")",
-              ],
+    () => {
+      seq([
+        gen,
+        strip,
+        initialize_m_conseq(
+          path,
+          same_tac(),
+          seq([
+            gen,
+            beta_goal(),
+            strip,
+            subst_vars(),
+            @tactics.mp_tac(
+              inst(
+                fold,
+                vs.map(v => "(" + v.0 + " : " + v.1 + ")") +
+                [
+                  "(res : List[Value])",
+                  "(gs : List[Value])",
+                  "(ms : Num)",
+                  "(h : " + heap + ")",
+                ],
+              ),
             ),
-          ),
-          arw([]),
-          @tactics.disch_tac,
-          @tactics.exists_tac(tm("(res : List[Value])")),
-          arw([]),
-        ]),
-      ),
-    ]),
+            arw([]),
+            @tactics.disch_tac,
+            @tactics.exists_tac(tm("(res : List[Value])")),
+            arw([]),
+          ]),
+        ),
+      ])
+    },
   )
 }

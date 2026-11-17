@@ -89,39 +89,41 @@ fn prove_tlsf_malloc_checked_post() -> Unit raise {
     params +
     ")" +
     state,
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @simp.rewrite_tac(
-        ths([thm("tlsf_try_malloc_post"), thm("tlsf_malloc_checked_post")]),
-      ),
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      subst_vars(),
-      @tactics.first(
-        @list.List([
-          solve(@simp.asm_rewrite_tac(ths([]))),
-          solve(
-            seq([
-              @tactics.first_assum(th => {
-                if head_name(@kernel.concl(th)) == "tlsf_malloc_result" {
-                  @tactics.strip_assume_tac(
-                    @drule.match_mp(
-                      @bool.spec_all(thm("tlsf_malloc_result_pointer")),
-                    )(th),
-                  )
-                } else {
-                  @tactics.no_tac
-                }
-              }),
-              @simp.asm_rewrite_tac(ths([])),
-              @tactics.repeat_tac(@tactics.disj2_tac),
-              @tactics.try_tac(@tactics.exists_tac(tm("(ptr : " + w32 + ")"))),
-              @simp.asm_rewrite_tac(ths([])),
-              page_publish_atomic([]),
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @simp.rewrite_tac(
+          ths([thm("tlsf_try_malloc_post"), thm("tlsf_malloc_checked_post")]),
+        ),
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        subst_vars(),
+        @tactics.first(
+          @list.List([
+            solve(@simp.asm_rewrite_tac(ths([]))),
+            solve(
+              seq([
+                @tactics.first_assum(th => {
+                  if head_name(@kernel.concl(th)) == "tlsf_malloc_result" {
+                    @tactics.strip_assume_tac(
+                      @drule.match_mp(
+                        @bool.spec_all(thm("tlsf_malloc_result_pointer")),
+                      )(th),
+                    )
+                  } else {
+                    @tactics.no_tac
+                  }
+                }),
+                @simp.asm_rewrite_tac(ths([])),
+                @tactics.repeat_tac(@tactics.disj2_tac),
+                @tactics.try_tac(@tactics.exists_tac(tm("(ptr : " + w32 + ")"))),
+                @simp.asm_rewrite_tac(ths([])),
+                page_publish_atomic([]),
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
 }
 
@@ -155,39 +157,41 @@ fn prove_tlsf_malloc_retry_checked() -> Unit raise {
     "," +
     post +
     ",NIL)",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      initialize_m_conseq(
-        source,
-        same_tac(),
-        seq([
-          @tactics.repeat_tac(@tactics.gen_tac),
-          beta_goal(),
-          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-          seq(
-            ["out0", "out1", "out2", "out3", "out4"].map(x => {
-              @tactics.exists_tac(tm("(" + x + " : Value)"))
-            }),
-          ),
-          @simp.asm_rewrite_tac(ths([])),
-          free_apply(
-            inst(
-              thm("tlsf_malloc_try_checked"),
-              a +
-              [
-                n,
-                "(before : " + heap + ")",
-                "(fp : " + rty + ")",
-                "(vs : List[Value])",
-                "(gs : List[Value])",
-                "(ms : Num)",
-                "(h : " + heap + ")",
-              ],
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        initialize_m_conseq(
+          source,
+          same_tac(),
+          seq([
+            @tactics.repeat_tac(@tactics.gen_tac),
+            beta_goal(),
+            @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+            seq(
+              ["out0", "out1", "out2", "out3", "out4"].map(x => {
+                @tactics.exists_tac(tm("(" + x + " : Value)"))
+              }),
             ),
-          ),
-        ]),
-      ),
-    ]),
+            @simp.asm_rewrite_tac(ths([])),
+            free_apply(
+              inst(
+                thm("tlsf_malloc_try_checked"),
+                a +
+                [
+                  n,
+                  "(before : " + heap + ")",
+                  "(fp : " + rty + ")",
+                  "(vs : List[Value])",
+                  "(gs : List[Value])",
+                  "(ms : Num)",
+                  "(h : " + heap + ")",
+                ],
+              ),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
 }

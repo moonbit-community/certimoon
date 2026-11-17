@@ -80,6 +80,59 @@ Loading a package replays its proofs; there is no theorem cache. The
 `tlsf` package loads that logic and then verifies the allocator. Loading
 `logic` alone does not replay TLSF.
 
+For TLSF proof development, check one lemma with earlier TLSF lemma statements
+as explicit premises:
+
+```bash
+ulimit -s 65520
+moon run cmd/tlsf --target wasm-gc -- check tlsf_find_sound
+moon run cmd/tlsf --target wasm-gc -- check tlsf_full_malloc_run
+```
+
+This runs that registered proof body and stops declaration setup at its
+statement. HOL, WasmCert, and the core logic still replay normally. TLSF
+definitions are checked normally too; small unnamed setup derivations may run
+while constructing declarations. The output says `CONDITIONAL PASS` and lists
+the earlier premises used. It does not establish those premises. No assumptions
+enter the normal theorem registry, and the kernel's axiom set is unchanged.
+
+Pass several lemma names to share setup, `check --all` to test every proof
+independently, or `list` to list the available names and source locations.
+These commands prepare the complete catalog. Each proof can use only earlier
+declarations, even when a later declaration is already in the catalog.
+
+Full verification is a separate command:
+
+```bash
+moon run cmd/tlsf --target wasm-gc -- verify
+```
+
+It replays all proof bodies using proved predecessors, requires every TLSF
+theorem to have no hypotheses, and audits the three approved upstream axioms.
+The existing `moon test -p moonbit-community/certimoon/tlsf` continues to do full
+verification plus the concrete execution and snapshot tests. Use full
+verification after changing statements or definitions, and before accepting a
+change; individual conditional checks are the faster development loop.
+
+The API equivalents are `@tlsf.check_lemma(name)`,
+`@tlsf.prepare_checks().check(name)`, and `@tlsf.verify()`. Use a fresh process to
+switch from conditional setup to full replay: kernel definitions cannot be
+rolled back. Set `WASMCERT_PROOF_TRACE=1` for tactic tracing.
+
+To reproduce the cold-process comparison (build time excluded):
+
+```bash
+ulimit -s 65520
+python3 tools/benchmark_tlsf_checks.py --repeat 2 --out /tmp/tlsf-checks.json
+```
+
+It runs one full replay and three individual lemma checks per repetition,
+sequentially, using the same executable. It records both process wall time and
+the checked base, declaration setup, and proof phases. `--release` and
+`--target native` select the other configurations.
+See [TLSF check measurements](tools/TLSF_CHECKS.md) for the trust boundary,
+validation results, and recorded timings.
+
 ## Reviewing what is proved
 
 Each package's tests keep its theory in two snapshots: `theory.md`, the

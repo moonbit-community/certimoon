@@ -55,18 +55,20 @@ fn define_tlsf_take_state() -> Unit raise {
   let _ = lemma(
     "tlsf_take_code_parts",
     "∀ d : \{w}, ∀ pop : Num, ∀ push : Num, tlsf_take_code(d, pop, push) == APPEND(tlsf_find_code(d), tlsf_take_tail(d, pop, push))",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @simp.rewrite_tac(
-        ths([
-          thm("tlsf_take_code"),
-          thm("tlsf_find_code"),
-          thm("tlsf_take_tail"),
-          thm("tlsf_take_success"),
-          thm("tlsf_split_code"),
-          @lists.append(),
-        ]),
-      ),
-    ]),
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @simp.rewrite_tac(
+          ths([
+            thm("tlsf_take_code"),
+            thm("tlsf_find_code"),
+            thm("tlsf_take_tail"),
+            thm("tlsf_take_success"),
+            thm("tlsf_split_code"),
+            @lists.append(),
+          ]),
+        ),
+      ])
+    },
   )
 }

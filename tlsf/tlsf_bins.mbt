@@ -23,78 +23,82 @@ fn prove_tlsf_all_bins() -> Unit raise {
   let cong = lemma(
     "tlsf_istar_cong",
     "∀ n : Num, ∀ ff : \{fty}, ∀ gg : \{fty}, (∀ i : Num, i < n → ff(i) == gg(i)) → tlsf_istar(ff, n) == tlsf_istar(gg, n)",
-    seq([
-      @nums.induct_tac,
-      rw([istar]),
-      gen,
-      @tactics.disch_tac,
-      have(
-        "(ff : \{fty})(n) == (gg : \{fty})(n)",
-        seq([
-          @tactics.first_x_assum(th => @tactics.match_mp_tac(th)),
-          @int.arith_tac,
-        ]),
-      ),
-      have(
-        "tlsf_istar((ff : \{fty}), n) == tlsf_istar((gg : \{fty}), n)",
-        seq([
-          @tactics.first_x_assum(th => @tactics.match_mp_tac(th)),
-          @tactics.gen_tac,
-          @tactics.disch_tac,
-          @tactics.first_x_assum(th => @tactics.match_mp_tac(th)),
-          @int.asm_arith_tac,
-        ]),
-      ),
-      arw([]),
-    ]),
+    () => {
+      seq([
+        @nums.induct_tac,
+        rw([istar]),
+        gen,
+        @tactics.disch_tac,
+        have(
+          "(ff : \{fty})(n) == (gg : \{fty})(n)",
+          seq([
+            @tactics.first_x_assum(th => @tactics.match_mp_tac(th)),
+            @int.arith_tac,
+          ]),
+        ),
+        have(
+          "tlsf_istar((ff : \{fty}), n) == tlsf_istar((gg : \{fty}), n)",
+          seq([
+            @tactics.first_x_assum(th => @tactics.match_mp_tac(th)),
+            @tactics.gen_tac,
+            @tactics.disch_tac,
+            @tactics.first_x_assum(th => @tactics.match_mp_tac(th)),
+            @int.asm_arith_tac,
+          ]),
+        ),
+        arw([]),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_istar_focus",
     "∀ n : Num, ∀ ff : \{fty}, ∀ k : Num, k < n → tlsf_istar(ff, n) == star(ff(k), tlsf_istar((i : Num) => if i == k { emp } else { ff(i) }, n))",
-    seq([
-      @nums.induct_tac,
-      rw([istar, @arith.lt()]),
-      gen,
-      @tactics.disch_then(th => @tactics.disj_cases_tac(th)),
-      // k = n
-      @tactics.first(
-        @list.List([
-          solve(
-            seq([
-              @tactics.first_x_assum(th => @tactics.subst1_tac(th)),
-              rw([]),
-              have(
-                "tlsf_istar((i : Num) => if i == n { emp } else { (ff : \{fty})(i) }, n) == tlsf_istar(ff, n)",
-                seq([
-                  @tactics.match_mp_tac(cong),
-                  @tactics.gen_tac,
-                  @tactics.disch_tac,
-                  have("!((i : Num) == n)", @int.asm_arith_tac),
-                  arw([]),
-                ]),
-              ),
-              arw([thm("star_emp_hr")]),
-              @tactics.match_accept_tac(thm("star_comm")),
-            ]),
-          ),
-          // k < n
-          solve(
-            seq([
-              have("!((n : Num) == k)", @int.asm_arith_tac),
-              @tactics.first_x_assum(th => {
-                @tactics.mp_tac(@bool.spec(tm("(ff : \{fty})"), th))
-              }),
-              @tactics.disch_then(th => {
-                @tactics.mp_tac(@bool.spec(tm("(k : Num)"), th))
-              }),
-              arw([]),
-              @tactics.disch_tac,
-              arw([thm("star_assoc")]),
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+    () => {
+      seq([
+        @nums.induct_tac,
+        rw([istar, @arith.lt()]),
+        gen,
+        @tactics.disch_then(th => @tactics.disj_cases_tac(th)),
+        // k = n
+        @tactics.first(
+          @list.List([
+            solve(
+              seq([
+                @tactics.first_x_assum(th => @tactics.subst1_tac(th)),
+                rw([]),
+                have(
+                  "tlsf_istar((i : Num) => if i == n { emp } else { (ff : \{fty})(i) }, n) == tlsf_istar(ff, n)",
+                  seq([
+                    @tactics.match_mp_tac(cong),
+                    @tactics.gen_tac,
+                    @tactics.disch_tac,
+                    have("!((i : Num) == n)", @int.asm_arith_tac),
+                    arw([]),
+                  ]),
+                ),
+                arw([thm("star_emp_hr")]),
+                @tactics.match_accept_tac(thm("star_comm")),
+              ]),
+            ),
+            // k < n
+            solve(
+              seq([
+                have("!((n : Num) == k)", @int.asm_arith_tac),
+                @tactics.first_x_assum(th => {
+                  @tactics.mp_tac(@bool.spec(tm("(ff : \{fty})"), th))
+                }),
+                @tactics.disch_then(th => {
+                  @tactics.mp_tac(@bool.spec(tm("(k : Num)"), th))
+                }),
+                arw([]),
+                @tactics.disch_tac,
+                arw([thm("star_assoc")]),
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
   let focus = thm("tlsf_istar_focus")
   let cell = (a : String, x : String) => {
@@ -129,7 +133,7 @@ fn prove_tlsf_all_bins() -> Unit raise {
   let upd_same = lemma(
     "tlsf_upd_same",
     "∀ ff : (Num) -> A, ∀ k : Num, ∀ v : A, tlsf_upd(ff, k, v)(k) == v",
-    seq([gen, rw([upd])]),
+    () => seq([gen, rw([upd])]),
   )
   let rest_tac = seq([
     gen,
@@ -141,196 +145,212 @@ fn prove_tlsf_all_bins() -> Unit raise {
   let level_rest = lemma(
     "tlsf_level_rest",
     "∀ d : \{w}, ∀ k : Num, ∀ sb : (Num) -> \{w}, ∀ v : \{w}, ∀ bl : (Num) -> (Num) -> \{lw}, ∀ L : (Num) -> \{lw}, ((i : Num) => if i == k { emp } else { tlsf_level(d, i, tlsf_upd(sb, k, v)(i), tlsf_upd(bl, k, L)(i)) }) == ((i : Num) => if i == k { emp } else { tlsf_level(d, i, sb(i), bl(i)) })",
-    rest_tac,
+    () => rest_tac,
   )
   let item_rest = lemma(
     "tlsf_item_rest",
     "∀ d : \{w}, ∀ fw : \{w}, ∀ k : Num, ∀ L : (Num) -> \{lw}, ∀ xs : \{lw}, ((j : Num) => if j == k { emp } else { tlsf_slot_item(d, fw, j, tlsf_upd(L, k, xs)(j)) }) == ((j : Num) => if j == k { emp } else { tlsf_slot_item(d, fw, j, L(j)) })",
-    rest_tac,
+    () => rest_tac,
   )
   let bit_nz = lemma(
     "tlsf_or_bit_nz",
     "∀ x : \{w}, ∀ j : \{w}, !(word_or(x, word_jshl(word(1), j)) == word(0))",
-    seq([
-      gen,
-      rw([
-        @words.word_eq_bits(),
-        @words.bit_word_or(),
-        @words.word_jshl(),
-        @words.bit_word_shl(),
-        @words.bit_word_1(),
-        @words.bit_word_0(),
-        @words.dimindex_32(),
-        @class.not_forall_thm(),
-      ]),
-      @tactics.exists_tac(tm("MOD(val((j : \{w})), 32)")),
-      @int.arith_tac,
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([
+          @words.word_eq_bits(),
+          @words.bit_word_or(),
+          @words.word_jshl(),
+          @words.bit_word_shl(),
+          @words.bit_word_1(),
+          @words.bit_word_0(),
+          @words.dimindex_32(),
+          @class.not_forall_thm(),
+        ]),
+        @tactics.exists_tac(tm("MOD(val((j : \{w})), 32)")),
+        @int.arith_tac,
+      ])
+    },
   )
   let sync_set = thm("tlsf_sync_set")
   let _ = lemma(
     "tlsf_sync_push_bin",
     "∀ s : \{w}, ∀ j : \{w}, ∀ L : (Num) -> \{lw}, ∀ m : \{w}, val(j) < 16 && tlsf_sync(s, 16, (i : Num) => !(L(i) == NIL)) → tlsf_sync(word_or(s, word_jshl(word(1), j)), 16, (i : Num) => !(tlsf_upd(L, val(j), CONS(m, L(val(j))))(i) == NIL))",
-    seq([
-      gen,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      have(
-        "((i : Num) => !(tlsf_upd((L : (Num) -> \{lw}), val((j : \{w})), CONS((m : \{w}), L(val(j))))(i) == NIL)) == ((i : Num) => i == val(j) || !(L(i) == NIL))",
-        seq([
-          rw([@class.fun_eq_thm()]),
-          @tactics.gen_tac,
-          rw([upd]),
-          @class.cond_cases_tac,
-          arw([@lists.not_cons_nil()]),
-        ]),
-      ),
-      arw([]),
-      @tactics.match_mp_tac(sync_set),
-      arw([]),
-      @int.arith_tac,
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        have(
+          "((i : Num) => !(tlsf_upd((L : (Num) -> \{lw}), val((j : \{w})), CONS((m : \{w}), L(val(j))))(i) == NIL)) == ((i : Num) => i == val(j) || !(L(i) == NIL))",
+          seq([
+            rw([@class.fun_eq_thm()]),
+            @tactics.gen_tac,
+            rw([upd]),
+            @class.cond_cases_tac,
+            arw([@lists.not_cons_nil()]),
+          ]),
+        ),
+        arw([]),
+        @tactics.match_mp_tac(sync_set),
+        arw([]),
+        @int.arith_tac,
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_sync_push_top",
     "∀ fl : \{w}, ∀ f : \{w}, ∀ j : \{w}, ∀ sb : (Num) -> \{w}, val(f) < 28 && tlsf_sync(fl, 28, (i : Num) => !(sb(i) == word(0))) → tlsf_sync(word_or(fl, word_jshl(word(1), f)), 28, (i : Num) => !(tlsf_upd(sb, val(f), word_or(sb(val(f)), word_jshl(word(1), j)))(i) == word(0)))",
-    seq([
-      gen,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      have(
-        "((i : Num) => !(tlsf_upd((sb : (Num) -> \{w}), val((f : \{w})), word_or(sb(val(f)), word_jshl(word(1), (j : \{w}))))(i) == word(0))) == ((i : Num) => i == val(f) || !(sb(i) == word(0)))",
-        seq([
-          rw([@class.fun_eq_thm()]),
-          @tactics.gen_tac,
-          rw([upd]),
-          @class.cond_cases_tac,
-          arw([bit_nz]),
-        ]),
-      ),
-      arw([]),
-      @tactics.match_mp_tac(sync_set),
-      arw([]),
-      @int.arith_tac,
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        have(
+          "((i : Num) => !(tlsf_upd((sb : (Num) -> \{w}), val((f : \{w})), word_or(sb(val(f)), word_jshl(word(1), (j : \{w}))))(i) == word(0))) == ((i : Num) => i == val(f) || !(sb(i) == word(0)))",
+          seq([
+            rw([@class.fun_eq_thm()]),
+            @tactics.gen_tac,
+            rw([upd]),
+            @class.cond_cases_tac,
+            arw([bit_nz]),
+          ]),
+        ),
+        arw([]),
+        @tactics.match_mp_tac(sync_set),
+        arw([]),
+        @int.arith_tac,
+      ])
+    },
   )
   // Replacing an occupied entry either keeps its bit or clears it.
   let sync_replace = lemma(
     "tlsf_sync_replace",
     "∀ s : \{w}, ∀ j : \{w}, ∀ n : Num, ∀ ne : (Num) -> Bool, ∀ b : Bool, val(j) < n && n <= 32 && tlsf_sync(s, n, ne) && ne(val(j)) → tlsf_sync((if b { s } else { word_xor(s, word_jshl(word(1), j)) }), n, (k : Num) => if k == val(j) { b } else { ne(k) })",
-    seq([
-      gen,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      @class.asm_cases_tac(tm("(b : Bool)")),
-      arw([]),
-      have(
-        "((k : Num) => if k == val((j : \{w})) { T } else { (ne : (Num) -> Bool)(k) }) == ne",
-        seq([
-          rw([@class.fun_eq_thm()]),
-          @tactics.gen_tac,
-          @class.cond_cases_tac,
-          arw([]),
-        ]),
-      ),
-      arw([]),
-      have(
-        "((k : Num) => if k == val((j : \{w})) { F } else { (ne : (Num) -> Bool)(k) }) == ((k : Num) => !(k == val(j)) && ne(k))",
-        seq([
-          rw([@class.fun_eq_thm()]),
-          @tactics.gen_tac,
-          @class.cond_cases_tac,
-          arw([]),
-        ]),
-      ),
-      arw([]),
-      @tactics.match_mp_tac(thm("tlsf_sync_clear")),
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        @class.asm_cases_tac(tm("(b : Bool)")),
+        arw([]),
+        have(
+          "((k : Num) => if k == val((j : \{w})) { T } else { (ne : (Num) -> Bool)(k) }) == ne",
+          seq([
+            rw([@class.fun_eq_thm()]),
+            @tactics.gen_tac,
+            @class.cond_cases_tac,
+            arw([]),
+          ]),
+        ),
+        arw([]),
+        have(
+          "((k : Num) => if k == val((j : \{w})) { F } else { (ne : (Num) -> Bool)(k) }) == ((k : Num) => !(k == val(j)) && ne(k))",
+          seq([
+            rw([@class.fun_eq_thm()]),
+            @tactics.gen_tac,
+            @class.cond_cases_tac,
+            arw([]),
+          ]),
+        ),
+        arw([]),
+        @tactics.match_mp_tac(thm("tlsf_sync_clear")),
+        arw([]),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_sync_pop_bin",
     "∀ s : \{w}, ∀ j : \{w}, ∀ L : (Num) -> \{lw}, ∀ xs : \{lw}, val(j) < 16 && tlsf_sync(s, 16, (i : Num) => !(L(i) == NIL)) && !(L(val(j)) == NIL) → tlsf_sync((if xs == NIL { word_xor(s, word_jshl(word(1), j)) } else { s }), 16, (i : Num) => !(tlsf_upd(L, val(j), xs)(i) == NIL))",
-    seq([
-      gen,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      have(
-        "((i : Num) => !(tlsf_upd((L : (Num) -> \{lw}), val((j : \{w})), (xs : \{lw}))(i) == NIL)) == ((i : Num) => if i == val(j) { !(xs == NIL) } else { !(L(i) == NIL) })",
-        seq([
-          rw([@class.fun_eq_thm(), upd]),
-          @tactics.gen_tac,
-          @class.cond_cases_tac,
-          arw([]),
-        ]),
-      ),
-      arw([]),
-      @tactics.mp_tac(
-        inst(sync_replace, [
-          "(s : \{w})",
-          "(j : \{w})",
-          "16",
-          "(i : Num) => !((L : (Num) -> \{lw})(i) == NIL)",
-          "!((xs : \{lw}) == NIL)",
-        ]),
-      ),
-      arw([arith("16 <= 32")]),
-      @class.asm_cases_tac(tm("(xs : \{lw}) == NIL")),
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        have(
+          "((i : Num) => !(tlsf_upd((L : (Num) -> \{lw}), val((j : \{w})), (xs : \{lw}))(i) == NIL)) == ((i : Num) => if i == val(j) { !(xs == NIL) } else { !(L(i) == NIL) })",
+          seq([
+            rw([@class.fun_eq_thm(), upd]),
+            @tactics.gen_tac,
+            @class.cond_cases_tac,
+            arw([]),
+          ]),
+        ),
+        arw([]),
+        @tactics.mp_tac(
+          inst(sync_replace, [
+            "(s : \{w})",
+            "(j : \{w})",
+            "16",
+            "(i : Num) => !((L : (Num) -> \{lw})(i) == NIL)",
+            "!((xs : \{lw}) == NIL)",
+          ]),
+        ),
+        arw([arith("16 <= 32")]),
+        @class.asm_cases_tac(tm("(xs : \{lw}) == NIL")),
+        arw([]),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_sync_pop_top",
     "∀ fl : \{w}, ∀ f : \{w}, ∀ sb : (Num) -> \{w}, ∀ s : \{w}, val(f) < 28 && tlsf_sync(fl, 28, (i : Num) => !(sb(i) == word(0))) && !(sb(val(f)) == word(0)) → tlsf_sync((if s == word(0) { word_xor(fl, word_jshl(word(1), f)) } else { fl }), 28, (i : Num) => !(tlsf_upd(sb, val(f), s)(i) == word(0)))",
-    seq([
-      gen,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      have(
-        "((i : Num) => !(tlsf_upd((sb : (Num) -> \{w}), val((f : \{w})), (s : \{w}))(i) == word(0))) == ((i : Num) => if i == val(f) { !(s == word(0)) } else { !(sb(i) == word(0)) })",
-        seq([
-          rw([@class.fun_eq_thm(), upd]),
-          @tactics.gen_tac,
-          @class.cond_cases_tac,
-          arw([]),
-        ]),
-      ),
-      arw([]),
-      @tactics.mp_tac(
-        inst(sync_replace, [
-          "(fl : \{w})",
-          "(f : \{w})",
-          "28",
-          "(i : Num) => !((sb : (Num) -> \{w})(i) == word(0))",
-          "!((s : \{w}) == word(0))",
-        ]),
-      ),
-      arw([arith("28 <= 32")]),
-      @class.asm_cases_tac(tm("(s : \{w}) == word(0)")),
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        have(
+          "((i : Num) => !(tlsf_upd((sb : (Num) -> \{w}), val((f : \{w})), (s : \{w}))(i) == word(0))) == ((i : Num) => if i == val(f) { !(s == word(0)) } else { !(sb(i) == word(0)) })",
+          seq([
+            rw([@class.fun_eq_thm(), upd]),
+            @tactics.gen_tac,
+            @class.cond_cases_tac,
+            arw([]),
+          ]),
+        ),
+        arw([]),
+        @tactics.mp_tac(
+          inst(sync_replace, [
+            "(fl : \{w})",
+            "(f : \{w})",
+            "28",
+            "(i : Num) => !((sb : (Num) -> \{w})(i) == word(0))",
+            "!((s : \{w}) == word(0))",
+          ]),
+        ),
+        arw([arith("28 <= 32")]),
+        @class.asm_cases_tac(tm("(s : \{w}) == word(0)")),
+        arw([]),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_sync_occupied_nz",
     "∀ s : \{w}, ∀ n : Num, ∀ ne : (Num) -> Bool, ∀ k : Num, tlsf_sync(s, n, ne) && k < n && ne(k) → !(s == word(0))",
-    seq([
-      gen,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      @tactics.mp_tac(
-        inst(thm("tlsf_sync_zero"), [
-          "(s : \{w})",
-          "(n : Num)",
-          "(ne : (Num) -> Bool)",
-        ]),
-      ),
-      arw([]),
-      @meson.asm_meson_tac(ths([])),
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        @tactics.mp_tac(
+          inst(thm("tlsf_sync_zero"), [
+            "(s : \{w})",
+            "(n : Num)",
+            "(ne : (Num) -> Bool)",
+          ]),
+        ),
+        arw([]),
+        @meson.asm_meson_tac(ths([])),
+      ])
+    },
   )
   let pop_bitmap = lemma(
     "tlsf_pop_bitmap",
     "∀ fl : \{w}, ∀ s : \{w}, ∀ f : \{w}, ∀ j : \{w}, ∀ empty : Bool, !(s == word(0)) → (if empty { if word_xor(s, word_jshl(word(1), j)) == word(0) { word_xor(fl, word_jshl(word(1), f)) } else { fl } } else { fl }) == (if (if empty { word_xor(s, word_jshl(word(1), j)) } else { s }) == word(0) { word_xor(fl, word_jshl(word(1), f)) } else { fl })",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      @class.asm_cases_tac(tm("(empty : Bool)")),
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        @class.asm_cases_tac(tm("(empty : Bool)")),
+        arw([]),
+      ])
+    },
   )
   // push against the whole table
   let i = (x : String) => "V_num(ConstInt32(\{x}))"
@@ -445,22 +465,22 @@ fn prove_tlsf_all_bins() -> Unit raise {
     "\{blt}(\{fv})(\{jv})",
     "(gs : List[Value]) => (ms : Num) => star(\{rest}, (fp : \{rty})(gs, ms))",
   ])
-  record(
-    "tlsf_push_all",
-    @tactics.prove(
-      tm(
-        "∀ d : \{w}, ∀ m : \{w}, ∀ hd : \{w}, ∀ pf0 : \{w}, ∀ nf0 : \{w}, ∀ fl : \{w}, ∀ sb : (Num) -> \{w}, ∀ bl : (Num) -> (Num) -> \{lw}, ∀ fp : \{rty}, !(m == word(0)) && 16 <= val(\{sz}) → sl_triple(\{state("(NIL : List[Value])", "[\{i("m")}, \{z}, \{z}, \{z}]", [cell("m", "hd"), cell(at("m", "8"), "pf0"), cell(at("m", "12"), "nf0"), "tlsf_bins(d, fl, sb, bl)"])}, tlsf_push_code(d), \{anyl("[\{z}]", [cell("m", "hd"), "tlsf_bins(d, \{fl2}, \{s2}, \{l2})"])})",
-      ),
-      seq([
-        gen,
-        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-        @tactics.mp_tac(inst(thm("tlsf_code_bounds"), [sz])),
-        arw([]),
-        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-        by_path(path, c, pre_rws, [], post_rws, []),
-      ]),
+  ignore(
+    lemma(
+      "tlsf_push_all",
+      "∀ d : \{w}, ∀ m : \{w}, ∀ hd : \{w}, ∀ pf0 : \{w}, ∀ nf0 : \{w}, ∀ fl : \{w}, ∀ sb : (Num) -> \{w}, ∀ bl : (Num) -> (Num) -> \{lw}, ∀ fp : \{rty}, !(m == word(0)) && 16 <= val(\{sz}) → sl_triple(\{state("(NIL : List[Value])", "[\{i("m")}, \{z}, \{z}, \{z}]", [cell("m", "hd"), cell(at("m", "8"), "pf0"), cell(at("m", "12"), "nf0"), "tlsf_bins(d, fl, sb, bl)"])}, tlsf_push_code(d), \{anyl("[\{z}]", [cell("m", "hd"), "tlsf_bins(d, \{fl2}, \{s2}, \{l2})"])})",
+      () => {
+        seq([
+          gen,
+          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+          @tactics.mp_tac(inst(thm("tlsf_code_bounds"), [sz])),
+          arw([]),
+          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+          by_path(path, c, pre_rws, [], post_rws, []),
+        ])
+      },
+      kind="example",
     ),
-    kind="example",
   )
   // Pop from any position in the selected bin. The rest of both tables
   // is framed out, just as for push.
@@ -540,22 +560,22 @@ fn prove_tlsf_all_bins() -> Unit raise {
     zs,
     "(gs : List[Value]) => (ms : Num) => star(\{rest}, (fp : \{rty})(gs, ms))",
   ])
-  record(
-    "tlsf_pop_all",
-    @tactics.prove(
-      tm(
-        "∀ d : \{w}, ∀ m : \{w}, ∀ hd : \{w}, ∀ fl : \{w}, ∀ sb : (Num) -> \{w}, ∀ bl : (Num) -> (Num) -> \{lw}, ∀ ys : \{lw}, ∀ zs : \{lw}, ∀ fp : \{rty}, 16 <= val(\{sz}) && \{blt}(\{fv})(\{jv}) == \{before} → sl_triple(\{state("(NIL : List[Value])", "[\{i("m")}, \{z}, \{z}, \{z}, \{z}]", [cell("m", "hd"), "tlsf_bins(d, fl, sb, bl)"])}, tlsf_pop_code(d), \{anyl("(NIL : List[Value])", [cell("m", "hd"), cell(at("m", "8"), "tlsf_prev(\{ys})"), cell(at("m", "12"), "tlsf_hd(\{zs})"), "tlsf_bins(d, \{flpop}, \{spop}, \{lpop})"])})",
-      ),
-      seq([
-        gen,
-        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-        @tactics.mp_tac(inst(thm("tlsf_code_bounds"), [sz])),
-        arw([]),
-        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-        have(occupied, arw([@lists.append_eq_nil(), @lists.not_cons_nil()])),
-        by_path(pop_path, c, pop_pre_rws, [], pop_post_rws, []),
-      ]),
+  ignore(
+    lemma(
+      "tlsf_pop_all",
+      "∀ d : \{w}, ∀ m : \{w}, ∀ hd : \{w}, ∀ fl : \{w}, ∀ sb : (Num) -> \{w}, ∀ bl : (Num) -> (Num) -> \{lw}, ∀ ys : \{lw}, ∀ zs : \{lw}, ∀ fp : \{rty}, 16 <= val(\{sz}) && \{blt}(\{fv})(\{jv}) == \{before} → sl_triple(\{state("(NIL : List[Value])", "[\{i("m")}, \{z}, \{z}, \{z}, \{z}]", [cell("m", "hd"), "tlsf_bins(d, fl, sb, bl)"])}, tlsf_pop_code(d), \{anyl("(NIL : List[Value])", [cell("m", "hd"), cell(at("m", "8"), "tlsf_prev(\{ys})"), cell(at("m", "12"), "tlsf_hd(\{zs})"), "tlsf_bins(d, \{flpop}, \{spop}, \{lpop})"])})",
+      () => {
+        seq([
+          gen,
+          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+          @tactics.mp_tac(inst(thm("tlsf_code_bounds"), [sz])),
+          arw([]),
+          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+          have(occupied, arw([@lists.append_eq_nil(), @lists.not_cons_nil()])),
+          by_path(pop_path, c, pop_pre_rws, [], pop_post_rws, []),
+        ])
+      },
+      kind="example",
     ),
-    kind="example",
   )
 }

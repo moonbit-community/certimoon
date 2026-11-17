@@ -181,22 +181,26 @@ fn prove_tlsf_malloc_take_result() -> Unit raise {
   let _ = lemma(
     "tlsf_malloc_take_post_result",
     "\{vars} \{backing} && tlsf_take_post(\{takeargs})((res : List[Value]),gs,ms,h) → tlsf_malloc_take_selected_post(\{params})(res,gs,ms,h)",
-    seq([
-      gen,
-      rw([
-        thm("tlsf_take_post"),
-        thm("tlsf_allocated"),
-        @words.val_word(),
-        @words.dimindex_32(),
-      ]),
-      @tactics.conv_tac(@calc_num.num_reduce_conv),
-      beta_goal(),
-      strip,
-      @tactics.subst1_tac(@kernel.assume_rule(tm("(ms : Num) == (lim : Num)"))),
-      rw([thm("tlsf_malloc_take_selected_post")]),
-      beta_goal(),
-      arw([]),
-      @tactics.first(@list.List([solve(failure), solve(success)])),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([
+          thm("tlsf_take_post"),
+          thm("tlsf_allocated"),
+          @words.val_word(),
+          @words.dimindex_32(),
+        ]),
+        @tactics.conv_tac(@calc_num.num_reduce_conv),
+        beta_goal(),
+        strip,
+        @tactics.subst1_tac(
+          @kernel.assume_rule(tm("(ms : Num) == (lim : Num)")),
+        ),
+        rw([thm("tlsf_malloc_take_selected_post")]),
+        beta_goal(),
+        arw([]),
+        @tactics.first(@list.List([solve(failure), solve(success)])),
+      ])
+    },
   )
 }

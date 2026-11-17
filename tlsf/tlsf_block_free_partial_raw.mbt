@@ -52,7 +52,7 @@ fn prove_tlsf_block_free_partial_raw() -> Unit raise {
       "tlsf_block_free_partial_raw",
       "\{vars}, !(u == total) && !(u == word(1)) → sl_triple(st(NIL,[l0,\{i("b")},l2],\{own(before)}),tlsf_block_free_code(d,free_idx),\{q})",
       [],
-      [vc],
+      () => [vc],
       afters=Array::make(5, @logic.sa_false),
       kind="lemma",
     ),

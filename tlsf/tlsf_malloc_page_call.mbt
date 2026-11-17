@@ -66,43 +66,49 @@ fn prove_tlsf_malloc_page_call() -> Unit raise {
     ",[Call(page_idx)]," +
     post +
     ",NIL)",
-    seq([
-      gen,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      initialize_m_conseq(
-        source,
-        ent_tac(
-          [thm("tlsf_malloc_page_pre"), thm("tlsf_malloc_ro"), @lists.append()],
-          [],
-        ),
-        seq([
-          gen,
-          beta_goal(),
-          rw([@lists.append()]),
-          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-          arw([]),
-          g => {
-            free_apply(
-              @simp.rewrite_rule(g.0.map(x => x.1))(
-                inst(
-                  thm("tlsf_malloc_page_expand"),
-                  a +
-                  [
-                    n,
-                    before,
-                    fp,
-                    "(vs : List[Value])",
-                    "(gs : List[Value])",
-                    "(ms : Num)",
-                    "(h : " + heap + ")",
-                  ],
+    () => {
+      seq([
+        gen,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        initialize_m_conseq(
+          source,
+          ent_tac(
+            [
+              thm("tlsf_malloc_page_pre"),
+              thm("tlsf_malloc_ro"),
+              @lists.append(),
+            ],
+            [],
+          ),
+          seq([
+            gen,
+            beta_goal(),
+            rw([@lists.append()]),
+            @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+            arw([]),
+            g => {
+              free_apply(
+                @simp.rewrite_rule(g.0.map(x => x.1))(
+                  inst(
+                    thm("tlsf_malloc_page_expand"),
+                    a +
+                    [
+                      n,
+                      before,
+                      fp,
+                      "(vs : List[Value])",
+                      "(gs : List[Value])",
+                      "(ms : Num)",
+                      "(h : " + heap + ")",
+                    ],
+                  ),
                 ),
-              ),
-            )(g)
-          },
-        ]),
-      ),
-    ]),
+              )(g)
+            },
+          ]),
+        ),
+      ])
+    },
   )
   let flat = @equal.rhs(
     @kernel.concl(
@@ -127,15 +133,17 @@ fn prove_tlsf_malloc_page_call() -> Unit raise {
     ",(labels : List[" +
     sassn +
     "]))",
-    seq([
-      gen,
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      free_lift(
-        @simp.rewrite_rule(ths([thm("tlsf_malloc_page_ready_post")]))(
-          inst(ordinary, env + a + [n, before, fp, lc]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        free_lift(
+          @simp.rewrite_rule(ths([thm("tlsf_malloc_page_ready_post")]))(
+            inst(ordinary, env + a + [n, before, fp, lc]),
+          ),
         ),
-      ),
-    ]),
+      ])
+    },
   )
   let _ = arw
 }

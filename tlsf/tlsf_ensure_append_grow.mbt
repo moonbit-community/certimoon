@@ -43,80 +43,82 @@ fn prove_tlsf_ensure_append_grow() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_append_grow",
     "\{vars}, \{cond} → (∀ heap0 : \{heap}, star(\{large},star(\{zero},fp),heap0) → \{target})",
-    seq([
-      gen,
-      strip,
-      @tactics.mp_tac(
-        inst(thm("tlsf_ensure_top_facts"), [
-          "(ys : \{lw})",
-          "(d : \{w})",
-          "(lim : Num)",
-          m,
-          hd,
-        ]),
-      ),
-      arw([]),
-      strip,
-      have("(lim : Num) < 4294967296", @int.asm_arith_tac),
-      have(
-        "val(\{r}) == (lim : Num)",
-        seq([
-          rw([@words.val_word(), @words.dimindex_32()]),
-          @tactics.conv_tac(@calc_num.num_reduce_conv),
-          @simp.asm_simp_tac(ths([@arith.mod_lt()])),
-        ]),
-      ),
-      have("0 < (lim : Num)", @int.asm_arith_tac),
-      have(
-        "val(word_add(\{r},word(4))) == (lim : Num)+4",
-        seq([
-          @tactics.mp_tac(inst(thm("val_add_small"), [r, "4"])),
-          arw([]),
-          @int.asm_arith_tac,
-        ]),
-      ),
-      @tactics.mp_tac(inst(thm("tlsf_capacity_value"), [lim2, r])),
-      arw([]),
-      have("(lim : Num)+24 <= \{lim2}", @int.asm_arith_tac),
-      arw([]),
-      @tactics.disch_tac,
-      have("val(\{cap}) == (delta : Num)-8", @int.asm_arith_tac),
-      gen,
-      rw(
-        [
-          thm("tlsf_large"),
-          thm("tlsf_chain"),
-          thm("tlsf_regions_append"),
-          thm("tlsf_regions"),
-          thm("tlsf_spare"),
-        ] +
-        lift_rws(),
-      ),
-      strip,
-      have(
-        "star(\{zero},\{frame},(heap0 : \{heap}))",
-        seq([
-          @tactics.first_x_assum(th => {
-            if head_name(@kernel.concl(th)) == "star" {
-              @tactics.mp_tac(th)
-            } else {
-              @tactics.no_tac
-            }
-          }),
-          arw([thm("tlsf_top_cell")] + lift_rws() + ac),
-        ]),
-      ),
-      @tactics.mp_tac(
-        inst(thm("tlsf_new_memory_frame"), [
-          "(lim : Num)",
-          "(delta : Num)",
-          frame,
-          "(heap0 : \{heap})",
-        ]),
-      ),
-      arw([]),
-      have("8 <= (delta : Num)", @int.asm_arith_tac),
-      arw([arith("(lim : Num)+(delta : Num)-lim-8 == delta-8")]),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.mp_tac(
+          inst(thm("tlsf_ensure_top_facts"), [
+            "(ys : \{lw})",
+            "(d : \{w})",
+            "(lim : Num)",
+            m,
+            hd,
+          ]),
+        ),
+        arw([]),
+        strip,
+        have("(lim : Num) < 4294967296", @int.asm_arith_tac),
+        have(
+          "val(\{r}) == (lim : Num)",
+          seq([
+            rw([@words.val_word(), @words.dimindex_32()]),
+            @tactics.conv_tac(@calc_num.num_reduce_conv),
+            @simp.asm_simp_tac(ths([@arith.mod_lt()])),
+          ]),
+        ),
+        have("0 < (lim : Num)", @int.asm_arith_tac),
+        have(
+          "val(word_add(\{r},word(4))) == (lim : Num)+4",
+          seq([
+            @tactics.mp_tac(inst(thm("val_add_small"), [r, "4"])),
+            arw([]),
+            @int.asm_arith_tac,
+          ]),
+        ),
+        @tactics.mp_tac(inst(thm("tlsf_capacity_value"), [lim2, r])),
+        arw([]),
+        have("(lim : Num)+24 <= \{lim2}", @int.asm_arith_tac),
+        arw([]),
+        @tactics.disch_tac,
+        have("val(\{cap}) == (delta : Num)-8", @int.asm_arith_tac),
+        gen,
+        rw(
+          [
+            thm("tlsf_large"),
+            thm("tlsf_chain"),
+            thm("tlsf_regions_append"),
+            thm("tlsf_regions"),
+            thm("tlsf_spare"),
+          ] +
+          lift_rws(),
+        ),
+        strip,
+        have(
+          "star(\{zero},\{frame},(heap0 : \{heap}))",
+          seq([
+            @tactics.first_x_assum(th => {
+              if head_name(@kernel.concl(th)) == "star" {
+                @tactics.mp_tac(th)
+              } else {
+                @tactics.no_tac
+              }
+            }),
+            arw([thm("tlsf_top_cell")] + lift_rws() + ac),
+          ]),
+        ),
+        @tactics.mp_tac(
+          inst(thm("tlsf_new_memory_frame"), [
+            "(lim : Num)",
+            "(delta : Num)",
+            frame,
+            "(heap0 : \{heap})",
+          ]),
+        ),
+        arw([]),
+        have("8 <= (delta : Num)", @int.asm_arith_tac),
+        arw([arith("(lim : Num)+(delta : Num)-lim-8 == delta-8")]),
+      ])
+    },
   )
 }

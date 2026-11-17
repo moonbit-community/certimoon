@@ -46,108 +46,112 @@ fn prove_tlsf_block_free_release() -> Unit raise {
   let _ = lemma(
     "tlsf_block_free_release_page",
     "\{vs}, \{ok} → sl_triple(\{p},tlsf_block_free_release(d,free_idx),\{q})",
-    seq([
-      gen,
-      strip,
-      free_have(
-        "tlsf_small_partition((p : \{w}),(s : Num),(loc : \{lw}),(cached : \{lw}),(live : \{lw})) && 8 <= s && val(p)+8+(cap : Num) <= (lim : Num) && lim <= 4294967296 && 1080 <= cap",
-        seq([
-          @tactics.undisch_tac(
-            tm(
-              "tlsf_small_page_ok((lim : Num),(p : " +
-              w +
-              "),(cap : Num),(s : Num),(loc : " +
-              lw +
-              "),(cached : " +
-              lw +
-              "),(live : " +
-              lw +
-              "))",
+    () => {
+      seq([
+        gen,
+        strip,
+        free_have(
+          "tlsf_small_partition((p : \{w}),(s : Num),(loc : \{lw}),(cached : \{lw}),(live : \{lw})) && 8 <= s && val(p)+8+(cap : Num) <= (lim : Num) && lim <= 4294967296 && 1080 <= cap",
+          seq([
+            @tactics.undisch_tac(
+              tm(
+                "tlsf_small_page_ok((lim : Num),(p : " +
+                w +
+                "),(cap : Num),(s : Num),(loc : " +
+                lw +
+                "),(cached : " +
+                lw +
+                "),(live : " +
+                lw +
+                "))",
+              ),
             ),
-          ),
-          rw([thm("tlsf_small_page_ok")]),
+            rw([thm("tlsf_small_page_ok")]),
+            small_meson(ths([])),
+          ]),
+        ),
+        g => {
+          @tactics.strip_assume_tac(
+            block_under(
+              inst(
+                thm("tlsf_small_slot_bounds"),
+                args[:7].to_owned() + ["(i : Num)"],
+              ),
+              g,
+            ),
+          )(g)
+        },
+        g => {
+          @tactics.strip_assume_tac(
+            block_under(
+              inst(thm("tlsf_small_release_model"), [
+                "(p : " + w + ")",
+                "(s : Num)",
+                "(b : " + w + ")",
+                "(loc : " + lw + ")",
+                "(cached : " + lw + ")",
+                "(live : " + lw + ")",
+              ]),
+              g,
+            ),
+          )(g)
+        },
+        free_have("1 <= \{u} && \{u}-1 == \{un}", @int.asm_arith_tac),
+        free_have(
+          "val((b : \{w}))+8+(s : Num) <= val((p : \{w}))+8+(cap : Num)",
           small_meson(ths([])),
-        ]),
-      ),
-      g => {
-        @tactics.strip_assume_tac(
-          block_under(
-            inst(
-              thm("tlsf_small_slot_bounds"),
-              args[:7].to_owned() + ["(i : Num)"],
-            ),
+        ),
+        seq(
+          [("p", 16), ("p", 20), ("b", 4), ("b", 8)].map(v => {
+            free_have(
+              "val(word_add((\{v.0} : \{w}),word(\{v.1}))) == val(\{v.0})+\{v.1}",
+              seq([
+                @tactics.match_mp_tac(thm("val_add_small")),
+                @int.asm_arith_tac,
+              ]),
+            )
+          }),
+        ),
+        free_have(
+          "word_sub((word(\{u}) : \{w}),word(1)) == word(\{un})",
+          seq([@tactics.mp_tac(inst(thm("tlsf_small_word_dec"), [u])), arw([])]),
+        ),
+        g => {
+          let pre = block_under(
+            inst(thm("tlsf_small_page_release_pre_view"), args),
             g,
-          ),
-        )(g)
-      },
-      g => {
-        @tactics.strip_assume_tac(
-          block_under(
-            inst(thm("tlsf_small_release_model"), [
-              "(p : " + w + ")",
-              "(s : Num)",
-              "(b : " + w + ")",
-              "(loc : " + lw + ")",
-              "(cached : " + lw + ")",
-              "(live : " + lw + ")",
-            ]),
-            g,
-          ),
-        )(g)
-      },
-      free_have("1 <= \{u} && \{u}-1 == \{un}", @int.asm_arith_tac),
-      free_have(
-        "val((b : \{w}))+8+(s : Num) <= val((p : \{w}))+8+(cap : Num)",
-        small_meson(ths([])),
-      ),
-      seq(
-        [("p", 16), ("p", 20), ("b", 4), ("b", 8)].map(v => {
-          free_have(
-            "val(word_add((\{v.0} : \{w}),word(\{v.1}))) == val(\{v.0})+\{v.1}",
-            seq([
-              @tactics.match_mp_tac(thm("val_add_small")),
-              @int.asm_arith_tac,
-            ]),
           )
-        }),
-      ),
-      free_have(
-        "word_sub((word(\{u}) : \{w}),word(1)) == word(\{un})",
-        seq([@tactics.mp_tac(inst(thm("tlsf_small_word_dec"), [u])), arw([])]),
-      ),
-      g => {
-        let pre = block_under(
-          inst(thm("tlsf_small_page_release_pre_view"), args),
-          g,
-        )
-        let post = block_under(
-          inst(thm("tlsf_small_page_release_post_view"), args),
-          g,
-        )
-        let path = inst(thm("tlsf_block_free_release_raw"), [
-          "(d : " + w + ")",
-          "(free_idx : Num)",
-          "(b : " + w + ")",
-          "(p : " + w + ")",
-          "(word(" + u + ") : " + w + ")",
-          "tlsf_small_head((loc : " + lw + "))",
-          "(oldword : " + w + ")",
-          "(l0 : Value)",
-          "(l2 : Value)",
-          rawfp,
-        ])
-        seq([
-          @tactics.conv_tac(
-            @equal.rator_conv(
-              @equal.rator_conv(@equal.rand_conv(@equal.subs_conv(ths([pre])))),
+          let post = block_under(
+            inst(thm("tlsf_small_page_release_post_view"), args),
+            g,
+          )
+          let path = inst(thm("tlsf_block_free_release_raw"), [
+            "(d : " + w + ")",
+            "(free_idx : Num)",
+            "(b : " + w + ")",
+            "(p : " + w + ")",
+            "(word(" + u + ") : " + w + ")",
+            "tlsf_small_head((loc : " + lw + "))",
+            "(oldword : " + w + ")",
+            "(l0 : Value)",
+            "(l2 : Value)",
+            rawfp,
+          ])
+          seq([
+            @tactics.conv_tac(
+              @equal.rator_conv(
+                @equal.rator_conv(
+                  @equal.rand_conv(@equal.subs_conv(ths([pre]))),
+                ),
+              ),
             ),
-          ),
-          @tactics.conv_tac(
-            @equal.rand_conv(@equal.subs_conv(ths([@equal.gsym(post)]))),
-          ),
-          by_path(path, "T", [], [], [], ["(oldword : " + w + ")"]),
-        ])(g)
-      },
-    ]),
+            @tactics.conv_tac(
+              @equal.rand_conv(@equal.subs_conv(ths([@equal.gsym(post)]))),
+            ),
+            by_path(path, "T", [], [], [], ["(oldword : " + w + ")"]),
+          ])(g)
+        },
+      ])
+    },
   )
 }

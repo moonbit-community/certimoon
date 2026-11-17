@@ -185,37 +185,39 @@ fn prove_tlsf_page_publish_page() -> Unit raise {
     "]," +
     postbody +
     "))",
-    seq([
-      common,
-      g => {
-        let pre = block_under(
-          inst(thm("tlsf_page_publish_fresh_view"), [
-            "(lim : Num)",
-            p,
-            cap,
-            s,
-            b,
-            bs,
-            "(i : Num)",
-            "(used0 : " + w + ")",
-            "(prev0 : " + w + ")",
-          ]),
-          g,
-        )
-        let post = block_under(pagePost, g)
-        free_at(
-          "fresh page raw",
-          by_path(
-            fresh,
-            "T",
-            [pre],
-            ["(prev0 : " + w + ")", zero],
-            [post] + byteRws,
-            [],
-          ),
-        )(g)
-      },
-    ]),
+    () => {
+      seq([
+        common,
+        g => {
+          let pre = block_under(
+            inst(thm("tlsf_page_publish_fresh_view"), [
+              "(lim : Num)",
+              p,
+              cap,
+              s,
+              b,
+              bs,
+              "(i : Num)",
+              "(used0 : " + w + ")",
+              "(prev0 : " + w + ")",
+            ]),
+            g,
+          )
+          let post = block_under(pagePost, g)
+          free_at(
+            "fresh page raw",
+            by_path(
+              fresh,
+              "T",
+              [pre],
+              ["(prev0 : " + w + ")", zero],
+              [post] + byteRws,
+              [],
+            ),
+          )(g)
+        },
+      ])
+    },
   )
   for hasNext in [false, true] {
     let np = if hasNext { "(nextp : " + w + ")" } else { zero }
@@ -294,54 +296,56 @@ fn prove_tlsf_page_publish_page() -> Unit raise {
       "]," +
       q +
       "))",
-      seq([
-        common,
-        if hasNext {
-          free_have(
-            "val(word_add(" +
-            np +
-            ",(word(24) : " +
-            w +
-            "))) == val(" +
-            np +
-            ")+24",
-            seq([
-              @tactics.match_mp_tac(thm("val_add_small")),
-              @int.asm_arith_tac,
-            ]),
-          )
-        } else {
-          @tactics.all_tac
-        },
-        g => {
-          let pre = block_under(
-            inst(thm("tlsf_page_publish_page_pre"), args),
-            g,
-          )
-          let post = block_under(pagePost, g)
-          by_path(
-            raw,
-            "T",
-            [
-              pre,
-              thm("tlsf_small_partial_links"),
-              thm("tlsf_small_head"),
-              @lists.not_cons_nil(),
-              @lists.hd(),
-            ],
-            [zero, "tlsf_small_head(" + zs + ")"],
-            [
-              post,
-              thm("tlsf_small_partial_links"),
-              thm("tlsf_small_head"),
-              @lists.not_cons_nil(),
-              @lists.hd(),
-            ] +
-            byteRws,
-            [],
-          )(g)
-        },
-      ]),
+      () => {
+        seq([
+          common,
+          if hasNext {
+            free_have(
+              "val(word_add(" +
+              np +
+              ",(word(24) : " +
+              w +
+              "))) == val(" +
+              np +
+              ")+24",
+              seq([
+                @logic.match_mp_tac(thm("val_add_small")),
+                @int.asm_arith_tac,
+              ]),
+            )
+          } else {
+            @tactics.all_tac
+          },
+          g => {
+            let pre = block_under(
+              inst(thm("tlsf_page_publish_page_pre"), args),
+              g,
+            )
+            let post = block_under(pagePost, g)
+            by_path(
+              raw,
+              "T",
+              [
+                pre,
+                thm("tlsf_small_partial_links"),
+                thm("tlsf_small_head"),
+                @lists.not_cons_nil(),
+                @lists.hd(),
+              ],
+              [zero, "tlsf_small_head(" + zs + ")"],
+              [
+                post,
+                thm("tlsf_small_partial_links"),
+                thm("tlsf_small_head"),
+                @lists.not_cons_nil(),
+                @lists.hd(),
+              ] +
+              byteRws,
+              [],
+            )(g)
+          },
+        ])
+      },
     )
   }
 }

@@ -77,18 +77,22 @@ fn prove_tlsf_small_counts() -> Unit raise {
   let _ = lemma(
     "tlsf_small_count_cons",
     "∀ b : \{w}, ∀ a : \{w}, ∀ xs : \{lw}, tlsf_count(b,CONS(a,xs)) == (if a == b { 1 } else { 0 })+tlsf_count(b,xs)",
-    seq([
-      gen,
-      rw([thm("tlsf_count"), @lists.filter(), @lists.length()]),
-      @class.cond_cases_tac,
-      rw([@lists.length(), @arith.add_clauses()]),
-      @int.arith_tac,
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([thm("tlsf_count"), @lists.filter(), @lists.length()]),
+        @class.cond_cases_tac,
+        rw([@lists.length(), @arith.add_clauses()]),
+        @int.arith_tac,
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_small_count_append",
     "∀ b : \{w}, ∀ xs : \{lw}, ∀ ys : \{lw}, tlsf_count(b,APPEND(xs,ys)) == tlsf_count(b,xs)+tlsf_count(b,ys)",
-    rw([thm("tlsf_count"), @lists.filter_append(), @lists.length_append()]),
+    () => {
+      rw([thm("tlsf_count"), @lists.filter_append(), @lists.length_append()])
+    },
   )
   let sums = [
     thm("tlsf_small_partition"),
@@ -101,91 +105,101 @@ fn prove_tlsf_small_counts() -> Unit raise {
   let _ = lemma(
     "tlsf_small_partition_checkout",
     "∀ p : \{w}, ∀ s : Num, ∀ b : \{w}, ∀ loc : \{lw}, ∀ cached : \{lw}, ∀ live : \{lw}, tlsf_small_partition(p,s,loc,CONS(b,cached),live) → tlsf_small_partition(p,s,loc,cached,CONS(b,live))",
-    seq([
-      gen,
-      rw(sums),
-      strip,
-      @tactics.conj_tac,
-      @tactics.first(
-        @list.List([
-          solve(@int.asm_arith_tac),
-          solve(
-            seq([
-              @tactics.x_gen_tac(tm("(slot : \{w})")),
-              @tactics.first_x_assum(th => {
-                @tactics.mp_tac(@bool.spec(tm("(slot : \{w})"), th))
-              }),
-              @int.arith_tac,
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw(sums),
+        strip,
+        @tactics.conj_tac,
+        @tactics.first(
+          @list.List([
+            solve(@int.asm_arith_tac),
+            solve(
+              seq([
+                @tactics.x_gen_tac(tm("(slot : \{w})")),
+                @tactics.first_x_assum(th => {
+                  @tactics.mp_tac(@bool.spec(tm("(slot : \{w})"), th))
+                }),
+                @int.arith_tac,
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_small_partition_release",
     "∀ p : \{w}, ∀ s : Num, ∀ b : \{w}, ∀ loc : \{lw}, ∀ cached : \{lw}, ∀ live : \{lw}, tlsf_small_partition(p,s,loc,cached,CONS(b,live)) → tlsf_small_partition(p,s,CONS(b,loc),cached,live)",
-    seq([
-      gen,
-      rw(sums),
-      strip,
-      @tactics.conj_tac,
-      @tactics.first(
-        @list.List([
-          solve(@int.asm_arith_tac),
-          solve(
-            seq([
-              @tactics.x_gen_tac(tm("(slot : \{w})")),
-              @tactics.first_x_assum(th => {
-                @tactics.mp_tac(@bool.spec(tm("(slot : \{w})"), th))
-              }),
-              @int.arith_tac,
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw(sums),
+        strip,
+        @tactics.conj_tac,
+        @tactics.first(
+          @list.List([
+            solve(@int.asm_arith_tac),
+            solve(
+              seq([
+                @tactics.x_gen_tac(tm("(slot : \{w})")),
+                @tactics.first_x_assum(th => {
+                  @tactics.mp_tac(@bool.spec(tm("(slot : \{w})"), th))
+                }),
+                @int.arith_tac,
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_small_partition_export",
     "∀ p : \{w}, ∀ s : Num, ∀ b : \{w}, ∀ loc : \{lw}, ∀ live : \{lw}, tlsf_small_partition(p,s,CONS(b,loc),NIL,live) → tlsf_small_partition(p,s,NIL,loc,CONS(b,live))",
-    seq([
-      gen,
-      rw(sums),
-      strip,
-      @tactics.conj_tac,
-      @tactics.first(
-        @list.List([
-          solve(@int.asm_arith_tac),
-          solve(
-            seq([
-              @tactics.x_gen_tac(tm("(slot : \{w})")),
-              @tactics.first_x_assum(th => {
-                @tactics.mp_tac(@bool.spec(tm("(slot : \{w})"), th))
-              }),
-              @int.arith_tac,
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw(sums),
+        strip,
+        @tactics.conj_tac,
+        @tactics.first(
+          @list.List([
+            solve(@int.asm_arith_tac),
+            solve(
+              seq([
+                @tactics.x_gen_tac(tm("(slot : \{w})")),
+                @tactics.first_x_assum(th => {
+                  @tactics.mp_tac(@bool.spec(tm("(slot : \{w})"), th))
+                }),
+                @int.arith_tac,
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_small_accounting",
     "∀ p : \{w}, ∀ s : Num, ∀ loc : \{lw}, ∀ cached : \{lw}, ∀ live : \{lw}, tlsf_small_partition(p,s,loc,cached,live) → tlsf_small_used(cached,live) <= tlsf_small_total(s) && ((tlsf_small_used(cached,live) < tlsf_small_total(s)) == !(loc == NIL))",
-    seq([
-      gen,
-      rw([thm("tlsf_small_partition"), @equal.gsym(@lists.length_eq_nil())]),
-      strip,
-      @int.asm_arith_tac,
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([thm("tlsf_small_partition"), @equal.gsym(@lists.length_eq_nil())]),
+        strip,
+        @int.asm_arith_tac,
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_small_reclaimable",
     "∀ cached : \{lw}, ∀ live : \{lw}, (tlsf_small_used(cached,live) == 0) == (cached == NIL && live == NIL)",
-    seq([
-      rw([thm("tlsf_small_used"), @equal.gsym(@lists.length_eq_nil())]),
-      @int.arith_tac,
-    ]),
+    () => {
+      seq([
+        rw([thm("tlsf_small_used"), @equal.gsym(@lists.length_eq_nil())]),
+        @int.arith_tac,
+      ])
+    },
   )
 }

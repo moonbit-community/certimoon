@@ -55,25 +55,27 @@ fn prove_tlsf_page_allocate_fill() -> Unit raise {
     "tlsf_page_allocate_result",
     "\{vars}, \{geom} → sl_triple(\{done},[Local_get(1)],\{q})",
     [],
-    [
-      seq([
-        @tactics.first_x_assum(th => {
-          if head_name(@kernel.concl(th)) == "star" {
-            @tactics.mp_tac(th)
-          } else {
-            @tactics.no_tac
-          }
-        }),
-        ent_tac(
-          [
-            thm("tlsf_page_allocate_fresh"),
-            thm("star_emp_hr"),
-            thm("star_emp_hl"),
-          ],
-          ["(used0 : " + w + ")", "(prev0 : " + w + ")"],
-        ),
-      ]),
-    ],
+    () => {
+      [
+        seq([
+          @tactics.first_x_assum(th => {
+            if head_name(@kernel.concl(th)) == "star" {
+              @tactics.mp_tac(th)
+            } else {
+              @tactics.no_tac
+            }
+          }),
+          ent_tac(
+            [
+              thm("tlsf_page_allocate_fresh"),
+              thm("star_emp_hr"),
+              thm("star_emp_hl"),
+            ],
+            ["(used0 : " + w + ")", "(prev0 : " + w + ")"],
+          ),
+        ]),
+      ]
+    },
     kind="lemma",
   )
   let args = [
@@ -95,46 +97,52 @@ fn prove_tlsf_page_allocate_fill() -> Unit raise {
   let joined = lemma(
     "tlsf_page_allocate_loop_result",
     "\{vars}, \{geom} → sl_triple(\{show(looptr[0])},\{code},\{q})",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      @tactics.match_mp_tac(thm("sl_seq")),
-      @tactics.exists_tac(looptr[2]),
-      @tactics.conj_tac,
-      @tactics.first(
-        @list.List([
-          solve(free_apply(loopth)),
-          solve(free_apply(inst(last, args))),
-        ]),
-      ),
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        @tactics.match_mp_tac(thm("sl_seq")),
+        @tactics.exists_tac(looptr[2]),
+        @tactics.conj_tac,
+        @tactics.first(
+          @list.List([
+            solve(free_apply(loopth)),
+            solve(free_apply(inst(last, args))),
+          ]),
+        ),
+      ])
+    },
   )
   let lc = "[\{i(s)},\{i(p)},\{i("word_add("+p+",word(32))")},\{i("word(1)")},(l4 : Value),\{i("word("+total+")")}]"
   let entry = lemma(
     "tlsf_page_allocate_loop_entry",
     "\{vars}, ∀ l4 : Value, \{geom} → sl_triple(st(NIL,\{lc},\{own(build("1"))}),\{code},\{q})",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      free_have(
-        "1 <= \{total}",
-        seq([
-          @tactics.undisch_tac(tm(geom)),
-          rw([thm("tlsf_page_allocate_geometry")]),
-          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-          @tactics.mp_tac(inst(thm("tlsf_small_capacity"), ["val(" + s + ")"])),
-          arw([]),
-          @int.asm_arith_tac,
-        ]),
-      ),
-      page_conseq(
-        inst(joined, args),
-        ent_tac([thm("tlsf_page_allocate_head_one"), @arith.le_refl()], [
-          "1", "(l4 : Value)",
-        ]),
-        same_tac(),
-      ),
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        free_have(
+          "1 <= \{total}",
+          seq([
+            @tactics.undisch_tac(tm(geom)),
+            rw([thm("tlsf_page_allocate_geometry")]),
+            @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+            @tactics.mp_tac(
+              inst(thm("tlsf_small_capacity"), ["val(" + s + ")"]),
+            ),
+            arw([]),
+            @int.asm_arith_tac,
+          ]),
+        ),
+        page_conseq(
+          inst(joined, args),
+          ent_tac([thm("tlsf_page_allocate_head_one"), @arith.le_refl()], [
+            "1", "(l4 : Value)",
+          ]),
+          same_tac(),
+        ),
+      ])
+    },
   )
   let entrypath = inst(entry, args + ["(l4 : Value)"])
   let begin = inst(thm("tlsf_page_allocate_begin_build"), [
@@ -157,37 +165,41 @@ fn prove_tlsf_page_allocate_fill() -> Unit raise {
   let _ = lemma(
     "tlsf_page_allocate_fill_all",
     "\{fillvars}, \{geom} → sl_triple(\{show(begintr[0])},tlsf_page_allocate_fill(take_idx),\{q})",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      rw([thm("tlsf_page_allocate_fill")]),
-      @tactics.subst1_tac(
-        @equal.gsym(
-          @simp.rewrite_conv(
-            ths([
-              thm("tlsf_page_allocate_begin"),
-              thm("tlsf_page_allocate_loop"),
-              @lists.append(),
-            ]),
-          )(
-            tm(
-              "APPEND(tlsf_page_allocate_begin((take_idx : Num))," + code + ")",
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        rw([thm("tlsf_page_allocate_fill")]),
+        @tactics.subst1_tac(
+          @equal.gsym(
+            @simp.rewrite_conv(
+              ths([
+                thm("tlsf_page_allocate_begin"),
+                thm("tlsf_page_allocate_loop"),
+                @lists.append(),
+              ]),
+            )(
+              tm(
+                "APPEND(tlsf_page_allocate_begin((take_idx : Num))," +
+                code +
+                ")",
+              ),
             ),
           ),
         ),
-      ),
-      @tactics.match_mp_tac(thm("sl_seq")),
-      @tactics.exists_tac(begintr[2]),
-      @tactics.thenl(
-        @tactics.conj_tac,
-        @list.List([
-          free_apply(begin),
-          by_path(entrypath, "T", [], [], [], [
-            "(used0 : " + w + ")",
-            "(prev0 : " + w + ")",
+        @tactics.match_mp_tac(thm("sl_seq")),
+        @tactics.exists_tac(begintr[2]),
+        @tactics.thenl(
+          @tactics.conj_tac,
+          @list.List([
+            free_apply(begin),
+            by_path(entrypath, "T", [], [], [], [
+              "(used0 : " + w + ")",
+              "(prev0 : " + w + ")",
+            ]),
           ]),
-        ]),
-      ),
-    ]),
+        ),
+      ])
+    },
   )
 }

@@ -59,24 +59,26 @@ fn prove_tlsf_ensure_spatial() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_extend_close",
     "\{vars}, tlsf_physical_ok(d,lim,m,\{xs},nh) && tlsf_bins_match(\{xs},nh,bl) && (\{agree}) → \{own} == star(\{large},fp)",
-    seq([
-      gen,
-      strip,
-      prefix,
-      rw([@class.fun_eq_thm()]),
-      gen,
-      rw(
-        [
-          thm("tlsf_top_cell"),
-          thm("tlsf_large"),
-          thm("tlsf_chain"),
-          thm("tlsf_regions_append"),
-          thm("tlsf_regions"),
-        ] +
-        lift_rws(),
-      ),
-      arw(lift_rws() + ac),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        prefix,
+        rw([@class.fun_eq_thm()]),
+        gen,
+        rw(
+          [
+            thm("tlsf_top_cell"),
+            thm("tlsf_large"),
+            thm("tlsf_chain"),
+            thm("tlsf_regions_append"),
+            thm("tlsf_regions"),
+          ] +
+          lift_rws(),
+        ),
+        arw(lift_rws() + ac),
+      ])
+    },
   )
   let nx = "APPEND((ys : \{lw}),[\{m},\{r}])"
   let own2 = pred([
@@ -94,23 +96,25 @@ fn prove_tlsf_ensure_spatial() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_append_close",
     "\{vars}, ∀ r : \{w}, tlsf_physical_ok(d,lim,r,\{nx},nh) && tlsf_bins_match(\{nx},nh,bl) && (\{agree}) → \{own2} == star(\{large2},fp)",
-    seq([
-      gen,
-      strip,
-      prefix,
-      rw([@class.fun_eq_thm()]),
-      gen,
-      rw(
-        [
-          thm("tlsf_top_cell"),
-          thm("tlsf_large"),
-          thm("tlsf_chain"),
-          thm("tlsf_regions_append"),
-          thm("tlsf_regions"),
-        ] +
-        lift_rws(),
-      ),
-      arw(lift_rws() + ac),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        prefix,
+        rw([@class.fun_eq_thm()]),
+        gen,
+        rw(
+          [
+            thm("tlsf_top_cell"),
+            thm("tlsf_large"),
+            thm("tlsf_chain"),
+            thm("tlsf_regions_append"),
+            thm("tlsf_regions"),
+          ] +
+          lift_rws(),
+        ),
+        arw(lift_rws() + ac),
+      ])
+    },
   )
 }

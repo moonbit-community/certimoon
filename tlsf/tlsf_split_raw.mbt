@@ -18,7 +18,7 @@ fn prove_tlsf_split_raw() -> Unit raise {
     "tlsf_split_no_remainder",
     stmt,
     [],
-    [],
+    () => [],
     afters=[after, falsep, falsep],
     rws=[
       thm("tlsf_size"),

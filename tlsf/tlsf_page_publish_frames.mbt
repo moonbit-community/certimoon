@@ -34,24 +34,26 @@ fn prove_tlsf_page_publish_frames() -> Unit raise {
       block_pages(newrest) +
       " == " +
       block_pages(oldrest),
-      seq([
-        gen,
-        if fresh {
-          @tactics.disch_tac
-        } else {
-          @tactics.all_tac
-        },
-        rw([thm("tlsf_small_pages_hlist")]),
-        @tactics.match_mp_tac(thm("tlsf_small_hlist_cong")),
-        @tactics.x_gen_tac(tm("(q : " + w + ")")),
-        @tactics.disch_tac,
-        free_have(
-          "!((q : " + w + ") == " + p + ")",
-          small_meson(ths([thm("tlsf_small_remove_member")])),
-        ),
-        rw([thm("tlsf_small_put")]),
-        arw([]),
-      ]),
+      () => {
+        seq([
+          gen,
+          if fresh {
+            @tactics.disch_tac
+          } else {
+            @tactics.all_tac
+          },
+          rw([thm("tlsf_small_pages_hlist")]),
+          @logic.match_mp_tac(thm("tlsf_small_hlist_cong")),
+          @tactics.x_gen_tac(tm("(q : " + w + ")")),
+          @tactics.disch_tac,
+          free_have(
+            "!((q : " + w + ") == " + p + ")",
+            small_meson(ths([thm("tlsf_small_remove_member")])),
+          ),
+          rw([thm("tlsf_small_put")]),
+          arw([]),
+        ])
+      },
     )
   }
   let d = a[0]
@@ -74,28 +76,32 @@ fn prove_tlsf_page_publish_frames() -> Unit raise {
     rest(nf, np) +
     " == " +
     rest(fast, part),
-    seq([
-      gen,
-      @tactics.match_mp_tac(thm("tlsf_istar_cong")),
-      @tactics.x_gen_tac(tm("(j : Num)")),
-      @tactics.disch_tac,
-      @class.asm_cases_tac(tm("(j : Num) == (k : Num)")),
-      arw([]),
-      rw([thm("tlsf_small_table_item"), thm("tlsf_small_put_class")]),
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        @logic.match_mp_tac(thm("tlsf_istar_cong")),
+        @tactics.x_gen_tac(tm("(j : Num)")),
+        @tactics.disch_tac,
+        @class.asm_cases_tac(tm("(j : Num) == (k : Num)")),
+        arw([]),
+        rw([thm("tlsf_small_table_item"), thm("tlsf_small_put_class")]),
+        arw([]),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_page_publish_put_class_same",
     "∀ ff : (Num) -> " +
     lw +
     ", ∀ k : Num, tlsf_small_put_class(ff,k,ff(k)) == ff",
-    seq([
-      gen,
-      rw([@class.fun_eq_thm(), thm("tlsf_small_put_class")]),
-      gen,
-      @class.cond_cases_tac,
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([@class.fun_eq_thm(), thm("tlsf_small_put_class")]),
+        gen,
+        @class.cond_cases_tac,
+        arw([]),
+      ])
+    },
   )
 }

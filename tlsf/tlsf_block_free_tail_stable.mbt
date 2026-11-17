@@ -84,73 +84,83 @@ fn prove_tlsf_block_free_tail_stable() -> Unit raise {
     let _ = lemma(
       "tlsf_block_free_tail_" + (if full { "full" } else { "partial" }),
       "\{env}, \{page_quantify(vs)}\{conditions} → sl_triple_g(G,fs,tabs,inst,rp,\{before},tlsf_block_free_tail(d,free_idx),\{q},labels)",
-      seq([
-        gen,
-        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-        block_prepare(args, p, b),
-        if full {
-          free_have("!(" + usage + " == 1)", @int.asm_arith_tac)
-        } else {
-          free_have(usage + " < " + total, @int.asm_arith_tac)
-        },
-        g => {
-          let eqs = block_model_case(
-            if full {
-              "full"
-            } else {
-              "partial"
-            },
-            args,
-            p,
-            g,
-          )
-          let flag = block_flag(args, p, false, full, g)
-          let gate = @simp.rewrite_conv(
-            ths(
-              if full {
-                [
-                  @kernel.assume_rule(tm(usage + " == " + total)),
-                  @arith.lt_refl(),
-                ]
-              } else {
-                [@kernel.assume_rule(tm(usage + " < " + total))]
-              },
-            ),
-          )(tm(block_gate(args, p)))
-          let finish = if full {
-            block_g_conseq(publish, ent_tac([], []), block_same_post(eqs, argv))
+      () => {
+        seq([
+          gen,
+          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+          block_prepare(args, p, b),
+          if full {
+            free_have("!(" + usage + " == 1)", @int.asm_arith_tac)
           } else {
+            free_have(usage + " < " + total, @int.asm_arith_tac)
+          },
+          g => {
+            let eqs = block_model_case(
+              if full {
+                "full"
+              } else {
+                "partial"
+              },
+              args,
+              p,
+              g,
+            )
+            let flag = block_flag(args, p, false, full, g)
+            let gate = @simp.rewrite_conv(
+              ths(
+                if full {
+                  [
+                    @kernel.assume_rule(tm(usage + " == " + total)),
+                    @arith.lt_refl(),
+                  ]
+                } else {
+                  [@kernel.assume_rule(tm(usage + " < " + total))]
+                },
+              ),
+            )(tm(block_gate(args, p)))
+            let finish = if full {
+              block_g_conseq(
+                publish,
+                ent_tac([], []),
+                block_same_post(eqs, argv),
+              )
+            } else {
+              seq([
+                rw([thm("tlsf_block_free_else")]),
+                @tactics.match_mp_tac(thm("sl_seq_g")),
+                @tactics.exists_tac(lastq),
+                @tactics.thenl(
+                  @tactics.conj_tac,
+                  @list.List([
+                    free_lift(last),
+                    block_if(
+                      false,
+                      block_flag(args, p, true, false, g),
+                      block_g_conseq(
+                        zero,
+                        same_tac(),
+                        block_same_post(eqs, argv),
+                      ),
+                    ),
+                  ]),
+                ),
+              ])
+            }
             seq([
-              rw([thm("tlsf_block_free_else")]),
+              rw([thm("tlsf_block_free_tail")]),
               @tactics.match_mp_tac(thm("sl_seq_g")),
-              @tactics.exists_tac(lastq),
+              @tactics.exists_tac(ca[2]),
               @tactics.thenl(
                 @tactics.conj_tac,
                 @list.List([
-                  free_lift(last),
-                  block_if(
-                    false,
-                    block_flag(args, p, true, false, g),
-                    block_g_conseq(zero, same_tac(), block_same_post(eqs, argv)),
-                  ),
+                  block_g_conseq(classify, ent_tac([gate], []), same_tac()),
+                  block_if(full, flag, finish),
                 ]),
               ),
-            ])
-          }
-          seq([
-            rw([thm("tlsf_block_free_tail")]),
-            @tactics.match_mp_tac(thm("sl_seq_g")),
-            @tactics.exists_tac(ca[2]),
-            @tactics.thenl(
-              @tactics.conj_tac,
-              @list.List([
-                block_g_conseq(classify, ent_tac([gate], []), same_tac()),
-                block_if(full, flag, finish),
-              ]),
-            ),
-          ])(g)
-        },
-      ]),
+            ])(g)
+          },
+        ])
+      },
     )
   }
 }

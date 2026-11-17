@@ -92,69 +92,74 @@ fn prove_tlsf_block_free_unlink_table() -> Unit raise {
       let _ = lemma(
         "tlsf_block_free_unlink_" + label + "_table",
         "\{vars}, \{cond} → sl_triple(st(NIL,[\{i("p")},u,l2],\{pre}),tlsf_block_free_unlink(d,free_idx),st(NIL,[\{i("p")},\{i(nx)},\{i(if has_prev { pr } else { "word("+k+")" })}],\{post}))",
-        seq([
-          gen,
-          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-          g => {
-            @tactics.strip_assume_tac(
-              block_under(
-                inst(thm("tlsf_small_class_bounds"), ["(s : Num)"]),
+        () => {
+          seq([
+            gen,
+            @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+            g => {
+              @tactics.strip_assume_tac(
+                block_under(
+                  inst(thm("tlsf_small_class_bounds"), ["(s : Num)"]),
+                  g,
+                ),
+              )(g)
+            },
+            g => {
+              let focusOld = block_under(
+                inst(thm("tlsf_small_table_focus"), [
+                  "(d : " + w + ")",
+                  fast,
+                  partial,
+                  k,
+                ]),
                 g,
-              ),
-            )(g)
-          },
-          g => {
-            let focusOld = block_under(
-              inst(thm("tlsf_small_table_focus"), [
+              )
+              let focusNew = block_under(
+                inst(thm("tlsf_small_table_focus"), [
+                  "(d : " + w + ")",
+                  fast,
+                  newer,
+                  k,
+                ]),
+                g,
+              )
+              let restNew = inst(thm("tlsf_small_table_update_rest"), [
                 "(d : " + w + ")",
                 fast,
                 partial,
                 k,
-              ]),
-              g,
-            )
-            let focusNew = block_under(
-              inst(thm("tlsf_small_table_focus"), [
-                "(d : " + w + ")",
-                fast,
-                newer,
-                k,
-              ]),
-              g,
-            )
-            let restNew = inst(thm("tlsf_small_table_update_rest"), [
-              "(d : " + w + ")",
-              fast,
-              partial,
-              k,
-              entries,
-            ])
-            let path = inst(thm("tlsf_block_free_unlink_" + label + "_list"), [
-              "(d : " + w + ")",
-              "(free_idx : Num)",
-              "(p : " + w + ")",
-              "(s : Num)",
-              a,
-              nx,
-              "(tail : " + lw + ")",
-              "(u : Value)",
-              "(l2 : Value)",
-              frame,
-            ])
-            let common = [
-              thm("tlsf_small_table_item"),
-              @kernel.assume_rule(tm(eq)),
-            ]
-            by_path(
-              path,
-              "T",
-              [focusOld] + common,
-              [],
-              [focusNew, restNew, thm("tlsf_small_put_class")] + common,
-              [],
-            )(g)
-          },
-        ]),
+                entries,
+              ])
+              let path = inst(
+                thm("tlsf_block_free_unlink_" + label + "_list"),
+                [
+                  "(d : " + w + ")",
+                  "(free_idx : Num)",
+                  "(p : " + w + ")",
+                  "(s : Num)",
+                  a,
+                  nx,
+                  "(tail : " + lw + ")",
+                  "(u : Value)",
+                  "(l2 : Value)",
+                  frame,
+                ],
+              )
+              let common = [
+                thm("tlsf_small_table_item"),
+                @kernel.assume_rule(tm(eq)),
+              ]
+              by_path(
+                path,
+                "T",
+                [focusOld] + common,
+                [],
+                [focusNew, restNew, thm("tlsf_small_put_class")] + common,
+                [],
+              )(g)
+            },
+          ])
+        },
       )
     }
   }

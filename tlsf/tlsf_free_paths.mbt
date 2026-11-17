@@ -418,71 +418,73 @@ fn prove_tlsf_free_paths() -> Unit raise {
           "interior_path"
         }),
         "\{vars}, \{cond} → sl_triple_g(G,fs,tabs,inst,rp,\{show(tt[0])},tlsf_free_\{dir}(d,pop,push),\{target},labels)",
-        seq([
-          gen,
-          strip,
-          @tactics.rule_assum_tac(@simp.rewrite_rule(ths(norm))),
-          facts,
-          merge_facts,
-          rw([thm("tlsf_free_\{dir}_parts")]),
-          @tactics.match_mp_tac(thm("sl_seq_g")),
-          @tactics.exists_tac(tt[2]),
-          both(
-            free_at("test lift", free_lift(tst)),
-            free_at(
-              "branch",
-              seq([
-                @tactics.match_mp_tac(
-                  inst(
-                    thm(
-                      if merge {
-                        "tlsf_free_if_taken"
-                      } else {
-                        "tlsf_free_if_skipped"
-                      },
+        () => {
+          seq([
+            gen,
+            strip,
+            @tactics.rule_assum_tac(@simp.rewrite_rule(ths(norm))),
+            facts,
+            merge_facts,
+            rw([thm("tlsf_free_\{dir}_parts")]),
+            @tactics.match_mp_tac(thm("sl_seq_g")),
+            @tactics.exists_tac(tt[2]),
+            both(
+              free_at("test lift", free_lift(tst)),
+              free_at(
+                "branch",
+                seq([
+                  @tactics.match_mp_tac(
+                    inst(
+                      thm(
+                        if merge {
+                          "tlsf_free_if_taken"
+                        } else {
+                          "tlsf_free_if_skipped"
+                        },
+                      ),
+                      [
+                        "(G : \{gt})",
+                        "(fs : List[Cl])",
+                        "(tabs : List[(Tab_t,List[V_ref])])",
+                        "(inst : Inst)",
+                        "(rp : \{sassn})",
+                        show(st1[1]),
+                        show(st1[2]),
+                        if missing {
+                          "(word(0) : \{w})"
+                        } else {
+                          "(wasm_bool(!tlsf_used(\{hp})) : \{w})"
+                        },
+                        "tlsf_free_\{dir}_body((d : \{w}),(pop : Num),(push : Num))",
+                        target,
+                        "(labels : List[\{sassn}])",
+                      ],
                     ),
-                    [
-                      "(G : \{gt})",
-                      "(fs : List[Cl])",
-                      "(tabs : List[(Tab_t,List[V_ref])])",
-                      "(inst : Inst)",
-                      "(rp : \{sassn})",
-                      show(st1[1]),
-                      show(st1[2]),
-                      if missing {
-                        "(word(0) : \{w})"
-                      } else {
-                        "(wasm_bool(!tlsf_used(\{hp})) : \{w})"
-                      },
-                      "tlsf_free_\{dir}_body((d : \{w}),(pop : Num),(push : Num))",
-                      target,
-                      "(labels : List[\{sassn}])",
-                    ],
                   ),
-                ),
-                both(
-                  arw([thm("wasm_bool_zero")]),
-                  seq([
-                    gen,
-                    @tactics.pop_assum_list(all => {
-                      seq(
-                        all
-                        .to_array()
-                        .filter(th => {
-                          let c = @kernel.concl(th)
-                          !(@basics.is_eq(c) &&
-                          head_name(@equal.rhs(c)) == "word_add")
-                        })
-                        .map(@tactics.assume_tac),
-                      )
-                    }),
-                    free_at("callback", callback),
-                  ]),
-                ),
-              ]),
+                  both(
+                    arw([thm("wasm_bool_zero")]),
+                    seq([
+                      gen,
+                      @tactics.pop_assum_list(all => {
+                        seq(
+                          all
+                          .to_array()
+                          .filter(th => {
+                            let c = @kernel.concl(th)
+                            !(@basics.is_eq(c) &&
+                            head_name(@equal.rhs(c)) == "word_add")
+                          })
+                          .map(@tactics.assume_tac),
+                        )
+                      }),
+                      free_at("callback", callback),
+                    ]),
+                  ),
+                ]),
+              ),
             ),
-          ),
-        ]),
+          ])
+        },
       )
     }
   }

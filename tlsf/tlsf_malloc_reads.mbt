@@ -23,18 +23,20 @@ fn prove_tlsf_malloc_reads() -> Unit raise {
     block_backing(a) +
     " && " +
     block_lists(a),
-    seq([
-      gen,
-      rw([
-        thm("tlsf_allocator"),
-        thm("tlsf_small"),
-        thm("tlsf_large"),
-        thm("tlsf_chain"),
-        thm("star"),
-      ]),
-      strip,
-      small_meson(ths([])),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw([
+          thm("tlsf_allocator"),
+          thm("tlsf_small"),
+          thm("tlsf_large"),
+          thm("tlsf_chain"),
+          thm("star"),
+        ]),
+        strip,
+        small_meson(ths([])),
+      ])
+    },
   )
   let slot = "word_add(tlsf_base(" + a[0] + "),word(1908))"
   let _ = lemma(
@@ -48,24 +50,26 @@ fn prove_tlsf_malloc_reads() -> Unit raise {
     ")," +
     a[2] +
     ")",
-    ent_tac(
-      [
-        thm("tlsf_allocator"),
-        thm("tlsf_small"),
-        thm("tlsf_large"),
-        thm("tlsf_chain"),
-        thm("has_i32"),
-      ],
-      [
-        small_star([
-          "tlsf_regions(word(0)," + a[3] + "," + a[4] + ")",
-          "tlsf_bins(" + [a[0], a[5], a[6], a[7]].join(",") + ")",
-          block_pages(a),
-          block_table(a),
-          client,
-        ]),
-      ],
-    ),
+    () => {
+      ent_tac(
+        [
+          thm("tlsf_allocator"),
+          thm("tlsf_small"),
+          thm("tlsf_large"),
+          thm("tlsf_chain"),
+          thm("has_i32"),
+        ],
+        [
+          small_star([
+            "tlsf_regions(word(0)," + a[3] + "," + a[4] + ")",
+            "tlsf_bins(" + [a[0], a[5], a[6], a[7]].join(",") + ")",
+            block_pages(a),
+            block_table(a),
+            client,
+          ]),
+        ],
+      )
+    },
   )
   for fast in [true, false] {
     let k = "(k : Num)"
@@ -93,48 +97,50 @@ fn prove_tlsf_malloc_reads() -> Unit raise {
       "," +
       read +
       "))",
-      seq([
-        gen,
-        @tactics.disch_tac,
-        g => {
-          let focus = block_under(
-            inst(thm("tlsf_small_table_focus"), [a[0], a[13], a[14], k]),
-            g,
-          )
-          let rest = show(
-            args_of(@equal.rhs(@kernel.concl(focus)), "star", 2).unwrap()[1],
-          )
-          let fr = small_star([
-            block_large(a),
-            block_pages(a),
-            rest,
-            client,
-            "tlsf_small_links(" + a[13] + "(" + k + "))",
-            "tlsf_small_partial_links(word(0)," + a[14] + "(" + k + "))",
-            "pts(val(tlsf_base(" +
-            a[0] +
-            "))+" +
-            (if fast { "1916" } else { "1912" }) +
-            "+8*" +
-            k +
-            ",serialise_i32(tlsf_small_head(" +
-            a[if fast { 14 } else { 13 }] +
-            "(" +
-            k +
-            "))))",
-          ])
-          ent_tac(
-            [
-              thm("tlsf_allocator"),
-              thm("tlsf_small"),
-              focus,
-              thm("tlsf_small_table_item"),
-              thm("has_i32"),
-            ],
-            [fr],
-          )(g)
-        },
-      ]),
+      () => {
+        seq([
+          gen,
+          @tactics.disch_tac,
+          g => {
+            let focus = block_under(
+              inst(thm("tlsf_small_table_focus"), [a[0], a[13], a[14], k]),
+              g,
+            )
+            let rest = show(
+              args_of(@equal.rhs(@kernel.concl(focus)), "star", 2).unwrap()[1],
+            )
+            let fr = small_star([
+              block_large(a),
+              block_pages(a),
+              rest,
+              client,
+              "tlsf_small_links(" + a[13] + "(" + k + "))",
+              "tlsf_small_partial_links(word(0)," + a[14] + "(" + k + "))",
+              "pts(val(tlsf_base(" +
+              a[0] +
+              "))+" +
+              (if fast { "1916" } else { "1912" }) +
+              "+8*" +
+              k +
+              ",serialise_i32(tlsf_small_head(" +
+              a[if fast { 14 } else { 13 }] +
+              "(" +
+              k +
+              "))))",
+            ])
+            ent_tac(
+              [
+                thm("tlsf_allocator"),
+                thm("tlsf_small"),
+                focus,
+                thm("tlsf_small_table_item"),
+                thm("has_i32"),
+              ],
+              [fr],
+            )(g)
+          },
+        ])
+      },
     )
   }
   let _ = lemma(
@@ -152,20 +158,36 @@ fn prove_tlsf_malloc_reads() -> Unit raise {
     ")) && !(" +
     a[2] +
     " == word(0))",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      g => {
-        @tactics.strip_assume_tac(
-          block_under(inst(thm("tlsf_physical_last"), a[:5].to_owned()), g),
-        )(g)
-      },
-      subst_only("xs"),
-      g => {
-        @tactics.strip_assume_tac(
-          @simp.rewrite_rule(ths([thm("tlsf_top_cell")]))(
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        g => {
+          @tactics.strip_assume_tac(
+            block_under(inst(thm("tlsf_physical_last"), a[:5].to_owned()), g),
+          )(g)
+        },
+        subst_only("xs"),
+        g => {
+          @tactics.strip_assume_tac(
+            @simp.rewrite_rule(ths([thm("tlsf_top_cell")]))(
+              block_under(
+                inst(thm("tlsf_ensure_metadata_guards"), [
+                  "(ys : List[" + w + "])",
+                  a[0],
+                  a[1],
+                  a[2],
+                  a[4],
+                ]),
+                g,
+              ),
+            ),
+          )(g)
+        },
+        g => {
+          @tactics.strip_assume_tac(
             block_under(
-              inst(thm("tlsf_ensure_metadata_guards"), [
+              inst(thm("tlsf_ensure_top_facts"), [
                 "(ys : List[" + w + "])",
                 a[0],
                 a[1],
@@ -174,46 +196,32 @@ fn prove_tlsf_malloc_reads() -> Unit raise {
               ]),
               g,
             ),
-          ),
-        )(g)
-      },
-      g => {
-        @tactics.strip_assume_tac(
-          block_under(
-            inst(thm("tlsf_ensure_top_facts"), [
-              "(ys : List[" + w + "])",
-              a[0],
-              a[1],
-              a[2],
-              a[4],
-            ]),
-            g,
-          ),
-        )(g)
-      },
-      free_have(
-        "val(" + a[0] + ") <= 4294965088",
-        seq([
-          @tactics.undisch_tac(
-            tm(
-              "tlsf_physical_ok(" +
-              [
-                a[0],
-                a[1],
-                a[2],
-                "APPEND((ys : List[" + w + "]),[" + a[2] + "])",
-                a[4],
-              ].join(",") +
-              ")",
+          )(g)
+        },
+        free_have(
+          "val(" + a[0] + ") <= 4294965088",
+          seq([
+            @tactics.undisch_tac(
+              tm(
+                "tlsf_physical_ok(" +
+                [
+                  a[0],
+                  a[1],
+                  a[2],
+                  "APPEND((ys : List[" + w + "]),[" + a[2] + "])",
+                  a[4],
+                ].join(",") +
+                ")",
+              ),
             ),
-          ),
-          rw([thm("tlsf_physical_ok")]),
-          page_publish_atomic([]),
-        ]),
-      ),
-      arw([]),
-      rw([@equal.gsym(@words.val_eq_0())]),
-      @int.asm_arith_tac,
-    ]),
+            rw([thm("tlsf_physical_ok")]),
+            page_publish_atomic([]),
+          ]),
+        ),
+        arw([]),
+        rw([@equal.gsym(@words.val_eq_0())]),
+        @int.asm_arith_tac,
+      ])
+    },
   )
 }

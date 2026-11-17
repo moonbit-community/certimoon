@@ -36,48 +36,50 @@ fn prove_tlsf_malloc_outcomes() -> Unit raise {
     "] && !(ptr == word(4294967295)) && " +
     full +
     ")",
-    seq([
-      gen,
-      @simp.rewrite_tac(ths([thm("tlsf_try_malloc_post")])),
-      strip,
-      subst_vars(),
-      @tactics.first(
-        @list.List([
-          solve(
-            seq([
-              @tactics.exists_tac(tm("(word(0) : " + w32 + ")")),
-              arw([
-                thm("tlsf_full_malloc_post"),
-                @equal.gsym(@words.val_eq()),
-                @words.val_word(),
-                @words.dimindex_32(),
+    () => {
+      seq([
+        gen,
+        @simp.rewrite_tac(ths([thm("tlsf_try_malloc_post")])),
+        strip,
+        subst_vars(),
+        @tactics.first(
+          @list.List([
+            solve(
+              seq([
+                @tactics.exists_tac(tm("(word(0) : " + w32 + ")")),
+                arw([
+                  thm("tlsf_full_malloc_post"),
+                  @equal.gsym(@words.val_eq()),
+                  @words.val_word(),
+                  @words.dimindex_32(),
+                ]),
+                @tactics.conv_tac(@calc_num.num_reduce_conv),
+                @simp.asm_rewrite_tac(ths([])),
               ]),
-              @tactics.conv_tac(@calc_num.num_reduce_conv),
-              @simp.asm_rewrite_tac(ths([])),
-            ]),
-          ),
-          solve(page_publish_atomic([])),
-          solve(
-            seq([
-              @tactics.first_assum(th => {
-                if head_name(@kernel.concl(th)) == "tlsf_malloc_result" {
-                  @tactics.strip_assume_tac(
-                    @drule.match_mp(
-                      @bool.spec_all(thm("tlsf_malloc_result_pointer")),
-                    )(th),
-                  )
-                } else {
-                  @tactics.no_tac
-                }
-              }),
-              @tactics.exists_tac(tm("(ptr : " + w32 + ")")),
-              arw([thm("tlsf_full_malloc_post")]),
-              @tactics.try_tac(page_publish_atomic([])),
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+            ),
+            solve(page_publish_atomic([])),
+            solve(
+              seq([
+                @tactics.first_assum(th => {
+                  if head_name(@kernel.concl(th)) == "tlsf_malloc_result" {
+                    @tactics.strip_assume_tac(
+                      @drule.match_mp(
+                        @bool.spec_all(thm("tlsf_malloc_result_pointer")),
+                      )(th),
+                    )
+                  } else {
+                    @tactics.no_tac
+                  }
+                }),
+                @tactics.exists_tac(tm("(ptr : " + w32 + ")")),
+                arw([thm("tlsf_full_malloc_post")]),
+                @tactics.try_tac(page_publish_atomic([])),
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
   let unchanged = "ms == " +
     a[1] +
@@ -103,14 +105,16 @@ fn prove_tlsf_malloc_outcomes() -> Unit raise {
     malloc_i("word(4294967295)") +
     "] && " +
     unchanged,
-    seq([
-      gen,
-      @simp.rewrite_tac(ths([thm("tlsf_try_malloc_post")])),
-      strip,
-      subst_vars(),
-      arw([]),
-      page_publish_atomic([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        @simp.rewrite_tac(ths([thm("tlsf_try_malloc_post")])),
+        strip,
+        subst_vars(),
+        arw([]),
+        page_publish_atomic([]),
+      ])
+    },
   )
   let old = "(oldlim : Num)"
   let _ = lemma(
@@ -143,14 +147,16 @@ fn prove_tlsf_malloc_outcomes() -> Unit raise {
     "," +
     fp +
     ")(gs,ms,h)",
-    seq([
-      gen,
-      strip,
-      @simp.rewrite_tac(ths([thm("tlsf_malloc_state")])),
-      arw([]),
-      seq(a[2:].to_owned().map(x => @tactics.exists_tac(tm(x)))),
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        @simp.rewrite_tac(ths([thm("tlsf_malloc_state")])),
+        arw([]),
+        seq(a[2:].to_owned().map(x => @tactics.exists_tac(tm(x)))),
+        arw([]),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_malloc_result_full_post",
@@ -171,13 +177,15 @@ fn prove_tlsf_malloc_outcomes() -> Unit raise {
     w32 +
     "))(gs,ms,h) → " +
     full,
-    seq([
-      gen,
-      strip,
-      @simp.rewrite_tac(ths([thm("tlsf_full_malloc_post")])),
-      arw([]),
-      @tactics.exists_tac(tm("(ptr : " + w32 + ")")),
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        @simp.rewrite_tac(ths([thm("tlsf_full_malloc_post")])),
+        arw([]),
+        @tactics.exists_tac(tm("(ptr : " + w32 + ")")),
+        arw([]),
+      ])
+    },
   )
 }

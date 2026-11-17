@@ -14,30 +14,32 @@ fn prove_tlsf_block_free_recover_slot() -> Unit raise {
   let _ = lemma(
     "tlsf_small_recover_slot",
     "∀ p : \{w}, ∀ s : Num, ∀ i : Num, ∀ R : \{hprop}, 8 <= s → (∀ h : \{heap}, \{old}(h) → \{new}(h))",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      free_have("12 <= 8+(s : Num)", @int.asm_arith_tac),
-      g => {
-        ent_tac(
-          [
-            block_under(
-              inst(thm("tlsf_page_allocate_words3"), [
-                "val(" + b + ")",
-                "8+(s : Num)",
-              ]),
-              g,
-            ),
-            thm("tlsf_small_slot_heap"),
-            @lists.mem(),
-            thm("tlsf_bytes_word"),
-            @arith.add_clauses(),
-            arith("∀ s : Num, 8+s-12 == s-4"),
-            arith("∀ a : Num, a+8+4 == a+12"),
-          ],
-          ["(word(4) : " + w + ")", "(p : " + w + ")", "(v : " + w + ")"],
-        )(g)
-      },
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        free_have("12 <= 8+(s : Num)", @int.asm_arith_tac),
+        g => {
+          ent_tac(
+            [
+              block_under(
+                inst(thm("tlsf_page_allocate_words3"), [
+                  "val(" + b + ")",
+                  "8+(s : Num)",
+                ]),
+                g,
+              ),
+              thm("tlsf_small_slot_heap"),
+              @lists.mem(),
+              thm("tlsf_bytes_word"),
+              @arith.add_clauses(),
+              arith("∀ s : Num, 8+s-12 == s-4"),
+              arith("∀ a : Num, a+8+4 == a+12"),
+            ],
+            ["(word(4) : " + w + ")", "(p : " + w + ")", "(v : " + w + ")"],
+          )(g)
+        },
+      ])
+    },
   )
 }

@@ -16,18 +16,20 @@ fn prove_tlsf_page_publish_fresh_ready() -> Unit raise {
     ", ∀ b : " +
     w +
     ", tlsf_count(b,REVERSE(xs)) == tlsf_count(b,xs)",
-    seq([
-      @lists.list_induct_tac,
-      rw([
-        @lists.reverse(),
-        thm("tlsf_small_count_nil"),
-        thm("tlsf_small_count_append"),
-        thm("tlsf_small_count_cons"),
-      ]),
-      gen,
-      arw([thm("tlsf_small_count_nil")]),
-      @int.arith_tac,
-    ]),
+    () => {
+      seq([
+        @lists.list_induct_tac,
+        rw([
+          @lists.reverse(),
+          thm("tlsf_small_count_nil"),
+          thm("tlsf_small_count_append"),
+          thm("tlsf_small_count_cons"),
+        ]),
+        gen,
+        arw([thm("tlsf_small_count_nil")]),
+        @int.arith_tac,
+      ])
+    },
   )
   let p = "(p : " + w + ")"
   let s = "(s : Num)"
@@ -47,73 +49,79 @@ fn prove_tlsf_page_publish_fresh_ready() -> Unit raise {
     " → tlsf_small_partition(p,s," +
     slots +
     ",NIL,NIL)",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      free_have(
-        "∀ i : Num, ∀ j : Num, i < tlsf_small_total(" +
-        s +
-        ") && j < tlsf_small_total(s) && tlsf_small_slot(" +
-        p +
-        ",s,i) == tlsf_small_slot(p,s,j) → i == j",
-        seq([
-          gen,
-          strip,
-          g => {
-            @tactics.strip_assume_tac(
-              block_under(
-                inst(thm("tlsf_page_allocate_bounds"), [p, cap, s, "(i : Num)"]),
-                g,
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        free_have(
+          "∀ i : Num, ∀ j : Num, i < tlsf_small_total(" +
+          s +
+          ") && j < tlsf_small_total(s) && tlsf_small_slot(" +
+          p +
+          ",s,i) == tlsf_small_slot(p,s,j) → i == j",
+          seq([
+            gen,
+            strip,
+            g => {
+              @tactics.strip_assume_tac(
+                block_under(
+                  inst(thm("tlsf_page_allocate_bounds"), [
+                    p, cap, s, "(i : Num)",
+                  ]),
+                  g,
+                ),
+              )(g)
+            },
+            g => {
+              @tactics.strip_assume_tac(
+                block_under(
+                  inst(thm("tlsf_page_allocate_bounds"), [
+                    p, cap, s, "(j : Num)",
+                  ]),
+                  g,
+                ),
+              )(g)
+            },
+            @tactics.undisch_tac(
+              tm(
+                "tlsf_small_slot(" +
+                p +
+                "," +
+                s +
+                ",(i : Num)) == tlsf_small_slot(p,s,(j : Num))",
               ),
-            )(g)
-          },
-          g => {
-            @tactics.strip_assume_tac(
-              block_under(
-                inst(thm("tlsf_page_allocate_bounds"), [p, cap, s, "(j : Num)"]),
-                g,
-              ),
-            )(g)
-          },
-          @tactics.undisch_tac(
-            tm(
-              "tlsf_small_slot(" +
-              p +
-              "," +
-              s +
-              ",(i : Num)) == tlsf_small_slot(p,s,(j : Num))",
             ),
-          ),
-          rw([@equal.gsym(@words.val_eq())]),
-          arw([@arith.eq_add_lcancel(), @arith.eq_mult_lcancel()]),
-          @int.arith_tac,
+            rw([@equal.gsym(@words.val_eq())]),
+            arw([@arith.eq_add_lcancel(), @arith.eq_mult_lcancel()]),
+            @int.arith_tac,
+          ]),
+        ),
+        g => {
+          @tactics.assume_tac(
+            block_under(
+              inst(thm("tlsf_small_slots_counts"), [
+                "tlsf_small_total(" + s + ")",
+                p,
+                s,
+              ]),
+              g,
+            ),
+          )(g)
+        },
+        rw([
+          thm("tlsf_small_partition"),
+          @lists.append(),
+          @lists.append_nil(),
+          @lists.length_reverse(),
+          thm("tlsf_small_slots_length"),
+          thm("tlsf_small_used"),
+          @lists.length(),
+          @arith.add_clauses(),
+          thm("tlsf_page_publish_count_reverse"),
         ]),
-      ),
-      g => {
-        @tactics.assume_tac(
-          block_under(
-            inst(thm("tlsf_small_slots_counts"), [
-              "tlsf_small_total(" + s + ")",
-              p,
-              s,
-            ]),
-            g,
-          ),
-        )(g)
-      },
-      rw([
-        thm("tlsf_small_partition"),
-        @lists.append(),
-        @lists.append_nil(),
-        @lists.length_reverse(),
-        thm("tlsf_small_slots_length"),
-        thm("tlsf_small_used"),
-        @lists.length(),
-        @arith.add_clauses(),
-        thm("tlsf_page_publish_count_reverse"),
-      ]),
-      arw([]),
-    ]),
+        arw([]),
+      ])
+    },
   )
   let _ = lemma(
     "tlsf_page_publish_fresh_ready",
@@ -124,21 +132,23 @@ fn prove_tlsf_page_publish_fresh_ready() -> Unit raise {
     " && val(p)+8+cap <= lim && lim <= 4294967296 → tlsf_small_page_ok(lim,p,cap,s," +
     slots +
     ",NIL,NIL)",
-    seq([
-      gen,
-      strip,
-      g => {
-        @tactics.assume_tac(
-          block_under(
-            inst(thm("tlsf_page_publish_fresh_partition"), [p, cap, s]),
-            g,
-          ),
-        )(g)
-      },
-      @tactics.undisch_tac(tm(geom)),
-      rw([thm("tlsf_page_allocate_geometry"), thm("tlsf_small_page_ok")]),
-      strip,
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        g => {
+          @tactics.assume_tac(
+            block_under(
+              inst(thm("tlsf_page_publish_fresh_partition"), [p, cap, s]),
+              g,
+            ),
+          )(g)
+        },
+        @tactics.undisch_tac(tm(geom)),
+        rw([thm("tlsf_page_allocate_geometry"), thm("tlsf_small_page_ok")]),
+        strip,
+        arw([]),
+      ])
+    },
   )
 }

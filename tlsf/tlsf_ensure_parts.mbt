@@ -28,7 +28,7 @@ fn prove_tlsf_ensure_parts() -> Unit raise {
     let _ = lemma(
       name,
       "∀ d : \{w}, ∀ pop : Num, ∀ push : Num, \{left}(\{args}) == APPEND(\{a}(\{args}),CONS(Memory_size,\{b}(\{args})))",
-      seq([gen, rw(defs + [@lists.append()])]),
+      () => seq([gen, rw(defs + [@lists.append()])]),
     )
   }
   def(
@@ -43,16 +43,18 @@ fn prove_tlsf_ensure_parts() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_code_parts",
     "∀ d : \{w}, ∀ pop : Num, ∀ push : Num, tlsf_ensure_code(\{args}) == APPEND(tlsf_ensure_prefix(\{args}),\{tail})",
-    seq([
-      gen,
-      rw(
-        defs +
-        [
-          thm("tlsf_ensure_used_body"),
-          thm("tlsf_ensure_free_body"),
-          @lists.append(),
-        ],
-      ),
-    ]),
+    () => {
+      seq([
+        gen,
+        rw(
+          defs +
+          [
+            thm("tlsf_ensure_used_body"),
+            thm("tlsf_ensure_free_body"),
+            @lists.append(),
+          ],
+        ),
+      ])
+    },
   )
 }

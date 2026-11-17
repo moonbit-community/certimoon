@@ -8,6 +8,9 @@ let thms : Map[String, @kernel.Thm] = Map([])
 /// A definition or lemma of the logic, by name.
 pub fn thm(name : String) -> @kernel.Thm {
   load()
+  if conditional_thm(name) is Some(th) {
+    return th
+  }
   match thms.get(name) {
     Some(th) => th
     None => abort("certimoon/logic: no theorem " + name)
@@ -34,6 +37,9 @@ pub fn record(
   kind~ : String = "lemma",
   loc~ : SourceLoc,
 ) -> Unit {
+  if conditional_record(name, th, kind, loc) {
+    return
+  }
   if thms.contains(name) {
     abort("certimoon/logic: " + name + " recorded twice")
   }
@@ -138,6 +144,21 @@ pub fn lemma(
   name : String,
   stmt : String,
   tac : @tactics.Tactic,
+  kind~ : String = "lemma",
+  loc~ : SourceLoc,
+) -> @kernel.Thm raise {
+  lemma_term(name, tm(stmt), tac, kind~, loc~)
+}
+
+///|
+/// A lemma with an already parsed statement, preserving inferred type variables
+/// when a lazy declaration and its proof are constructed at different times.
+#callsite(autofill(loc))
+pub fn lemma_term(
+  name : String,
+  goal : @kernel.Term,
+  tac : @tactics.Tactic,
+  kind~ : String = "lemma",
   loc~ : SourceLoc,
 ) -> @kernel.Thm raise {
   let tac = if trace.val {
@@ -146,11 +167,11 @@ pub fn lemma(
   } else {
     tac
   }
-  let th = @tactics.prove(tm(stmt), tac) catch {
+  let th = prove(goal, tac) catch {
     e =>
       raise Failure("certimoon/logic: proving " + name + ": " + e.to_string())
   }
-  record(name, th, loc~)
+  record(name, th, kind~, loc~)
   th
 }
 
@@ -172,7 +193,7 @@ pub fn seq(tacs : Array[@tactics.Tactic]) -> @tactics.Tactic {
 ///|
 /// A list of theorems, for the rewriting and MESON tactics.
 pub fn ths(xs : Array[@kernel.Thm]) -> @list.List[@kernel.Thm] {
-  @list.List(xs)
+  @list.List(conditional_instances(xs))
 }
 
 ///|

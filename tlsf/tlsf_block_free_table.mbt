@@ -16,27 +16,31 @@ fn prove_tlsf_block_free_table() -> Unit raise {
   let _ = lemma(
     "tlsf_small_table_focus",
     "\{v}, k < 33 → tlsf_small_table(d,fast,partial) == star(tlsf_small_table_item(d,fast,partial,k),\{rest(part)})",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      rw([thm("tlsf_small_table")]),
-      @tactics.match_mp_tac(thm("tlsf_istar_focus")),
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        rw([thm("tlsf_small_table")]),
+        @tactics.match_mp_tac(thm("tlsf_istar_focus")),
+        arw([]),
+      ])
+    },
   )
   let new = "tlsf_small_put_class((partial : (Num) -> \{lw}),(k : Num),(entries : \{lw}))"
   let _ = lemma(
     "tlsf_small_table_update_rest",
     "\{v}, ∀ entries : \{lw}, \{rest(new)} == \{rest(part)}",
-    seq([
-      gen,
-      @tactics.match_mp_tac(thm("tlsf_istar_cong")),
-      @tactics.x_gen_tac(tm("(j : Num)")),
-      @tactics.disch_tac,
-      @class.asm_cases_tac(tm("(j : Num) == (k : Num)")),
-      arw([]),
-      rw([thm("tlsf_small_table_item"), thm("tlsf_small_put_class")]),
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.match_mp_tac(thm("tlsf_istar_cong")),
+        @tactics.x_gen_tac(tm("(j : Num)")),
+        @tactics.disch_tac,
+        @class.asm_cases_tac(tm("(j : Num) == (k : Num)")),
+        arw([]),
+        rw([thm("tlsf_small_table_item"), thm("tlsf_small_put_class")]),
+        arw([]),
+      ])
+    },
   )
 }

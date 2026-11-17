@@ -83,69 +83,73 @@ fn prove_tlsf_malloc_cache_view() -> Unit raise {
     "-4)," +
     newer +
     ")",
-    seq([
-      gen,
-      strip,
-      free_have(
-        "tlsf_small_partition(" +
-        p +
-        "," +
-        s +
-        "," +
-        loc +
-        "," +
-        c +
-        "," +
-        l +
-        ")",
-        seq([
-          @tactics.undisch_tac(tm(ready)),
-          rw([thm("tlsf_small_page_ok")]),
-          small_meson(ths([])),
-        ]),
-      ),
-      g => {
-        @tactics.strip_assume_tac(
-          block_under(
-            inst(thm("tlsf_malloc_cached_partition"), [p, s, loc, c, l, b]),
-            g,
-          ),
-        )(g)
-      },
-      free_have(
-        "∀ j : Num, j < tlsf_small_total(" +
-        s +
-        ") && !(j == (i : Num)) → !(tlsf_small_slot(" +
-        p +
-        "," +
-        s +
-        ",j) == " +
-        b +
-        ")",
-        seq([
-          gen,
-          strip,
-          @tactics.mp_tac(
-            inst(
-              thm("tlsf_small_slot_injective"),
-              args + ["(j : Num)", "(i : Num)"],
+    () => {
+      seq([
+        gen,
+        strip,
+        free_have(
+          "tlsf_small_partition(" +
+          p +
+          "," +
+          s +
+          "," +
+          loc +
+          "," +
+          c +
+          "," +
+          l +
+          ")",
+          seq([
+            @tactics.undisch_tac(tm(ready)),
+            rw([thm("tlsf_small_page_ok")]),
+            small_meson(ths([])),
+          ]),
+        ),
+        g => {
+          @tactics.strip_assume_tac(
+            block_under(
+              inst(thm("tlsf_malloc_cached_partition"), [p, s, loc, c, l, b]),
+              g,
             ),
-          ),
-          arw([]),
-          small_meson(ths([])),
-        ]),
-      ),
-      g => {
-        let pre = block_under(
-          inst(thm("tlsf_page_publish_slots_pre"), slotargs),
-          g,
-        )
-        let post = block_under(
-          inst(thm("tlsf_page_publish_slots_post"), slotargs),
-          g,
-        )
-        seq([rw([thm("tlsf_small_page_heap"), pre, post]), arw(malloc_ac())])(g)
-      },
-    ]),
+          )(g)
+        },
+        free_have(
+          "∀ j : Num, j < tlsf_small_total(" +
+          s +
+          ") && !(j == (i : Num)) → !(tlsf_small_slot(" +
+          p +
+          "," +
+          s +
+          ",j) == " +
+          b +
+          ")",
+          seq([
+            gen,
+            strip,
+            @tactics.mp_tac(
+              inst(
+                thm("tlsf_small_slot_injective"),
+                args + ["(j : Num)", "(i : Num)"],
+              ),
+            ),
+            arw([]),
+            small_meson(ths([])),
+          ]),
+        ),
+        g => {
+          let pre = block_under(
+            inst(thm("tlsf_page_publish_slots_pre"), slotargs),
+            g,
+          )
+          let post = block_under(
+            inst(thm("tlsf_page_publish_slots_post"), slotargs),
+            g,
+          )
+          seq([rw([thm("tlsf_small_page_heap"), pre, post]), arw(malloc_ac())])(
+            g,
+          )
+        },
+      ])
+    },
   )
 }

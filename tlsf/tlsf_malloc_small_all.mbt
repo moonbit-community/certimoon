@@ -148,39 +148,41 @@ fn prove_tlsf_malloc_small_all() -> Unit raise {
         "," +
         post +
         ")",
-        seq([
-          gen,
-          @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-          g => {
-            let model = if cached {
-              inst(thm("tlsf_malloc_cached_models"), a + [p, b, bs, k])
-            } else {
-              inst(
-                thm("tlsf_page_publish_" + kind + "_models"),
-                a + [p, b, bs, s, "(z : " + lw + ")"],
-              )
-            }
-            let model = block_under(model, g)
-            let model = @simp.rewrite_rule(g.0.map(x => x.1))(model)
-            @tactics.strip_assume_tac(model)(g)
-          },
-          @tactics.match_mp_tac(thm("sl_conseq")),
-          @tactics.exists_tac(t[0]),
-          @tactics.exists_tac(t[2]),
-          @tactics.thenl(
-            @tactics.conj_tac,
-            @list.List([
-              ent_tac([thm("tlsf_allocator"), thm("tlsf_small")], []),
-              @tactics.thenl(
-                @tactics.conj_tac,
-                @list.List([
-                  free_apply(path),
-                  ent_tac([thm("tlsf_allocator"), thm("tlsf_small")], []),
-                ]),
-              ),
-            ]),
-          ),
-        ]),
+        () => {
+          seq([
+            gen,
+            @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+            g => {
+              let model = if cached {
+                inst(thm("tlsf_malloc_cached_models"), a + [p, b, bs, k])
+              } else {
+                inst(
+                  thm("tlsf_page_publish_" + kind + "_models"),
+                  a + [p, b, bs, s, "(z : " + lw + ")"],
+                )
+              }
+              let model = block_under(model, g)
+              let model = @simp.rewrite_rule(g.0.map(x => x.1))(model)
+              @tactics.strip_assume_tac(model)(g)
+            },
+            @logic.match_mp_tac(thm("sl_conseq")),
+            @tactics.exists_tac(t[0]),
+            @tactics.exists_tac(t[2]),
+            @tactics.thenl(
+              @tactics.conj_tac,
+              @list.List([
+                ent_tac([thm("tlsf_allocator"), thm("tlsf_small")], []),
+                @tactics.thenl(
+                  @tactics.conj_tac,
+                  @list.List([
+                    free_apply(path),
+                    ent_tac([thm("tlsf_allocator"), thm("tlsf_small")], []),
+                  ]),
+                ),
+              ]),
+            ),
+          ])
+        },
       )
     }
   }

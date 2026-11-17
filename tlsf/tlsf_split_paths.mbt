@@ -149,7 +149,7 @@ fn prove_tlsf_split_paths() -> Unit raise {
       name,
       stmt,
       [],
-      Array::make(3, vc),
+      () => Array::make(3, vc),
       afters~,
       specs=[spec],
       calls=[(0, [])],

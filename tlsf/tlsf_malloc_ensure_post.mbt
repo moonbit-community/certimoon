@@ -149,117 +149,119 @@ fn prove_tlsf_malloc_ensure_post() -> Unit raise {
     source +
     " → " +
     target,
-    seq([
-      gen,
-      rw([thm("tlsf_ensure_post")]),
-      strip,
-      rw([thm("tlsf_malloc_ensure_post")]),
-      beta_goal(),
-      arw([]),
-      @tactics.first(
-        @list.List([
-          solve(
-            seq([
-              @tactics.try_tac(@tactics.disj1_tac),
-              @tactics.first_x_assum(th => {
-                if head_name(@kernel.concl(th)) == "star" {
-                  @tactics.mp_tac(th)
-                } else {
-                  @tactics.no_tac
-                }
-              }),
-              rw([thm("tlsf_allocator")] + lift_rws()),
-              arw(malloc_ac()),
-            ]),
-          ),
-          solve(
-            seq([
-              @tactics.first_x_assum(th => {
-                if args_of(@kernel.concl(th), "=", 2) is Some([lhs, rhs]) &&
-                  lhs == tm(ms) &&
-                  rhs != tm(a[1]) {
-                  @tactics.subst1_tac(@equal.gsym(th))
-                } else {
-                  @tactics.no_tac
-                }
-              }),
-              free_have(
-                retained,
-                seq([
-                  @tactics.x_gen_tac(tm("(p : " + w + ")")),
-                  @tactics.disch_tac,
-                  g => {
-                    @tactics.strip_assume_tac(
-                      block_under(
-                        inst(
-                          thm("tlsf_malloc_backing_used"),
-                          a + ["(p : " + w + ")"],
+    () => {
+      seq([
+        gen,
+        rw([thm("tlsf_ensure_post")]),
+        strip,
+        rw([thm("tlsf_malloc_ensure_post")]),
+        beta_goal(),
+        arw([]),
+        @tactics.first(
+          @list.List([
+            solve(
+              seq([
+                @tactics.try_tac(@tactics.disj1_tac),
+                @tactics.first_x_assum(th => {
+                  if head_name(@kernel.concl(th)) == "star" {
+                    @tactics.mp_tac(th)
+                  } else {
+                    @tactics.no_tac
+                  }
+                }),
+                rw([thm("tlsf_allocator")] + lift_rws()),
+                arw(malloc_ac()),
+              ]),
+            ),
+            solve(
+              seq([
+                @tactics.first_x_assum(th => {
+                  if args_of(@kernel.concl(th), "=", 2) is Some([lhs, rhs]) &&
+                    lhs == tm(ms) &&
+                    rhs != tm(a[1]) {
+                    @tactics.subst1_tac(@equal.gsym(th))
+                  } else {
+                    @tactics.no_tac
+                  }
+                }),
+                free_have(
+                  retained,
+                  seq([
+                    @tactics.x_gen_tac(tm("(p : " + w + ")")),
+                    @tactics.disch_tac,
+                    g => {
+                      @tactics.strip_assume_tac(
+                        block_under(
+                          inst(
+                            thm("tlsf_malloc_backing_used"),
+                            a + ["(p : " + w + ")"],
+                          ),
+                          g,
                         ),
-                        g,
+                      )(g)
+                    },
+                    free_apply(
+                      inst(
+                        thm("tlsf_malloc_growth_retains"),
+                        a + ["(p : " + w + ")", ms],
                       ),
-                    )(g)
-                  },
-                  free_apply(
-                    inst(
-                      thm("tlsf_malloc_growth_retains"),
-                      a + ["(p : " + w + ")", ms],
                     ),
-                  ),
-                  arw([]),
-                ]),
-              ),
-              free_have(
-                block_backing(newer),
-                seq([
-                  free_apply(
-                    inst(
-                      thm("tlsf_small_backing_transport"),
-                      [a[3], a[4]] + a[8:13].to_owned() + [a[1], nx, nh, ms],
+                    arw([]),
+                  ]),
+                ),
+                free_have(
+                  block_backing(newer),
+                  seq([
+                    free_apply(
+                      inst(
+                        thm("tlsf_small_backing_transport"),
+                        [a[3], a[4]] + a[8:13].to_owned() + [a[1], nx, nh, ms],
+                      ),
                     ),
-                  ),
-                  arw([]),
-                ]),
-              ),
-              free_have(
-                small +
-                " == tlsf_small(" +
-                [a[0], nh, a[8], a[9], a[10], a[11], a[12], a[13], a[14]].join(
-                  ",",
-                ) +
-                ")",
-                seq([
-                  free_apply(
-                    inst(
-                      thm("tlsf_small_transport"),
-                      [a[0]] + a[8:13].to_owned() + [a[4], nh, a[13], a[14]],
+                    arw([]),
+                  ]),
+                ),
+                free_have(
+                  small +
+                  " == tlsf_small(" +
+                  [a[0], nh, a[8], a[9], a[10], a[11], a[12], a[13], a[14]].join(
+                    ",",
+                  ) +
+                  ")",
+                  seq([
+                    free_apply(
+                      inst(
+                        thm("tlsf_small_transport"),
+                        [a[0]] + a[8:13].to_owned() + [a[4], nh, a[13], a[14]],
+                      ),
                     ),
-                  ),
-                  gen,
-                  @tactics.disch_tac,
-                  @tactics.first_assum(th => {
-                    @tactics.mp_tac(@bool.spec(tm("(p : " + w + ")"), th))
-                  }),
-                  arw([]),
-                  page_publish_atomic([]),
-                ]),
-              ),
-              @tactics.try_tac(@tactics.disj2_tac),
-              arw([]),
-              seq(newer[2:8].to_owned().map(x => @tactics.exists_tac(tm(x)))),
-              @tactics.first_x_assum(th => {
-                if head_name(@kernel.concl(th)) == "star" {
-                  @tactics.mp_tac(th)
-                } else {
-                  @tactics.no_tac
-                }
-              }),
-              rw([thm("tlsf_allocator")] + lift_rws()),
-              arw(malloc_ac()),
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+                    gen,
+                    @tactics.disch_tac,
+                    @tactics.first_assum(th => {
+                      @tactics.mp_tac(@bool.spec(tm("(p : " + w + ")"), th))
+                    }),
+                    arw([]),
+                    page_publish_atomic([]),
+                  ]),
+                ),
+                @tactics.try_tac(@tactics.disj2_tac),
+                arw([]),
+                seq(newer[2:8].to_owned().map(x => @tactics.exists_tac(tm(x)))),
+                @tactics.first_x_assum(th => {
+                  if head_name(@kernel.concl(th)) == "star" {
+                    @tactics.mp_tac(th)
+                  } else {
+                    @tactics.no_tac
+                  }
+                }),
+                rw([thm("tlsf_allocator")] + lift_rws()),
+                arw(malloc_ac()),
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
   let _ = lw
 }

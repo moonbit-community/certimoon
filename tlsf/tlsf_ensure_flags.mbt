@@ -17,36 +17,46 @@ fn prove_tlsf_ensure_flags() -> Unit raise {
   let _ = lemma(
     "tlsf_resized_fields",
     "∀ z : \{w}, ∀ h : \{w}, tlsf_size(z) == z → tlsf_size(\{sized}) == z && (tlsf_used(\{sized}) == tlsf_used(h)) && (tlsf_last(\{sized}) == tlsf_last(h))",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      @tactics.mp_tac(inst(thm("tlsf_clean_low_bits"), ["(z : \{w})"])),
-      arw([]),
-      strip,
-      @tactics.rule_assum_tac(@simp.rewrite_rule(ths([thm("tlsf_size")]))),
-      rw([thm("tlsf_size"), thm("tlsf_used"), thm("tlsf_last")]),
-      norm,
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        @tactics.mp_tac(inst(thm("tlsf_clean_low_bits"), ["(z : \{w})"])),
+        arw([]),
+        strip,
+        @tactics.rule_assum_tac(@simp.rewrite_rule(ths([thm("tlsf_size")]))),
+        rw([thm("tlsf_size"), thm("tlsf_used"), thm("tlsf_last")]),
+        norm,
+      ])
+    },
   )
   let clear = "word_and((h : \{w}),word(4294967293))"
   let _ = lemma(
     "tlsf_clear_last_fields",
     "∀ h : \{w}, tlsf_size(\{clear}) == tlsf_size(h) && (tlsf_used(\{clear}) == tlsf_used(h)) && !tlsf_last(\{clear})",
-    seq([gen, rw([thm("tlsf_size"), thm("tlsf_used"), thm("tlsf_last")]), norm]),
+    () => {
+      seq([
+        gen,
+        rw([thm("tlsf_size"), thm("tlsf_used"), thm("tlsf_last")]),
+        norm,
+      ])
+    },
   )
   let last = "word_or((z : \{w}),word(2))"
   let _ = lemma(
     "tlsf_new_top_fields",
     "∀ z : \{w}, tlsf_size(z) == z → tlsf_size(\{last}) == z && !tlsf_used(\{last}) && tlsf_last(\{last})",
-    seq([
-      gen,
-      @tactics.disch_tac,
-      @tactics.mp_tac(inst(thm("tlsf_clean_low_bits"), ["(z : \{w})"])),
-      arw([]),
-      strip,
-      @tactics.rule_assum_tac(@simp.rewrite_rule(ths([thm("tlsf_size")]))),
-      rw([thm("tlsf_size"), thm("tlsf_used"), thm("tlsf_last")]),
-      norm,
-    ]),
+    () => {
+      seq([
+        gen,
+        @tactics.disch_tac,
+        @tactics.mp_tac(inst(thm("tlsf_clean_low_bits"), ["(z : \{w})"])),
+        arw([]),
+        strip,
+        @tactics.rule_assum_tac(@simp.rewrite_rule(ths([thm("tlsf_size")]))),
+        rw([thm("tlsf_size"), thm("tlsf_used"), thm("tlsf_last")]),
+        norm,
+      ])
+    },
   )
 }

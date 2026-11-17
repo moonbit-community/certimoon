@@ -49,56 +49,58 @@ fn prove_tlsf_malloc_slow_prefix() -> Unit raise {
     "," +
     malloc_slow_prefix_post(a, n) +
     ",NIL)",
-    seq([
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-      @tactics.match_mp_tac(thm("sl_conseq_m")),
-      @tactics.exists_tac(t[3]),
-      @tactics.exists_tac(t[5]),
-      @simp.rewrite_tac(ths([@class.eta_ax(), @lists.append()])),
-      @tactics.repeat_tac(@tactics.conj_tac),
-      @tactics.first(
-        @list.List([
-          solve(same_tac()),
-          solve(free_apply(source)),
-          solve(
-            seq([
-              @tactics.repeat_tac(@tactics.gen_tac),
-              beta_goal(),
-              @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-              g => {
-                @tactics.mp_tac(
-                  block_under(
-                    inst(
-                      thm("tlsf_malloc_try_no_fit"),
-                      a +
-                      [
-                        n,
-                        "(before : " + heap + ")",
-                        "(fp : " + rty + ")",
-                        "(vs : List[Value])",
-                        "(gs : List[Value])",
-                        "(ms : Num)",
-                        "(h : " + heap + ")",
-                      ],
+    () => {
+      seq([
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+        @logic.match_mp_tac(thm("sl_conseq_m")),
+        @tactics.exists_tac(t[3]),
+        @tactics.exists_tac(t[5]),
+        @simp.rewrite_tac(ths([@class.eta_ax(), @lists.append()])),
+        @tactics.repeat_tac(@tactics.conj_tac),
+        @tactics.first(
+          @list.List([
+            solve(same_tac()),
+            solve(free_apply(source)),
+            solve(
+              seq([
+                @tactics.repeat_tac(@tactics.gen_tac),
+                beta_goal(),
+                @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+                g => {
+                  @tactics.mp_tac(
+                    block_under(
+                      inst(
+                        thm("tlsf_malloc_try_no_fit"),
+                        a +
+                        [
+                          n,
+                          "(before : " + heap + ")",
+                          "(fp : " + rty + ")",
+                          "(vs : List[Value])",
+                          "(gs : List[Value])",
+                          "(ms : Num)",
+                          "(h : " + heap + ")",
+                        ],
+                      ),
+                      g,
                     ),
-                    g,
-                  ),
-                )(g)
-              },
-              @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
-              subst_vars(),
-              seq(
-                ["out0", "out1", "out2", "out3", "out4"].map(x => {
-                  @tactics.exists_tac(tm("(" + x + " : Value)"))
-                }),
-              ),
-              @simp.asm_rewrite_tac(ths([thm("st"), thm("tlsf_malloc_ro")])),
-            ]),
-          ),
-        ]),
-      ),
-    ]),
+                  )(g)
+                },
+                @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
+                subst_vars(),
+                seq(
+                  ["out0", "out1", "out2", "out3", "out4"].map(x => {
+                    @tactics.exists_tac(tm("(" + x + " : Value)"))
+                  }),
+                ),
+                @simp.asm_rewrite_tac(ths([thm("st"), thm("tlsf_malloc_ro")])),
+              ]),
+            ),
+          ]),
+        ),
+      ])
+    },
   )
 }
 
@@ -135,7 +137,7 @@ fn prove_tlsf_malloc_early_failure() -> Unit raise {
       after +
       ",R))",
       [],
-      [malloc_vc()],
+      () => [malloc_vc()],
       kind="lemma",
     ),
   )

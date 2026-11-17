@@ -105,62 +105,64 @@ fn prove_tlsf_free_arg_states() -> Unit raise {
       "\{vars}, \{cond} → sl_triple(st(NIL,\{lc0},\{p}),tlsf_free_" +
       (if prev { "prev" } else { "next" }) +
       "_args(d,pop,push),st([\{i(other)}],\{lc1},\{p}))",
-      seq([
-        gen,
-        strip,
-        if prev {
-          @tactics.all_tac
-        } else {
-          seq([
-            @tactics.mp_tac(
-              inst(thm("tlsf_free_pair_facts"), [
-                "(ys : \{lw})",
-                "(zs : \{lw})",
-                m,
-                r,
-                "(word(0) : \{w})",
-                "tlsf_origin((d : \{w}))",
-                "(lim : Num)",
-                "(top : \{w})",
-                hd,
-              ]),
-            ),
-            @tactics.mp_tac(
-              @simp.rewrite_rule(ths([thm("tlsf_free_geom_facts")]))(
-                @kernel.assume_rule(tm(geom)),
+      () => {
+        seq([
+          gen,
+          strip,
+          if prev {
+            @tactics.all_tac
+          } else {
+            seq([
+              @tactics.mp_tac(
+                inst(thm("tlsf_free_pair_facts"), [
+                  "(ys : \{lw})",
+                  "(zs : \{lw})",
+                  m,
+                  r,
+                  "(word(0) : \{w})",
+                  "tlsf_origin((d : \{w}))",
+                  "(lim : Num)",
+                  "(top : \{w})",
+                  hd,
+                ]),
               ),
-            ),
-            strip,
-            arw([]),
-            strip,
-            free_have(
-              eqr,
-              seq([@tactics.match_mp_tac(thm("tlsf_free_successor")), arw([])]),
-            ),
-            @tactics.pop_assum_list(all => {
-              seq(
-                all
-                .to_array()
-                .filter(th => !@basics.aconv(@kernel.concl(th), tm(eqr)))
-                .map(@tactics.assume_tac),
-              )
-            }),
-          ])
-        },
-        @tactics.match_mp_tac(thm("sl_conseq")),
-        @tactics.exists_tac(rt[0]),
-        @tactics.exists_tac(rt[2]),
-        @tactics.thenl(
-          @tactics.conj_tac,
-          @list.List([
-            ent_tac(rws, []),
-            @tactics.thenl(
-              @tactics.conj_tac,
-              @list.List([@tactics.accept_tac(raw), ent_tac(rws, [])]),
-            ),
-          ]),
-        ),
-      ]),
+              @tactics.mp_tac(
+                @simp.rewrite_rule(ths([thm("tlsf_free_geom_facts")]))(
+                  @kernel.assume_rule(tm(geom)),
+                ),
+              ),
+              strip,
+              arw([]),
+              strip,
+              free_have(
+                eqr,
+                seq([@tactics.match_mp_tac(thm("tlsf_free_successor")), arw([])]),
+              ),
+              @tactics.pop_assum_list(all => {
+                seq(
+                  all
+                  .to_array()
+                  .filter(th => !@basics.aconv(@kernel.concl(th), tm(eqr)))
+                  .map(@tactics.assume_tac),
+                )
+              }),
+            ])
+          },
+          @tactics.match_mp_tac(thm("sl_conseq")),
+          @tactics.exists_tac(rt[0]),
+          @tactics.exists_tac(rt[2]),
+          @tactics.thenl(
+            @tactics.conj_tac,
+            @list.List([
+              ent_tac(rws, []),
+              @tactics.thenl(
+                @tactics.conj_tac,
+                @list.List([@tactics.accept_tac(raw), ent_tac(rws, [])]),
+              ),
+            ]),
+          ),
+        ])
+      },
     )
   }
 }

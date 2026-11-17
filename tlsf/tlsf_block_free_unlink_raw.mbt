@@ -80,7 +80,7 @@ fn prove_tlsf_block_free_unlink_raw() -> Unit raise {
           "_all_raw",
           "∀ d : \{w}, ∀ free_idx : Num, ∀ p : \{w}, ∀ pr : \{w}, ∀ nx : \{w}, ∀ size : \{w}, ∀ u : Value, ∀ l2 : Value, ∀ fp : \{rty}, \{cond} → sl_triple(st(NIL,[\{i("p")},u,l2],\{own(pre)}),tlsf_block_free_unlink(d,free_idx),\{mid})",
           [],
-          [vc],
+          () => [vc],
           afters=if has_prev {
             [out0, mid, @logic.sa_false]
           } else {

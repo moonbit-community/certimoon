@@ -53,36 +53,38 @@ fn prove_tlsf_ensure_used_success() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_used_success",
     "\{vars}, \{cond} → sl_triple_m(fs,tabs,inst,\{pre},\{show(at[4])},\{show(at[5])},NIL)",
-    seq([
-      gen,
-      strip,
-      @tactics.match_mp_tac(thm("sl_conseq_m")),
-      @tactics.exists_tac(at[3]),
-      @tactics.exists_tac(at[5]),
-      rw([]),
-      @tactics.repeat_tac(@tactics.conj_tac),
-      @tactics.first(
-        @list.List([
-          solve(seq([@tactics.match_mp_tac(append), arw([])])),
-          solve(
-            seq([
-              gen,
-              rw([thm("st")] + lift_rws()),
-              strip,
-              arw([]),
-              @tactics.mp_tac(grow),
-              arw([]),
-              @tactics.disch_then(th => {
-                @tactics.assume_tac(@bool.spec(tm("(h : \{heap})"), th))
-              }),
-              @tactics.rule_assum_tac(@simp.rewrite_rule(ths(ac))),
-              arw(ac),
-              @meson.asm_meson_tac(ths([])),
-            ]),
-          ),
-          solve(seq([gen, beta_goal(), strip, arw([])])),
-        ]),
-      ),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.match_mp_tac(thm("sl_conseq_m")),
+        @tactics.exists_tac(at[3]),
+        @tactics.exists_tac(at[5]),
+        rw([]),
+        @tactics.repeat_tac(@tactics.conj_tac),
+        @tactics.first(
+          @list.List([
+            solve(seq([@tactics.match_mp_tac(append), arw([])])),
+            solve(
+              seq([
+                gen,
+                rw([thm("st")] + lift_rws()),
+                strip,
+                arw([]),
+                @tactics.mp_tac(grow),
+                arw([]),
+                @tactics.disch_then(th => {
+                  @tactics.assume_tac(@bool.spec(tm("(h : \{heap})"), th))
+                }),
+                @tactics.rule_assum_tac(@simp.rewrite_rule(ths(ac))),
+                arw(ac),
+                @meson.asm_meson_tac(ths([])),
+              ]),
+            ),
+            solve(seq([gen, beta_goal(), strip, arw([])])),
+          ]),
+        ),
+      ])
+    },
   )
 }

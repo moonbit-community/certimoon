@@ -1,0 +1,11 @@
+import {
+  "moonbit-community/certimoon/tlsf" @allocator,
+  "moonbit-community/certimoon/logic",
+  "bobzhang/hol_light/kernel",
+  "bobzhang/hol_light/testkit",
+  "moonbitlang/core/bench",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+}
+
+options("is-main": true)

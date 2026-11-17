@@ -18,7 +18,7 @@ fn prove_tlsf_take_control() -> Unit raise {
     "tlsf_take_tee",
     "\{vars}, sl_triple(st([\{i("m")}], \{lc0}, \{r}), [Local_tee(0)], st([\{i("m")}], \{lc1}, \{r}))",
     [],
-    [],
+    () => [],
     rws=[@lists.hd(), @lists.tl()],
     kind="lemma",
   )
@@ -82,14 +82,16 @@ fn prove_tlsf_take_control() -> Unit raise {
   let _ = lemma(
     "tlsf_take_tail_success",
     "\{env}\{vars}, ∀ d : \{w}, ∀ pop : Num, ∀ push : Num, ∀ ls : List[\{sassn}], !(m == word(0)) && (\{callback}) → sl_triple_g(G, fs, tabs, inst, rp, st([\{i("m")}], \{lc0}, \{r}), tlsf_take_tail(d, pop, push), \{falsep}, ls)",
-    seq([
-      gen,
-      strip,
-      rw([thm("tlsf_take_tail")]),
-      @tactics.match_mp_tac(thm("sl_cons_g")),
-      @tactics.exists_tac(tm("st([\{i("m")}], \{lc1}, \{r})")),
-      both(lift, rest),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        rw([thm("tlsf_take_tail")]),
+        @tactics.match_mp_tac(thm("sl_cons_g")),
+        @tactics.exists_tac(tm("st([\{i("m")}], \{lc1}, \{r})")),
+        both(lift, rest),
+      ])
+    },
   )
   let concrete_def = @simp.rewrite_conv(
     ths([
@@ -106,14 +108,15 @@ fn prove_tlsf_take_control() -> Unit raise {
     "tlsf_take_tail_zero_raw",
     "\{env}∀ n : \{w}, ∀ l0 : Value, ∀ l1 : Value, ∀ l2 : Value, ∀ l4 : Value, ∀ l5 : Value, ∀ R : \{rty}, ∀ d : \{w}, ∀ pop : Num, ∀ push : Num, ∀ ls : List[\{sassn}], sl_triple_g(G, fs, tabs, inst, rp, st([\{i("word(0)")}], \{lc0}, \{r}), \{show(concrete)}, st([\{i("word(0)")}], \{lc_zero}, \{r}), ls)",
     [],
-    [],
+    () => [],
     afters=[after, falsep, falsep, falsep],
     rws=[@lists.hd(), @lists.tl()],
     kind="lemma",
   )
-  record(
+  derived(
     "tlsf_take_tail_zero",
-    @simp.rewrite_rule(ths([@equal.gsym(concrete_def)]))(raw),
+    "\{env}∀ n : \{w}, ∀ l0 : Value, ∀ l1 : Value, ∀ l2 : Value, ∀ l4 : Value, ∀ l5 : Value, ∀ R : \{rty}, ∀ d : \{w}, ∀ pop : Num, ∀ push : Num, ∀ ls : List[\{sassn}], sl_triple_g(G, fs, tabs, inst, rp, st([\{i("word(0)")}], \{lc0}, \{r}), tlsf_take_tail((d : \{w}), (pop : Num), (push : Num)), st([\{i("word(0)")}], \{lc_zero}, \{r}), ls)",
+    fn() raise { @simp.rewrite_rule(ths([@equal.gsym(concrete_def)]))(raw) },
     kind="lemma",
   )
 }

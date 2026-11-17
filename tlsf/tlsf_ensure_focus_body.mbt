@@ -61,20 +61,24 @@ fn prove_tlsf_ensure_focus_body() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_body_focused",
     "\{vars}, 16 <= val((s : \{w})) && val(s) <= 4160749568 && \{popnative} && \{pushnative} && \{facts} → sl_triple_g(G,fs,tabs,inst,\{rp},\{pre},tlsf_ensure_code(d,pop,push),\{rp},[\{rp}])",
-    seq([
-      gen,
-      strip,
-      arw([@class.eta_ax()]),
-      @tactics.mp_tac(
-        inst(thm("tlsf_physical_last"), [d, "(lim : Num)", top, xs, hd]),
-      ),
-      arw([]),
-      @tactics.disch_then(
-        @tactics.x_choose_then(tm("(ys : \{lw})"))(th => @tactics.assume_tac(th)),
-      ),
-      subst_vars(),
-      @tactics.match_mp_tac(source),
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        arw([@class.eta_ax()]),
+        @tactics.mp_tac(
+          inst(thm("tlsf_physical_last"), [d, "(lim : Num)", top, xs, hd]),
+        ),
+        arw([]),
+        @tactics.disch_then(
+          @tactics.x_choose_then(tm("(ys : \{lw})"))(th => {
+            @tactics.assume_tac(th)
+          }),
+        ),
+        subst_vars(),
+        @tactics.match_mp_tac(source),
+        arw([]),
+      ])
+    },
   )
 }

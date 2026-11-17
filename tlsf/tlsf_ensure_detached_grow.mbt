@@ -42,59 +42,61 @@ fn prove_tlsf_ensure_detached_grow() -> Unit raise {
   let _ = lemma(
     "tlsf_ensure_detached_grow",
     "\{vars}, \{cond} → (∀ heap0 : \{heap}, star(\{det},star(\{zero},fp),heap0) → \{target})",
-    seq([
-      gen,
-      strip,
-      @tactics.mp_tac(
-        inst(thm("tlsf_ensure_top_facts"), [
-          "(ys : \{lw})",
-          "(d : \{w})",
-          "(lim : Num)",
-          m,
-          hd,
-        ]),
-      ),
-      arw([]),
-      strip,
-      have("val(\{m})+24 <= \{lim2}", @int.asm_arith_tac),
-      @tactics.mp_tac(inst(thm("tlsf_capacity_value"), [lim2, m])),
-      arw([]),
-      @tactics.disch_tac,
-      have("val(\{cap}) == \{sz}+(delta : Num)", @int.asm_arith_tac),
-      have(
-        "((lim : Num)+(delta : Num))-val(\{m})-8 == \{sz}+(delta : Num)",
-        @int.asm_arith_tac,
-      ),
-      gen,
-      rw([thm("tlsf_detached"), thm("tlsf_regions")] + lift_rws()),
-      strip,
-      have(
-        "star(\{payload},star(\{zero},\{frame}),(heap0 : \{heap}))",
-        seq([
-          @tactics.first_x_assum(th => {
-            if head_name(@kernel.concl(th)) == "star" {
-              @tactics.mp_tac(th)
-            } else {
-              @tactics.no_tac
-            }
-          }),
-          arw([thm("tlsf_top_cell")] + ac),
-        ]),
-      ),
-      arw([]),
-      @tactics.match_mp_tac(
-        inst(thm("tlsf_grown_bytes_frame"), [
-          "val(\{m})+8",
-          sz,
-          "(delta : Num)",
-          frame,
-          "(heap0 : \{heap})",
-        ]),
-      ),
-      @tactics.undisch_tac(
-        tm("star(\{payload},star(\{zero},\{frame}),(heap0 : \{heap}))"),
-      ),
-      arw([]),
-    ]),
+    () => {
+      seq([
+        gen,
+        strip,
+        @tactics.mp_tac(
+          inst(thm("tlsf_ensure_top_facts"), [
+            "(ys : \{lw})",
+            "(d : \{w})",
+            "(lim : Num)",
+            m,
+            hd,
+          ]),
+        ),
+        arw([]),
+        strip,
+        have("val(\{m})+24 <= \{lim2}", @int.asm_arith_tac),
+        @tactics.mp_tac(inst(thm("tlsf_capacity_value"), [lim2, m])),
+        arw([]),
+        @tactics.disch_tac,
+        have("val(\{cap}) == \{sz}+(delta : Num)", @int.asm_arith_tac),
+        have(
+          "((lim : Num)+(delta : Num))-val(\{m})-8 == \{sz}+(delta : Num)",
+          @int.asm_arith_tac,
+        ),
+        gen,
+        rw([thm("tlsf_detached"), thm("tlsf_regions")] + lift_rws()),
+        strip,
+        have(
+          "star(\{payload},star(\{zero},\{frame}),(heap0 : \{heap}))",
+          seq([
+            @tactics.first_x_assum(th => {
+              if head_name(@kernel.concl(th)) == "star" {
+                @tactics.mp_tac(th)
+              } else {
+                @tactics.no_tac
+              }
+            }),
+            arw([thm("tlsf_top_cell")] + ac),
+          ]),
+        ),
+        arw([]),
+        @tactics.match_mp_tac(
+          inst(thm("tlsf_grown_bytes_frame"), [
+            "val(\{m})+8",
+            sz,
+            "(delta : Num)",
+            frame,
+            "(heap0 : \{heap})",
+          ]),
+        ),
+        @tactics.undisch_tac(
+          tm("star(\{payload},star(\{zero},\{frame}),(heap0 : \{heap}))"),
+        ),
+        arw([]),
+      ])
+    },
   )
 }

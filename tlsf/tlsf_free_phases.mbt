@@ -51,29 +51,31 @@ fn prove_tlsf_free_phases() -> Unit raise {
       "),tlsf_free_\{dir}(d,pop,push),tlsf_free_work(\{params}," +
       (if prev { "T,F" } else { "T,T" }) +
       "),labels)",
-      seq([
-        gen,
-        @tactics.disch_tac,
-        @tactics.conv_tac(
-          pre_conv(@simp.rewrite_conv(ths([thm("tlsf_free_work")]))),
-        ),
-        free_at("phase intro", free_intro()),
-        @tactics.rule_assum_tac(@simp.rewrite_rule(ths(norm))),
-        @tactics.strip_assume_tac(
-          if prev {
-            inst(thm("snoc_cases"), ["(ys : \{lw})"])
-          } else {
-            inst(@lists.list_cases(), ["(zs : \{lw})"])
-          },
-        ),
-        subst_vars(),
-        free_at(
-          "phase cases",
-          @tactics.first(
-            @list.List([solve(apply("boundary")), solve(neighbour_case)]),
+      () => {
+        seq([
+          gen,
+          @tactics.disch_tac,
+          @tactics.conv_tac(
+            pre_conv(@simp.rewrite_conv(ths([thm("tlsf_free_work")]))),
           ),
-        ),
-      ]),
+          free_at("phase intro", free_intro()),
+          @tactics.rule_assum_tac(@simp.rewrite_rule(ths(norm))),
+          @tactics.strip_assume_tac(
+            if prev {
+              inst(thm("snoc_cases"), ["(ys : \{lw})"])
+            } else {
+              inst(@lists.list_cases(), ["(zs : \{lw})"])
+            },
+          ),
+          subst_vars(),
+          free_at(
+            "phase cases",
+            @tactics.first(
+              @list.List([solve(apply("boundary")), solve(neighbour_case)]),
+            ),
+          ),
+        ])
+      },
     )
   }
 }

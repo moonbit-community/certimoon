@@ -33,11 +33,13 @@ fn define_tlsf_free_pair() -> Unit raise {
   let _ = lemma(
     "tlsf_free_end_append",
     "∀ ys : \{lw}, ∀ zs : \{lw}, ∀ p : \{w}, tlsf_end(p,APPEND(ys,zs)) == tlsf_end(tlsf_end(p,ys),zs)",
-    seq([
-      @lists.list_induct_tac,
-      @simp.rewrite_tac(ths([@lists.append(), thm("tlsf_end")])),
-      @tactics.repeat_tac(@tactics.gen_tac),
-      @simp.asm_rewrite_tac(ths([])),
-    ]),
+    () => {
+      seq([
+        @lists.list_induct_tac,
+        @simp.rewrite_tac(ths([@lists.append(), thm("tlsf_end")])),
+        @tactics.repeat_tac(@tactics.gen_tac),
+        @simp.asm_rewrite_tac(ths([])),
+      ])
+    },
   )
 }

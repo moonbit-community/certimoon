@@ -38,23 +38,27 @@ fn prove_tlsf_block_free_page_tail() -> Unit raise {
   let _ = lemma(
     "tlsf_small_page_size_focus",
     "∀ p : \{w}, ∀ cap : Num, ∀ s : Num, ∀ loc : \{lw}, ∀ cached : \{lw}, ∀ live : \{lw}, tlsf_small_page_heap(p,cap,s,loc,cached,live) == star(pts(val(p)+8,serialise_i32((word(s) : \{w}))),tlsf_block_free_page_tail(p,cap,s,loc,cached,live))",
-    @simp.rewrite_tac(
-      ths([thm("tlsf_small_page_heap"), thm("tlsf_block_free_page_tail")]),
-    ),
+    () => {
+      @simp.rewrite_tac(
+        ths([thm("tlsf_small_page_heap"), thm("tlsf_block_free_page_tail")]),
+      )
+    },
   )
   let _ = lemma(
     "tlsf_small_page_total_focus",
     "∀ p : \{w}, ∀ cap : Num, ∀ s : Num, ∀ loc : \{lw}, ∀ cached : \{lw}, ∀ live : \{lw}, tlsf_small_page_heap(p,cap,s,loc,cached,live) == star(pts(val(p)+12,serialise_i32((word(tlsf_small_total(s)) : \{w}))),tlsf_block_free_page_without_total(p,cap,s,loc,cached,live))",
-    @simp.rewrite_tac(
-      ths([
-        thm("tlsf_small_page_heap"),
-        thm("tlsf_block_free_page_without_total"),
-        thm("star_assoc"),
-        thm("star_comm"),
-        thm("star_left_comm"),
-        thm("star_emp_hl"),
-        thm("star_emp_hr"),
-      ]),
-    ),
+    () => {
+      @simp.rewrite_tac(
+        ths([
+          thm("tlsf_small_page_heap"),
+          thm("tlsf_block_free_page_without_total"),
+          thm("star_assoc"),
+          thm("star_comm"),
+          thm("star_left_comm"),
+          thm("star_emp_hl"),
+          thm("star_emp_hr"),
+        ]),
+      )
+    },
   )
 }
