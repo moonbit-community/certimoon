@@ -1,5 +1,5 @@
 ///|
-fn prove_tlsf_full_malloc_slow_body() -> Unit raise {
+fn prove_tlsf_full_malloc_slow_body(tail_only~ : Bool = false) -> Unit raise {
   let a = block_model_args()
   let n = "(n : " + w32 + ")"
   let fp = "(fp : " + rty + ")"
@@ -51,18 +51,28 @@ fn prove_tlsf_full_malloc_slow_body() -> Unit raise {
     " && (" +
     malloc_full_natives() +
     ")"
-  let code = "tlsf_full_malloc_code(" +
+  let code = (if tail_only {
+      "tlsf_malloc_start_full_tail("
+    } else {
+      "tlsf_full_malloc_code("
+    }) +
     page_arguments(malloc_env_variables()) +
     ")"
   let _ = lemma(
-    "tlsf_full_malloc_slow_body",
+    if tail_only {
+      "tlsf_full_malloc_slow_tail"
+    } else {
+      "tlsf_full_malloc_slow_body"
+    },
     page_quantify(vars) +
     cond +
-    " → sl_abort_m((fs : List[Cl]),(tabs : List[(Tab_t,List[V_ref])]),(inst : Inst),st(NIL," +
-    lc +
+    " → sl_abort_m((fs : List[Cl]),(tabs : List[(Tab_t,List[V_ref])]),(inst : Inst)," +
+    (if tail_only {
+      malloc_slow_prefix_post(a, n)
+    } else {
+      "st(NIL," + lc + "," + r + ")"
+    }) +
     "," +
-    r +
-    ")," +
     code +
     "," +
     q +
@@ -74,7 +84,8 @@ fn prove_tlsf_full_malloc_slow_body() -> Unit raise {
         @tactics.repeat_tac(@tactics.gen_tac),
         @tactics.disch_then(th => @tactics.strip_assume_tac(th)),
         @logic.abort_sym_tac(
-          [source, thm("tlsf_malloc_early_failure"), growth, retry],
+          (if tail_only { [] } else { [source] }) +
+          [thm("tlsf_malloc_early_failure"), growth, retry],
           malloc_abort_vc(a),
         ),
       ])

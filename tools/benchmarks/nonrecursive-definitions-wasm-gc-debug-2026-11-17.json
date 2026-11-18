@@ -1,0 +1,305 @@
+{
+  "started_utc": "2026-11-17T14:35:51.336421+00:00",
+  "target": "wasm-gc",
+  "mode": "debug",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "stack_limits_bytes": [
+    8372224,
+    67092480
+  ],
+  "baseline_revision": "c5ea1f5",
+  "candidate_parent_revision": "c5ea1f50852460ea63a9cd6fa0f54241389910e8",
+  "hol_revision": "da8dc488abaae7638eb300879e9cb30711e0dc8d",
+  "moon": "moon 0.1.20261113 (3c5b888 2026-11-13)",
+  "moonc": "v0.10.21+d1f75be79-nightly (2026-11-13)",
+  "moonrun": "moonrun 0.1.20261113 (3c5b888 2026-11-13)",
+  "artifacts": {
+    "baseline": {
+      "path": "/private/tmp/wasmcert-definition-baseline.wasm",
+      "sha256": "8455d11a52cff1951167848be0d0b2b36c3814746cffe7e55ef769e785695599"
+    },
+    "candidate": {
+      "path": "/private/tmp/wasmcert-definition-candidate.wasm",
+      "sha256": "5ff45bce13efc1fc72b7f0eb8b44034da6479cd7233b9d37e34d70909d5fddbf"
+    }
+  },
+  "candidate_source_sha256": {
+    "logic/defs.mbt": "bb51ac11bbf52afbf23fcea8c96672b39e7d931dd1bf0b52202b35b5e102fd12",
+    "logic/definition.mbt": "14f6775ec3e982e388bcafd8ec4e541b4195622f36c89d6f90a05182e2c889cd"
+  },
+  "method": "Fresh processes, sequential runs, compilation excluded; check order alternates. Full replay has its own sample count.",
+  "runs": [
+    {
+      "variant": "baseline",
+      "repeat": 1,
+      "selection": [
+        "check",
+        "tlsf_public_free_run"
+      ],
+      "wall_seconds": 135.71653816616163,
+      "events": [
+        {
+          "phase": "checked_base",
+          "ms": 61033.536375
+        },
+        {
+          "phase": "tlsf_declarations",
+          "ms": 63871.079207999996
+        },
+        {
+          "status": "CONDITIONAL PASS",
+          "name": "tlsf_public_free_run",
+          "ms": 5.717,
+          "premises": [
+            "tlsf_public_free_all"
+          ],
+          "closed_implication": true
+        },
+        {
+          "phase": "total",
+          "ms": 124911.313875
+        }
+      ],
+      "returncode": 0
+    },
+    {
+      "variant": "candidate",
+      "repeat": 1,
+      "selection": [
+        "check",
+        "tlsf_public_free_run"
+      ],
+      "wall_seconds": 91.95817762496881,
+      "events": [
+        {
+          "phase": "checked_base",
+          "ms": 61237.478666999996
+        },
+        {
+          "phase": "tlsf_declarations",
+          "ms": 19877.715958
+        },
+        {
+          "status": "CONDITIONAL PASS",
+          "name": "tlsf_public_free_run",
+          "ms": 5.7278329999999995,
+          "premises": [
+            "tlsf_public_free_all"
+          ],
+          "closed_implication": true
+        },
+        {
+          "phase": "total",
+          "ms": 81121.864584
+        }
+      ],
+      "returncode": 0
+    },
+    {
+      "variant": "candidate",
+      "repeat": 2,
+      "selection": [
+        "check",
+        "tlsf_public_free_run"
+      ],
+      "wall_seconds": 91.52243904117495,
+      "events": [
+        {
+          "phase": "checked_base",
+          "ms": 60853.867084
+        },
+        {
+          "phase": "tlsf_declarations",
+          "ms": 19824.508458
+        },
+        {
+          "status": "CONDITIONAL PASS",
+          "name": "tlsf_public_free_run",
+          "ms": 5.726834,
+          "premises": [
+            "tlsf_public_free_all"
+          ],
+          "closed_implication": true
+        },
+        {
+          "phase": "total",
+          "ms": 80685.064584
+        }
+      ],
+      "returncode": 0
+    },
+    {
+      "variant": "baseline",
+      "repeat": 2,
+      "selection": [
+        "check",
+        "tlsf_public_free_run"
+      ],
+      "wall_seconds": 135.60161454114132,
+      "events": [
+        {
+          "phase": "checked_base",
+          "ms": 61228.552082999995
+        },
+        {
+          "phase": "tlsf_declarations",
+          "ms": 63570.106208
+        },
+        {
+          "status": "CONDITIONAL PASS",
+          "name": "tlsf_public_free_run",
+          "ms": 5.665833,
+          "premises": [
+            "tlsf_public_free_all"
+          ],
+          "closed_implication": true
+        },
+        {
+          "phase": "total",
+          "ms": 124805.2765
+        }
+      ],
+      "returncode": 0
+    },
+    {
+      "variant": "baseline",
+      "repeat": 1,
+      "selection": [
+        "verify"
+      ],
+      "wall_seconds": 251.8032257910818,
+      "events": [
+        {
+          "phase": "checked_base",
+          "ms": 61155.822583
+        },
+        {
+          "phase": "full_tlsf_replay",
+          "ms": 179862.041458
+        },
+        {
+          "status": "VERIFIED",
+          "declarations": 1333,
+          "axioms": 3
+        },
+        {
+          "phase": "total",
+          "ms": 241018.628208
+        }
+      ],
+      "returncode": 0
+    },
+    {
+      "variant": "candidate",
+      "repeat": 1,
+      "selection": [
+        "verify"
+      ],
+      "wall_seconds": 209.36538466694765,
+      "events": [
+        {
+          "phase": "checked_base",
+          "ms": 60717.39825
+        },
+        {
+          "phase": "full_tlsf_replay",
+          "ms": 137788.90966700003
+        },
+        {
+          "status": "VERIFIED",
+          "declarations": 1333,
+          "axioms": 3
+        },
+        {
+          "phase": "total",
+          "ms": 198507.093083
+        }
+      ],
+      "returncode": 0
+    }
+  ],
+  "validation": {
+    "identical_check_results_and_full_replay_audits": true
+  },
+  "summary": {
+    "check": {
+      "baseline": {
+        "samples": 2,
+        "wall_median_seconds": 135.65907635365147,
+        "phase_median_seconds": {
+          "checked_base": 61.131044229,
+          "tlsf_declarations": 63.720592708,
+          "total": 124.8582951875
+        }
+      },
+      "candidate": {
+        "samples": 2,
+        "wall_median_seconds": 91.74030833307188,
+        "phase_median_seconds": {
+          "checked_base": 61.0456728755,
+          "tlsf_declarations": 19.851112208,
+          "total": 80.903464584
+        }
+      },
+      "wall_seconds_saved": 43.91876802057959,
+      "wall_speedup": 1.4787292392906326
+    },
+    "verify": {
+      "baseline": {
+        "samples": 1,
+        "wall_median_seconds": 251.8032257910818,
+        "phase_median_seconds": {
+          "checked_base": 61.155822583,
+          "full_tlsf_replay": 179.862041458,
+          "total": 241.018628208
+        }
+      },
+      "candidate": {
+        "samples": 1,
+        "wall_median_seconds": 209.36538466694765,
+        "phase_median_seconds": {
+          "checked_base": 60.717398249999995,
+          "full_tlsf_replay": 137.78890966700004,
+          "total": 198.507093083
+        }
+      },
+      "wall_seconds_saved": 42.43784112413414,
+      "wall_speedup": 1.2026975050896929
+    }
+  },
+  "regression_validation": {
+    "core_tests": {
+      "passed": 24,
+      "failed": 0,
+      "new_definition_regressions": 4
+    },
+    "allocator_tests": {
+      "passed": 24,
+      "failed": 0,
+      "strict_full_replay": true,
+      "concrete_execution_tests": true
+    },
+    "python_tests": {
+      "passed": 42,
+      "failed": 0,
+      "skipped": 0
+    },
+    "shipped_wat_comparisons": {
+      "passed": 22,
+      "failed": 0
+    },
+    "native_package_check": "pass (compilation checking, not a runtime benchmark)",
+    "snapshots_unchanged": true,
+    "public_interfaces_unchanged": true,
+    "commands": [
+      "moon test logic --target wasm-gc",
+      "moon test tlsf --target wasm-gc --no-parallelize",
+      "moon check logic tlsf cmd/tlsf --target native",
+      "python3 -m unittest discover -s tools -p '*_test.py'",
+      "python3 tools/tlsf_wat_check.py ../ideas/lib/xml/wasm_linear/tlsf-mbt.wat",
+      "moon info logic tlsf cmd/tlsf"
+    ],
+    "timing_note": "Regression suites ran outside the sequential benchmark; their elapsed times are not speedup measurements."
+  }
+}

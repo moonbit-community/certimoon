@@ -84,6 +84,13 @@ declarations in the same process.
 - Integration preserves the core `sl_or_g` rule and nonrecursive
   `@drule.new_definition` program construction, which avoids deep recursive
   definition processing for the long compiled malloc bodies.
+- Ordinary `@logic.def` equations now also use `@drule.new_definition` when
+  the head is fresh, the parameters are distinct variables, and the right
+  side contains neither recursion nor hidden free term/type variables.
+  Recursive and pattern definitions, existing constants, and other forms
+  retain `@define.define_`. The wrapper restores the general processor's
+  explicit quantifiers and definition registry, including benign redefinition.
+  This changes definition construction, with no new axiom or trusted rule.
 
 ## Measurements before malloc integration
 
@@ -179,3 +186,88 @@ complete native guarded exits in the kernel and both live-allocation paths
 with full-memory comparisons in a real Wasm engine.
 
 Raw results: [public-free validation](benchmarks/tlsf-public-free-validation-2026-11-17.json).
+
+## Nonrecursive definition setup
+
+This comparison uses the current public-free proofs at baseline `c5ea1f5`,
+with only the ordinary-definition fast path changed in the candidate.
+Both retain direct kernel construction of program definitions. Measurements
+use frozen **wasm-gc debug** executables, fresh sequential processes, and
+exclude compilation. The late conditional check is `tlsf_public_free_run`:
+two samples per variant, in baseline/candidate then candidate/baseline order.
+Full verification has one separate sample per variant.
+
+| Metric | Baseline | Fast path | Speedup |
+|---|---:|---:|---:|
+| Checked base, median | 61.131 s | 61.046 s | 1.00x |
+| TLSF declarations, median | 63.721 s | 19.851 s | 3.21x |
+| Late conditional check, process wall median | 135.659 s | 91.740 s | 1.48x |
+| Full verification, process wall (one sample each) | 251.803 s | 209.365 s | 1.20x |
+
+The cold check saves **43.9 seconds**. Checked-base loading remains the
+largest part of its runtime after the change. Full replay saves **42.4 seconds**;
+both variants verified **1,333 closed named declarations and three approved
+axioms**.
+
+The benchmark also requires identical conditional results/premises and
+identical full-replay declaration/axiom audits. This is a setup optimization;
+the checked base and selected proof still run normally.
+
+Four new white-box regressions cover eligibility/fallback guards, theorem
+shape against the general processor (including polymorphism and partial or
+reordered quantifiers), benign redefinition, and execution of a recursive
+pattern definition. All 24 core tests and all 24 allocator tests pass, including
+strict full replay, concrete executions, and unchanged snapshots. Native
+package checking, 42 Python tests, and 22 shipped-WAT comparisons also pass.
+The public interfaces are unchanged.
+
+To reproduce, run `moon build cmd/tlsf --target wasm-gc` in baseline and candidate
+checkouts with the same toolchain. Copy each reported executable to a separate
+path before rebuilding, then run:
+
+```sh
+python3 tools/benchmark_definition_setup.py \
+  --baseline /tmp/tlsf-before.wasm --candidate /tmp/tlsf-after.wasm \
+  --baseline-revision c5ea1f5 --repeat 2 --verify-repeat 1 \
+  --out /tmp/nonrecursive-definitions.json
+```
+
+Artifact hashes, toolchain versions, stack limits, phase timings, and raw
+result events are retained in the JSON report. These sample counts describe
+observed local performance, without a statistical confidence interval or
+claims about native/release builds.
+
+Raw results: [nonrecursive-definition benchmark](benchmarks/nonrecursive-definitions-wasm-gc-debug-2026-11-17.json).
+
+## Lazy allocation startup
+
+The startup extension adds 96 named declarations, bringing the allocator to
+1,429. Strict kernel replay checks every declaration and retains the same
+three approved axioms. The closed call and execution theorems are
+`tlsf_try_malloc_start_all`, `tlsf_full_malloc_start_all`,
+`tlsf_try_malloc_start_run`, and `tlsf_full_malloc_start_run`.
+
+The proofs cover the zero request, both initialization-guard paths, native
+initialization with or without growth, initialization failure before any write,
+no-fit after successful initialization, and full_malloc's further growth,
+retry, and failure. The startup heap owns a zeroed unused suffix and an
+arbitrary disjoint client frame, kept at its original memory length on every
+outcome. Return-aware abort composition rules are proved in the allocator
+package and discharged from the exported execution theorems.
+
+The Python suite passes all 49 tests, including seven startup runtime tests
+with multiple fixtures. These run the compiler's WAT with bounded memories,
+check free-memory membership and size classes, and retain client canaries
+through subsequent allocation and free. Fixtures include zero-page memory,
+an initialization-guard slot outside memory, an arena too small for the first
+request, the maximum supported request, and successful initial growth followed
+by failed allocation growth. All 22 shipped-WAT comparisons pass.
+
+All 25 allocator tests pass, including strict replay, concrete native-closure
+premises for the new contracts, and the three snapshot checks. The theory's
+Markdown and JSON snapshots are updated; the example-only dependency summary
+is unchanged. A snapshot audit confirms that all 1,333 previous statements,
+kinds, uses, and definitions are unchanged. Wasm-GC and native package checking
+pass, and the public interfaces are unchanged.
+
+Raw results: [lazy-startup validation](benchmarks/tlsf-lazy-startup-validation-2026-11-18.json).

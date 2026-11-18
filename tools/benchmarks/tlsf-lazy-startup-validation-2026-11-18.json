@@ -1,0 +1,61 @@
+{
+  "source_base_commit": "c5ea1f50852460ea63a9cd6fa0f54241389910e8",
+  "target": "wasm-gc",
+  "mode": "debug",
+  "named_allocator_declarations": 1429,
+  "new_named_declarations": 96,
+  "strict_replay": {
+    "passed": true,
+    "all_named_theorems_closed": true,
+    "approved_axioms": 3
+  },
+  "exported_call_theorems": [
+    "tlsf_try_malloc_start_all",
+    "tlsf_full_malloc_start_all"
+  ],
+  "exported_execution_theorems": [
+    "tlsf_try_malloc_start_run",
+    "tlsf_full_malloc_start_run"
+  ],
+  "startup_precondition": "Zeroed unused suffix from aligned DATA_SECTION_END, supported request, valid page-aligned memory length, arbitrary disjoint client frame.",
+  "python_tests": {
+    "passed": 49,
+    "failed": 0,
+    "skipped": 0,
+    "new_startup_test_methods": 7
+  },
+  "shipped_wat_comparisons": {
+    "passed": 22,
+    "failed": 0,
+    "source": "../ideas/lib/xml/wasm_linear/tlsf-mbt.wat",
+    "sha256": "07a09fb7bd1d720aac21e9bbfba468a7ae680ddea98215d16db2aeb01a2e0f00"
+  },
+  "package_checks": {
+    "wasm_gc": true,
+    "native": true,
+    "public_interfaces_unchanged": true
+  },
+  "allocator_tests": {
+    "passed": 25,
+    "failed": 0,
+    "full_strict_replay": true,
+    "all_named_theorems_closed": true,
+    "all_snapshots_match": true,
+    "native_premises_grounded": true
+  },
+  "snapshots": [
+    "tlsf/__snapshot__/theory.md",
+    "tlsf/__snapshot__/theory.json",
+    "tlsf/__snapshot__/dependencies.md"
+  ],
+  "previous_statements_unchanged": true,
+  "snapshot_changes": {
+    "updated": [
+      "tlsf/__snapshot__/theory.md",
+      "tlsf/__snapshot__/theory.json"
+    ],
+    "unchanged": [
+      "tlsf/__snapshot__/dependencies.md"
+    ]
+  }
+}

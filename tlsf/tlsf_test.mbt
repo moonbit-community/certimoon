@@ -11,6 +11,102 @@ test "TLSF proofs have no hypotheses and preserve the core listing" {
 }
 
 ///|
+test "lazy allocation entry contracts are closed and have satisfiable native premises" {
+  @tlsf.load()
+  @testkit.check_axioms()
+  let instance = "Inst(NIL,[0,1,2,3,4,5,6,7],NIL,[0],NIL,NIL,NIL)"
+  let i32 = "T_num(T_i32)"
+  let native = (params : String, results : String, count : Int32, code : String) => {
+    "Func_native(" +
+    instance +
+    ",Tf(" +
+    params +
+    "," +
+    results +
+    "),[" +
+    Array::make(count, i32).join(",") +
+    "]," +
+    code +
+    ")"
+  }
+  let arg = "[" + i32 + "]"
+  let fs = "[" +
+    [
+      native(arg, "NIL", 4, "tlsf_pop_code(word(0))"),
+      native(arg, arg, 3, "tlsf_push_code(word(0))"),
+      native(arg, arg, 5, "tlsf_take_code(word(0),0,1)"),
+      native(arg, arg, 5, "tlsf_page_allocate_code(2)"),
+      native(arg, arg, 1, "tlsf_ensure_code(word(0),0,1)"),
+      native(arg, arg, 4, "tlsf_try_malloc_code(word(0),7,3,2)"),
+      native(arg, arg, 5, "tlsf_full_malloc_code(word(0),7,3,2,4)"),
+      native("NIL", "NIL", 3, "tlsf_initialize_code(word(0),1)"),
+    ].join(",") +
+    "]"
+  let substitutions = [
+      (@logic.tm(fs), @logic.tm("(fs : List[Cl])")),
+      (@logic.tm(instance), @logic.tm("(inst : Inst)")),
+      (@logic.tm("(word(0) : Word[32])"), @logic.tm("(d : Word[32])")),
+      (@logic.tm("(word(8) : Word[32])"), @logic.tm("(n : Word[32])")),
+      (@logic.tm("65536"), @logic.tm("(lim : Num)")),
+    ] +
+    [
+      ("pop", 0),
+      ("push", 1),
+      ("take_idx", 2),
+      ("page_idx", 3),
+      ("ensure_idx", 4),
+      ("try_idx", 5),
+      ("full_idx", 6),
+      ("initialize_idx", 7),
+    ].map(x => (@logic.tm(x.1.to_string()), @logic.tm("(" + x.0 + " : Num)")))
+  let conv = @wasm.compute_conv([
+    @tlsf.thm("tlsf_initialize_valid"),
+    @tlsf.thm("tlsf_base"),
+  ])
+  for name in ["try", "full"] {
+    let prefix = "tlsf_" + name + "_malloc_start"
+    let all = @tlsf.thm(prefix + "_all")
+    let body = @basics.strip_forall(@kernel.concl(all)).1
+    let pre = @kernel.vsubst(
+      @list.List(substitutions),
+      @basics.dest_imp(body).0,
+    )
+    let checked = conv(pre)
+    assert_true(@kernel.hyp(checked).is_empty())
+    assert_true(
+      @basics.aconv(@equal.rhs(@kernel.concl(checked)), @logic.tm("T")),
+      msg=prefix,
+    )
+    for suffix in ["_body", "_all", "_run"] {
+      let th = @tlsf.thm(prefix + suffix)
+      assert_true(@kernel.hyp(th).is_empty(), msg=prefix + suffix)
+      let constants = @wasm.term_constants(@kernel.concl(th))
+      assert_false(constants.contains("specs_ok"))
+      if suffix == "_run" {
+        for
+          open_rule in [
+            "sl_triple_g", "sl_triple_m", "sl_abort_m", "tlsf_sl_abort_r", "tlsf_safer_abort",
+          ] {
+          assert_false(constants.contains(open_rule), msg=open_rule)
+        }
+        assert_true(constants.contains("reduce_trans"))
+        assert_true(constants.contains("Trap"))
+        assert_true(constants.contains(prefix + "_post"))
+        assert_true(
+          constants.contains(
+            if name == "try" {
+              "tlsf_initialize_abort"
+            } else {
+              "tlsf_malloc_start_abort"
+            },
+          ),
+        )
+      }
+    }
+  }
+}
+
+///|
 /// Execute the actual compiled search block, checking its returned word
 /// and equality of the entire store. Small, deliberately sparse memories
 /// expose any extra read: only the cells needed by that path are present.

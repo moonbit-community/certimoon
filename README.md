@@ -767,8 +767,28 @@ Real Wasm-engine tests exercise large coalescing and small-slot release from
 consistent allocator fixtures, comparing every byte including surviving client
 payloads.
 
-Allocation entry contracts still require initialized metadata; their
-lazy-initialization branches remain to be connected to the verified initializer.
+The lazy-initialization branches are covered by `tlsf_try_malloc_start_all`
+and `tlsf_full_malloc_start_all`, with closed execution corollaries
+`tlsf_try_malloc_start_run` and `tlsf_full_malloc_start_run`. These compose the
+actual guard, native initializer, and inlined allocation attempts. The startup
+precondition owns the zeroed unused suffix beginning at the aligned static-data
+end, with an arbitrary disjoint client frame. It requires a page-aligned memory
+length and a supported request size. Zero requests return before any allocator
+read, write, or growth.
+
+For a nonzero request, the guard either reads the zero top word or skips the
+load when its slot is beyond current memory. Successful initialization
+establishes the combined physical-chain, bins, and small-page invariant.
+Successful allocation transfers an exclusive payload of at least the requested
+size. A no-fit result from `try_malloc` retains the initialized allocator;
+initialization itself may grow memory even on this entry point.
+`full_malloc` also covers initialization followed by a further growth and retry.
+An initializer growth failure traps with the entire original heap unchanged.
+A later allocation growth or retry failure traps with a consistent allocator.
+Every outcome preserves client-owned bytes, interpreted at the original memory
+length even after growth. As with the initialized entry theorems, the closed
+corollaries establish safety and progress for every reachable state; they do
+not establish termination.
 
 ## Reference: the program logic
 

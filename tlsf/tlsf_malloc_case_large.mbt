@@ -1,42 +1,51 @@
 // The large-request branch calls the compiled take function once.
 
 ///|
-fn prove_tlsf_malloc_case_large() -> Unit raise {
+fn prove_tlsf_malloc_case_large(after_initialize~ : Bool = false) -> Unit raise {
   let w = w32
   let a = block_model_args()
   let n = "(n : " + w + ")"
   let r = "tlsf_malloc_ro(" +
     (a + ["(before : " + heap + ")", "(fp : " + rty + ")"]).join(",") +
     ")"
-  for v in malloc_variant_names() {
+  for
+    v in (if after_initialize {
+      ["try", "first"]
+    } else {
+      malloc_variant_names()
+    }) {
     let initlc = malloc_request_locals(
       v, n, "(l0 : Value)", "(l1 : Value)", "(l2 : Value)", "(l3 : Value)", "(l4 : Value)",
     )
     let q = malloc_attempt_post(v, a, n)
-    let code = malloc_part(v, "body")
+    let code = malloc_part(v, if after_initialize { "resume" } else { "body" })
     let slot = "word_add(word_and(word_add(" +
       a[0] +
       ",word(15)),word(4294967280)),word(1908))"
-    let readylc = malloc_locals(
-      v,
-      if v == "first" {
-        [
-          malloc_i(slot),
-          "(l1 : Value)",
-          "(l2 : Value)",
-          "(l3 : Value)",
-          "(l4 : Value)",
-        ]
-      } else {
-        [
-          malloc_i(n),
-          malloc_i(slot),
-          "(l2 : Value)",
-          "(l3 : Value)",
-          "(l4 : Value)",
-        ]
-      },
-    ).replace(old="(original : Value)", new=malloc_original(v, n))
+    let readylc = if after_initialize {
+      initlc
+    } else {
+      malloc_locals(
+        v,
+        if v == "first" {
+          [
+            malloc_i(slot),
+            "(l1 : Value)",
+            "(l2 : Value)",
+            "(l3 : Value)",
+            "(l4 : Value)",
+          ]
+        } else {
+          [
+            malloc_i(n),
+            malloc_i(slot),
+            "(l2 : Value)",
+            "(l3 : Value)",
+            "(l4 : Value)",
+          ]
+        },
+      ).replace(old="(original : Value)", new=malloc_original(v, n))
+    }
     let pubargs = malloc_publication_variables().map(x => {
       if x.0 == "original" {
         malloc_original(v, n)
@@ -104,7 +113,10 @@ fn prove_tlsf_malloc_case_large() -> Unit raise {
     })
     ignore(
       sym_prove(
-        "tlsf_malloc_" + v + "_large_case",
+        "tlsf_malloc_" +
+        v +
+        (if after_initialize { "_resume" } else { "" }) +
+        "_large_case",
         page_quantify(malloc_case_variables()) +
         cond +
         " → sl_triple_g((G : " +
@@ -123,7 +135,7 @@ fn prove_tlsf_malloc_case_large() -> Unit raise {
         q +
         "])",
         [],
-        () => Array::make(4, malloc_vc()),
+        () => Array::make(if after_initialize { 3 } else { 4 }, malloc_vc()),
         afters~,
         chunks=[ready, take, dead],
         rws=malloc_extra_rewrites(),

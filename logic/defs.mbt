@@ -62,7 +62,7 @@ pub fn tm(s : String) -> @kernel.Term raise {
 /// A definition by equations, recorded as `name`.
 #callsite(autofill(loc))
 pub fn def(name : String, s : String, loc~ : SourceLoc) -> Unit raise {
-  let th = @define.define_(tm(s)) catch {
+  let th = define_equation(tm(s)) catch {
     e =>
       raise Failure("certimoon/logic: defining " + name + ": " + e.to_string())
   }

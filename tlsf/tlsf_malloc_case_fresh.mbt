@@ -2,7 +2,7 @@
 // or propagate the exact no-fit result without changing the heap.
 
 ///|
-fn prove_tlsf_malloc_case_fresh() -> Unit raise {
+fn prove_tlsf_malloc_case_fresh(after_initialize~ : Bool = false) -> Unit raise {
   let w = w32
   let a = block_model_args()
   let next = malloc_fresh_args(a)
@@ -56,7 +56,12 @@ fn prove_tlsf_malloc_case_fresh() -> Unit raise {
     "(val(" +
     cls +
     ")) == NIL"
-  for v in malloc_variant_names() {
+  for
+    v in (if after_initialize {
+      ["try", "first"]
+    } else {
+      malloc_variant_names()
+    }) {
     let pubargs = malloc_publication_variables().map(x => {
       if x.0 == "original" {
         malloc_original(v, n)
@@ -131,7 +136,7 @@ fn prove_tlsf_malloc_case_fresh() -> Unit raise {
       thm("tlsf_malloc_" + v + "_dead_large"),
       g + malloc_env_variables().map(x => "(" + x.0 + " : " + x.1 + ")"),
     )
-    let code = malloc_part(v, "body")
+    let code = malloc_part(v, if after_initialize { "resume" } else { "body" })
     let cachedcode = malloc_program_code(malloc_part(v, "cached"))
     let partialcode = malloc_program_code(malloc_part(v, "partial"))
     let headcode = malloc_program_code(malloc_part(v, "head"))
@@ -163,7 +168,10 @@ fn prove_tlsf_malloc_case_fresh() -> Unit raise {
     })
     ignore(
       sym_prove(
-        "tlsf_malloc_" + v + "_fresh_case",
+        "tlsf_malloc_" +
+        v +
+        (if after_initialize { "_resume" } else { "" }) +
+        "_fresh_case",
         page_quantify(malloc_case_variables()) +
         cond +
         " → sl_triple_g((G : " +
@@ -182,7 +190,7 @@ fn prove_tlsf_malloc_case_fresh() -> Unit raise {
         q +
         "])",
         [],
-        () => Array::make(11, malloc_vc()),
+        () => Array::make(if after_initialize { 10 } else { 11 }, malloc_vc()),
         afters~,
         chunks=[ready, fast, partial, page, head, export_path, dead],
         rws=malloc_extra_rewrites(),
