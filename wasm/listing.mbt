@@ -22,15 +22,38 @@ let entries : Array[Entry] = []
 ///|
 /// A heading for the entries that follow.
 fn section(title : String) -> Unit {
-  entries.push({ kind: "section", name: title, th: None, text: "", defines: [], loc: "" })
+  entries.push({
+    kind: "section",
+    name: title,
+    th: None,
+    text: "",
+    defines: [],
+    loc: "",
+  })
 }
 
 ///|
 #callsite(autofill(loc))
-fn list_entry(kind : String, name : String, th : @kernel.Thm, loc~ : SourceLoc) -> Unit {
+fn list_entry(
+  kind : String,
+  name : String,
+  th : @kernel.Thm,
+  loc~ : SourceLoc,
+) -> Unit {
   // a specification (new_specification) introduces the constant it names
-  let defines = if kind == "specification" { [name] } else { defined_constants(kind, th) }
-  entries.push({ kind, name, th: Some(th), text: "", defines, loc: loc.to_string() })
+  let defines = if kind == "specification" {
+    [name]
+  } else {
+    defined_constants(kind, th)
+  }
+  entries.push({
+    kind,
+    name,
+    th: Some(th),
+    text: "",
+    defines,
+    loc: loc.to_string(),
+  })
 }
 
 ///|
@@ -42,7 +65,7 @@ fn list_text(
   defines : Array[String],
   loc~ : SourceLoc,
 ) -> Unit {
-  entries.push({ kind, name, th: None, text, defines, loc: loc.to_string() })
+  entries.push({ kind, name, th: None, text, defines, loc: loc.to_string(), })
 }
 
 ///|
@@ -66,34 +89,18 @@ pub fn abbreviate_types(s : String) -> String {
 }
 
 ///|
-fn show_statement(th : @kernel.Thm) -> String {
-  layout_statement(@kernel.concl(th))
+fn show_statement(th : @kernel.Thm) -> @render.Statement raise {
+  let t = @kernel.concl(th)
+  @render.statement(
+    t,
+    abbreviate=abbreviate_types,
+    infixes=word_infixes(t),
+    atoms=word_literals(t),
+  )
 }
 
 ///|
-/// The listing in Markdown: `items` are (kind, name, statement), and a
-/// ("section", title, _) is a heading for the items after it.
-pub fn render_listing(
-  title : String,
-  intro : String,
-  items : Array[(String, String, String)],
-) -> String {
-  let buf = StringBuilder()
-  buf.write_string("# " + title + "\n\n" + intro + "\n")
-  for e in items {
-    let (kind, name, text) = e
-    if kind == "section" {
-      buf.write_string("\n## " + name + "\n")
-    } else {
-      buf.write_string("\n" + kind + " `" + name + "`\n\n```\n" + text + "\n```\n")
-    }
-  }
-  buf.to_string()
-}
-
-///|
-/// How the listings lay statements out, for their introductions.
-pub let layout_note : String = "A statement is laid out as `∀ (x y : T) (z : U)`, its variables grouped by type; then, if it has hypotheses, `if` and the numbered hypotheses H1, ..., Hn and `then` and the conclusion C, with `or` between alternatives and `&&` before each further conjunct (as between a definition's equations). It stands for `∀ x y z, H1 && ... && Hn → C`. A line longer than 80 characters is broken by its brackets and operators, an argument, conjunct or case per line; only whitespace changes. Each layout is printed from the kernel's statement and checked to read back as it (wasm/layout.mbt)."
+pub using @render {render_listing, layout_note}
 
 ///|
 /// What this package defines and proves (loading it, and the facts about
@@ -113,11 +120,19 @@ pub fn listing() -> String raise {
 ///|
 /// An entry's statement or text, as the listing shows it.
 fn entry_text(e : Entry) -> String raise {
+  entry_rendering(e).text
+}
+
+///|
+fn entry_rendering(e : Entry) -> @render.Statement raise {
   match e.th {
     Some(th) if e.kind == "relation" =>
-      @bool.conjuncts_rule(th).to_array().map(show_statement).join("\n\n")
+      @render.Statement::join(
+        @bool.conjuncts_rule(th).to_array().map(show_statement),
+        separator="\n\n",
+      )
     Some(th) => show_statement(th)
-    None => abbreviate_types(e.text)
+    None => @render.Statement::plain(abbreviate_types(e.text))
   }
 }
 
@@ -130,11 +145,21 @@ pub fn listing_json() -> String raise {
   render_json(
     "wasm",
     entries.map(fn(e) raise {
+      let rendered = entry_rendering(e)
       let uses = match e.th {
         Some(th) => term_constants(@kernel.concl(th))
         None => []
       }
-      export_entry(e.kind, e.name, entry_text(e), uses, e.defines, e.loc)
+      export_entry(
+        e.kind,
+        e.name,
+        rendered.text,
+        uses,
+        e.defines,
+        e.loc,
+        references=rendered.references,
+        canonical=rendered.canonical,
+      )
     }),
   )
 }

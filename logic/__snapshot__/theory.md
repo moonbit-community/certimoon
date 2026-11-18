@@ -130,7 +130,7 @@ lemma `val_add_small`
 if
   1. val(x) + k < 4294967296
 then
-  val(word_add(x, word(k))) == val(x) + k
+  val((x +₃₂ word(k))) == val(x) + k
 ```
 
 lemma `val_add_one`
@@ -140,7 +140,7 @@ lemma `val_add_one`
 if
   1. val(i) < val(n)
 then
-  val(word_add(i, word(1))) == val(i) + 1
+  val((i +₃₂ 1w)) == val(i) + 1
 ```
 
 lemma `val_sub_one`
@@ -148,9 +148,9 @@ lemma `val_sub_one`
 ```
 ∀ (c : W32)
 if
-  1. !(c == word(0))
+  1. !(c == 0w)
 then
-  val(word_sub(c, word(1))) == val(c) - 1
+  val((c −₃₂ 1w)) == val(c) - 1
 ```
 
 ## Heaps and separating conjunction (heap.mbt)
@@ -171,10 +171,14 @@ hunion((h1 : Heap), (h2 : Heap))
 definition `star`
 
 ```
-star((p : HProp), (q : HProp)) == (
+((p : HProp) * (q : HProp)) == (
   (h : Heap) =>
     ∃ h1 : Heap,
-      ∃ h2 : Heap, hdisj(h1, h2) && h == hunion(h1, h2) && p(h1) && q(h2))
+      ∃ h2 : Heap,
+        hdisj(h1, h2)
+        && h == hunion(h1, h2)
+        && (p : HProp)(h1)
+        && (q : HProp)(h2))
 ```
 
 definition `emp`
@@ -250,13 +254,13 @@ lemma `hunion_assoc`
 lemma `star_comm`
 
 ```
-∀ (p q : HProp), star(p, q) == star(q, p)
+∀ (p q : HProp), (p * q) == (q * p)
 ```
 
 lemma `star_assoc`
 
 ```
-∀ (p q r : HProp), star(star(p, q), r) == star(p, star(q, r))
+∀ (p q r : HProp), ((p * q) * r) == (p * q * r)
 ```
 
 lemma `star_mono`
@@ -266,9 +270,9 @@ lemma `star_mono`
 if
   1. ∀ h1 : Heap, p(h1) → p2(h1)
   2. ∀ h2 : Heap, q(h2) → q2(h2)
-  3. star(p, q, h)
+  3. (p * q)(h)
 then
-  star(p2, q2, h)
+  (p2 * q2)(h)
 ```
 
 ## Loads and stores against points-to (memory.mbt)
@@ -336,7 +340,7 @@ lemma `pts_at`
 ```
 ∀ (a x : Num) (bs : List[Byte]) (r : HProp) (h : Heap)
 if
-  1. star(pts(a, bs), r, h)
+  1. (pts(a, bs) * r)(h)
   2. a <= x
   3. x < a + LENGTH(bs)
 then
@@ -348,7 +352,7 @@ lemma `read_pts`
 ```
 ∀ (a : Num) (bs : List[Byte]) (r : HProp) (m : Mem)
 if
-  1. star(pts(a, bs), r, heap_of(m))
+  1. (pts(a, bs) * r)(heap_of(m))
   2. !(bs == NIL)
 then
   a + LENGTH(bs) <= LENGTH(SND(m))
@@ -402,11 +406,11 @@ lemma `write_pts`
 ```
 ∀ (a : Num) (bs bs2 : List[Byte]) (r : HProp) (m : Mem)
 if
-  1. star(pts(a, bs), r, heap_of(m))
+  1. (pts(a, bs) * r)(heap_of(m))
   2. LENGTH(bs2) == LENGTH(bs)
   3. !(bs == NIL)
 then
-  star(pts(a, bs2), r, heap_of(write_bytes(m, a, bs2)))
+  (pts(a, bs2) * r)(heap_of(write_bytes(m, a, bs2)))
 ```
 
 lemma `takefill_length`
@@ -420,7 +424,7 @@ lemma `load_pts`
 ```
 ∀ (m : Mem) (n off : Num) (bs : List[Byte]) (r : HProp)
 if
-  1. star(pts(n + off, bs), r, heap_of(m))
+  1. (pts(n + off, bs) * r)(heap_of(m))
   2. !(bs == NIL)
 then
   load(m, n, off, LENGTH(bs)) == SOME(bs)
@@ -431,12 +435,12 @@ lemma `store_pts`
 ```
 ∀ (m : Mem) (n off : Num) (bs bs2 : List[Byte]) (r : HProp)
 if
-  1. star(pts(n + off, bs), r, heap_of(m))
+  1. (pts(n + off, bs) * r)(heap_of(m))
   2. LENGTH(bs2) == LENGTH(bs)
   3. !(bs == NIL)
 then
   store(m, n, off, bs2, LENGTH(bs2)) == SOME(write_bytes(m, n + off, bs2))
-  && star(pts(n + off, bs2), r, heap_of(write_bytes(m, n + off, bs2)))
+  && (pts(n + off, bs2) * r)(heap_of(write_bytes(m, n + off, bs2)))
 ```
 
 lemma `pts_heap_disj`
@@ -458,7 +462,7 @@ lemma `pts_split`
 
 ```
 ∀ (a : Num) (xs ys : List[Byte]),
-  pts(a, APPEND(xs, ys)) == star(pts(a, xs), pts(a + LENGTH(xs), ys))
+  pts(a, APPEND(xs, ys)) == (pts(a, xs) * pts(a + LENGTH(xs), ys))
 ```
 
 ## Triples (triple.mbt)
@@ -530,10 +534,14 @@ lift((p : SAssn), (r : HProp), (s : Wstore), (f : Wframe), (vs : List[Value])) =
     smem_ind(f_inst(f)) == SOME(j)
     && j < LENGTH(s_mems(s))
     && globs_ok(s, f)
-    && star(
-         p(vs, f_locs(f), gvals(s, f), mem_length(EL(j, s_mems(s)))),
-         r,
-         heap_of(EL(j, s_mems(s)))))
+    && (
+         (
+           (p : SAssn)(
+             (vs : List[Value]),
+             f_locs((f : Wframe)),
+             gvals((s : Wstore), f),
+             mem_length(EL(j, s_mems(s))))
+           * (r : HProp))(heap_of(EL(j, s_mems((s : Wstore)))))))
 ```
 
 definition `sl_triple`
@@ -621,9 +629,9 @@ lemma `lift_frame`
   lift(
     (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
     (ms : Num) =>
-      star(p(vs, ls, gs, ms), fr),
+      (p(vs, ls, gs, ms) * fr),
     r)
-    == lift(p, star(fr, r))
+    == lift(p, (fr * r))
 ```
 
 lemma `sl_frame`
@@ -636,11 +644,11 @@ then
   sl_triple(
     (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
     (ms : Num) =>
-      star(p(vs, ls, gs, ms), fr),
+      (p(vs, ls, gs, ms) * fr),
     bs,
     (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
     (ms : Num) =>
-      star(q(vs, ls, gs, ms), fr))
+      (q(vs, ls, gs, ms) * fr))
 ```
 
 lemma `sl_const`
@@ -757,15 +765,15 @@ lemma `star_pure`
 
 ```
 ∀ (c : Bool) (p r : HProp) (h : Heap),
-  star((h1 : Heap) => c && p(h1), r, h) == (c && star(p, r, h))
+  ((((h1 : Heap) => c && p(h1)) * r)(h)) == (c && ((p * r)(h)))
 ```
 
 lemma `star_ex`
 
 ```
 ∀ (q : (A, Heap) -> Bool) (r : HProp) (h : Heap),
-  star((h1 : Heap) => ∃ vs0 : A, q(vs0, h1), r, h)
-    == (∃ vs0 : A, star(q(vs0), r, h))
+  ((((h1 : Heap) => ∃ vs0 : A, q(vs0, h1)) * r)(h))
+    == (∃ vs0 : A, ((q(vs0) * r)(h)))
 ```
 
 ## Triples with labels, br (labels.mbt)
@@ -997,15 +1005,15 @@ then
   sl_triple_l(
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
     (ms : Num) =>
-      star(p(vs, lc, gs, ms), fr),
+      (p(vs, lc, gs, ms) * fr),
     bs,
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
     (ms : Num) =>
-      star(q(vs, lc, gs, ms), fr),
+      (q(vs, lc, gs, ms) * fr),
     MAP(
       (x : SAssn) => (vs : List[Value]) => (lc : List[Value]) =>
       (gs : List[Value]) => (ms : Num) =>
-        star(x(vs, lc, gs, ms), fr),
+        (x(vs, lc, gs, ms) * fr),
       ls))
 ```
 
@@ -1462,7 +1470,7 @@ lemma `star_some`
 ```
 ∀ (p r : HProp) (h : Heap)
 if
-  1. star(p, r, h)
+  1. (p * r)(h)
 then
   ∃ (h1 : Heap), p(h1)
 ```
@@ -2400,7 +2408,7 @@ if
 then
   s2 == s
   && f2 == f
-  && es2 == [v_to_e(if b == word(0) { v2 } else { v1 })]
+  && es2 == [v_to_e(if b == 0w { v2 } else { v1 })]
 ```
 
 lemma `sl_select`
@@ -2417,7 +2425,7 @@ lemma `sl_select`
     (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
       ∃ vs0 : List[Value],
-        vs == APPEND(vs0, [if b == word(0) { v2 } else { v1 }])
+        vs == APPEND(vs0, [if b == 0w { v2 } else { v1 }])
         && p(vs0, ls, gs, ms, h))
 ```
 
@@ -2525,7 +2533,7 @@ then
     (ms : Num) => (h : Heap) =>
       ∃ vs0 : List[Value],
         vs == APPEND(vs0, [V_num(ConstInt32(k))])
-        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h),
+        && ((pts(val(k) + off, bs) * p(vs0, ls, gs, ms))(h)),
     [Load(T_i32, SOME((tp, sx)), a, off)],
     (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
@@ -2533,7 +2541,7 @@ then
         vs == APPEND(
           vs0,
           [V_num(ConstInt32(deserialise_i32(sign_extend(sx, 4, bs))))])
-        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h))
+        && ((pts(val(k) + off, bs) * p(vs0, ls, gs, ms))(h)))
 ```
 
 lemma `prefix_load`
@@ -2576,13 +2584,13 @@ then
     (ms : Num) => (h : Heap) =>
       ∃ vs0 : List[Value],
         vs == APPEND(vs0, [V_num(ConstInt32(k))])
-        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h),
+        && ((pts(val(k) + off, bs) * p(vs0, ls, gs, ms))(h)),
     [Load(T_i32, NONE, a, off)],
     (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
       ∃ vs0 : List[Value],
         vs == APPEND(vs0, [V_num(ConstInt32(deserialise_i32(bs)))])
-        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h))
+        && ((pts(val(k) + off, bs) * p(vs0, ls, gs, ms))(h)))
 ```
 
 lemma `prefix_load_packed_i64`
@@ -2637,7 +2645,7 @@ then
     (ms : Num) => (h : Heap) =>
       ∃ vs0 : List[Value],
         vs == APPEND(vs0, [V_num(ConstInt32(k))])
-        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h),
+        && ((pts(val(k) + off, bs) * p(vs0, ls, gs, ms))(h)),
     [Load(T_i64, SOME((tp, sx)), a, off)],
     (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
@@ -2645,7 +2653,7 @@ then
         vs == APPEND(
           vs0,
           [V_num(ConstInt64(deserialise_i64(sign_extend(sx, 8, bs))))])
-        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h))
+        && ((pts(val(k) + off, bs) * p(vs0, ls, gs, ms))(h)))
 ```
 
 lemma `prefix_load_i64`
@@ -2688,13 +2696,13 @@ then
     (ms : Num) => (h : Heap) =>
       ∃ vs0 : List[Value],
         vs == APPEND(vs0, [V_num(ConstInt32(k))])
-        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h),
+        && ((pts(val(k) + off, bs) * p(vs0, ls, gs, ms))(h)),
     [Load(T_i64, NONE, a, off)],
     (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
       ∃ vs0 : List[Value],
         vs == APPEND(vs0, [V_num(ConstInt64(deserialise_i64(bs)))])
-        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h))
+        && ((pts(val(k) + off, bs) * p(vs0, ls, gs, ms))(h)))
 ```
 
 lemma `length_list_update`
@@ -2754,15 +2762,13 @@ lemma `store_pts_fill`
 ```
 ∀ (m : Mem) (n off l : Num) (bs bs2 : List[Byte]) (r : HProp)
 if
-  1. star(pts(n + off, bs), r, heap_of(m))
+  1. (pts(n + off, bs) * r)(heap_of(m))
   2. LENGTH(bs) == l
   3. !(bs == NIL)
 then
   store(m, n, off, bs2, l)
     == SOME(write_bytes(m, n + off, bytes_takefill(zero_byte, l, bs2)))
-  && star(
-       pts(n + off, bytes_takefill(zero_byte, l, bs2)),
-       r,
+  && (pts(n + off, bytes_takefill(zero_byte, l, bs2)) * r)(
        heap_of(write_bytes(m, n + off, bytes_takefill(zero_byte, l, bs2))))
 ```
 
@@ -2860,13 +2866,13 @@ then
     (ms : Num) => (h : Heap) =>
       ∃ vs0 : List[Value],
         vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(ConstInt32(v))])
-        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h),
+        && ((pts(val(k) + off, bs) * p(vs0, ls, gs, ms))(h)),
     [Store(T_i32, NONE, a, off)],
     (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
       ∃ vs0 : List[Value],
         vs == vs0
-        && star(pts(val(k) + off, serialise_i32(v)), p(vs0, ls, gs, ms), h))
+        && ((pts(val(k) + off, serialise_i32(v)) * p(vs0, ls, gs, ms))(h)))
 ```
 
 lemma `prefix_store_packed_i32`
@@ -2911,18 +2917,21 @@ then
     (ms : Num) => (h : Heap) =>
       ∃ vs0 : List[Value],
         vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(ConstInt32(v))])
-        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h),
+        && ((pts(val(k) + off, bs) * p(vs0, ls, gs, ms))(h)),
     [Store(T_i32, SOME(tp), a, off)],
     (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
       ∃ vs0 : List[Value],
         vs == vs0
-        && star(
-             pts(
-               val(k) + off,
-               bytes_takefill(zero_byte, tp_num_length(tp), serialise_i32(v))),
-             p(vs0, ls, gs, ms),
-             h))
+        && (
+             (
+               pts(
+                 val(k) + off,
+                 bytes_takefill(
+                   zero_byte,
+                   tp_num_length(tp),
+                   serialise_i32(v)))
+               * p(vs0, ls, gs, ms))(h)))
 ```
 
 lemma `serialise_i64_length`
@@ -2973,13 +2982,13 @@ then
     (ms : Num) => (h : Heap) =>
       ∃ vs0 : List[Value],
         vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(ConstInt64(v))])
-        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h),
+        && ((pts(val(k) + off, bs) * p(vs0, ls, gs, ms))(h)),
     [Store(T_i64, NONE, a, off)],
     (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
       ∃ vs0 : List[Value],
         vs == vs0
-        && star(pts(val(k) + off, serialise_i64(v)), p(vs0, ls, gs, ms), h))
+        && ((pts(val(k) + off, serialise_i64(v)) * p(vs0, ls, gs, ms))(h)))
 ```
 
 lemma `prefix_store_packed_i64`
@@ -3024,18 +3033,21 @@ then
     (ms : Num) => (h : Heap) =>
       ∃ vs0 : List[Value],
         vs == APPEND(vs0, [V_num(ConstInt32(k)), V_num(ConstInt64(v))])
-        && star(pts(val(k) + off, bs), p(vs0, ls, gs, ms), h),
+        && ((pts(val(k) + off, bs) * p(vs0, ls, gs, ms))(h)),
     [Store(T_i64, SOME(tp), a, off)],
     (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
       ∃ vs0 : List[Value],
         vs == vs0
-        && star(
-             pts(
-               val(k) + off,
-               bytes_takefill(zero_byte, tp_num_length(tp), serialise_i64(v))),
-             p(vs0, ls, gs, ms),
-             h))
+        && (
+             (
+               pts(
+                 val(k) + off,
+                 bytes_takefill(
+                   zero_byte,
+                   tp_num_length(tp),
+                   serialise_i64(v)))
+               * p(vs0, ls, gs, ms))(h)))
 ```
 
 ## Globals (globals.mbt)
@@ -3276,14 +3288,14 @@ if
   2. p(h1)
   3. q(h2)
 then
-  star(p, q, hunion(h1, h2))
+  (p * q)(hunion(h1, h2))
 ```
 
 lemma `star_or`
 
 ```
 ∀ (p q r : HProp) (h : Heap),
-  star((h1 : Heap) => p(h1) || q(h1), r, h) == (star(p, r, h) || star(q, r, h))
+  ((((h1 : Heap) => p(h1) || q(h1)) * r)(h)) == (((p * r)(h)) || ((q * r)(h)))
 ```
 
 lemma `star_grow`
@@ -3291,12 +3303,9 @@ lemma `star_grow`
 ```
 ∀ (p r : HProp) (m : Mem) (n : Num) (b : Byte)
 if
-  1. star(p, r, heap_of(m))
+  1. (p * r)(heap_of(m))
 then
-  star(
-    star(p, pts(mem_length(m), REPLICATE(n, b))),
-    r,
-    heap_of(mem_append(m, n, b)))
+  ((p * pts(mem_length(m), REPLICATE(n, b))) * r)(heap_of(mem_append(m, n, b)))
 ```
 
 lemma `mem_grow_some`
@@ -3481,10 +3490,9 @@ lemma `sl_memory_grow`
           vs == APPEND(vs0, [V_num(ConstInt32(word(DIV(ms0, 65536))))])
           && ms == ms0 + val(c) * 65536
           && DIV(ms0, 65536) + val(c) <= 65536
-          && star(
-               p(vs0, ls, gs, ms0),
-               pts(ms0, REPLICATE(val(c) * 65536, word(0))),
-               h)
+          && (
+               (p(vs0, ls, gs, ms0) * pts(ms0, REPLICATE(val(c) * 65536, 0w)))(
+                 h))
           || vs == APPEND(vs0, [V_num(ConstInt32(int32_minus_one))])
              && ms == ms0
              && p(vs0, ls, gs, ms0, h))
@@ -3802,8 +3810,8 @@ lemma `sl_br_if`
 ```
 ∀ (p q : SAssn) (ls : List[SAssn]) (i : Num) (c : W32)
 if
-  1. !(c == word(0)) → sl_triple_l(p, [Br(i)], q, ls)
-  2. c == word(0) → (
+  1. !(c == 0w) → sl_triple_l(p, [Br(i)], q, ls)
+  2. c == 0w → (
        ∀ vs : List[Value],
          ∀ lc : List[Value],
            ∀ gs : List[Value],
@@ -3887,8 +3895,8 @@ lemma `sl_if`
 ```
 ∀ (p q : SAssn) (ls : List[SAssn]) (tb : Tb) (bs1 bs2 : List[B_e]) (c : W32)
 if
-  1. !(c == word(0)) → sl_triple_l(p, [Block(tb, bs1)], q, ls)
-  2. c == word(0) → sl_triple_l(p, [Block(tb, bs2)], q, ls)
+  1. !(c == 0w) → sl_triple_l(p, [Block(tb, bs1)], q, ls)
+  2. c == 0w → sl_triple_l(p, [Block(tb, bs2)], q, ls)
 then
   sl_triple_l(
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
@@ -4038,10 +4046,7 @@ sum_to(0) == 0
 lemma `sum_to_suc_word`
 
 ```
-∀ (m : Num),
-  (word : (Num) -> W32)(sum_to(SUC(m))) == (word_add : (W32, W32) -> W32)(
-    (word : (Num) -> W32)(SUC(m)),
-    (word : (Num) -> W32)(sum_to(m)))
+∀ (m : Num), word(sum_to(SUC(m))) == (word(SUC(m)) +₃₂ word(sum_to(m)))
 ```
 
 lemma `sum_to_step`
@@ -4049,23 +4054,21 @@ lemma `sum_to_step`
 ```
 ∀ (n : W32)
 if
-  1. !(n == word(0))
+  1. !(n == 0w)
 then
-  word(sum_to(val(n))) == word_add(n, word(sum_to(val(word_sub(n, word(1))))))
+  word(sum_to(val(n))) == (n +₃₂ word(sum_to(val((n −₃₂ 1w)))))
 ```
 
 lemma `sum_to_one_word`
 
 ```
-(word : (Num) -> W32)(sum_to((val : (W32) -> Num)((word : (Num) -> W32)(1))))
-  == (word : (Num) -> W32)(1)
+word(sum_to(val(1w))) == 1w
 ```
 
 lemma `sum_to_zero_word`
 
 ```
-(word : (Num) -> W32)(sum_to((val : (W32) -> Num)((word : (Num) -> W32)(0))))
-  == (word : (Num) -> W32)(0)
+word(sum_to(val(0w))) == 0w
 ```
 
 ## Arrays (arrays.mbt)
@@ -4113,36 +4116,37 @@ lemma `arr_split`
 
 ```
 ∀ (a : Num) (xs ys : List[W32]),
-  arr(a, APPEND(xs, ys)) == star(arr(a, xs), arr(a + 4 * LENGTH(xs), ys))
+  arr(a, APPEND(xs, ys)) == (arr(a, xs) * arr(a + 4 * LENGTH(xs), ys))
 ```
 
 lemma `arr_cons`
 
 ```
 ∀ (a : Num) (x : W32) (xs : List[W32]),
-  arr(a, CONS(x, xs)) == star(pts(a, serialise_i32(x)), arr(a + 4, xs))
+  arr(a, CONS(x, xs)) == (pts(a, serialise_i32(x)) * arr(a + 4, xs))
 ```
 
 lemma `star_left_comm`
 
 ```
-∀ (p q r : HProp), star(p, star(q, r)) == star(q, star(p, r))
+∀ (p q r : HProp), (p * q * r) == (q * p * r)
 ```
 
 lemma `arr_focus`
 
 ```
 ∀ (a : Num) (ys zs : List[W32]) (x : W32),
-  arr(a, APPEND(ys, CONS(x, zs))) == star(
-    pts(a + 4 * LENGTH(ys), serialise_i32(x)),
-    star(arr(a, ys), arr(a + 4 * LENGTH(ys) + 4, zs)))
+  arr(a, APPEND(ys, CONS(x, zs))) == (
+    pts(a + 4 * LENGTH(ys), serialise_i32(x))
+    * arr(a, ys)
+    * arr(a + 4 * LENGTH(ys) + 4, zs))
 ```
 
 lemma `star_pure_r`
 
 ```
 ∀ (c : Bool) (p r : HProp) (h : Heap),
-  star(p, (h1 : Heap) => c && r(h1), h) == (c && star(p, r, h))
+  ((p * ((h1 : Heap) => c && r(h1)))(h)) == (c && ((p * r)(h)))
 ```
 
 lemma `st_arr_store`
@@ -4158,13 +4162,13 @@ then
       APPEND(v, [V_num(ConstInt32(k)), V_num(ConstInt32(x))]),
       l,
       (gs : List[Value]) => (ms : Num) => (h : Heap) =>
-        star(arr(a, APPEND(ys, CONS(x0, zs))), fp(gs, ms), h)),
+        ((arr(a, APPEND(ys, CONS(x0, zs))) * fp(gs, ms))(h))),
     [Store(T_i32, NONE, al, off)],
     st(
       v,
       l,
       (gs : List[Value]) => (ms : Num) => (h : Heap) =>
-        star(arr(a, APPEND(ys, CONS(x, zs))), fp(gs, ms), h)))
+        ((arr(a, APPEND(ys, CONS(x, zs))) * fp(gs, ms))(h))))
 ```
 
 lemma `st_arr_load`
@@ -4180,13 +4184,13 @@ then
       APPEND(v, [V_num(ConstInt32(k))]),
       l,
       (gs : List[Value]) => (ms : Num) => (h : Heap) =>
-        star(arr(a, APPEND(ys, CONS(x0, zs))), fp(gs, ms), h)),
+        ((arr(a, APPEND(ys, CONS(x0, zs))) * fp(gs, ms))(h))),
     [Load(T_i32, NONE, al, off)],
     st(
       APPEND(v, [V_num(ConstInt32(x0))]),
       l,
       (gs : List[Value]) => (ms : Num) => (h : Heap) =>
-        star(arr(a, APPEND(ys, CONS(x0, zs))), fp(gs, ms), h)))
+        ((arr(a, APPEND(ys, CONS(x0, zs))) * fp(gs, ms))(h))))
 ```
 
 lemma `addr_at`
@@ -4197,7 +4201,7 @@ if
   1. val(P) + 4 * N < 4294967296
   2. val(J) < N
 then
-  val(word_add(P, word_mul(J, word(4)))) + 0 == val(P) + 4 * val(J)
+  val((P +₃₂ J ×₃₂ 4w)) + 0 == val(P) + 4 * val(J)
 ```
 
 lemma `st_arr_load_at`
@@ -4210,16 +4214,16 @@ if
 then
   sl_triple(
     st(
-      APPEND(v, [V_num(ConstInt32(word_add(P, word_mul(J, word(4)))))]),
+      APPEND(v, [V_num(ConstInt32((P +₃₂ J ×₃₂ 4w)))]),
       l,
       (gs : List[Value]) => (ms : Num) => (h : Heap) =>
-        star(arr(val(P), xs), fp(gs, ms), h)),
+        ((arr(val(P), xs) * fp(gs, ms))(h))),
     [Load(T_i32, NONE, al, 0)],
     st(
       APPEND(v, [V_num(ConstInt32(EL(val(J), xs)))]),
       l,
       (gs : List[Value]) => (ms : Num) => (h : Heap) =>
-        star(arr(val(P), xs), fp(gs, ms), h)))
+        ((arr(val(P), xs) * fp(gs, ms))(h))))
 ```
 
 lemma `st_arr_store_at`
@@ -4232,19 +4236,16 @@ if
 then
   sl_triple(
     st(
-      APPEND(
-        v,
-        [V_num(ConstInt32(word_add(P, word_mul(J, word(4))))),
-         V_num(ConstInt32(x))]),
+      APPEND(v, [V_num(ConstInt32((P +₃₂ J ×₃₂ 4w))), V_num(ConstInt32(x))]),
       l,
       (gs : List[Value]) => (ms : Num) => (h : Heap) =>
-        star(arr(val(P), xs), fp(gs, ms), h)),
+        ((arr(val(P), xs) * fp(gs, ms))(h))),
     [Store(T_i32, NONE, al, 0)],
     st(
       v,
       l,
       (gs : List[Value]) => (ms : Num) => (h : Heap) =>
-        star(arr(val(P), list_update(xs, val(J), x)), fp(gs, ms), h)))
+        ((arr(val(P), list_update(xs, val(J), x)) * fp(gs, ms))(h))))
 ```
 
 lemma `st_cell_load`
@@ -4259,13 +4260,13 @@ then
       APPEND(v, [V_num(ConstInt32(k))]),
       l,
       (gs : List[Value]) => (ms : Num) => (h : Heap) =>
-        star(pts(a, serialise_i32(x0)), fp(gs, ms), h)),
+        ((pts(a, serialise_i32(x0)) * fp(gs, ms))(h))),
     [Load(T_i32, NONE, al, off)],
     st(
       APPEND(v, [V_num(ConstInt32(x0))]),
       l,
       (gs : List[Value]) => (ms : Num) => (h : Heap) =>
-        star(pts(a, serialise_i32(x0)), fp(gs, ms), h)))
+        ((pts(a, serialise_i32(x0)) * fp(gs, ms))(h))))
 ```
 
 lemma `st_cell_store`
@@ -4280,13 +4281,13 @@ then
       APPEND(v, [V_num(ConstInt32(k)), V_num(ConstInt32(x))]),
       l,
       (gs : List[Value]) => (ms : Num) => (h : Heap) =>
-        star(pts(a, serialise_i32(x0)), fp(gs, ms), h)),
+        ((pts(a, serialise_i32(x0)) * fp(gs, ms))(h))),
     [Store(T_i32, NONE, al, off)],
     st(
       v,
       l,
       (gs : List[Value]) => (ms : Num) => (h : Heap) =>
-        star(pts(a, serialise_i32(x)), fp(gs, ms), h)))
+        ((pts(a, serialise_i32(x)) * fp(gs, ms))(h))))
 ```
 
 ## Symbolic execution (sym.mbt)
@@ -4361,14 +4362,14 @@ lemma `sl_br_if_st`
 ∀ (v l : List[Value]) (R : GProp) (c : W32) (i : Num) (rest : List[B_e])
   (r : SAssn) (ls : List[SAssn])
 if
-  1. !(c == word(0)) → sl_triple_l(
+  1. !(c == 0w) → sl_triple_l(
        st(v, l, R),
        [Br(i)],
        (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
        (ms : Num) => (h : Heap) =>
          false,
        ls)
-  2. c == word(0) → sl_triple_l(st(v, l, R), rest, r, ls)
+  2. c == 0w → sl_triple_l(st(v, l, R), rest, r, ls)
 then
   sl_triple_l(
     st(APPEND(v, [V_num(ConstInt32(c))]), l, R),
@@ -4383,8 +4384,8 @@ lemma `sl_if_st`
 ∀ (v l : List[Value]) (R : GProp) (c : W32) (tb : Tb) (bs1 bs2 : List[B_e])
   (r : SAssn) (ls : List[SAssn])
 if
-  1. !(c == word(0)) → sl_triple_l(st(v, l, R), [Block(tb, bs1)], r, ls)
-  2. c == word(0) → sl_triple_l(st(v, l, R), [Block(tb, bs2)], r, ls)
+  1. !(c == 0w) → sl_triple_l(st(v, l, R), [Block(tb, bs1)], r, ls)
+  2. c == 0w → sl_triple_l(st(v, l, R), [Block(tb, bs2)], r, ls)
 then
   sl_triple_l(
     st(APPEND(v, [V_num(ConstInt32(c))]), l, R),
@@ -4443,7 +4444,7 @@ then
 lemma `wasm_bool_zero`
 
 ```
-∀ (b : Bool), (wasm_bool(b) == word(0)) == !b
+∀ (b : Bool), (wasm_bool(b) == 0w) == !b
 ```
 
 ## Calls: call-free code and module triples (calls.mbt)
@@ -4951,7 +4952,7 @@ then
 lemma `star_emp_r`
 
 ```
-∀ (p : HProp) (h : Heap), star(p, emp, h) == p(h)
+∀ (p : HProp) (h : Heap), ((p * emp)(h)) == p(h)
 ```
 
 lemma `lift_emp`
@@ -5033,7 +5034,7 @@ if
   1. LENGTH(before) == a
   2. LENGTH(ys) == k
 then
-  star(arr(a, ys), star(pts(0, before), pts(a + 4 * k, after)), heap_of(m))
+  ((arr(a, ys) * pts(0, before) * pts(a + 4 * k, after))(heap_of(m)))
     == (SND(m) == APPEND(before, APPEND(words_bytes(ys), after)))
 ```
 
@@ -6263,8 +6264,8 @@ lemma `sl_br_if_g`
 ∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp p q : SAssn)
   (ls : List[SAssn]) (i : Num) (c : W32)
 if
-  1. !(c == word(0)) → sl_triple_g(G, fs, tabs, inst, rp, p, [Br(i)], q, ls)
-  2. c == word(0) → (
+  1. !(c == 0w) → sl_triple_g(G, fs, tabs, inst, rp, p, [Br(i)], q, ls)
+  2. c == 0w → (
        ∀ vs : List[Value],
          ∀ lc : List[Value],
            ∀ gs : List[Value],
@@ -6292,26 +6293,8 @@ lemma `sl_if_g`
 ∀ (G : Specs) (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (rp p q : SAssn)
   (ls : List[SAssn]) (tb : Tb) (bs1 bs2 : List[B_e]) (c : W32)
 if
-  1. !(c == word(0)) → sl_triple_g(
-       G,
-       fs,
-       tabs,
-       inst,
-       rp,
-       p,
-       [Block(tb, bs1)],
-       q,
-       ls)
-  2. c == word(0) → sl_triple_g(
-       G,
-       fs,
-       tabs,
-       inst,
-       rp,
-       p,
-       [Block(tb, bs2)],
-       q,
-       ls)
+  1. !(c == 0w) → sl_triple_g(G, fs, tabs, inst, rp, p, [Block(tb, bs1)], q, ls)
+  2. c == 0w → sl_triple_g(G, fs, tabs, inst, rp, p, [Block(tb, bs2)], q, ls)
 then
   sl_triple_g(
     G,
@@ -6587,7 +6570,7 @@ lemma `sl_br_if_st_g`
   (v l : List[Value]) (R : GProp) (c : W32) (i : Num) (rest : List[B_e])
   (ls : List[SAssn])
 if
-  1. !(c == word(0)) → sl_triple_g(
+  1. !(c == 0w) → sl_triple_g(
        G,
        fs,
        tabs,
@@ -6599,7 +6582,7 @@ if
        (ms : Num) => (h : Heap) =>
          false,
        ls)
-  2. c == word(0) → sl_triple_g(G, fs, tabs, inst, rp, st(v, l, R), rest, r, ls)
+  2. c == 0w → sl_triple_g(G, fs, tabs, inst, rp, st(v, l, R), rest, r, ls)
 then
   sl_triple_g(
     G,
@@ -6620,7 +6603,7 @@ lemma `sl_if_st_g`
   (v l : List[Value]) (R : GProp) (c : W32) (tb : Tb) (bs1 bs2 : List[B_e])
   (ls : List[SAssn])
 if
-  1. !(c == word(0)) → sl_triple_g(
+  1. !(c == 0w) → sl_triple_g(
        G,
        fs,
        tabs,
@@ -6630,7 +6613,7 @@ if
        [Block(tb, bs1)],
        r,
        ls)
-  2. c == word(0) → sl_triple_g(
+  2. c == 0w → sl_triple_g(
        G,
        fs,
        tabs,
@@ -6989,7 +6972,7 @@ then
   sl_triple(
     (vs : List[Value]) => (ls : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
-      star(pts(val(k) + off, bs), p(vs, ls, gs, ms), h),
+      ((pts(val(k) + off, bs) * p(vs, ls, gs, ms))(h)),
     [EConstNum(ConstInt32(k)), EConstNum(ConstInt32(v)),
      Store(T_i32, NONE, a, off), EConstNum(ConstInt32(k)),
      Load(T_i32, NONE, a, off)],
@@ -6997,7 +6980,7 @@ then
     (ms : Num) => (h : Heap) =>
       ∃ vs0 : List[Value],
         vs == APPEND(vs0, [V_num(ConstInt32(v))])
-        && star(pts(val(k) + off, serialise_i32(v)), p(vs0, ls, gs, ms), h))
+        && ((pts(val(k) + off, serialise_i32(v)) * p(vs0, ls, gs, ms))(h)))
 ```
 
 program `sum_code`
@@ -7026,10 +7009,10 @@ lemma `sum_inv_step`
 ```
 ∀ (n acc a : W32)
 if
-  1. !(n == word(0))
-  2. word_add(acc, word(sum_to(val(n)))) == a
+  1. !(n == 0w)
+  2. (acc +₃₂ word(sum_to(val(n)))) == a
 then
-  word_add(word_add(acc, n), word(sum_to(val(word_sub(n, word(1)))))) == a
+  (acc +₃₂ n +₃₂ word(sum_to(val((n −₃₂ 1w))))) == a
 ```
 
 example `example_sum`
@@ -7041,8 +7024,8 @@ example `example_sum`
     sum_code,
     st(
       vs0,
-      [V_num(ConstInt32(word(0))),
-       V_num(ConstInt32(word_add(acc0, word(sum_to(val(n0))))))],
+      [V_num(ConstInt32(0w)),
+       V_num(ConstInt32((acc0 +₃₂ word(sum_to(val(n0))))))],
       R))
 ```
 
@@ -7053,7 +7036,7 @@ lemma `word_add_val`
 if
   1. val(a) + 4 == val(b) + k
 then
-  word_add(a, word(4)) == word_add(b, word(k))
+  (a +₃₂ 4w) == (b +₃₂ word(k))
 ```
 
 lemma `fill_entry`
@@ -7061,7 +7044,7 @@ lemma `fill_entry`
 ```
 ∀ (m : W32) (ys : List[W32])
 if
-  1. !(m == word(0))
+  1. !(m == 0w)
   2. LENGTH(ys) == val(m)
 then
   ∃ (y : W32) (zs : List[W32]),
@@ -7075,19 +7058,18 @@ lemma `fill_step`
 ∀ (p0 m p c x : W32) (zs : List[W32])
 if
   1. val(p0) + 4 * val(m) < 4294967296
-  2. !(c == word(0))
-  3. !(word_sub(c, word(1)) == word(0))
+  2. !(c == 0w)
+  3. !((c −₃₂ 1w) == 0w)
   4. val(p) == val(p0) + 4 * (val(m) - val(c))
   5. val(c) <= val(m)
   6. SUC(LENGTH(zs)) == val(c)
 then
   ∃ (y2 : W32) (zs2 : List[W32]),
     zs == CONS(y2, zs2)
-    && val(word_add(p, word(4)))
-         == val(p0) + 4 * (val(m) - val(word_sub(c, word(1))))
-    && val(word_sub(c, word(1))) <= val(m)
-    && SUC(LENGTH(zs2)) == val(word_sub(c, word(1)))
-    && APPEND(REPLICATE(val(m) - val(word_sub(c, word(1))), x), CONS(y2, zs2))
+    && val((p +₃₂ 4w)) == val(p0) + 4 * (val(m) - val((c −₃₂ 1w)))
+    && val((c −₃₂ 1w)) <= val(m)
+    && SUC(LENGTH(zs2)) == val((c −₃₂ 1w))
+    && APPEND(REPLICATE(val(m) - val((c −₃₂ 1w)), x), CONS(y2, zs2))
          == APPEND(REPLICATE(val(m) - val(c), x), CONS(x, zs))
 ```
 
@@ -7096,12 +7078,12 @@ lemma `fill_exit`
 ```
 ∀ (p0 m p c x : W32) (zs : List[W32])
 if
-  1. word_sub(c, word(1)) == word(0)
+  1. (c −₃₂ 1w) == 0w
   2. val(p) == val(p0) + 4 * (val(m) - val(c))
   3. val(c) <= val(m)
   4. SUC(LENGTH(zs)) == val(c)
 then
-  word_add(p, word(4)) == word_add(p0, word(4 * val(m)))
+  (p +₃₂ 4w) == (p0 +₃₂ word(4 * val(m)))
   && REPLICATE(val(m), x) == APPEND(REPLICATE(val(m) - val(c), x), CONS(x, zs))
 ```
 
@@ -7141,27 +7123,27 @@ then
     st(
       vs0,
       [V_num(ConstInt32(p0)), V_num(ConstInt32(m))],
-      (gs : List[Value]) => (ms : Num) => star(arr(val(p0), ys), fp(gs, ms))),
+      (gs : List[Value]) => (ms : Num) => (arr(val(p0), ys) * fp(gs, ms))),
     fill_code(x),
     st(
       vs0,
-      [V_num(ConstInt32(word_add(p0, word(4 * val(m))))),
-       V_num(ConstInt32(word(0)))],
+      [V_num(ConstInt32((p0 +₃₂ word(4 * val(m))))), V_num(ConstInt32(0w))],
       (gs : List[Value]) => (ms : Num) =>
-        star(arr(val(p0), REPLICATE(val(m), x)), fp(gs, ms))))
+        (arr(val(p0), REPLICATE(val(m), x)) * fp(gs, ms))))
 ```
 
 definition `wsum`
 
 ```
-wsum(NIL) == word(0)
-&& wsum(CONS((x : W32), (xs : List[W32]))) == word_add(x, wsum(xs))
+wsum(NIL) == 0w
+&& wsum(CONS((x : W32), (xs : List[W32])))
+     == ((x : W32) +₃₂ wsum((xs : List[W32])))
 ```
 
 lemma `wsum_snoc`
 
 ```
-∀ (ys : List[W32]) (y : W32), wsum(APPEND(ys, [y])) == word_add(wsum(ys), y)
+∀ (ys : List[W32]) (y : W32), wsum(APPEND(ys, [y])) == (wsum(ys) +₃₂ y)
 ```
 
 lemma `asum_addr`
@@ -7174,7 +7156,7 @@ if
   3. xs == APPEND(ys, CONS(y, zs))
   4. LENGTH(ys) == val(i)
 then
-  val(word_add(p, word_mul(i, word(4)))) + 0 == val(p) + 4 * LENGTH(ys)
+  val((p +₃₂ i ×₃₂ 4w)) + 0 == val(p) + 4 * LENGTH(ys)
 ```
 
 lemma `asum_step`
@@ -7185,11 +7167,11 @@ if
   1. LENGTH(xs) == val(n)
   2. xs == APPEND(ys, CONS(y, zs))
   3. LENGTH(ys) == val(i)
-  4. word_ult(word_add(i, word(1)), n)
+  4. word_ult((i +₃₂ 1w), n)
 then
   ∃ (y2 : W32) (zs2 : List[W32]),
     zs == CONS(y2, zs2)
-    && LENGTH(APPEND(ys, [y])) == val(word_add(i, word(1)))
+    && LENGTH(APPEND(ys, [y])) == val((i +₃₂ 1w))
 ```
 
 lemma `asum_exit`
@@ -7200,10 +7182,10 @@ if
   1. LENGTH(xs) == val(n)
   2. xs == APPEND(ys, CONS(y, zs))
   3. LENGTH(ys) == val(i)
-  4. !word_ult(word_add(i, word(1)), n)
+  4. !word_ult((i +₃₂ 1w), n)
 then
-  word_add(i, word(1)) == n
-  && word_add(wsum(ys), y) == wsum(xs)
+  (i +₃₂ 1w) == n
+  && (wsum(ys) +₃₂ y) == wsum(xs)
 ```
 
 lemma `asum_entry`
@@ -7211,7 +7193,7 @@ lemma `asum_entry`
 ```
 ∀ (n : W32) (xs : List[W32])
 if
-  1. word_ult(word(0), n)
+  1. word_ult(0w, n)
   2. LENGTH(xs) == val(n)
 then
   ∃ (y : W32) (zs : List[W32]), xs == CONS(y, zs)
@@ -7222,10 +7204,10 @@ lemma `asum_none`
 ```
 ∀ (n : W32) (xs : List[W32])
 if
-  1. !word_ult(word(0), n)
+  1. !word_ult(0w, n)
   2. LENGTH(xs) == val(n)
 then
-  n == word(0)
+  n == 0w
   && xs == NIL
 ```
 
@@ -7270,15 +7252,15 @@ then
   sl_triple(
     st(
       vs0,
-      [V_num(ConstInt32(p)), V_num(ConstInt32(n)), V_num(ConstInt32(word(0))),
-       V_num(ConstInt32(word(0)))],
-      (gs : List[Value]) => (ms : Num) => star(arr(val(p), xs), fp(gs, ms))),
+      [V_num(ConstInt32(p)), V_num(ConstInt32(n)), V_num(ConstInt32(0w)),
+       V_num(ConstInt32(0w))],
+      (gs : List[Value]) => (ms : Num) => (arr(val(p), xs) * fp(gs, ms))),
     array_sum_code,
     st(
       vs0,
       [V_num(ConstInt32(p)), V_num(ConstInt32(n)), V_num(ConstInt32(n)),
        V_num(ConstInt32(wsum(xs)))],
-      (gs : List[Value]) => (ms : Num) => star(arr(val(p), xs), fp(gs, ms))))
+      (gs : List[Value]) => (ms : Num) => (arr(val(p), xs) * fp(gs, ms))))
 ```
 
 definition `sorted`
@@ -7354,7 +7336,7 @@ if
   3. val(i) < val(n)
 then
   val(j) < val(n)
-  && !(j == word(0)) → val(word_sub(j, word(1))) < val(n)
+  && !(j == 0w) → val((j −₃₂ 1w)) < val(n)
 ```
 
 lemma `isort_inner_entry`
@@ -7377,7 +7359,7 @@ lemma `isort_empty`
 ∀ (L : List[W32]) (j x : W32)
 if
   1. LENGTH(L) == val(j)
-  2. j == word(0)
+  2. j == 0w
 then
   ALL((y : W32) => val(y) <= val(x), L)
 ```
@@ -7388,9 +7370,9 @@ lemma `isort_stop`
 ∀ (L G M : List[W32]) (d x j : W32)
 if
   1. LENGTH(L) == val(j)
-  2. !(j == word(0))
+  2. !(j == 0w)
   3. sorted(APPEND(L, G))
-  4. word_ule(EL(val(word_sub(j, word(1))), APPEND(L, CONS(d, M))), x)
+  4. word_ule(EL(val((j −₃₂ 1w)), APPEND(L, CONS(d, M))), x)
 then
   ALL((y : W32) => val(y) <= val(x), L)
 ```
@@ -7400,10 +7382,8 @@ lemma `isort_shift`
 ```
 ∀ (L G rest xs : List[W32]) (d j x i n : W32)
 if
-  1. !(j == word(0))
-  2. !word_ule(
-       EL(val(word_sub(j, word(1))), APPEND(L, CONS(d, APPEND(G, rest)))),
-       x)
+  1. !(j == 0w)
+  2. !word_ule(EL(val((j −₃₂ 1w)), APPEND(L, CONS(d, APPEND(G, rest)))), x)
   3. LENGTH(L) == val(j)
   4. sorted(APPEND(L, G))
   5. ALL((g : W32) => val(x) < val(g), G)
@@ -7413,7 +7393,7 @@ if
   9. perm(APPEND(L, CONS(x, APPEND(G, rest))), xs)
 then
   ∃ (l2 : List[W32]) (e : W32),
-    LENGTH(l2) == val(word_sub(j, word(1)))
+    LENGTH(l2) == val((j −₃₂ 1w))
     && sorted(APPEND(l2, CONS(e, G)))
     && ALL((g : W32) => val(x) < val(g), CONS(e, G))
     && LENGTH(APPEND(l2, CONS(e, G))) == val(i)
@@ -7422,7 +7402,7 @@ then
     && list_update(
          APPEND(L, CONS(d, APPEND(G, rest))),
          val(j),
-         EL(val(word_sub(j, word(1))), APPEND(L, CONS(d, APPEND(G, rest)))))
+         EL(val((j −₃₂ 1w)), APPEND(L, CONS(d, APPEND(G, rest)))))
          == APPEND(l2, CONS(e, APPEND(CONS(e, G), rest)))
 ```
 
@@ -7439,11 +7419,11 @@ if
   6. val(i) < val(n)
   7. LENGTH(APPEND(L, CONS(d, APPEND(G, rest)))) == val(n)
   8. perm(APPEND(L, CONS(x, APPEND(G, rest))), xs)
-  9. word_ult(word_add(i, word(1)), n)
+  9. word_ult((i +₃₂ 1w), n)
 then
   sorted(APPEND(L, CONS(x, G)))
-  && LENGTH(APPEND(L, CONS(x, G))) == val(word_add(i, word(1)))
-  && val(word_add(i, word(1))) < val(n)
+  && LENGTH(APPEND(L, CONS(x, G))) == val((i +₃₂ 1w))
+  && val((i +₃₂ 1w)) < val(n)
   && LENGTH(APPEND(APPEND(L, CONS(x, G)), rest)) == val(n)
   && perm(APPEND(APPEND(L, CONS(x, G)), rest), xs)
   && list_update(APPEND(L, CONS(d, APPEND(G, rest))), val(j), x)
@@ -7463,7 +7443,7 @@ if
   6. val(i) < val(n)
   7. LENGTH(APPEND(L, CONS(d, APPEND(G, rest)))) == val(n)
   8. perm(APPEND(L, CONS(x, APPEND(G, rest))), xs)
-  9. !word_ult(word_add(i, word(1)), n)
+  9. !word_ult((i +₃₂ 1w), n)
 then
   sorted(list_update(APPEND(L, CONS(d, APPEND(G, rest))), val(j), x))
   && perm(list_update(APPEND(L, CONS(d, APPEND(G, rest))), val(j), x), xs)
@@ -7475,14 +7455,13 @@ lemma `isort_start`
 ∀ (xs : List[W32]) (n : W32)
 if
   1. LENGTH(xs) == val(n)
-  2. word_ult(word(1), n)
+  2. word_ult(1w, n)
 then
   ∃ (y : W32) (zs : List[W32]),
     xs == CONS(y, zs)
     && sorted([y])
-    && (LENGTH : (List[W32]) -> Num)([y])
-         == (val : (W32) -> Num)((word : (Num) -> W32)(1))
-    && (val : (W32) -> Num)((word : (Num) -> W32)(1)) < (val : (W32) -> Num)(n)
+    && LENGTH([y]) == val(1w)
+    && val(1w) < val(n)
 ```
 
 lemma `isort_none`
@@ -7491,7 +7470,7 @@ lemma `isort_none`
 ∀ (xs : List[W32]) (n : W32)
 if
   1. LENGTH(xs) == val(n)
-  2. !word_ult(word(1), n)
+  2. !word_ult(1w, n)
 then
   sorted(xs)
 ```
@@ -7583,9 +7562,9 @@ then
   sl_triple(
     st(
       vs0,
-      [V_num(ConstInt32(p)), V_num(ConstInt32(n)), V_num(ConstInt32(word(0))),
-       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))],
-      (gs : List[Value]) => (ms : Num) => star(arr(val(p), xs), fp(gs, ms))),
+      [V_num(ConstInt32(p)), V_num(ConstInt32(n)), V_num(ConstInt32(0w)),
+       V_num(ConstInt32(0w)), V_num(ConstInt32(0w))],
+      (gs : List[Value]) => (ms : Num) => (arr(val(p), xs) * fp(gs, ms))),
     insertion_sort_code,
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
@@ -7599,7 +7578,7 @@ then
                   V_num(ConstInt32(x))]
               && sorted(ys)
               && perm(ys, xs)
-              && star(arr(val(p), ys), fp(gs, ms), h))
+              && ((arr(val(p), ys) * fp(gs, ms))(h)))
 ```
 
 program `double_code`
@@ -7622,7 +7601,7 @@ lemma `double_body`
     double_code,
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
-      vs == [V_num(ConstInt32(word_add(x, x)))] && R(gs, ms, h))
+      vs == [V_num(ConstInt32((x +₃₂ x)))] && R(gs, ms, h))
 ```
 
 example `example_call`
@@ -7647,7 +7626,7 @@ then
     [Call(0)],
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
-      vs == APPEND(vs0, [V_num(ConstInt32(word_add(x, x)))])
+      vs == APPEND(vs0, [V_num(ConstInt32((x +₃₂ x)))])
       && lc == lc0
       && R(gs, ms, h),
     NIL)
@@ -7656,8 +7635,8 @@ then
 definition `fact_w`
 
 ```
-fact_w(0) == word(1)
-&& fact_w(SUC((n : Num))) == word_mul(word(SUC(n)), fact_w(n))
+fact_w(0) == 1w
+&& fact_w(SUC((n : Num))) == (word(SUC((n : Num))) ×₃₂ fact_w((n : Num)))
 ```
 
 lemma `fact_w_suc`
@@ -7667,7 +7646,7 @@ lemma `fact_w_suc`
 if
   1. val(x) == SUC(k)
 then
-  word_mul(x, fact_w(k)) == fact_w(val(x))
+  (x ×₃₂ fact_w(k)) == fact_w(val(x))
 ```
 
 lemma `fact_w_step`
@@ -7675,9 +7654,9 @@ lemma `fact_w_step`
 ```
 ∀ (x : W32)
 if
-  1. !(x == word(0))
+  1. !(x == 0w)
 then
-  word_mul(x, fact_w(val(word_sub(x, word(1))))) == fact_w(val(x))
+  (x ×₃₂ fact_w(val((x −₃₂ 1w)))) == fact_w(val(x))
 ```
 
 definition `fact_spec`
@@ -8039,10 +8018,10 @@ then
     st(
       NIL,
       [V_num(ConstInt32(p)), V_num(ConstInt32(lo)), V_num(ConstInt32(hi)),
-       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))),
-       V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))],
+       V_num(ConstInt32(0w)), V_num(ConstInt32(0w)), V_num(ConstInt32(0w)),
+       V_num(ConstInt32(0w))],
       (gs : List[Value]) => (ms : Num) => (h : Heap) =>
-        star(arr(val(p), APPEND(A, APPEND(Bt, CONS(pv, Cs)))), fp(gs, ms), h)),
+        ((arr(val(p), APPEND(A, APPEND(Bt, CONS(pv, Cs)))) * fp(gs, ms))(h))),
     partition_code,
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
@@ -8055,10 +8034,10 @@ then
             && ALL((x : W32) => val(pv) <= val(x), G)
             && perm(APPEND(L, G), Bt)
             && LENGTH(L) + LENGTH(G) == LENGTH(Bt)
-            && star(
-                 arr(val(p), APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))),
-                 fp(gs, ms),
-                 h))
+            && (
+                 (
+                   arr(val(p), APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs)))))
+                   * fp(gs, ms))(h)))
 ```
 
 definition `qs_spec`
@@ -8082,10 +8061,10 @@ qs_spec((inst : Inst), (a : Num), (P : FProp), (Q : FProp)) == (
                          && LENGTH(A) == val(lo)
                          && LENGTH(A) + LENGTH(B) == val(hi)
                          && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296
-                         && star(
-                              arr(val(p), APPEND(A, APPEND(B, Cs))),
-                              fp(gs, ms),
-                              h))
+                         && (
+                              (
+                                arr(val(p), APPEND(A, APPEND(B, Cs)))
+                                * fp(gs, ms))(h)))
                      && Q == (
                           (res : List[Value]) => (gs : List[Value]) =>
                           (ms : Num) => (h : Heap) =>
@@ -8095,12 +8074,12 @@ qs_spec((inst : Inst), (a : Num), (P : FProp), (Q : FProp)) == (
                                    sorted(ys)
                                    && perm(ys, B)
                                    && LENGTH(ys) == LENGTH(B)
-                                   && star(
-                                        arr(
-                                          val(p),
-                                          APPEND(A, APPEND(ys, Cs))),
-                                        fp(gs, ms),
-                                        h))))
+                                   && (
+                                        (
+                                          arr(
+                                            val(p),
+                                            APPEND(A, APPEND(ys, Cs)))
+                                          * fp(gs, ms))(h)))))
   || a == sfunc_ind(inst, 1)
      && (
           ∃ p : W32,
@@ -8119,12 +8098,12 @@ qs_spec((inst : Inst), (a : Num), (P : FProp), (Q : FProp)) == (
                               && LENGTH(A) == val(lo)
                               && LENGTH(A) + LENGTH(Bt) + 1 == val(hi)
                               && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296
-                              && star(
-                                   arr(
-                                     val(p),
-                                     APPEND(A, APPEND(Bt, CONS(pv, Cs)))),
-                                   fp(gs, ms),
-                                   h))
+                              && (
+                                   (
+                                     arr(
+                                       val(p),
+                                       APPEND(A, APPEND(Bt, CONS(pv, Cs))))
+                                     * fp(gs, ms))(h)))
                           && Q == (
                                (res : List[Value]) => (gs : List[Value]) =>
                                (ms : Num) => (h : Heap) =>
@@ -8141,16 +8120,18 @@ qs_spec((inst : Inst), (a : Num), (P : FProp), (Q : FProp)) == (
                                             G)
                                        && perm(APPEND(L, G), Bt)
                                        && LENGTH(L) + LENGTH(G) == LENGTH(Bt)
-                                       && star(
-                                            arr(
-                                              val(p),
-                                              APPEND(
-                                                A,
+                                       && (
+                                            (
+                                              arr(
+                                                val(p),
                                                 APPEND(
-                                                  L,
-                                                  CONS(pv, APPEND(G, Cs))))),
-                                            fp(gs, ms),
-                                            h))))
+                                                  A,
+                                                  APPEND(
+                                                    L,
+                                                    CONS(
+                                                      pv,
+                                                      APPEND(G, Cs)))))
+                                              * fp(gs, ms))(h)))))
 ```
 
 lemma `qs_call`
@@ -8166,7 +8147,7 @@ lemma `qs_call`
       && LENGTH(A) == val(lo)
       && LENGTH(A) + LENGTH(B) == val(hi)
       && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296
-      && star(arr(val(p), APPEND(A, APPEND(B, Cs))), fp(gs, ms), h),
+      && ((arr(val(p), APPEND(A, APPEND(B, Cs))) * fp(gs, ms))(h)),
     (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
       res == NIL
       && (
@@ -8174,7 +8155,7 @@ lemma `qs_call`
              sorted(ys)
              && perm(ys, B)
              && LENGTH(ys) == LENGTH(B)
-             && star(arr(val(p), APPEND(A, APPEND(ys, Cs))), fp(gs, ms), h)))
+             && ((arr(val(p), APPEND(A, APPEND(ys, Cs))) * fp(gs, ms))(h))))
 ```
 
 lemma `partition_call`
@@ -8190,7 +8171,7 @@ lemma `partition_call`
       && LENGTH(A) == val(lo)
       && LENGTH(A) + LENGTH(Bt) + 1 == val(hi)
       && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296
-      && star(arr(val(p), APPEND(A, APPEND(Bt, CONS(pv, Cs)))), fp(gs, ms), h),
+      && ((arr(val(p), APPEND(A, APPEND(Bt, CONS(pv, Cs)))) * fp(gs, ms))(h)),
     (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
       ∃ i : W32,
         ∃ L : List[W32],
@@ -8201,10 +8182,10 @@ lemma `partition_call`
             && ALL((x : W32) => val(pv) <= val(x), G)
             && perm(APPEND(L, G), Bt)
             && LENGTH(L) + LENGTH(G) == LENGTH(Bt)
-            && star(
-                 arr(val(p), APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))),
-                 fp(gs, ms),
-                 h))
+            && (
+                 (
+                   arr(val(p), APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs)))))
+                   * fp(gs, ms))(h)))
 ```
 
 lemma `qs_split`
@@ -8215,7 +8196,7 @@ if
   1. LENGTH(A) == val(lo)
   2. LENGTH(A) + LENGTH(B) == val(hi)
 then
-  word_ult(word_sub(hi, lo), word(2)) == (LENGTH(B) < 2)
+  word_ult((hi −₃₂ lo), 2w) == (LENGTH(B) < 2)
 ```
 
 lemma `sorted_short`
@@ -8333,14 +8314,13 @@ lemma `quicksort_body`
                  sorted(ys)
                  && perm(ys, B)
                  && LENGTH(ys) == LENGTH(B)
-                 && star(
-                      arr(val(p), APPEND(A, APPEND(ys, Cs))),
-                      fp(gs, ms),
-                      h)))(vs, gs, ms, h),
+                 && (
+                      (arr(val(p), APPEND(A, APPEND(ys, Cs))) * fp(gs, ms))(
+                        h))))(vs, gs, ms, h),
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
       vs == NIL
-      && lc == APPEND(args, [V_num(ConstInt32(word(0)))])
+      && lc == APPEND(args, [V_num(ConstInt32(0w))])
       && (
            (args : List[Value]) => (gs : List[Value]) => (ms : Num) =>
            (h : Heap) =>
@@ -8349,7 +8329,7 @@ lemma `quicksort_body`
              && LENGTH(A) == val(lo)
              && LENGTH(A) + LENGTH(B) == val(hi)
              && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296
-             && star(arr(val(p), APPEND(A, APPEND(B, Cs))), fp(gs, ms), h))(
+             && ((arr(val(p), APPEND(A, APPEND(B, Cs))) * fp(gs, ms))(h)))(
            args,
            gs,
            ms,
@@ -8366,10 +8346,9 @@ lemma `quicksort_body`
                  sorted(ys)
                  && perm(ys, B)
                  && LENGTH(ys) == LENGTH(B)
-                 && star(
-                      arr(val(p), APPEND(A, APPEND(ys, Cs))),
-                      fp(gs, ms),
-                      h)))(vs, gs, ms, h),
+                 && (
+                      (arr(val(p), APPEND(A, APPEND(ys, Cs))) * fp(gs, ms))(
+                        h))))(vs, gs, ms, h),
     [
       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
       (ms : Num) => (h : Heap) =>
@@ -8382,10 +8361,10 @@ lemma `quicksort_body`
                    sorted(ys)
                    && perm(ys, B)
                    && LENGTH(ys) == LENGTH(B)
-                   && star(
-                        arr(val(p), APPEND(A, APPEND(ys, Cs))),
-                        fp(gs, ms),
-                        h)))(vs, gs, ms, h)])
+                   && (
+                        (
+                          arr(val(p), APPEND(A, APPEND(ys, Cs)))
+                          * fp(gs, ms))(h))))(vs, gs, ms, h)])
 ```
 
 lemma `partition_fn`
@@ -8412,19 +8391,19 @@ lemma `partition_fn`
                 && ALL((x : W32) => val(pv) <= val(x), G)
                 && perm(APPEND(L, G), Bt)
                 && LENGTH(L) + LENGTH(G) == LENGTH(Bt)
-                && star(
-                     arr(
-                       val(p),
-                       APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))),
-                     fp(gs, ms),
-                     h))(vs, gs, ms, h),
+                && (
+                     (
+                       arr(
+                         val(p),
+                         APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs)))))
+                       * fp(gs, ms))(h)))(vs, gs, ms, h),
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
       vs == NIL
       && lc == APPEND(
            args,
-           [V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0))),
-            V_num(ConstInt32(word(0))), V_num(ConstInt32(word(0)))])
+           [V_num(ConstInt32(0w)), V_num(ConstInt32(0w)),
+            V_num(ConstInt32(0w)), V_num(ConstInt32(0w))])
       && (
            (args : List[Value]) => (gs : List[Value]) => (ms : Num) =>
            (h : Heap) =>
@@ -8433,10 +8412,10 @@ lemma `partition_fn`
              && LENGTH(A) == val(lo)
              && LENGTH(A) + LENGTH(Bt) + 1 == val(hi)
              && val(p) + 4 * (val(hi) + LENGTH(Cs)) < 4294967296
-             && star(
-                  arr(val(p), APPEND(A, APPEND(Bt, CONS(pv, Cs)))),
-                  fp(gs, ms),
-                  h))(args, gs, ms, h),
+             && (
+                  (
+                    arr(val(p), APPEND(A, APPEND(Bt, CONS(pv, Cs))))
+                    * fp(gs, ms))(h)))(args, gs, ms, h),
     partition_code,
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
@@ -8452,12 +8431,12 @@ lemma `partition_fn`
                 && ALL((x : W32) => val(pv) <= val(x), G)
                 && perm(APPEND(L, G), Bt)
                 && LENGTH(L) + LENGTH(G) == LENGTH(Bt)
-                && star(
-                     arr(
-                       val(p),
-                       APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))),
-                     fp(gs, ms),
-                     h))(vs, gs, ms, h),
+                && (
+                     (
+                       arr(
+                         val(p),
+                         APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs)))))
+                       * fp(gs, ms))(h)))(vs, gs, ms, h),
     [
       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
       (ms : Num) => (h : Heap) =>
@@ -8473,12 +8452,12 @@ lemma `partition_fn`
                   && ALL((x : W32) => val(pv) <= val(x), G)
                   && perm(APPEND(L, G), Bt)
                   && LENGTH(L) + LENGTH(G) == LENGTH(Bt)
-                  && star(
-                       arr(
-                         val(p),
-                         APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs))))),
-                       fp(gs, ms),
-                       h))(vs, gs, ms, h)])
+                  && (
+                       (
+                         arr(
+                           val(p),
+                           APPEND(A, APPEND(L, CONS(pv, APPEND(G, Cs)))))
+                         * fp(gs, ms))(h)))(vs, gs, ms, h)])
 ```
 
 lemma `quicksort_specs`
@@ -8527,10 +8506,9 @@ then
     (ms : Num) => (h : Heap) =>
       vs == APPEND(
         vs0,
-        [V_num(ConstInt32(p)), V_num(ConstInt32(word(0))),
-         V_num(ConstInt32(n))])
+        [V_num(ConstInt32(p)), V_num(ConstInt32(0w)), V_num(ConstInt32(n))])
       && lc == lc0
-      && star(arr(val(p), xs), fp(gs, ms), h),
+      && ((arr(val(p), xs) * fp(gs, ms))(h)),
     [Call(0)],
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
@@ -8540,7 +8518,7 @@ then
         && sorted(ys)
         && perm(ys, xs)
         && LENGTH(ys) == LENGTH(xs)
-        && star(arr(val(p), ys), fp(gs, ms), h),
+        && ((arr(val(p), ys) * fp(gs, ms))(h)),
     NIL)
 ```
 
@@ -8579,7 +8557,7 @@ if
               v_to_e,
               APPEND(
                 vs0,
-                [V_num(ConstInt32(p)), V_num(ConstInt32(word(0))),
+                [V_num(ConstInt32(p)), V_num(ConstInt32(0w)),
                  V_num(ConstInt32(n))])),
             [Basic(Call(0))])),
         (s2, f2, es2))
@@ -8614,7 +8592,7 @@ double_spec((a : Num), (b : Num), (P : FProp), (Q : FProp)) == (
            && Q == (
                 (res : List[Value]) => (gs : List[Value]) => (ms : Num) =>
                 (h : Heap) =>
-                  res == [V_num(ConstInt32(word_add(x, x)))] && R(gs, ms, h))))
+                  res == [V_num(ConstInt32((x +₃₂ x)))] && R(gs, ms, h))))
 ```
 
 lemma `double_spec_holds`
@@ -8627,7 +8605,7 @@ lemma `double_spec_holds`
     (args : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
       args == [V_num(ConstInt32(x))] && R(gs, ms, h),
     (res : List[Value]) => (gs : List[Value]) => (ms : Num) => (h : Heap) =>
-      res == [V_num(ConstInt32(word_add(x, x)))] && R(gs, ms, h))
+      res == [V_num(ConstInt32((x +₃₂ x)))] && R(gs, ms, h))
 ```
 
 lemma `double_body_g`
@@ -8645,11 +8623,7 @@ lemma `double_body_g`
       (
         (res : List[Value]) => (gs : List[Value]) => (ms : Num) =>
         (h : Heap) =>
-          res == [V_num(ConstInt32(word_add(x, x)))] && R(gs, ms, h))(
-        vs,
-        gs,
-        ms,
-        h),
+          res == [V_num(ConstInt32((x +₃₂ x)))] && R(gs, ms, h))(vs, gs, ms, h),
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
       vs == NIL
@@ -8664,18 +8638,14 @@ lemma `double_body_g`
       (
         (res : List[Value]) => (gs : List[Value]) => (ms : Num) =>
         (h : Heap) =>
-          res == [V_num(ConstInt32(word_add(x, x)))] && R(gs, ms, h))(
-        vs,
-        gs,
-        ms,
-        h),
+          res == [V_num(ConstInt32((x +₃₂ x)))] && R(gs, ms, h))(vs, gs, ms, h),
     [
       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
       (ms : Num) => (h : Heap) =>
         (
           (res : List[Value]) => (gs : List[Value]) => (ms : Num) =>
           (h : Heap) =>
-            res == [V_num(ConstInt32(word_add(x, x)))] && R(gs, ms, h))(
+            res == [V_num(ConstInt32((x +₃₂ x)))] && R(gs, ms, h))(
           vs,
           gs,
           ms,
@@ -8730,7 +8700,7 @@ then
     apply_code,
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
-      vs == [V_num(ConstInt32(word_add(x, x)))]
+      vs == [V_num(ConstInt32((x +₃₂ x)))]
       && lc == [V_num(ConstInt32(x)), V_num(ConstInt32(k))]
       && R(gs, ms, h),
     NIL)
@@ -8762,7 +8732,7 @@ then
     apply_code,
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
-      vs == [V_num(ConstInt32(word_add(x, x)))]
+      vs == [V_num(ConstInt32((x +₃₂ x)))]
       && lc == [V_num(ConstInt32(x)), V_num(ConstInt32(k))]
       && R(gs, ms, h),
     NIL)
@@ -8791,7 +8761,7 @@ if
   10. globs_ok(s, f)
   11. reduce_trans((s, f, MAP(Basic, apply_code)), (s2, f2, es2))
 then
-  es2 == MAP(v_to_e, [V_num(ConstInt32(word_add(x, x)))])
+  es2 == MAP(v_to_e, [V_num(ConstInt32((x +₃₂ x)))])
   && s_funcs(s2) == fs
   && s_tabs(s2) == s_tabs(s)
   && f_inst(f2) == inst
@@ -8809,7 +8779,7 @@ definition `has_i32`
 
 ```
 has_i32((h : Heap), (a : Num), (x : W32))
-  == (∃ q : HProp, star(pts(a, serialise_i32(x)), q, h))
+  == (∃ q : HProp, ((pts((a : Num), serialise_i32((x : W32))) * q)((h : Heap))))
 ```
 
 lemma `has_i32_star`
@@ -8817,7 +8787,7 @@ lemma `has_i32_star`
 ```
 ∀ (p r : HProp) (h : Heap) (a : Num) (x : W32)
 if
-  1. star((h0 : Heap) => p(h0) && has_i32(h0, a, x), r, h)
+  1. (((h0 : Heap) => p(h0) && has_i32(h0, a, x)) * r)(h)
 then
   has_i32(h, a, x)
 ```
@@ -8874,8 +8844,8 @@ lemma `chunk_pair`
 ∀ (lc : List[Value]) (R : GProp),
   sl_triple(
     st(NIL, lc, R),
-    [EConstNum(ConstInt32(word(1))), EConstNum(ConstInt32(word(2)))],
-    st([V_num(ConstInt32(word(1))), V_num(ConstInt32(word(2)))], lc, R))
+    [EConstNum(ConstInt32(1w)), EConstNum(ConstInt32(2w))],
+    st([V_num(ConstInt32(1w)), V_num(ConstInt32(2w))], lc, R))
 ```
 
 example `example_chunks`
@@ -8884,9 +8854,9 @@ example `example_chunks`
 ∀ (lc : List[Value]) (R : GProp),
   sl_triple(
     st(NIL, lc, R),
-    [EConstNum(ConstInt32(word(1))), EConstNum(ConstInt32(word(2))),
+    [EConstNum(ConstInt32(1w)), EConstNum(ConstInt32(2w)),
      Binop(T_i32, Binop_i(Add))],
-    st([V_num(ConstInt32(word(3)))], lc, R))
+    st([V_num(ConstInt32(3w))], lc, R))
 ```
 
 lemma `chunk_hidden_locals`
@@ -8895,11 +8865,10 @@ lemma `chunk_hidden_locals`
 ∀ (lc : List[Value]) (R : GProp),
   sl_triple(
     st(NIL, lc, R),
-    [EConstNum(ConstInt32(word(1))), EConstNum(ConstInt32(word(2)))],
+    [EConstNum(ConstInt32(1w)), EConstNum(ConstInt32(2w))],
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
-      vs == [V_num(ConstInt32(word(1))), V_num(ConstInt32(word(2)))]
-      && R(gs, ms, h))
+      vs == [V_num(ConstInt32(1w)), V_num(ConstInt32(2w))] && R(gs, ms, h))
 ```
 
 example `example_chunks_hidden_locals`
@@ -8908,11 +8877,10 @@ example `example_chunks_hidden_locals`
 ∀ (lc : List[Value]) (R : GProp),
   sl_triple(
     st(NIL, lc, R),
-    [EConstNum(ConstInt32(word(1))), EConstNum(ConstInt32(word(2)))],
+    [EConstNum(ConstInt32(1w)), EConstNum(ConstInt32(2w))],
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
-      vs == [V_num(ConstInt32(word(1))), V_num(ConstInt32(word(2)))]
-      && R(gs, ms, h))
+      vs == [V_num(ConstInt32(1w)), V_num(ConstInt32(2w))] && R(gs, ms, h))
 ```
 
 example `example_chunks_return`
@@ -8927,18 +8895,18 @@ example `example_chunks_return`
     inst,
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
-      vs == [V_num(ConstInt32(word(1)))] && R(gs, ms, h),
+      vs == [V_num(ConstInt32(1w))] && R(gs, ms, h),
     st(NIL, lc, R),
-    [EConstNum(ConstInt32(word(1))),
-     If(Tbv(NONE), [EConstNum(ConstInt32(word(1))), Return], NIL),
-     EConstNum(ConstInt32(word(2)))],
+    [EConstNum(ConstInt32(1w)),
+     If(Tbv(NONE), [EConstNum(ConstInt32(1w)), Return], NIL),
+     EConstNum(ConstInt32(2w))],
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
       false,
     [
       (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
       (ms : Num) => (h : Heap) =>
-        vs == [V_num(ConstInt32(word(1)))] && R(gs, ms, h)])
+        vs == [V_num(ConstInt32(1w))] && R(gs, ms, h)])
 ```
 
 lemma `sl_false_l`
@@ -9451,8 +9419,8 @@ lemma `safe_abort_unit_if`
 ∀ (n : Num) (s : Wstore) (f : Wframe) (q : Assn) (a : (Wstore, Wframe) -> Bool)
   (c : W32) (bs1 bs2 : List[B_e])
 if
-  1. !(c == word(0)) → safe_abort(n, s, f, [Basic(Block(Tbv(NONE), bs1))], q, a)
-  2. c == word(0) → safe_abort(n, s, f, [Basic(Block(Tbv(NONE), bs2))], q, a)
+  1. !(c == 0w) → safe_abort(n, s, f, [Basic(Block(Tbv(NONE), bs1))], q, a)
+  2. c == 0w → safe_abort(n, s, f, [Basic(Block(Tbv(NONE), bs2))], q, a)
 then
   safe_abort(
     SUC(n),
@@ -9526,7 +9494,7 @@ lemma `sl_abort_if_blocks_m`
 ∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (lc : List[Value]) (R : GProp)
   (c : W32) (bs1 bs2 : List[B_e]) (Q A : SAssn)
 if
-  1. !(c == word(0)) → sl_abort_m(
+  1. !(c == 0w) → sl_abort_m(
        fs,
        tabs,
        inst,
@@ -9534,7 +9502,7 @@ if
        [Block(Tbv(NONE), bs1)],
        Q,
        A)
-  2. c == word(0) → sl_abort_m(
+  2. c == 0w → sl_abort_m(
        fs,
        tabs,
        inst,
@@ -9559,8 +9527,8 @@ lemma `sl_abort_if_st_m`
 ∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (lc : List[Value]) (R : GProp)
   (c : W32) (bs1 bs2 : List[B_e]) (Q A : SAssn)
 if
-  1. !(c == word(0)) → sl_abort_m(fs, tabs, inst, st(NIL, lc, R), bs1, Q, A)
-  2. c == word(0) → sl_abort_m(fs, tabs, inst, st(NIL, lc, R), bs2, Q, A)
+  1. !(c == 0w) → sl_abort_m(fs, tabs, inst, st(NIL, lc, R), bs1, Q, A)
+  2. c == 0w → sl_abort_m(fs, tabs, inst, st(NIL, lc, R), bs2, Q, A)
 then
   sl_abort_m(
     fs,
@@ -9719,8 +9687,8 @@ lemma `safe_abort_typed_if`
 ∀ (n : Num) (s : Wstore) (f : Wframe) (q : Assn) (a : (Wstore, Wframe) -> Bool)
   (v : Option[Valtype]) (c : W32) (bs1 bs2 : List[B_e])
 if
-  1. !(c == word(0)) → safe_abort(n, s, f, [Basic(Block(Tbv(v), bs1))], q, a)
-  2. c == word(0) → safe_abort(n, s, f, [Basic(Block(Tbv(v), bs2))], q, a)
+  1. !(c == 0w) → safe_abort(n, s, f, [Basic(Block(Tbv(v), bs1))], q, a)
+  2. c == 0w → safe_abort(n, s, f, [Basic(Block(Tbv(v), bs2))], q, a)
 then
   safe_abort(
     SUC(n),
@@ -9767,7 +9735,7 @@ lemma `sl_abort_typed_if_blocks_m`
 ∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (v : Option[Valtype])
   (lc : List[Value]) (R : GProp) (c : W32) (bs1 bs2 : List[B_e]) (Q A : SAssn)
 if
-  1. !(c == word(0)) → sl_abort_m(
+  1. !(c == 0w) → sl_abort_m(
        fs,
        tabs,
        inst,
@@ -9775,7 +9743,7 @@ if
        [Block(Tbv(v), bs1)],
        Q,
        A)
-  2. c == word(0) → sl_abort_m(
+  2. c == 0w → sl_abort_m(
        fs,
        tabs,
        inst,
@@ -9800,8 +9768,8 @@ lemma `sl_abort_typed_if_st_m`
 ∀ (fs : List[Cl]) (tabs : Tabs) (inst : Inst) (v : Option[Valtype])
   (lc : List[Value]) (R : GProp) (c : W32) (bs1 bs2 : List[B_e]) (Q A : SAssn)
 if
-  1. !(c == word(0)) → sl_abort_m(fs, tabs, inst, st(NIL, lc, R), bs1, Q, A)
-  2. c == word(0) → sl_abort_m(fs, tabs, inst, st(NIL, lc, R), bs2, Q, A)
+  1. !(c == 0w) → sl_abort_m(fs, tabs, inst, st(NIL, lc, R), bs1, Q, A)
+  2. c == 0w → sl_abort_m(fs, tabs, inst, st(NIL, lc, R), bs2, Q, A)
 then
   sl_abort_m(
     fs,
@@ -9932,13 +9900,9 @@ lemma `example_abort_typed_if`
     tabs,
     inst,
     st(NIL, lc, R),
-    [
-      EConstNum(ConstInt32(n)),
-      If(
-        Tbv(SOME(T_num(T_i32))),
-        [Unreachable],
-        [EConstNum(ConstInt32(word(42)))])],
-    st([V_num(ConstInt32(word(42)))], lc, R),
+    [EConstNum(ConstInt32(n)),
+     If(Tbv(SOME(T_num(T_i32))), [Unreachable], [EConstNum(ConstInt32(42w))])],
+    st([V_num(ConstInt32(42w))], lc, R),
     st(NIL, lc, R))
 ```
 
@@ -9970,16 +9934,16 @@ lemma `chunk_general_return`
     inst,
     (vs : List[Value]) => (lc2 : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
-      vs == [V_num(ConstInt32(word(1)))] && R(gs, ms, h),
+      vs == [V_num(ConstInt32(1w))] && R(gs, ms, h),
     st(NIL, lc, R),
-    [EConstNum(ConstInt32(word(1))), Return],
+    [EConstNum(ConstInt32(1w)), Return],
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
       false,
     [
       (vs : List[Value]) => (lc2 : List[Value]) => (gs : List[Value]) =>
       (ms : Num) => (h : Heap) =>
-        vs == [V_num(ConstInt32(word(1)))] && R(gs, ms, h)])
+        vs == [V_num(ConstInt32(1w))] && R(gs, ms, h)])
 ```
 
 example `example_general_chunks_return`
@@ -9994,16 +9958,16 @@ example `example_general_chunks_return`
     inst,
     (vs : List[Value]) => (lc2 : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
-      vs == [V_num(ConstInt32(word(1)))] && R(gs, ms, h),
+      vs == [V_num(ConstInt32(1w))] && R(gs, ms, h),
     st(NIL, lc, R),
-    [EConstNum(ConstInt32(word(1))), Return, Unreachable],
+    [EConstNum(ConstInt32(1w)), Return, Unreachable],
     (vs : List[Value]) => (lc : List[Value]) => (gs : List[Value]) =>
     (ms : Num) => (h : Heap) =>
       false,
     [
       (vs : List[Value]) => (lc2 : List[Value]) => (gs : List[Value]) =>
       (ms : Num) => (h : Heap) =>
-        vs == [V_num(ConstInt32(word(1)))] && R(gs, ms, h)])
+        vs == [V_num(ConstInt32(1w))] && R(gs, ms, h)])
 ```
 
 example `example_general_disjunction`
@@ -10021,9 +9985,7 @@ example `example_general_disjunction`
     (ms : Num) => (h : Heap) =>
       lc == locals
       && R(gs, ms, h)
-      && (
-           vs == [V_num(ConstInt32(word(1)))]
-           || vs == [V_num(ConstInt32(word(2)))]),
+      && (vs == [V_num(ConstInt32(1w))] || vs == [V_num(ConstInt32(2w))]),
     [Drop],
     st(NIL, locals, R),
     ls)

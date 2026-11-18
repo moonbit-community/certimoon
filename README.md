@@ -162,6 +162,18 @@ must read to trust it. Open
 `_site/index.html` through a local server (`python3 -m http.server -d
 _site`), since the pages load a stylesheet and a search index.
 
+The generic [`render`](render/README.md) package owns HOL statement layout,
+notation, listing export, and dependency traversal. It has no dependency on
+Wasm or the program logic. Logic and TLSF listings configure the typed `star`
+constant as a right-associative `*`; review pages link those symbols to its
+definition and retain the original statement in a disclosure. The Wasm word
+profile renders operations as `+₃₂`, `&₃₂`, `×₃₂`, and related symbols, with
+the word width shown explicitly. Word literals appear as `32w`; computed
+conversions keep their `word(...)` syntax. Notation is local to rendering and
+leaves the proof parser unchanged. The site generator
+accepts other theories with repeated `--theory path/to/theory.json` arguments
+and an optional `--title`.
+
 What a theorem depends on is computed by `@logic.depends_on`: the
 entries defining the constants of its statement, and those defining the
 constants of theirs, through `logic` and into `wasm`, until only

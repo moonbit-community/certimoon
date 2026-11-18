@@ -3,6 +3,7 @@ package "moonbit-community/certimoon/wasm"
 
 import {
   "bobzhang/hol_light/kernel",
+  "moonbit-community/certimoon/render",
   "moonbitlang/core/json",
 }
 
@@ -21,7 +22,7 @@ pub fn defined_constants(String, @kernel.Thm) -> Array[String]
 
 pub fn definitions() -> Array[(String, Array[String], Array[String])] raise
 
-pub fn export_entry(String, String, String, Array[String], Array[String], String, depends? : Array[String], outside? : Array[String]) -> @json.Json
+pub fn export_entry(String, String, String, Array[String], Array[String], String, depends? : Array[String], outside? : Array[String], references? : Array[@render.Reference], canonical? : String) -> @json.Json
 
 pub let layout_note : String
 
@@ -56,6 +57,10 @@ pub fn thm(String) -> @kernel.Thm
 pub fn traps_stmt(@kernel.Term) -> @kernel.Term raise
 
 pub fn wat_of_code(@kernel.Term, indent? : String) -> String raise
+
+pub fn word_infixes(@kernel.Term) -> Array[@render.Infix] raise
+
+pub fn word_literals(@kernel.Term) -> Array[@render.Atom] raise
 
 // Errors
 

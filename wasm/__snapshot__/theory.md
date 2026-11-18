@@ -416,13 +416,13 @@ msb_byte((b : Byte)) == bit(7, b)
 definition `zero_byte`
 
 ```
-zero_byte == word(0)
+zero_byte == 0w
 ```
 
 definition `negone_byte`
 
 ```
-negone_byte == word_not(word(0))
+negone_byte == word_not(0w)
 ```
 
 definition `nat_of_byte`
@@ -531,7 +531,7 @@ definition `int_div_u`
 
 ```
 int_div_u((x : Word[N]), (y : Word[N]))
-  == (if y == word(0) { NONE } else { SOME(word_udiv(x, y)) })
+  == (if y == 0w { NONE } else { SOME(word_udiv(x, y)) })
 ```
 
 definition `int_div_s`
@@ -540,11 +540,10 @@ definition `int_div_s`
 (int_div_s : (Word[N], Word[N]) -> Option[Word[N]])(
   (x : Word[N]),
   (y : Word[N])) == (
-  if y == (word : (Num) -> Word[N])(0)
+  if y == 0w
   || x == (word : (Num) -> Word[N])(
        EXP(2, (dimindex : ((N) -> Bool) -> Num)((UNIV : (N) -> Bool)) - 1))
-     && y == (word_not : (Word[N]) -> Word[N])((word : (Num) -> Word[N])(0)) {
-          (NONE : Option[Word[N]]) } else {
+     && y == (word_not : (Word[N]) -> Word[N])(0w) { (NONE : Option[Word[N]]) } else {
           (SOME : (Word[N]) -> Option[Word[N]])(
             (word_jdiv : (Word[N], Word[N]) -> Word[N])(x, y)) })
 ```
@@ -553,20 +552,20 @@ definition `int_rem_u`
 
 ```
 int_rem_u((x : Word[N]), (y : Word[N]))
-  == (if y == word(0) { NONE } else { SOME(word_umod(x, y)) })
+  == (if y == 0w { NONE } else { SOME(word_umod(x, y)) })
 ```
 
 definition `int_rem_s`
 
 ```
 int_rem_s((x : Word[N]), (y : Word[N]))
-  == (if y == word(0) { NONE } else { SOME(word_jrem(x, y)) })
+  == (if y == 0w { NONE } else { SOME(word_jrem(x, y)) })
 ```
 
 definition `int_eqz`
 
 ```
-int_eqz((x : Word[N])) == (x == word(0))
+int_eqz((x : Word[N])) == (x == 0w)
 ```
 
 ## Floating point (unspecified)
@@ -1000,13 +999,13 @@ deserialise_i64((bs : List[Byte])) == word(num_of_bytes(bs))
 definition `wasm_bool`
 
 ```
-wasm_bool((b : Bool)) == (if b { word(1) } else { word(0) })
+wasm_bool((b : Bool)) == (if b { 1w } else { 0w })
 ```
 
 definition `int32_minus_one`
 
 ```
-int32_minus_one == word_not(word(0))
+int32_minus_one == word_not(0w)
 ```
 
 ## Loads, stores, memories and tables
@@ -1197,8 +1196,8 @@ bits(V_num((vn : V_num))) == bits_num(vn)
 definition `bitzero_num`
 
 ```
-bitzero_num(T_i32) == ConstInt32(word(0))
-&& bitzero_num(T_i64) == ConstInt64(word(0))
+bitzero_num(T_i32) == ConstInt32(0w)
+&& bitzero_num(T_i64) == ConstInt64(0w)
 && bitzero_num(T_f32) == ConstFloat32(zero_f32)
 && bitzero_num(T_f64) == ConstFloat64(zero_f64)
 ```
@@ -1525,21 +1524,28 @@ app_unop(Unop_i((iop : Unop_i)), (v : V_num)) == app_unop_i_v(iop, v)
 definition `app_binop_i`
 
 ```
-app_binop_i(Add, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_add(c1, c2))
-&& app_binop_i(Sub, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_sub(c1, c2))
-&& app_binop_i(Mul, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_mul(c1, c2))
+app_binop_i(Add, (c1 : Word[N]), (c2 : Word[N]))
+  == SOME(((c1 : Word[N]) +ʷ (c2 : Word[N])))
+&& app_binop_i(Sub, (c1 : Word[N]), (c2 : Word[N]))
+     == SOME(((c1 : Word[N]) −ʷ (c2 : Word[N])))
+&& app_binop_i(Mul, (c1 : Word[N]), (c2 : Word[N]))
+     == SOME(((c1 : Word[N]) ×ʷ (c2 : Word[N])))
 && app_binop_i(Div(U), (c1 : Word[N]), (c2 : Word[N])) == int_div_u(c1, c2)
 && app_binop_i(Div(S), (c1 : Word[N]), (c2 : Word[N])) == int_div_s(c1, c2)
 && app_binop_i(Rem(U), (c1 : Word[N]), (c2 : Word[N])) == int_rem_u(c1, c2)
 && app_binop_i(Rem(S), (c1 : Word[N]), (c2 : Word[N])) == int_rem_s(c1, c2)
-&& app_binop_i(And, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_and(c1, c2))
-&& app_binop_i(Or, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_or(c1, c2))
-&& app_binop_i(Xor, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_xor(c1, c2))
-&& app_binop_i(Shl, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_jshl(c1, c2))
+&& app_binop_i(And, (c1 : Word[N]), (c2 : Word[N]))
+     == SOME(((c1 : Word[N]) &ʷ (c2 : Word[N])))
+&& app_binop_i(Or, (c1 : Word[N]), (c2 : Word[N]))
+     == SOME(((c1 : Word[N]) |ʷ (c2 : Word[N])))
+&& app_binop_i(Xor, (c1 : Word[N]), (c2 : Word[N]))
+     == SOME(((c1 : Word[N]) ^ʷ (c2 : Word[N])))
+&& app_binop_i(Shl, (c1 : Word[N]), (c2 : Word[N]))
+     == SOME(((c1 : Word[N]) <<ʷ (c2 : Word[N])))
 && app_binop_i(Shr(U), (c1 : Word[N]), (c2 : Word[N]))
-     == SOME(word_jushr(c1, c2))
+     == SOME(((c1 : Word[N]) >>>ʷ (c2 : Word[N])))
 && app_binop_i(Shr(S), (c1 : Word[N]), (c2 : Word[N]))
-     == SOME(word_jshr(c1, c2))
+     == SOME(((c1 : Word[N]) >>ʷ (c2 : Word[N])))
 && app_binop_i(Rotl, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_jrol(c1, c2))
 && app_binop_i(Rotr, (c1 : Word[N]), (c2 : Word[N])) == SOME(word_jror(c1, c2))
 ```
@@ -1600,8 +1606,8 @@ app_testop((op : Testop), ConstInt32((c1 : W32)))
   == ConstInt32(wasm_bool(app_testop_i(op, c1)))
 && app_testop((op : Testop), ConstInt64((c2 : W64)))
      == ConstInt32(wasm_bool(app_testop_i(op, c2)))
-&& app_testop((op : Testop), ConstFloat32((c3 : F32))) == ConstInt32(word(0))
-&& app_testop((op : Testop), ConstFloat64((c4 : F64))) == ConstInt32(word(0))
+&& app_testop((op : Testop), ConstFloat32((c3 : F32))) == ConstInt32(0w)
+&& app_testop((op : Testop), ConstFloat64((c4 : F64))) == ConstInt32(0w)
 ```
 
 definition `app_relop_i`
@@ -1627,7 +1633,7 @@ app_relop_i_v((iop : Relop_i), (v1 : V_num), (v2 : V_num)) == match (v1, v2) {
     ConstInt32(wasm_bool(app_relop_i(iop, a1, a2)));
   (ConstInt64(b1), ConstInt64(b2)) =>
     ConstInt32(wasm_bool(app_relop_i(iop, b1, b2)));
-  other => ConstInt32(word(0)) }
+  other => ConstInt32(0w) }
 ```
 
 definition `app_relop_f`
@@ -1649,7 +1655,7 @@ app_relop_f_v((fop : Relop_f), (v1 : V_num), (v2 : V_num)) == match (v1, v2) {
     ConstInt32(wasm_bool(app_relop_f(fop, a1, a2)));
   (ConstFloat64(b1), ConstFloat64(b2)) =>
     ConstInt32(wasm_bool(app_relop_f(fop, b1, b2)));
-  other => ConstInt32(word(0)) }
+  other => ConstInt32(0w) }
 ```
 
 definition `app_relop`
@@ -3145,7 +3151,7 @@ reduce_simple([Basic(Nop)], NIL)
 
 ∀ (v1 v2 : Value) (n : W32) (t_tag : Option[Valtype])
 if
-  1. n == word(0)
+  1. n == 0w
 then
   reduce_simple(
     [v_to_e(v1), v_to_e(v2), Basic(EConstNum(ConstInt32(n))),
@@ -3154,7 +3160,7 @@ then
 
 ∀ (v2 v1 : Value) (n : W32) (t_tag : Option[Valtype])
 if
-  1. !(n == word(0))
+  1. !(n == 0w)
 then
   reduce_simple(
     [v_to_e(v1), v_to_e(v2), Basic(EConstNum(ConstInt32(n))),
@@ -3163,7 +3169,7 @@ then
 
 ∀ (n : W32) (e1s e2s : List[B_e]) (tb : Tb)
 if
-  1. n == word(0)
+  1. n == 0w
 then
   reduce_simple(
     [Basic(EConstNum(ConstInt32(n))), Basic(If(tb, e1s, e2s))],
@@ -3171,7 +3177,7 @@ then
 
 ∀ (n : W32) (e2s e1s : List[B_e]) (tb : Tb)
 if
-  1. !(n == word(0))
+  1. !(n == 0w)
 then
   reduce_simple(
     [Basic(EConstNum(ConstInt32(n))), Basic(If(tb, e1s, e2s))],
@@ -3191,13 +3197,13 @@ then
 
 ∀ (n : W32) (i : Num)
 if
-  1. n == word(0)
+  1. n == 0w
 then
   reduce_simple([Basic(EConstNum(ConstInt32(n))), Basic(Br_if(i))], NIL)
 
 ∀ (n : W32) (i : Num)
 if
-  1. !(n == word(0))
+  1. !(n == 0w)
 then
   reduce_simple(
     [Basic(EConstNum(ConstInt32(n))), Basic(Br_if(i))],

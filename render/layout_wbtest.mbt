@@ -1,6 +1,6 @@
 ///|
 test "a statement with hypotheses is laid out, and reads back" {
-  load()
+  ignore(@arith.add_clauses())
   let t = @term_syntax.parse_term(
     "∀ x : Num, ∀ y : Num, x < y && y < 5 → (∀ z : Num, z == x → (∃ w : Num, w < 5 && z == w) || x == 0)",
   )
@@ -24,7 +24,7 @@ test "a statement with hypotheses is laid out, and reads back" {
 
 ///|
 test "a name bound twice is not shown at the top" {
-  load()
+  ignore(@arith.add_clauses())
   // the inner x is another variable: the layout keeps it where it is
   let t = @term_syntax.parse_term(
     "∀ x : Num, x < 5 → (∀ x : Num, x == x)",
@@ -43,9 +43,11 @@ test "a name bound twice is not shown at the top" {
 
 ///|
 test "a statement with no hypotheses" {
-  load()
+  ignore(@arith.add_clauses())
   inspect(
-    layout_statement(@term_syntax.parse_term("∀ x : Num, ∀ y : Num, x + y == y + x")),
+    layout_statement(
+      @term_syntax.parse_term("∀ x : Num, ∀ y : Num, x + y == y + x"),
+    ),
     content="∀ (x y : Num), x + y == y + x",
   )
   inspect(layout_statement(@term_syntax.parse_term("1 < 2")), content="1 < 2")
@@ -53,9 +55,11 @@ test "a statement with no hypotheses" {
 
 ///|
 test "a definition's equations, a line each" {
-  load()
+  ignore(@arith.add_clauses())
   inspect(
-    layout_statement(@term_syntax.parse_term("1 < 2 && 2 < 3 && (∀ x : Num, x == x)")),
+    layout_statement(
+      @term_syntax.parse_term("1 < 2 && 2 < 3 && (∀ x : Num, x == x)"),
+    ),
     content=(
       #|1 < 2
       #|&& 2 < 3

@@ -1,0 +1,70 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbit-community/certimoon/render"
+
+import {
+  "bobzhang/hol_light/kernel",
+  "moonbitlang/core/json",
+}
+
+// Values
+pub fn defined_constants(String, @kernel.Thm) -> Array[String]
+
+pub fn depends_on(Array[String], Array[(String, String, Array[String], Array[String])]) -> (Array[(String, String)], Array[String])
+
+pub fn export_entry(String, String, String, Array[String], Array[String], String, depends? : Array[String], outside? : Array[String], references? : Array[Reference], canonical? : String) -> @json.Json
+
+pub let layout_note : String
+
+pub fn layout_statement(@kernel.Term, abbreviate? : (String) -> String, infixes? : Array[Infix], atoms? : Array[Atom]) -> String
+
+pub fn render_json(String, Array[@json.Json]) -> String
+
+pub fn render_listing(String, String, Array[(String, String, String)]) -> String
+
+pub fn statement(@kernel.Term, abbreviate? : (String) -> String, infixes? : Array[Infix], atoms? : Array[Atom]) -> Statement
+
+pub fn term_constants(@kernel.Term) -> Array[String]
+
+// Errors
+
+// Types and methods
+#derive(Eq)
+pub(all) enum Associativity {
+  Left
+  Right
+  NonAssociative
+}
+pub fn Associativity::equal(Self, Self) -> Bool
+pub fn Associativity::not_equal(Self, Self) -> Bool
+
+pub struct Atom {
+  term : @kernel.Term
+  text : String
+}
+pub fn Atom::new(@kernel.Term, text~ : String) -> Self raise
+
+pub struct Infix {
+  constant : @kernel.Term
+  symbol : String
+  precedence : Int32
+  associativity : Associativity
+}
+pub fn Infix::new(@kernel.Term, symbol~ : String, precedence~ : Int32, associativity? : Associativity) -> Self raise
+
+pub(all) struct Reference {
+  start : Int32
+  length : Int32
+  constant : String
+}
+
+pub struct Statement {
+  text : String
+  canonical : String
+  references : Array[Reference]
+}
+pub fn Statement::join(Array[Self], separator~ : String) -> Self
+pub fn Statement::plain(String) -> Self
+
+// Type aliases
+
+// Traits

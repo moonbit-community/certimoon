@@ -1,0 +1,71 @@
+{
+  "source_base_commit": "85690f484ac3dd081c946b1a35fa3c6e25f3be70",
+  "source_branch": "codex/generic-proof-renderer",
+  "integrated_commits": [
+    "271bcac",
+    "9238bee",
+    "4ec8eaa",
+    "a530ff2"
+  ],
+  "integration": "Source changes applied; listings regenerated from the current proofs rather than copied from the older branch.",
+  "package_checks": {
+    "wasm_gc": true,
+    "native": true
+  },
+  "focused_renderer_and_notation_tests": {
+    "passed": 28,
+    "failed": 0
+  },
+  "listing_snapshot_tests": {
+    "passed": 6,
+    "failed": 0,
+    "proofs_replayed": true
+  },
+  "python_tests": {
+    "passed": 53,
+    "failed": 0
+  },
+  "shipped_wat_comparisons": {
+    "passed": 22,
+    "failed": 0
+  },
+  "export_audit": {
+    "wasm": {
+      "entries": 407,
+      "named_declarations": 384,
+      "readable_statements_changed": 15,
+      "notation_references": 32,
+      "canonical_and_dependency_metadata_unchanged": true
+    },
+    "logic": {
+      "entries": 640,
+      "named_declarations": 612,
+      "readable_statements_changed": 124,
+      "notation_references": 310,
+      "canonical_and_dependency_metadata_unchanged": true
+    },
+    "tlsf": {
+      "entries": 1451,
+      "named_declarations": 1429,
+      "readable_statements_changed": 770,
+      "notation_references": 9696,
+      "canonical_and_dependency_metadata_unchanged": true
+    }
+  },
+  "tlsf_pop": {
+    "original_lines": 169,
+    "readable_lines": 106,
+    "notation_references": 140
+  },
+  "site_build": {
+    "file_pages": 423,
+    "review_pages": 72
+  },
+  "visual_checks": {
+    "tlsf_pop": true,
+    "startup_guard": true,
+    "original_statement_disclosure": true,
+    "star_definition_links": true
+  },
+  "interfaces": "New render package and Wasm notation helpers; existing Wasm export helper gains optional reference/canonical metadata. Logic and TLSF public interfaces are unchanged."
+}

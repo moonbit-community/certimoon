@@ -159,15 +159,24 @@ def anchor(name):
 
 
 class Site:
-    def __init__(self, root, source_url):
+    def __init__(self, root, source_url, theories=None, title=None):
         self.source_url = source_url.rstrip("/") + "/"
+        self.title = title or "CertiMoon review"
+        self.custom = theories is not None
+        self.packages = []
         self.entries = []      # all entries but sections, in order
         self.by_name = {}
         self.by_key = {}       # "package/name" -> entry
         self.definer = {}      # constant -> entry
-        for pkg in PACKAGES:
-            path = os.path.join(root, pkg, "__snapshot__", "theory.json")
-            data = json.load(open(path))
+        paths = theories if theories is not None else [
+            os.path.join(pkg, "__snapshot__", "theory.json") for pkg in PACKAGES]
+        for path in paths:
+            with open(os.path.join(root, path)) as f:
+                data = json.load(f)
+            pkg = data["package"]
+            if pkg in self.packages:
+                raise ValueError(f"duplicate package: {pkg}")
+            self.packages.append(pkg)
             section = ""
             for e in data["entries"]:
                 if e["kind"] == "section":
@@ -213,6 +222,23 @@ class Site:
         """The statement of `e` with the constants it uses linked to the
         entries that define them."""
         text = e["statement"]
+        out, k = [], 0
+        for ref in e.get("references", []):
+            start, length = ref["start"], ref["length"]
+            if start < k or length <= 0 or start + length > len(text):
+                raise ValueError(f"invalid notation reference in {e['name']}")
+            out.append(self.linked_text(text[k:start], e, depth, here))
+            d = self.definer.get(ref["constant"])
+            symbol = esc(text[start:start + length])
+            if d is not None and d is not e and ref["constant"] in e["uses"]:
+                out.append(f'<a href="{self.href(d, depth, here)}" title="{esc(d["kind"])} {esc(d["name"])}">{symbol}</a>')
+            else:
+                out.append(symbol)
+            k = start + length
+        out.append(self.linked_text(text[k:], e, depth, here))
+        return "".join(out)
+
+    def linked_text(self, text, e, depth, here=()):
         uses = set(e["uses"])
         out, k = [], 0
         for m in IDENT.finditer(text):
@@ -238,6 +264,10 @@ class Site:
         head = (f'<span class="kind {kind_cls}">{esc(e["kind"])}</span> '
                 f'<span class="name">{esc(e["name"])}</span> {self.source_link(e)}')
         body = f'<pre>{self.linked(e, depth, here)}</pre>' if e["statement"] else ""
+        canonical = e.get("canonical_statement")
+        if canonical is not None and canonical != e["statement"]:
+            body += ('<details class="canonical"><summary>Original statement</summary><pre>'
+                     + self.linked_text(canonical, e, depth, here) + '</pre></details>')
         users = self.used_by.get(id(e), [])
         if users:
             links = ", ".join(f'<a href="{self.href(u, depth, here)}">{esc(u["name"])}</a>' for u in users[:60])
@@ -256,7 +286,7 @@ class Site:
 
     def nav(self, depth, here):
         up = "../" * depth
-        parts = ['<nav>', f'<div><a href="{up}index.html"><b>CertiMoon review</b></a></div>',
+        parts = ['<nav>', f'<div><a href="{up}index.html"><b>{esc(self.title)}</b></a></div>',
                  '<h2>Search</h2><input id="search" placeholder="a name…" autocomplete="off">',
                  '<ul id="results"></ul>']
         for title, es in [("Theorems", self.theorems), ("Examples", self.examples)]:
@@ -268,7 +298,7 @@ class Site:
                 cls = ' class="here"' if p == here else ""
                 parts.append(f'<li><a{cls} href="{up}{esc(p)}">{esc(e["name"])}</a></li>')
             parts.append('</ul>')
-        for pkg in PACKAGES:
+        for pkg in self.packages:
             parts.append(f'<h2>{esc(pkg)}</h2><ul>')
             for p, f, page in self.pages:
                 if p != pkg:
@@ -337,6 +367,9 @@ class Site:
                'statement to the entries that define them. The proofs need no reading: the '
                'kernel checks them, and no axioms are added.</div>',
                self.entry_html(e, depth, fold_lemmas=False, here=here)]
+        if self.custom:
+            out[1] = ('<div class="note">Read the statement and the defining entries below. '
+                      'Dependencies are followed through the exported HOL theories.</div>')
         # the code the statement is about first, then the rest in listing order
         programs = [d for d in deps if d["kind"] == "program"]
         if programs:
@@ -367,36 +400,43 @@ class Site:
                 n["definition" if e["kind"] != "relation" else "relation"] += 1
             elif e["kind"] in n:
                 n[e["kind"]] += 1
-        out = ['<h1>CertiMoon: what is defined and proved</h1>',
+        heading = (f'<h1>{esc(self.title)}: what is defined and proved</h1>'
+                   if self.custom or self.title != "CertiMoon review" else
+                   '<h1>CertiMoon: what is defined and proved</h1>')
+        out = [heading,
+               ('<div class="note">Statements and definitions exported by HOL proof packages. '
+                'Follow each statement to the definitions it depends on.</div>' if self.custom else
                '<div class="note">A theorem here trusts hol_light\'s kernel, the definitions its '
                'statement depends on, and its statement; nothing else. Package <b>wasm</b> is '
                'WasmCert\'s WebAssembly semantics ported from Isabelle; package <b>logic</b> is a '
                'separation logic proved sound against it; <b>tlsf</b> verifies MoonBit\'s allocator. '
                'These packages add no axioms. The proofs are '
                'checked by the kernel when the packages load, so a review reads definitions and '
-               'statements, not proofs.</div>',
+               'statements, not proofs.</div>'),
                f'<p>{n["definition"]} definitions and datatypes, {count(n["relation"], "relation")}, '
                f'{count(n["program"], "program")}, {count(n["lemma"], "lemma")}, {count(n["theorem"], "closed theorem")} and '
                f'{count(n["example"], "example")}.</p>',
+               ('<h2 class="section">Theorems</h2>' if self.custom else
                '<h2 class="section">Closed theorems</h2><p class="muted">What the verified '
                'programs do, stated about their runs (<code>reduce_trans</code>), with no '
-               'assertion or triple: these are the results to review.</p>']
+               'assertion or triple: these are the results to review.</p>')]
         for e in self.theorems:
             deps, _ = self.closure(e)
             out.append(self.entry_html(e, 0, fold_lemmas=False))
             out.append(f'<p><a href="review/{esc(e["name"])}.html">What {esc(e["name"])} depends on: '
                        f'{self.depends_summary(deps)}</a></p>')
-        out.append('<h2 class="section">Examples</h2><p class="muted">Triples of verified '
+        out.append(('<h2 class="section">Examples</h2>' if self.custom else
+                   '<h2 class="section">Examples</h2><p class="muted">Triples of verified '
                    'programs, stated in the program logic. A triple says what the runs do through '
                    'the logic\'s adequacy theorems, so its review also reads the logic\'s '
-                   'definitions; a closed theorem says it directly.</p>'
+                   'definitions; a closed theorem says it directly.</p>') +
                    '<table><tr><th>Example</th><th>Depends on</th><th>Source</th></tr>')
         for e in self.examples:
             deps, _ = self.closure(e)
             out.append(f'<tr><td><a href="review/{esc(e["name"])}.html"><code>{esc(e["name"])}</code></a></td>'
                        f'<td>{len(deps)} definitions</td><td>{self.source_link(e)}</td></tr>')
         out.append('</table>')
-        for pkg in PACKAGES:
+        for pkg in self.packages:
             out.append(f'<h2 class="section">Package {esc(pkg)}</h2><table>'
                        '<tr><th>File</th><th>Definitions</th><th>Lemmas</th></tr>')
             for p, f, page in self.pages:
@@ -407,7 +447,7 @@ class Site:
                 lm = sum(1 for e in es if e["kind"] in ("lemma", "theorem", "example"))
                 out.append(f'<tr><td><a href="{esc(page)}">{esc(f)}</a></td><td>{d}</td><td>{lm}</td></tr>')
             out.append('</table>')
-        return self.document("CertiMoon review", 0, "index.html", "".join(out), fragment)
+        return self.document(self.title, 0, "index.html", "".join(out), fragment)
 
     def search_index(self):
         items = [[e["name"], self.href(e, 0)] for e in self.entries]
@@ -435,10 +475,13 @@ def main():
     ap.add_argument("--out", default="_site")
     ap.add_argument("--root", default=".")
     ap.add_argument("--source-url", default="https://github.com/moonbit-community/certimoon/blob/main/")
+    ap.add_argument("--theory", action="append",
+                    help="theory JSON input relative to --root; repeat for multiple packages")
+    ap.add_argument("--title", help="site title (default: CertiMoon review)")
     ap.add_argument("--fragment-index", action="store_true",
                     help="write index.html without its doctype, html, head and body tags")
     args = ap.parse_args()
-    site = Site(args.root, args.source_url)
+    site = Site(args.root, args.source_url, args.theory, args.title)
     write(os.path.join(args.out, "style.css"), CSS)
     write(os.path.join(args.out, "search.js"), SEARCH_JS)
     write(os.path.join(args.out, "search_index.js"), site.search_index())
@@ -451,4 +494,5 @@ def main():
           file=sys.stderr)
 
 
-main()
+if __name__ == "__main__":
+    main()
